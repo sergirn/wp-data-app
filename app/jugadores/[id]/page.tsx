@@ -1,5 +1,3 @@
-"use client";
-
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { Player, MatchStats, Match } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { PieChart, Pie, Cell } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, PieChart, Pie, Cell } from "./chartSection";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
