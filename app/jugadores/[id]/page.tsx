@@ -1,5 +1,3 @@
-"use client"
-
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,11 +13,16 @@ interface MatchStatsWithMatch extends MatchStats {
   matches: Match
 }
 
-export default async function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const supabase = await createClient()
+export default async function PlayerDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
 
-  const { data: player, error: playerError } = await supabase.from("players").select("*").eq("id", id).single()
+  const supabase = createClient()
+
+  const { data: player, error: playerError } = await supabase
+    .from("players")
+    .select("*")
+    .eq("id", id)
+    .single()
 
   if (playerError || !player) {
     notFound()
@@ -31,12 +34,11 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
       `
       *,
       matches (*)
-    `,
+    `
     )
     .eq("player_id", id)
     .order("matches(match_date)", { ascending: false })
 
-  // Calculate total stats
   const totalStats = calculateTotalStats(matchStats || [], player.is_goalkeeper)
 
   return (
@@ -57,7 +59,9 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
               </div>
               <div>
                 <CardTitle className="text-3xl">{player.name}</CardTitle>
-                <p className="text-muted-foreground">{player.is_goalkeeper ? "Portero" : "Jugador de Campo"}</p>
+                <p className="text-muted-foreground">
+                  {player.is_goalkeeper ? "Portero" : "Jugador de Campo"}
+                </p>
               </div>
             </div>
           </CardHeader>
@@ -72,7 +76,11 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         </TabsList>
 
         <TabsContent value="totals">
-          <TotalStatsView player={player} stats={totalStats} matchCount={matchStats?.length || 0} />
+          <TotalStatsView
+            player={player}
+            stats={totalStats}
+            matchCount={matchStats?.length || 0}
+          />
         </TabsContent>
 
         <TabsContent value="matches">
