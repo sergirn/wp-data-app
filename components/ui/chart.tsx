@@ -1,5 +1,17 @@
 "use client"
 
+if (typeof window === "undefined") {
+  // Exporta componentes vacíos en el servidor
+  const Noop = () => null
+  export const ChartContainer = Noop
+  export const ChartTooltip = Noop
+  export const ChartTooltipContent = Noop
+  export const ChartLegend = Noop
+  export const ChartLegendContent = Noop
+  export const ChartStyle = Noop
+  return
+}
+
 import * as React from "react"
 import { createContext, useContext } from "react"
 import * as RechartsPrimitive from "recharts"
