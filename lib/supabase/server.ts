@@ -1,28 +1,30 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase credentials missing")
+    return null
   }
 
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value
+      getAll() {
+        return cookieStore.getAll()
       },
-      set(name: string, value: string, options: any) {
+      setAll(cookiesToSet) {
         try {
-          cookieStore.set(name, value, options)
-        } catch (e) {
-          // Cookie setting will fail during SSG/Build-time, ignore silently
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options)
+          })
+        } catch (error) {
+          // Handle cookie setting errors gracefully (e.g., in middleware)
         }
-      }
-    }
+      },
+    },
   })
 }
