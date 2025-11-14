@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import type { Player } from "@/lib/types"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle } from 'lucide-react'
 import { useClub } from "@/lib/club-context"
 import { useEffect, useState, memo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -113,7 +113,7 @@ export default function PlayersPage() {
 
   if (error) {
     return (
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error de Conexión</AlertTitle>
@@ -130,7 +130,7 @@ export default function PlayersPage() {
 
   if (loading) {
     return (
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando jugadores...</p>
         </div>
@@ -142,10 +142,10 @@ export default function PlayersPage() {
   const goalkeepers = players.filter((p) => p.is_goalkeeper)
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Jugadores</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Jugadores</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Estadísticas individuales de {currentClub?.short_name || "la plantilla"}
         </p>
       </div>
@@ -163,14 +163,18 @@ export default function PlayersPage() {
         </Alert>
       ) : (
         <Tabs defaultValue="field-players" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-            <TabsTrigger value="field-players">Jugadores ({fieldPlayers.length})</TabsTrigger>
-            <TabsTrigger value="goalkeepers">Porteros ({goalkeepers.length})</TabsTrigger>
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 sm:mb-6">
+            <TabsTrigger value="field-players" className="text-xs sm:text-sm">
+              Jugadores ({fieldPlayers.length})
+            </TabsTrigger>
+            <TabsTrigger value="goalkeepers" className="text-xs sm:text-sm">
+              Porteros ({goalkeepers.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="field-players">
             {fieldPlayers.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {fieldPlayers.map((player) => (
                   <FieldPlayerCard key={player.id} player={player} />
                 ))}
@@ -188,7 +192,7 @@ export default function PlayersPage() {
 
           <TabsContent value="goalkeepers">
             {goalkeepers.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {goalkeepers.map((player) => (
                   <GoalkeeperCard key={player.id} player={player} />
                 ))}
@@ -217,38 +221,38 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
   return (
     <Link href={`/jugadores/${player.id}`}>
       <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-        <CardHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
             </div>
-            <CardTitle className="text-xl">{player.name}</CardTitle>
+            <CardTitle className="text-base sm:text-xl truncate">{player.name}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <p className="text-2xl font-bold">{player.matchesPlayed}</p>
-              <p className="text-xs text-muted-foreground">Partidos Jugados</p>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold">{player.matchesPlayed}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Partidos</p>
             </div>
-            <div className="text-center p-3 bg-blue-500/10 rounded-lg">
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalGoles}</p>
-              <p className="text-xs text-muted-foreground">Goles Totales</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {(player.totalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} por partido
+            <div className="text-center p-2 sm:p-3 bg-blue-500/10 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalGoles}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Goles</p>
+              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
+                {(player.totalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-3 bg-green-500/10 rounded-lg">
-              <p className="text-2xl font-bold text-green-700 dark:text-green-300">{player.totalTiros}</p>
-              <p className="text-xs text-muted-foreground">Tiros Totales</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {(player.totalTiros / Math.max(player.matchesPlayed, 1)).toFixed(1)} por partido
+            <div className="text-center p-2 sm:p-3 bg-green-500/10 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">{player.totalTiros}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Tiros</p>
+              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
+                {(player.totalTiros / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-3 bg-purple-500/10 rounded-lg">
-              <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{eficiencia}%</p>
-              <p className="text-xs text-muted-foreground">Eficiencia</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Goles / Tiros</p>
+            <div className="text-center p-2 sm:p-3 bg-purple-500/10 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">{eficiencia}%</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Eficiencia</p>
+              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">Goles / Tiros</p>
             </div>
           </div>
         </CardContent>
@@ -273,38 +277,40 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
   return (
     <Link href={`/jugadores/${player.id}`}>
       <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-        <CardHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
             </div>
-            <CardTitle className="text-xl">{player.name}</CardTitle>
+            <CardTitle className="text-base sm:text-xl truncate">{player.name}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <p className="text-2xl font-bold">{player.matchesPlayed}</p>
-              <p className="text-xs text-muted-foreground">Partidos Jugados</p>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold">{player.matchesPlayed}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Partidos</p>
             </div>
-            <div className="text-center p-3 bg-blue-500/10 rounded-lg">
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalParadas}</p>
-              <p className="text-xs text-muted-foreground">Paradas Totales</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {(player.totalParadas / Math.max(player.matchesPlayed, 1)).toFixed(1)} por partido
+            <div className="text-center p-2 sm:p-3 bg-blue-500/10 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalParadas}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Paradas</p>
+              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
+                {(player.totalParadas / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-3 bg-green-500/10 rounded-lg">
-              <p className="text-2xl font-bold text-green-700 dark:text-green-300">{player.totalRivalGoles}</p>
-              <p className="text-xs text-muted-foreground">Goles Totales</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {(player.totalRivalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} por partido
+            <div className="text-center p-2 sm:p-3 bg-green-500/10 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">
+                {player.totalRivalGoles}
+              </p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Goles</p>
+              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
+                {(player.totalRivalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-3 bg-purple-500/10 rounded-lg">
-              <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{eficiencia}%</p>
-              <p className="text-xs text-muted-foreground">Eficiencia</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Paradas / Total</p>
+            <div className="text-center p-2 sm:p-3 bg-purple-500/10 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">{eficiencia}%</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Eficiencia</p>
+              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">Paradas / Total</p>
             </div>
           </div>
         </CardContent>
