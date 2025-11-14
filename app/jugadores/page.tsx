@@ -223,8 +223,16 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
       <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2 sm:gap-3 mb-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {player.photo_url ? (
+                <img 
+                  src={player.photo_url || "/placeholder.svg"} 
+                  alt={player.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
+              )}
             </div>
             <CardTitle className="text-base sm:text-xl truncate">{player.name}</CardTitle>
           </div>
@@ -279,8 +287,16 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
       <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2 sm:gap-3 mb-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {player.photo_url ? (
+                <img 
+                  src={player.photo_url || "/placeholder.svg"} 
+                  alt={player.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
+              )}
             </div>
             <CardTitle className="text-base sm:text-xl truncate">{player.name}</CardTitle>
           </div>

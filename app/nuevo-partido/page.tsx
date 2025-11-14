@@ -601,8 +601,16 @@ export default function NewMatchPage() {
                       className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-primary/10 bg-transparent w-full border-2 hover:border-primary transition-all"
                       onClick={() => setSelectedPlayer(player)}
                     >
-                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {player.photo_url ? (
+                          <img 
+                            src={player.photo_url || "/placeholder.svg"} 
+                            alt={player.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+                        )}
                       </div>
                       <span className="font-medium text-sm text-center w-full truncate px-1">{player.name}</span>
                       <span className="text-xs text-muted-foreground">
@@ -644,8 +652,16 @@ export default function NewMatchPage() {
                       className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-primary/10 bg-transparent w-full border-2 hover:border-primary transition-all"
                       onClick={() => setSelectedPlayer(player)}
                     >
-                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary-foreground font-bold">{player.number}</span>
+                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {player.photo_url ? (
+                          <img 
+                            src={player.photo_url || "/placeholder.svg"} 
+                            alt={player.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-primary-foreground font-bold">{player.number}</span>
+                        )}
                       </div>
                       <span className="font-medium text-sm text-center w-full truncate px-1">{player.name}</span>
                       <span className="text-xs text-muted-foreground">
@@ -692,8 +708,16 @@ export default function NewMatchPage() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold">{selectedPlayer.number}</span>
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {selectedPlayer.photo_url ? (
+                    <img 
+                      src={selectedPlayer.photo_url || "/placeholder.svg"} 
+                      alt={selectedPlayer.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-primary-foreground font-bold">{selectedPlayer.number}</span>
+                  )}
                 </div>
                 {selectedPlayer.name}
               </DialogTitle>

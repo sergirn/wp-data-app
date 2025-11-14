@@ -4,6 +4,7 @@ export interface Player {
   name: string
   is_goalkeeper: boolean
   club_id: number
+  photo_url?: string | null // Added photo_url field for player photos
 }
 
 export interface Match {
