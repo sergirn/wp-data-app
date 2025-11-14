@@ -561,7 +561,6 @@ export default function NewMatchPage() {
                 <div className="space-y-2">
                   <Label htmlFor="season">Temporada</Label>
                   <Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">Actualizada automáticamente cada septiembre</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="jornada">Jornada</Label>
@@ -602,10 +601,10 @@ export default function NewMatchPage() {
                       className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-primary/10 bg-transparent w-full border-2 hover:border-primary transition-all"
                       onClick={() => setSelectedPlayer(player)}
                     >
-                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                         <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
                       </div>
-                      <span className="font-medium text-sm text-center">{player.name}</span>
+                      <span className="font-medium text-sm text-center w-full truncate px-1">{player.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {safeNumber(stats[player.id]?.goles_totales)} goles
                       </span>
@@ -645,10 +644,10 @@ export default function NewMatchPage() {
                       className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-primary/10 bg-transparent w-full border-2 hover:border-primary transition-all"
                       onClick={() => setSelectedPlayer(player)}
                     >
-                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                         <span className="text-primary-foreground font-bold">{player.number}</span>
                       </div>
-                      <span className="font-medium text-sm text-center">{player.name}</span>
+                      <span className="font-medium text-sm text-center w-full truncate px-1">{player.name}</span>
                       <span className="text-xs text-muted-foreground">
                         {safeNumber(stats[player.id]?.portero_paradas_totales)} paradas
                       </span>
