@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { StatInput } from "@/components/stat-input"
 import type { Player, MatchStats, Profile, Match } from "@/lib/types"
-import { Loader2, Save, AlertCircle, RefreshCw } from "lucide-react"
+import { Loader2, Save, AlertCircle, RefreshCw } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -490,10 +490,19 @@ export default function NewMatchPage() {
       </div>
 
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="info">Información de Partido</TabsTrigger>
-          <TabsTrigger value="field">Jugadores de Campo ({fieldPlayers.length})</TabsTrigger>
-          <TabsTrigger value="goalkeepers">Porteros ({goalkeepers.length})</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-6 h-auto">
+          <TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+            <span className="hidden sm:inline">Información de Partido</span>
+            <span className="sm:hidden">Info</span>
+          </TabsTrigger>
+          <TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+            <span className="hidden sm:inline">Jugadores de Campo ({fieldPlayers.length})</span>
+            <span className="sm:hidden">Campo ({fieldPlayers.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+            <span className="hidden sm:inline">Porteros ({goalkeepers.length})</span>
+            <span className="sm:hidden">Porteros ({goalkeepers.length})</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="info">
@@ -741,11 +750,11 @@ function FieldPlayerStatsDialog({
 }) {
   return (
     <Tabs defaultValue="goles" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="goles">Goles</TabsTrigger>
-        <TabsTrigger value="tiros">Tiros</TabsTrigger>
-        <TabsTrigger value="faltas">Faltas</TabsTrigger>
-        <TabsTrigger value="acciones">Acciones</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-4 h-auto">
+        <TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Goles</TabsTrigger>
+        <TabsTrigger value="tiros" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Tiros</TabsTrigger>
+        <TabsTrigger value="faltas" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Faltas</TabsTrigger>
+        <TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-3 py-2">Acciones</TabsTrigger>
       </TabsList>
 
       <TabsContent value="goles" className="space-y-4 mt-4">
@@ -915,10 +924,10 @@ function GoalkeeperStatsDialog({
 
   return (
     <Tabs defaultValue="goles" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="goles">Goles</TabsTrigger>
-        <TabsTrigger value="paradas">Paradas</TabsTrigger>
-        <TabsTrigger value="acciones">Acciones</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-3 h-auto">
+        <TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Goles</TabsTrigger>
+        <TabsTrigger value="paradas" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Paradas</TabsTrigger>
+        <TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-4 py-2">Acciones</TabsTrigger>
       </TabsList>
 
       <TabsContent value="goles" className="space-y-4 mt-4">
