@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react"
+import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { LandingPage } from "@/components/landing-page"
 import { useClub } from "@/lib/club-context"
 import { useProfile } from "@/lib/profile-context"
@@ -110,13 +110,13 @@ export default function HomePage() {
   const hasMorePlayers = players.length > 10
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold mb-3 text-balance">Sistema de Estadísticas</h1>
-        <p className="text-muted-foreground text-lg md:text-xl">
+    <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 sm:mb-3 text-balance">Sistema de Estadísticas</h1>
+        <p className="text-muted-foreground text-base sm:text-lg md:text-xl">
           Waterpolo - {currentClub?.name || "Sistema Multi-Club"}
         </p>
-        <p className="text-sm text-muted-foreground mt-3">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-3">
           Bienvenido, <span className="font-semibold text-foreground">{profile?.full_name || profile?.email}</span>
         </p>
       </div>
@@ -176,12 +176,12 @@ export default function HomePage() {
         </Card>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         {canEdit && (
           <Card className="border-2 hover:border-primary transition-all hover:shadow-lg">
             <CardHeader>
-              <CardTitle className="text-xl">Nuevo Partido</CardTitle>
-              <CardDescription>Registra las estadísticas de un nuevo partido</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Nuevo Partido</CardTitle>
+              <CardDescription className="text-sm">Registra las estadísticas de un nuevo partido</CardDescription>
             </CardHeader>
             <CardContent>
               <Button asChild className="w-full" disabled={tablesNotFound || connectionError}>
@@ -193,8 +193,8 @@ export default function HomePage() {
 
         <Card className="border-2 hover:border-primary transition-all hover:shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">Partidos</CardTitle>
-            <CardDescription>Ver historial y estadísticas de partidos</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Partidos</CardTitle>
+            <CardDescription className="text-sm">Ver historial y estadísticas de partidos</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
@@ -205,8 +205,8 @@ export default function HomePage() {
 
         <Card className="border-2 hover:border-primary transition-all hover:shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">Analytics</CardTitle>
-            <CardDescription>Análisis detallado por temporada</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Analytics</CardTitle>
+            <CardDescription className="text-sm">Análisis detallado por temporada</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
@@ -216,10 +216,10 @@ export default function HomePage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
         <Card className="border-2">
           <CardHeader>
-            <CardTitle className="text-xl">Últimos Partidos</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Últimos Partidos</CardTitle>
           </CardHeader>
           <CardContent>
             {matches && matches.length > 0 ? (
@@ -228,12 +228,12 @@ export default function HomePage() {
                   <Link
                     key={match.id}
                     href={`/partidos/${match.id}`}
-                    className="block p-4 rounded-lg border-2 hover:bg-muted hover:border-primary transition-all"
+                    className="block p-3 sm:p-4 rounded-lg border-2 hover:bg-muted hover:border-primary transition-all"
                   >
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
                       <div>
-                        <p className="font-semibold text-lg">{match.opponent}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-semibold text-base sm:text-lg">{match.opponent}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           {new Date(match.match_date).toLocaleDateString("es-ES", {
                             day: "numeric",
                             month: "long",
@@ -241,8 +241,8 @@ export default function HomePage() {
                           })}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-2xl">
+                      <div className="text-left sm:text-right">
+                        <p className="font-bold text-xl sm:text-2xl">
                           {match.home_score} - {match.away_score}
                         </p>
                       </div>
@@ -251,7 +251,7 @@ export default function HomePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
+              <p className="text-muted-foreground text-center py-8 text-sm">
                 {connectionError || tablesNotFound
                   ? "No se pueden cargar los partidos"
                   : `No hay partidos registrados para ${currentClub?.short_name}`}
@@ -263,7 +263,7 @@ export default function HomePage() {
         <Card className="border-2">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="text-xl">Plantilla</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Plantilla</CardTitle>
               <Button asChild variant="outline" size="sm" disabled={tablesNotFound || connectionError}>
                 <Link href="/jugadores">Ver Todos</Link>
               </Button>
@@ -272,7 +272,7 @@ export default function HomePage() {
           <CardContent>
             {players && players.length > 0 ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                   {displayedPlayers.map((player) => (
                     <Link
                       key={player.id}
@@ -303,7 +303,7 @@ export default function HomePage() {
                 )}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
+              <p className="text-muted-foreground text-center py-8 text-sm">
                 {connectionError || tablesNotFound
                   ? "No se pueden cargar los jugadores"
                   : `No hay jugadores registrados para ${currentClub?.short_name}`}

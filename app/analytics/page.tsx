@@ -13,7 +13,7 @@ import { ManDownGoalkeeperChart } from "@/components/man-down-goalkeeper-chart"
 import { GoalDifferenceEvolutionChart } from "@/components/goal-difference-evolution-chart"
 import { useClub } from "@/lib/club-context"
 import { useEffect, useState, useMemo } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams } from 'next/navigation'
 
 export default function AnalyticsPage() {
   const { currentClub } = useClub()
@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando analytics...</p>
         </div>
@@ -166,15 +166,15 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
+    <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
+      <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Analytics</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Analytics</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Análisis detallado de {currentClub?.short_name || ""} - Temporada {selectedSeason}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <ExportButtons
             data={prepareMatchesForExport(matches || [])}
             filename={`partidos_${selectedSeason}`}
@@ -189,73 +189,77 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 mb-4 sm:mb-6">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Partidos</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Partidos</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalMatches}</div>
+          <CardContent className="pb-3 sm:pb-4">
+            <div className="text-2xl sm:text-3xl font-bold">{stats.totalMatches}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Victorias</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Victorias</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.wins}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="pb-3 sm:pb-4">
+            <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{stats.wins}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
               {stats.totalMatches > 0 ? Math.round((stats.wins / stats.totalMatches) * 100) : 0}%
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Empates</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Empates</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.draws}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="pb-3 sm:pb-4">
+            <div className="text-2xl sm:text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.draws}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
               {stats.totalMatches > 0 ? Math.round((stats.draws / stats.totalMatches) * 100) : 0}%
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Derrotas</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Derrotas</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.losses}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="pb-3 sm:pb-4">
+            <div className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{stats.losses}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
               {stats.totalMatches > 0 ? Math.round((stats.losses / stats.totalMatches) * 100) : 0}%
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Diferencia</CardTitle>
+        <Card className="col-span-2 sm:col-span-1">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Diferencia</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
+          <CardContent className="pb-3 sm:pb-4">
+            <div className="text-2xl sm:text-3xl font-bold">
               {stats.totalGoalsFor > stats.totalGoalsAgainst ? "+" : ""}
               {stats.totalGoalsFor - stats.totalGoalsAgainst}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
               {stats.totalGoalsFor} - {stats.totalGoalsAgainst}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 mb-4 sm:mb-6">
         <MatchResultsChart matches={matches || []} />
         <GoalDifferenceEvolutionChart matches={matches || []} />
       </div>
 
-      <Tabs defaultValue="man-advantage" className="mb-6">
+      <Tabs defaultValue="man-advantage" className="mb-4 sm:mb-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="man-advantage">Hombre +</TabsTrigger>
-          <TabsTrigger value="man-down">Hombre -</TabsTrigger>
+          <TabsTrigger value="man-advantage" className="text-xs sm:text-sm">
+            Hombre +
+          </TabsTrigger>
+          <TabsTrigger value="man-down" className="text-xs sm:text-sm">
+            Hombre -
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="man-advantage">
           <ManAdvantageChart matches={matches || []} stats={allStats || []} players={players || []} />
@@ -265,14 +269,26 @@ export default function AnalyticsPage() {
         </TabsContent>
       </Tabs>
 
-      <Tabs defaultValue="scorers" className="mt-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="scorers">Goleadores</TabsTrigger>
-          <TabsTrigger value="assists">Asistencias</TabsTrigger>
-          <TabsTrigger value="efficiency">Eficiencia</TabsTrigger>
-          <TabsTrigger value="blocks">Bloqueos</TabsTrigger>
-          <TabsTrigger value="turnovers">Pérdidas</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="scorers" className="mt-4 sm:mt-6">
+        <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+          <TabsList className="grid w-full min-w-[500px] sm:min-w-0 grid-cols-5">
+            <TabsTrigger value="scorers" className="text-xs sm:text-sm">
+              Goleadores
+            </TabsTrigger>
+            <TabsTrigger value="assists" className="text-xs sm:text-sm">
+              Asistencias
+            </TabsTrigger>
+            <TabsTrigger value="efficiency" className="text-xs sm:text-sm">
+              Eficiencia
+            </TabsTrigger>
+            <TabsTrigger value="blocks" className="text-xs sm:text-sm">
+              Bloqueos
+            </TabsTrigger>
+            <TabsTrigger value="turnovers" className="text-xs sm:text-sm">
+              Pérdidas
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="scorers">
           <TopPlayersTable players={topPlayers.topScorers} statType="goals" />
         </TabsContent>

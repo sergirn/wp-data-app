@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Plus } from "lucide-react"
+import { Plus } from 'lucide-react'
 import type { Match } from "@/lib/types"
 import { useClub } from "@/lib/club-context"
 import { useProfile } from "@/lib/profile-context"
@@ -60,7 +60,7 @@ export default function MatchesPage() {
 
   if (loading) {
     return (
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando partidos...</p>
         </div>
@@ -69,14 +69,16 @@ export default function MatchesPage() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Partidos</h1>
-          <p className="text-muted-foreground">Historial de partidos de {currentClub?.short_name || ""}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Partidos</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Historial de partidos de {currentClub?.short_name || ""}
+          </p>
         </div>
         {canEdit && (
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/nuevo-partido">
               <Plus className="mr-2 h-4 w-4" />
               Nuevo Partido
@@ -86,7 +88,7 @@ export default function MatchesPage() {
       </div>
 
       {matches && matches.length > 0 ? (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {matches.map((match) => (
             <MatchCard key={match.id} match={match} clubName={currentClub?.short_name || ""} />
           ))}
@@ -94,7 +96,9 @@ export default function MatchesPage() {
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground mb-4">No hay partidos registrados para {currentClub?.short_name}</p>
+            <p className="text-muted-foreground mb-4 text-sm sm:text-base text-center">
+              No hay partidos registrados para {currentClub?.short_name}
+            </p>
             {canEdit && (
               <Button asChild>
                 <Link href="/nuevo-partido">
@@ -124,16 +128,16 @@ function MatchCard({ match, clubName }: { match: Match; clubName: string }) {
   return (
     <Link href={`/partidos/${match.id}`}>
       <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-xl font-bold">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                <h3 className="text-lg sm:text-xl font-bold">
                   {clubName} vs {match.opponent}
                 </h3>
-                <span className={`text-sm font-semibold ${resultColor}`}>{result}</span>
+                <span className={`text-xs sm:text-sm font-semibold ${resultColor}`}>{result}</span>
               </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
                 <span>
                   {matchDate.toLocaleDateString("es-ES", {
                     weekday: "long",
@@ -142,20 +146,23 @@ function MatchCard({ match, clubName }: { match: Match; clubName: string }) {
                     day: "numeric",
                   })}
                 </span>
-                {match.location && <span>• {match.location}</span>}
-                {match.season && <span>• {match.season}</span>}
-                {match.jornada && <span>• Jornada {match.jornada}</span>}
+                {match.location && <span className="hidden sm:inline">• {match.location}</span>}
+                {match.location && <span className="sm:hidden">{match.location}</span>}
+                {match.season && <span className="hidden sm:inline">• {match.season}</span>}
+                {match.season && <span className="sm:hidden">{match.season}</span>}
+                {match.jornada && <span className="hidden sm:inline">• Jornada {match.jornada}</span>}
+                {match.jornada && <span className="sm:hidden">J{match.jornada}</span>}
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center sm:justify-end gap-3 sm:gap-4 pt-3 sm:pt-0 border-t sm:border-t-0">
               <div className="text-center">
-                <p className="text-3xl font-bold">{match.home_score}</p>
-                <p className="text-xs text-muted-foreground">{clubName}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
+                <p className="text-xs text-muted-foreground truncate max-w-[80px]">{clubName}</p>
               </div>
-              <div className="text-2xl font-bold text-muted-foreground">-</div>
+              <div className="text-xl sm:text-2xl font-bold text-muted-foreground">-</div>
               <div className="text-center">
-                <p className="text-3xl font-bold">{match.away_score}</p>
-                <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{match.away_score}</p>
+                <p className="text-xs text-muted-foreground truncate max-w-[80px]">{match.opponent}</p>
               </div>
             </div>
           </div>
