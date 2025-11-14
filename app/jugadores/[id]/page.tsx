@@ -2,11 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { notFound } from "next/navigation";
+import { ArrowLeft } from 'lucide-react';
+import { notFound } from 'next/navigation';
 import type { Player, MatchStats, Match } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, PieChart, Pie, Cell } from "./chartSection";
+import { PerformanceEvolutionChart } from "./performance-evolution-chart";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -49,8 +50,16 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 				<Card>
 					<CardHeader>
 						<div className="flex items-center gap-4">
-							<div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
-								<span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
+							<div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+								{player.photo_url ? (
+									<img 
+										src={player.photo_url || "/placeholder.svg"} 
+										alt={player.name}
+										className="w-full h-full object-cover"
+									/>
+								) : (
+									<span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
+								)}
 							</div>
 							<div>
 								<CardTitle className="text-3xl">{player.name}</CardTitle>
@@ -62,14 +71,19 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 			</div>
 
 			<Tabs defaultValue="totals" className="w-full">
-				<TabsList className="grid w-full grid-cols-3 mb-6">
+				<TabsList className="grid w-full grid-cols-4 mb-6">
 					<TabsTrigger value="totals">Estadísticas Totales</TabsTrigger>
+					<TabsTrigger value="evolution">Evolución</TabsTrigger>
 					<TabsTrigger value="matches">Por Partido</TabsTrigger>
 					<TabsTrigger value="efficiency">Eficiencia</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="totals">
 					<TotalStatsView player={player} stats={totalStats} matchCount={matchStats?.length || 0} />
+				</TabsContent>
+
+				<TabsContent value="evolution">
+					<PerformanceEvolutionChart matchStats={matchStats || []} player={player} />
 				</TabsContent>
 
 				<TabsContent value="matches">
