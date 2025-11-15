@@ -863,7 +863,7 @@ function FieldPlayerStatsDialog({
 						onChange={(v) => onUpdate("acciones_exp_provocada", v)}
 					/>
 					<StatField
-						label="Penalti Provocado"
+						label="Perdida Pos."
 						value={safeNumber(stats.acciones_penalti_provocado)}
 						onChange={(v) => onUpdate("acciones_penalti_provocado", v)}
 					/>
