@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft } from 'lucide-react';
-import { notFound } from 'next/navigation';
+import { ArrowLeft } from "lucide-react";
+import { notFound } from "next/navigation";
 import type { Player, MatchStats, Match } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, PieChart, Pie, Cell } from "./chartSection";
@@ -52,11 +52,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 						<div className="flex items-center gap-4">
 							<div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
 								{player.photo_url ? (
-									<img 
-										src={player.photo_url || "/placeholder.svg"} 
-										alt={player.name}
-										className="w-full h-full object-cover"
-									/>
+									<img src={player.photo_url || "/placeholder.svg"} alt={player.name} className="w-full h-full object-cover" />
 								) : (
 									<span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
 								)}
@@ -364,8 +360,8 @@ function FieldPlayerTotalStats({ stats }: { stats: any }) {
 				</CardHeader>
 				<CardContent>
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-						<StatItem label="Exp 20\" value={stats.faltas_exp_20_1c1} />
-						<StatItem label="Exp 20 Boya" value={stats.faltas_exp_20_boya} />
+						<StatItem label="Exp 18\" value={stats.faltas_exp_20_1c1} />
+						<StatItem label="Exp 18 Boya" value={stats.faltas_exp_20_boya} />
 						<StatItem label="Penalti" value={stats.faltas_penalti} />
 						<StatItem label="Contrafaltas" value={stats.faltas_contrafaltas} />
 					</div>
