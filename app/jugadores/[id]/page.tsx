@@ -380,7 +380,7 @@ function FieldPlayerTotalStats({ stats }: { stats: any }) {
 						<StatItem label="Recuperación" value={stats.acciones_recuperacion} />
 						<StatItem label="Rebote" value={stats.acciones_rebote} />
 						<StatItem label="Exp Provocada" value={stats.acciones_exp_provocada} />
-						<StatItem label="Penalti Provocado" value={stats.acciones_penalti_provocado} />
+						<StatItem label="Perdida Pos." value={stats.acciones_penalti_provocado} />
 						<StatItem label="Recibe Gol" value={stats.acciones_recibir_gol} />
 					</div>
 				</CardContent>
