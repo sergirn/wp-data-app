@@ -489,16 +489,16 @@ export default function NewMatchPage() {
 			</div>
 
 			<Tabs defaultValue="info" className="w-full">
-				<TabsList className="grid w-full grid-cols-3 mb-6 h-auto">
-					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+				<TabsList className="grid w-full grid-cols-3 mb-6 h-auto min-h-[48px] bg-background relative z-10 whitespace-nowrap will-change-transform">
+					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2 whitespace-nowrap">
 						<span className="hidden sm:inline">Información de Partido</span>
 						<span className="sm:hidden">Info</span>
 					</TabsTrigger>
-					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2 whitespace-nowrap">
 						<span className="hidden sm:inline">Jugadores de Campo ({fieldPlayers.length})</span>
 						<span className="sm:hidden">Campo ({fieldPlayers.length})</span>
 					</TabsTrigger>
-					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2 whitespace-nowrap">
 						<span className="hidden sm:inline">Porteros ({goalkeepers.length})</span>
 						<span className="sm:hidden">Porteros ({goalkeepers.length})</span>
 					</TabsTrigger>
