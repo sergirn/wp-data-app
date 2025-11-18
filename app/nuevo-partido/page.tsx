@@ -77,38 +77,27 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		async function initializeFromParams() {
 			const params = await searchParams;
 
+			// 1. Detectamos si estamos editando o creando nuevo
 			if (params.matchId) {
 				setEditingMatchId(Number(params.matchId));
 			}
 
-			await checkPermissions();
-			await loadPlayers();
+			// 2. Carga todo lo necesario (permisos + jugadores + datos del partido si existe)
+			await checkPermissions(); // ← establece profile
+			await loadPlayers(); // ← ahora carga jugadores + convocatoria por defecto (solo si es nuevo)
+			await loadPreviousMatches();
 
+			// 3. Si estamos editando → cargamos los datos reales del partido (sobrescribe la convocatoria por defecto)
 			if (params.matchId) {
 				await loadExistingMatch(Number(params.matchId));
-			} else {
-				// Initialize with 14 empty players only if creating new match
-				initializeNewMatch();
 			}
 
-			loadPreviousMatches();
+			// 4. Todo listo
 			setLoading(false);
 		}
+
 		initializeFromParams();
-	}, []);
-
-	const initializeNewMatch = () => {
-		if (allPlayers.length > 0) {
-			const initialActiveIds = allPlayers.slice(0, 14).map((p) => p.id);
-			setActivePlayerIds(initialActiveIds);
-
-			const initialStats: Record<number, Partial<MatchStats>> = {};
-			initialActiveIds.forEach((playerId) => {
-				initialStats[playerId] = createEmptyStats(playerId);
-			});
-			setStats(initialStats);
-		}
-	};
+	}, [searchParams]); // ← importante: depende de searchParams
 
 	const checkPermissions = async () => {
 		if (!supabase) {
@@ -186,44 +175,39 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	};
 
 	const loadPlayers = async () => {
-		if (!supabase) {
-			return;
-		}
+		if (!supabase) return;
 
 		const {
 			data: { user }
 		} = await supabase.auth.getUser();
-		if (!user) {
-			console.log("[v0] No user found");
-			return;
-		}
+		if (!user) return;
 
 		const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-		console.log("[v0] Profile data:", profileData);
 
-		if (!profileData?.club_id) {
-			console.log("[v0] No club_id in profile");
-			return;
-		}
+		if (!profileData?.club_id) return;
 
-		console.log("[v0] Loading players for club_id:", profileData.club_id);
-		const playersQuery = supabase.from("players").select("*").eq("club_id", profileData.club_id).order("number");
+		const { data, error } = await supabase.from("players").select("*").eq("club_id", profileData.club_id).order("number");
 
-		const { data, error } = await playersQuery;
-
-		console.log("[v0] Players loaded:", data?.length, "Error:", error);
-
-		if (error) {
+		if (error || !data) {
 			console.error("[v0] Error loading players:", error);
+			setAllPlayers([]);
 			return;
 		}
 
-		if (data && data.length > 0) {
-			setAllPlayers(data);
-		} else {
-			console.log("[v0] No players found for club");
-			setAllPlayers([]);
+		setAllPlayers(data);
+
+		// Solo inicializamos los 14 primeros jugadores si estamos creando un partido NUEVO
+		if (!editingMatchId) {
+			const initialActiveIds = data.slice(0, 14).map((p) => p.id);
+			setActivePlayerIds(initialActiveIds);
+
+			const initialStats: Record<number, Partial<MatchStats>> = {};
+			initialActiveIds.forEach((playerId) => {
+				initialStats[playerId] = createEmptyStats(playerId);
+			});
+			setStats(initialStats);
 		}
+		// Si estamos editando, la convocatoria se carga después en loadExistingMatch()
 	};
 
 	const createEmptyStats = (playerId: number): Partial<MatchStats> => ({
