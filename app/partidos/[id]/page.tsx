@@ -178,9 +178,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				</Card>
 			)}
 
-			<div className="flex justify-between items-center gap-4">
-				<MatchExportButton match={match} players={players} stats={stats} />
-				<div className="flex gap-2">
+			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
+				<div className="w-full sm:w-auto">
+					<MatchExportButton match={match} players={players} stats={stats} />
+				</div>
+				<div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
 					{canEdit && (
 						<Button asChild>
 							<Link href={`/nuevo-partido?matchId=${match.id}`}>

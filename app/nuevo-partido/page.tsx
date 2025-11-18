@@ -583,16 +583,21 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			<Tabs defaultValue="info" className="w-full">
 				<TabsList className="grid w-full grid-cols-3 mb-6 h-auto">
 					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-						<span className="hidden sm:inline">Información de Partido</span>
-						<span className="sm:hidden">Info</span>
+						<span className="block truncate sm:text-[13px] md:text-sm">
+							{window.innerWidth < 640 ? "Info" : "Información de Partido"}
+						</span>
 					</TabsTrigger>
+
 					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-						<span className="hidden sm:inline">Jugadores de Campo ({fieldPlayers.length})</span>
-						<span className="sm:hidden">Campo ({fieldPlayers.length})</span>
+						<span className="block truncate sm:text-[13px] md:text-sm">
+							{window.innerWidth < 640 ? `Campo (${fieldPlayers.length})` : `Jugadores de Campo (${fieldPlayers.length})`}
+						</span>
 					</TabsTrigger>
+
 					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-						<span className="hidden sm:inline">Porteros ({goalkeepers.length})</span>
-						<span className="sm:hidden">Porteros ({goalkeepers.length})</span>
+						<span className="block truncate sm:text-[13px] md:text-sm">
+							{window.innerWidth < 640 ? `Porteros (${goalkeepers.length})` : `Porteros (${goalkeepers.length})`}
+						</span>
 					</TabsTrigger>
 				</TabsList>
 
