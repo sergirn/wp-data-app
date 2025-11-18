@@ -173,21 +173,38 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 
 							{/* 📌 BOTONES (siempre debajo del marcador) */}
 							{canEdit && (
-								<div onClick={(e) => e.stopPropagation()} className="flex gap-2 mt-2 sm:justify-end">
-									{/* Editar */}
+								<div
+									onClick={(e) => e.stopPropagation()}
+									className="
+			flex gap-2
+			absolute right-3 top-3
+			sm:right-4 sm:top-4
+			z-10
+		"
+								>
+									{/* EDITAR ICON */}
 									<Link
 										href={`/nuevo-partido?matchId=${match.id}`}
 										onClick={(e) => e.stopPropagation()}
-										className="p-2 rounded-md bg-muted hover:bg-muted/70 transition flex items-center justify-center"
+										className="
+				w-9 h-9 sm:w-10 sm:h-10
+				rounded-md bg-muted hover:bg-muted/70
+				transition flex items-center justify-center
+			"
 										title="Editar partido"
 									>
 										<Edit className="w-4 h-4 text-muted-foreground" />
 									</Link>
 
-									{/* Eliminar */}
+									{/* ELIMINAR ICON */}
 									<div
 										onClick={(e) => e.stopPropagation()}
-										className="p-2 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-600 transition flex items-center justify-center cursor-pointer"
+										className="
+				w-9 h-9 sm:w-10 sm:h-10
+				rounded-md bg-red-500/10 hover:bg-red-500/20
+				text-red-600 transition flex items-center justify-center
+				cursor-pointer
+			"
 										title="Eliminar partido"
 									>
 										<DeleteMatchButton matchId={match.id} />
