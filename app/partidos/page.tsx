@@ -175,31 +175,30 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 					{/* ===================== */}
 					{canEdit && (
 						<div className="flex gap-3 mt-4" onClick={(e) => e.stopPropagation()}>
-							{/* EDITAR – flojito de normal → azul fuerte al hover */}
+							{/* EDITAR – texto siempre fuerte, fondo flojo → azul al hover */}
 							<div className="flex-1 h-10">
 								<Link
 									href={`/nuevo-partido?matchId=${match.id}`}
 									className="group h-full w-full rounded-md flex items-center justify-center gap-2 
-									text-blue-500/40 hover:text-blue-600 
-									hover:bg-blue-500/10 
-									transition-all duration-200"
+									text-blue-700 dark:text-blue-400 
+									bg-blue-500/5 hover:bg-blue-500/20 
+									transition-all duration-200 font-medium"
 								>
-									<Edit className="h-4 w-4 text-blue-500/50 group-hover:text-blue-600 transition-colors" />
-									<span className="hidden sm:inline text-sm font-medium">Editar</span>
+									<Edit className="h-4 w-4" />
+									<span className="hidden sm:inline text-sm">Editar</span>
 								</Link>
 							</div>
 
-							{/* ELIMINAR – flojito de normal → rojo fuerte al hover */}
+							{/* ELIMINAR – texto siempre fuerte, fondo flojo → rojo al hover */}
 							<div className="flex-1 h-10">
 								<div
 									className="group h-full w-full rounded-md flex items-center justify-center gap-2 
-									text-red-500/40 hover:text-red-600 
-									hover:bg-red-500/10 
-									transition-all duration-200 cursor-pointer"
+									text-red-700 dark:text-red-400 
+									bg-red-500/5 hover:bg-red-500/20 
+									transition-all duration-200 cursor-pointer font-medium"
 								>
-									{/* Si tu DeleteMatchButton ya lleva icono + texto, quita lo de arriba y deja solo esto: */}
 									<DeleteMatchButton matchId={match.id} />
-									<span className="hidden sm:inline text-sm font-medium">Eliminar</span>
+									<span className="hidden sm:inline text-sm">Eliminar</span>
 								</div>
 							</div>
 						</div>
