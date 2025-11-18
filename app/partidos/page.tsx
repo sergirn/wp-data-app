@@ -175,29 +175,31 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 					{/* ===================== */}
 					{canEdit && (
 						<div className="flex gap-3 mt-4" onClick={(e) => e.stopPropagation()}>
-							{/* EDITAR – azul muy suave y apagado */}
+							{/* EDITAR – flojito de normal → azul fuerte al hover */}
 							<div className="flex-1 h-10">
 								<Link
 									href={`/nuevo-partido?matchId=${match.id}`}
-									className="h-full w-full rounded-md flex items-center justify-center gap-2 
-									text-blue-600/50 hover:text-blue-600/80 hover:bg-blue-500/5 
-									transition-all duration-200 group"
+									className="group h-full w-full rounded-md flex items-center justify-center gap-2 
+									text-blue-500/40 hover:text-blue-600 
+									hover:bg-blue-500/10 
+									transition-all duration-200"
 								>
-									<Edit className="h-4 w-4 transition-colors group-hover:text-blue-600/80" />
-									<span className="hidden sm:inline text-sm">Editar</span>
+									<Edit className="h-4 w-4 text-blue-500/50 group-hover:text-blue-600 transition-colors" />
+									<span className="hidden sm:inline text-sm font-medium">Editar</span>
 								</Link>
 							</div>
 
-							{/* ELIMINAR – rojo muy suave y apagado */}
+							{/* ELIMINAR – flojito de normal → rojo fuerte al hover */}
 							<div className="flex-1 h-10">
 								<div
-									className="h-full w-full rounded-md flex items-center justify-center gap-2 
-									text-red-600/50 hover:text-red-600/80 hover:bg-red-500/5 
-									transition-all duration-200 cursor-pointer group"
-									onClick={() => {}}
+									className="group h-full w-full rounded-md flex items-center justify-center gap-2 
+									text-red-500/40 hover:text-red-600 
+									hover:bg-red-500/10 
+									transition-all duration-200 cursor-pointer"
 								>
+									{/* Si tu DeleteMatchButton ya lleva icono + texto, quita lo de arriba y deja solo esto: */}
 									<DeleteMatchButton matchId={match.id} />
-									<span className="hidden sm:inline text-sm">Eliminar</span>
+									<span className="hidden sm:inline text-sm font-medium">Eliminar</span>
 								</div>
 							</div>
 						</div>

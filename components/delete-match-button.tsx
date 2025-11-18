@@ -42,13 +42,15 @@ export function DeleteMatchButton({ matchId, className = "", onClick }: { matchI
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<button
-					className={`h-8 w-8 flex items-center justify-center rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-600 transition ${className}`}
+					className={`group flex h-8 w-8 items-center justify-center rounded-md 
+                               text-red-500/40 hover:text-red-600 
+                               transition-all duration-200 ${className}`}
 					onClick={(e) => {
 						e.stopPropagation();
 						onClick?.(e);
 					}}
 				>
-					<Trash2 className="h-4 w-4" />
+					<Trash2 className="h-4 w-4 text-red-500/50 group-hover:text-red-600 transition-colors" />
 				</button>
 			</AlertDialogTrigger>
 
