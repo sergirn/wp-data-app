@@ -18,27 +18,12 @@ import { PlayerSubstitutionDialog } from "@/components/player-substitution-dialo
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const safeNumber = (value: number | undefined | null): number => {
-	if (value === null || value === undefined || Number.isNaN(value)) {
-		return 0;
-	}
-	return value;
-};
+interface MatchEditParams {
+	matchId?: number;
+	isEditing?: boolean;
+}
 
-const getCurrentSeason = (): string => {
-	const now = new Date();
-	const year = now.getFullYear();
-	const month = now.getMonth() + 1; // JavaScript months are 0-indexed
-
-	// If it's September (9) or later, we're in the new season
-	if (month >= 9) {
-		return `${year}-${year + 1}`;
-	} else {
-		return `${year - 1}-${year}`;
-	}
-};
-
-export default function NewMatchPage() {
+export default function NewMatchPage({ searchParams }: { searchParams: Promise<MatchEditParams> }) {
 	const router = useRouter();
 	const supabase = createClient();
 	const [allPlayers, setAllPlayers] = useState<Player[]>([]);
@@ -51,12 +36,12 @@ export default function NewMatchPage() {
 	const [permissionError, setPermissionError] = useState(false);
 	const [previousMatches, setPreviousMatches] = useState<Match[]>([]);
 	const [loadingLineup, setLoadingLineup] = useState(false);
+	const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
+	const [existingMatch, setExistingMatch] = useState<Match | null>(null);
 
 	const [matchDate, setMatchDate] = useState(new Date().toISOString().split("T")[0]);
 	const [opponent, setOpponent] = useState("");
 	const [location, setLocation] = useState("");
-	const [homeScore, setHomeScore] = useState(0);
-	const [awayScore, setAwayScore] = useState(0);
 	const [isHome, setIsHome] = useState(true);
 	const [season, setSeason] = useState(getCurrentSeason());
 	const [jornada, setJornada] = useState(1);
@@ -64,16 +49,70 @@ export default function NewMatchPage() {
 
 	const [stats, setStats] = useState<Record<number, Partial<MatchStats>>>({});
 
+	const calculateScores = (playerStats: Record<number, Partial<MatchStats>>) => {
+		let homeGoals = 0;
+		let awayGoals = 0;
+
+		Object.entries(playerStats).forEach(([playerId, playerStat]) => {
+			const player = allPlayers.find((p) => p.id === Number(playerId));
+
+			if (player?.is_goalkeeper) {
+				const goalkeeperGoals =
+					(playerStat.portero_goles_boya_parada || 0) +
+					(playerStat.portero_goles_hombre_menos || 0) +
+					(playerStat.portero_goles_dir_mas_5m || 0) +
+					(playerStat.portero_goles_contraataque || 0) +
+					(playerStat.portero_goles_penalti || 0);
+
+				awayGoals += goalkeeperGoals;
+			} else {
+				homeGoals += playerStat.goles_totales || 0;
+			}
+		});
+
+		return { homeGoals, awayGoals };
+	};
+
 	useEffect(() => {
-		checkPermissions();
-		loadPlayers();
-		loadPreviousMatches();
+		async function initializeFromParams() {
+			const params = await searchParams;
+
+			if (params.matchId) {
+				setEditingMatchId(Number(params.matchId));
+			}
+
+			await checkPermissions();
+			await loadPlayers();
+
+			if (params.matchId) {
+				await loadExistingMatch(Number(params.matchId));
+			} else {
+				// Initialize with 14 empty players only if creating new match
+				initializeNewMatch();
+			}
+
+			loadPreviousMatches();
+			setLoading(false);
+		}
+		initializeFromParams();
 	}, []);
+
+	const initializeNewMatch = () => {
+		if (allPlayers.length > 0) {
+			const initialActiveIds = allPlayers.slice(0, 14).map((p) => p.id);
+			setActivePlayerIds(initialActiveIds);
+
+			const initialStats: Record<number, Partial<MatchStats>> = {};
+			initialActiveIds.forEach((playerId) => {
+				initialStats[playerId] = createEmptyStats(playerId);
+			});
+			setStats(initialStats);
+		}
+	};
 
 	const checkPermissions = async () => {
 		if (!supabase) {
 			setPermissionError(true);
-			setLoading(false);
 			return;
 		}
 
@@ -86,11 +125,10 @@ export default function NewMatchPage() {
 			return;
 		}
 
-		const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+		const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
 		if (!profileData || (profileData.role !== "admin" && profileData.role !== "coach")) {
 			setPermissionError(true);
-			setLoading(false);
 			return;
 		}
 
@@ -105,7 +143,7 @@ export default function NewMatchPage() {
 		} = await supabase.auth.getUser();
 		if (!user) return;
 
-		const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+		const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 		if (!profileData?.club_id) return;
 
 		const { data: matches } = await supabase
@@ -149,37 +187,43 @@ export default function NewMatchPage() {
 
 	const loadPlayers = async () => {
 		if (!supabase) {
-			setLoading(false);
 			return;
 		}
 
 		const {
 			data: { user }
 		} = await supabase.auth.getUser();
-		if (!user) return;
-
-		const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-		if (!profileData?.club_id) {
-			setLoading(false);
+		if (!user) {
+			console.log("[v0] No user found");
 			return;
 		}
 
+		const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+		console.log("[v0] Profile data:", profileData);
+
+		if (!profileData?.club_id) {
+			console.log("[v0] No club_id in profile");
+			return;
+		}
+
+		console.log("[v0] Loading players for club_id:", profileData.club_id);
 		const playersQuery = supabase.from("players").select("*").eq("club_id", profileData.club_id).order("number");
 
 		const { data, error } = await playersQuery;
 
-		if (data) {
-			setAllPlayers(data);
-			const initialActiveIds = data.slice(0, 14).map((p) => p.id);
-			setActivePlayerIds(initialActiveIds);
+		console.log("[v0] Players loaded:", data?.length, "Error:", error);
 
-			const initialStats: Record<number, Partial<MatchStats>> = {};
-			initialActiveIds.forEach((playerId) => {
-				initialStats[playerId] = createEmptyStats(playerId);
-			});
-			setStats(initialStats);
+		if (error) {
+			console.error("[v0] Error loading players:", error);
+			return;
 		}
-		setLoading(false);
+
+		if (data && data.length > 0) {
+			setAllPlayers(data);
+		} else {
+			console.log("[v0] No players found for club");
+			setAllPlayers([]);
+		}
 	};
 
 	const createEmptyStats = (playerId: number): Partial<MatchStats> => ({
@@ -274,34 +318,52 @@ export default function NewMatchPage() {
 		});
 	};
 
-	useEffect(() => {
-		const activePlayers = allPlayers.filter((p) => activePlayerIds.includes(p.id));
-		const fieldPlayerIds = activePlayers.filter((p) => !p.is_goalkeeper).map((p) => p.id);
+	const loadExistingMatch = async (matchId: number) => {
+		if (!supabase) return;
 
-		const totalGoals = Object.entries(stats)
-			.filter(([playerId]) => fieldPlayerIds.includes(Number(playerId)))
-			.reduce((sum, [, stat]) => sum + safeNumber(stat.goles_totales), 0);
-		setHomeScore(totalGoals);
-	}, [stats, activePlayerIds, allPlayers]);
+		try {
+			const { data: match, error } = await supabase.from("matches").select("*").eq("id", matchId).single();
 
-	useEffect(() => {
-		const activePlayers = allPlayers.filter((p) => activePlayerIds.includes(p.id));
-		const goalkeeperIds = activePlayers.filter((p) => p.is_goalkeeper).map((p) => p.id);
+			if (error || !match) {
+				console.error("Error loading match:", error);
+				return;
+			}
 
-		const totalGoalsConceded = Object.entries(stats)
-			.filter(([playerId]) => goalkeeperIds.includes(Number(playerId)))
-			.reduce((sum, [, stat]) => {
-				const goalkeeperGoals =
-					safeNumber(stat.portero_goles_boya_parada) +
-					safeNumber(stat.portero_goles_hombre_menos) +
-					safeNumber(stat.portero_goles_dir_mas_5m) +
-					safeNumber(stat.portero_goles_contraataque) +
-					safeNumber(stat.portero_goles_penalti);
-				return sum + goalkeeperGoals;
-			}, 0);
+			setExistingMatch(match);
+			setMatchDate(match.match_date);
+			setOpponent(match.opponent);
+			setLocation(match.location || "");
+			setIsHome(match.is_home);
+			setSeason(match.season || getCurrentSeason());
+			setJornada(match.jornada || 1);
+			setNotes(match.notes || "");
 
-		setAwayScore(totalGoalsConceded);
-	}, [stats, activePlayerIds, allPlayers]);
+			const { data: matchStats, error: statsError } = await supabase.from("match_stats").select("*").eq("match_id", matchId);
+
+			if (statsError) {
+				console.error("Error loading match stats:", statsError);
+				return;
+			}
+
+			if (matchStats && matchStats.length > 0) {
+				const playerIds = matchStats.map((stat) => stat.player_id);
+				setActivePlayerIds(playerIds);
+
+				const statsMap: Record<number, Partial<MatchStats>> = {};
+				matchStats.forEach((stat) => {
+					const emptyTemplate = createEmptyStats(stat.player_id);
+					// Merge: keep loaded values, fill missing fields with template
+					statsMap[stat.player_id] = { ...emptyTemplate, ...stat };
+					console.log(`[v0] Loaded stats for player ${stat.player_id}:`, statsMap[stat.player_id]);
+				});
+
+				setStats(statsMap);
+				console.log("[v0] All match stats loaded successfully");
+			}
+		} catch (error) {
+			console.error("Error loading existing match:", error);
+		}
+	};
 
 	const updateStat = (playerId: number, field: keyof MatchStats, value: number) => {
 		setStats((prev) => {
@@ -312,14 +374,6 @@ export default function NewMatchPage() {
 			const player = allPlayers.find((p) => p.id === playerId);
 
 			if (player?.is_goalkeeper) {
-				const goalkeeperGoalCategories: (keyof MatchStats)[] = [
-					"portero_goles_boya_parada",
-					"portero_goles_hombre_menos",
-					"portero_goles_dir_mas_5m",
-					"portero_goles_contraataque",
-					"portero_goles_penalti"
-				];
-
 				const goalkeeperSaveCategories: (keyof MatchStats)[] = [
 					"portero_tiros_parada_recup",
 					"portero_paradas_fuera",
@@ -396,35 +450,69 @@ export default function NewMatchPage() {
 		setSaving(true);
 
 		try {
-			const { data: matchData, error: matchError } = await supabase
-				.from("matches")
-				.insert({
-					match_date: matchDate,
-					opponent,
-					location: location || null,
-					home_score: homeScore,
-					away_score: awayScore,
-					is_home: isHome,
-					season: season || null,
-					jornada: jornada || null,
-					notes: notes || null,
-					club_id: profile.club_id
-				})
-				.select()
-				.single();
+			const { homeGoals, awayGoals } = calculateScores(stats);
 
-			if (matchError) throw matchError;
+			if (editingMatchId && existingMatch) {
+				const { error: matchError } = await supabase
+					.from("matches")
+					.update({
+						match_date: matchDate,
+						opponent,
+						location: location || null,
+						home_score: homeGoals,
+						away_score: awayGoals,
+						is_home: isHome,
+						season: season || null,
+						jornada: jornada || null,
+						notes: notes || null
+					})
+					.eq("id", editingMatchId);
 
-			const statsToInsert = activePlayerIds.map((playerId) => ({
-				...stats[playerId],
-				match_id: matchData.id
-			}));
+				if (matchError) throw matchError;
 
-			const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
+				await supabase.from("match_stats").delete().eq("match_id", editingMatchId);
 
-			if (statsError) throw statsError;
+				const statsToInsert = activePlayerIds.map((playerId) => ({
+					...stats[playerId],
+					match_id: editingMatchId
+				}));
 
-			router.push(`/partidos/${matchData.id}`);
+				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
+
+				if (statsError) throw statsError;
+
+				router.push(`/partidos/${editingMatchId}`);
+			} else {
+				const { data: matchData, error: matchError } = await supabase
+					.from("matches")
+					.insert({
+						match_date: matchDate,
+						opponent,
+						location: location || null,
+						home_score: homeGoals,
+						away_score: awayGoals,
+						is_home: isHome,
+						season: season || null,
+						jornada: jornada || null,
+						notes: notes || null,
+						club_id: profile.club_id
+					})
+					.select()
+					.single();
+
+				if (matchError) throw matchError;
+
+				const statsToInsert = activePlayerIds.map((playerId) => ({
+					...stats[playerId],
+					match_id: matchData.id
+				}));
+
+				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
+
+				if (statsError) throw statsError;
+
+				router.push(`/partidos/${matchData.id}`);
+			}
 		} catch (error) {
 			console.error("Error saving match:", error);
 			alert("Error al guardar el partido");
@@ -451,7 +539,7 @@ export default function NewMatchPage() {
 					</AlertDescription>
 				</Alert>
 				<div className="mt-4">
-					<Button onClick={() => router.push("/")}>Volver al Inicio</Button>
+					<Button onClick={() => router.back()}>Volver al Inicio</Button>
 				</div>
 			</main>
 		);
@@ -461,11 +549,15 @@ export default function NewMatchPage() {
 	const fieldPlayers = activePlayers.filter((p) => !p.is_goalkeeper);
 	const goalkeepers = activePlayers.filter((p) => p.is_goalkeeper);
 
+	const { homeGoals, awayGoals } = calculateScores(stats);
+
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
 			<div className="mb-6">
-				<h1 className="text-3xl md:text-4xl font-bold mb-2">Nuevo Partido</h1>
-				<p className="text-muted-foreground text-lg">Registra las estadísticas del partido</p>
+				<h1 className="text-3xl md:text-4xl font-bold mb-2">{editingMatchId ? "Editar Partido" : "Nuevo Partido"}</h1>
+				<p className="text-muted-foreground text-lg">
+					{editingMatchId ? "Actualiza las estadísticas del partido" : "Registra las estadísticas del partido"}
+				</p>
 				<div className="flex items-center gap-3 mt-3">
 					<Badge variant="secondary" className="text-sm">
 						Convocatoria: {activePlayerIds.length} jugadores
@@ -489,16 +581,16 @@ export default function NewMatchPage() {
 			</div>
 
 			<Tabs defaultValue="info" className="w-full">
-				<TabsList className="grid w-full grid-cols-3 mb-6 h-auto min-h-[48px] bg-background relative z-10 whitespace-nowrap will-change-transform">
-					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2 whitespace-nowrap">
+				<TabsList className="grid w-full grid-cols-3 mb-6 h-auto">
+					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 						<span className="hidden sm:inline">Información de Partido</span>
 						<span className="sm:hidden">Info</span>
 					</TabsTrigger>
-					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2 whitespace-nowrap">
+					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 						<span className="hidden sm:inline">Jugadores de Campo ({fieldPlayers.length})</span>
 						<span className="sm:hidden">Campo ({fieldPlayers.length})</span>
 					</TabsTrigger>
-					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2 whitespace-nowrap">
+					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 						<span className="hidden sm:inline">Porteros ({goalkeepers.length})</span>
 						<span className="sm:hidden">Porteros ({goalkeepers.length})</span>
 					</TabsTrigger>
@@ -538,9 +630,9 @@ export default function NewMatchPage() {
 									<Input
 										id="home-score"
 										type="number"
-										value={homeScore}
+										value={homeGoals}
 										readOnly
-										className="bg-muted"
+										className="bg-muted text-center text-lg font-bold"
 										title="Se calcula automáticamente sumando los goles de los jugadores"
 									/>
 									<p className="text-xs text-muted-foreground">Se calcula automáticamente</p>
@@ -550,9 +642,9 @@ export default function NewMatchPage() {
 									<Input
 										id="away-score"
 										type="number"
-										value={awayScore}
+										value={awayGoals}
 										readOnly
-										className="bg-muted"
+										className="bg-muted text-center text-lg font-bold"
 										title="Se calcula automáticamente desde las estadísticas del portero"
 									/>
 									<p className="text-xs text-muted-foreground">Se calcula desde goles del portero</p>
@@ -745,12 +837,12 @@ export default function NewMatchPage() {
 					{saving ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							Guardando...
+							{editingMatchId ? "Actualizando..." : "Guardando..."}
 						</>
 					) : (
 						<>
 							<Save className="mr-2 h-4 w-4" />
-							Guardar Partido
+							{editingMatchId ? "Actualizar Partido" : "Guardar Partido"}
 						</>
 					)}
 				</Button>
@@ -863,7 +955,7 @@ function FieldPlayerStatsDialog({
 						onChange={(v) => onUpdate("acciones_exp_provocada", v)}
 					/>
 					<StatField
-						label="Perdida Pos."
+						label="Penalti Provocado"
 						value={safeNumber(stats.acciones_penalti_provocado)}
 						onChange={(v) => onUpdate("acciones_penalti_provocado", v)}
 					/>
@@ -1022,3 +1114,23 @@ function StatField({
 		</div>
 	);
 }
+
+const safeNumber = (value: number | undefined | null): number => {
+	if (value === null || value === undefined || Number.isNaN(value)) {
+		return 0;
+	}
+	return value;
+};
+
+const getCurrentSeason = (): string => {
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = now.getMonth() + 1; // JavaScript months are 0-indexed
+
+	// If it's September (9) or later, we're in the new season
+	if (month >= 9) {
+		return `${year}-${year + 1}`;
+	} else {
+		return `${year - 1}-${year}`;
+	}
+};
