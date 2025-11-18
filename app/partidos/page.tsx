@@ -111,6 +111,7 @@ export default function MatchesPage() {
 
 function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: string; canEdit: boolean }) {
 	const matchDate = new Date(match.match_date);
+
 	const result = match.home_score > match.away_score ? "Victoria" : match.home_score < match.away_score ? "Derrota" : "Empate";
 
 	const resultColor =
@@ -123,51 +124,9 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 	return (
 		<Link href={`/partidos/${match.id}`}>
 			<Card className="hover:bg-muted/50 transition-colors cursor-pointer relative">
-				<CardContent className="p-4 sm:p-6 relative">
-					{/* === BOTONES EDITAR / ELIMINAR === */}
-					{canEdit && (
-						<div
-							onClick={(e) => e.stopPropagation()}
-							className="
-                flex gap-2
-                absolute top-3 right-3
-                sm:top-4 sm:right-4
-                z-20
-              "
-						>
-							{/* EDITAR */}
-							<Link
-								href={`/nuevo-partido?matchId=${match.id}`}
-								onClick={(e) => e.stopPropagation()}
-								title="Editar partido"
-								className="
-                  w-9 h-9 sm:w-10 sm:h-10
-                  flex items-center justify-center
-                  rounded-md bg-muted hover:bg-muted/70
-                  transition
-                "
-							>
-								<Edit className="w-4 h-4 text-muted-foreground" />
-							</Link>
-
-							{/* ELIMINAR */}
-							<div
-								onClick={(e) => e.stopPropagation()}
-								title="Eliminar partido"
-								className="
-                  w-9 h-9 sm:w-10 sm:h-10
-                  flex items-center justify-center
-                  rounded-md bg-red-500/10 hover:bg-red-500/20
-                  text-red-600 transition cursor-pointer
-                "
-							>
-								<DeleteMatchButton matchId={match.id} />
-							</div>
-						</div>
-					)}
-
+				<CardContent className="p-4 sm:p-6">
 					<div className="flex flex-col gap-4">
-						{/* Información del partido */}
+						{/* Cabecera */}
 						<div className="flex-1">
 							<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
 								<h3 className="text-lg sm:text-xl font-bold">
@@ -197,8 +156,21 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 							</div>
 						</div>
 
-						{/* Marcador */}
-						<div className="flex items-center justify-center sm:justify-end gap-3 sm:gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 relative">
+						{/* ============================= */}
+						{/* MARCADOR + ACCIONES */}
+						{/* ============================= */}
+
+						<div
+							className="
+							flex flex-col sm:flex-row
+							sm:items-center sm:justify-end
+							gap-3 sm:gap-4
+							pt-3 sm:pt-0
+							border-t sm:border-t-0
+							relative
+						"
+						>
+							{/* Marcador */}
 							<div className="flex items-center gap-3 sm:gap-4 mx-auto sm:mx-0">
 								<div className="text-center">
 									<p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
@@ -210,6 +182,72 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 									<p className="text-xs text-muted-foreground truncate max-w-[80px]">{match.opponent}</p>
 								</div>
 							</div>
+
+							{/* === BOTONES EDIT / DELETE === */}
+							{canEdit && (
+								<>
+									{/* DESKTOP → arriba-derecha */}
+									<div
+										onClick={(e) => e.stopPropagation()}
+										className="
+											hidden sm:flex
+											gap-2
+											absolute top-3 right-3
+											z-20
+										"
+									>
+										{/* EDITAR (UX EXACTO) */}
+										<Button asChild className="h-10 px-3 flex items-center gap-2">
+											<Link href={`/nuevo-partido?matchId=${match.id}`} onClick={(e) => e.stopPropagation()}>
+												<Edit className="h-4 w-4" />
+												Editar Partido
+											</Link>
+										</Button>
+
+										{/* ELIMINAR */}
+										<div
+											onClick={(e) => e.stopPropagation()}
+											className="
+												h-10 px-3 flex items-center justify-center rounded-md
+												bg-red-500/10 hover:bg-red-500/20
+												text-red-600 cursor-pointer transition
+											"
+										>
+											<DeleteMatchButton matchId={match.id} />
+										</div>
+									</div>
+
+									{/* MOBILE → debajo del marcador */}
+									<div onClick={(e) => e.stopPropagation()} className="flex sm:hidden justify-center gap-3 mt-2">
+										{/* EDITAR */}
+										<Button
+											asChild
+											className="
+												flex-1 max-w-[160px]
+												h-10 flex items-center justify-center gap-2
+											"
+										>
+											<Link href={`/nuevo-partido?matchId=${match.id}`} onClick={(e) => e.stopPropagation()}>
+												<Edit className="h-4 w-4" />
+												Editar
+											</Link>
+										</Button>
+
+										{/* ELIMINAR */}
+										<div
+											onClick={(e) => e.stopPropagation()}
+											className="
+												flex-1 max-w-[160px]
+												h-10 rounded-md flex items-center justify-center
+												bg-red-500/10 hover:bg-red-500/20
+												text-red-600 cursor-pointer
+											"
+										>
+											<DeleteMatchButton matchId={match.id} />
+										</div>
+									</div>
+								</>
+							)}
 						</div>
 					</div>
 				</CardContent>
