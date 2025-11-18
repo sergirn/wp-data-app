@@ -122,13 +122,54 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 
 	return (
 		<Link href={`/partidos/${match.id}`}>
-			<Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-				<CardContent className="p-4 sm:p-6">
-					{/* GRID RESPONSIVE */}
-					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 items-start">
-						{/* 📌 INFO DEL PARTIDO */}
-						<div className="sm:col-span-2">
-							<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+			<Card className="hover:bg-muted/50 transition-colors cursor-pointer relative">
+				<CardContent className="p-4 sm:p-6 relative">
+					{/* === BOTONES EDITAR / ELIMINAR === */}
+					{canEdit && (
+						<div
+							onClick={(e) => e.stopPropagation()}
+							className="
+                flex gap-2
+                absolute top-3 right-3
+                sm:top-4 sm:right-4
+                z-20
+              "
+						>
+							{/* EDITAR */}
+							<Link
+								href={`/nuevo-partido?matchId=${match.id}`}
+								onClick={(e) => e.stopPropagation()}
+								title="Editar partido"
+								className="
+                  w-9 h-9 sm:w-10 sm:h-10
+                  flex items-center justify-center
+                  rounded-md bg-muted hover:bg-muted/70
+                  transition
+                "
+							>
+								<Edit className="w-4 h-4 text-muted-foreground" />
+							</Link>
+
+							{/* ELIMINAR */}
+							<div
+								onClick={(e) => e.stopPropagation()}
+								title="Eliminar partido"
+								className="
+                  w-9 h-9 sm:w-10 sm:h-10
+                  flex items-center justify-center
+                  rounded-md bg-red-500/10 hover:bg-red-500/20
+                  text-red-600 transition cursor-pointer
+                "
+							>
+								<DeleteMatchButton matchId={match.id} />
+							</div>
+						</div>
+					)}
+
+					<div className="flex flex-col gap-4">
+						{/* Información del partido */}
+						<div className="flex-1">
+							<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
 								<h3 className="text-lg sm:text-xl font-bold">
 									{clubName} vs {match.opponent}
 								</h3>
@@ -156,10 +197,9 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 							</div>
 						</div>
 
-						{/* 📌 MARCADOR */}
-						<div className="flex flex-col items-center sm:items-end gap-3">
-							{/* marcador */}
-							<div className="flex items-center justify-center gap-4">
+						{/* Marcador */}
+						<div className="flex items-center justify-center sm:justify-end gap-3 sm:gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 relative">
+							<div className="flex items-center gap-3 sm:gap-4 mx-auto sm:mx-0">
 								<div className="text-center">
 									<p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
 									<p className="text-xs text-muted-foreground truncate max-w-[80px]">{clubName}</p>
@@ -170,48 +210,6 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 									<p className="text-xs text-muted-foreground truncate max-w-[80px]">{match.opponent}</p>
 								</div>
 							</div>
-
-							{/* 📌 BOTONES (siempre debajo del marcador) */}
-							{canEdit && (
-								<div
-									onClick={(e) => e.stopPropagation()}
-									className="
-			flex gap-2
-			absolute top-3 right-3
-			sm:top-4 sm:right-4
-			z-20
-		"
-								>
-									{/* EDITAR */}
-									<Link
-										href={`/nuevo-partido?matchId=${match.id}`}
-										onClick={(e) => e.stopPropagation()}
-										title="Editar partido"
-										className="
-				w-9 h-9 sm:w-10 sm:h-10
-				flex items-center justify-center
-				rounded-md bg-muted hover:bg-muted/70
-				transition
-			"
-									>
-										<Edit className="w-4 h-4 text-muted-foreground" />
-									</Link>
-
-									{/* ELIMINAR */}
-									<div
-										onClick={(e) => e.stopPropagation()}
-										title="Eliminar partido"
-										className="
-				w-9 h-9 sm:w-10 sm:h-10
-				flex items-center justify-center
-				rounded-md bg-red-500/10 hover:bg-red-500/20
-				text-red-600 transition cursor-pointer
-			"
-									>
-										<DeleteMatchButton matchId={match.id} />
-									</div>
-								</div>
-							)}
 						</div>
 					</div>
 				</CardContent>
