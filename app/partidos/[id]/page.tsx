@@ -182,6 +182,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				<div className="w-full sm:w-auto">
 					<MatchExportButton match={match} players={players} stats={stats} />
 				</div>
+
 				<div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
 					{canEdit && (
 						<Button asChild>
@@ -191,7 +192,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 							</Link>
 						</Button>
 					)}
-					{canEdit && <DeleteMatchButton matchId={match.id} />}
+
+					{canEdit && (
+						<div className="flex items-center gap-2">
+							<DeleteMatchButton matchId={match.id} />
+
+							<span className="hidden sm:inline text-sm text-red-600 dark:text-red-400">Eliminar Partido</span>
+						</div>
+					)}
 				</div>
 			</div>
 		</main>
