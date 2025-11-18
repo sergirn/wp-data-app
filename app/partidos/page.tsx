@@ -126,12 +126,12 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 			<Card className="hover:bg-muted/50 transition-colors cursor-pointer">
 				<CardContent className="p-4 sm:p-6">
 					{/* ===================== */}
-					{/* FILA SUPERIOR: INFO + BOTONES */}
+					{/* FILA: INFO + MARCADOR */}
 					{/* ===================== */}
 					<div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-						{/* --- INFO DEL PARTIDO --- */}
+						{/* INFO DEL PARTIDO */}
 						<div className="flex-1">
-							<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+							<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
 								<h3 className="text-lg sm:text-xl font-bold">
 									{clubName} vs {match.opponent}
 								</h3>
@@ -154,53 +154,40 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 							</div>
 						</div>
 
-						{/* --- BOTONES (solo DESKTOP) --- */}
-						{canEdit && (
-							<div onClick={(e) => e.stopPropagation()} className="hidden sm:flex flex-shrink-0 gap-2 h-fit">
-								<Button asChild className="h-10 px-3 flex items-center gap-2">
-									<Link href={`/nuevo-partido?matchId=${match.id}`}>
-										<Edit className="h-4 w-4" />
-										Editar
-									</Link>
-								</Button>
-
-								<div className="h-10 px-3 rounded-md flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-600 cursor-pointer transition">
-									<DeleteMatchButton matchId={match.id} />
-								</div>
+						{/* MARCADOR */}
+						<div className="flex items-center justify-center gap-4 sm:gap-6 w-full sm:w-auto">
+							<div className="text-center">
+								<p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
+								<p className="text-xs text-muted-foreground truncate max-w-[80px]">{clubName}</p>
 							</div>
-						)}
-					</div>
 
-					{/* ===================== */}
-					{/* MARCADOR */}
-					{/* ===================== */}
-					<div className="flex items-center justify-center gap-4 sm:gap-6 my-4">
-						<div className="text-center">
-							<p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
-							<p className="text-xs text-muted-foreground truncate max-w-[100px]">{clubName}</p>
-						</div>
+							<div className="text-xl sm:text-2xl font-bold text-muted-foreground">-</div>
 
-						<div className="text-2xl sm:text-3xl font-bold text-muted-foreground">-</div>
-
-						<div className="text-center">
-							<p className="text-2xl sm:text-3xl font-bold">{match.away_score}</p>
-							<p className="text-xs text-muted-foreground truncate max-w-[100px]">{match.opponent}</p>
+							<div className="text-center">
+								<p className="text-2xl sm:text-3xl font-bold">{match.away_score}</p>
+								<p className="text-xs text-muted-foreground truncate max-w-[80px]">{match.opponent}</p>
+							</div>
 						</div>
 					</div>
 
 					{/* ===================== */}
-					{/* BOTONES MOBILE */}
+					{/* BOTONES: 50% - 50% */}
 					{/* ===================== */}
 					{canEdit && (
-						<div onClick={(e) => e.stopPropagation()} className="flex sm:hidden gap-3 mt-2">
-							<Button asChild className="flex-1 h-10 flex items-center justify-center gap-2">
+						<div className="flex gap-3 mt-4" onClick={(e) => e.stopPropagation()}>
+							{/* EDITAR */}
+							<Button asChild className="flex-1 h-10 flex items-center justify-center gap-2 text-sm">
 								<Link href={`/nuevo-partido?matchId=${match.id}`}>
-									<Edit className="h-4 w-4" /> Editar
+									<Edit className="h-4 w-4" />
+									Editar Partido
 								</Link>
 							</Button>
 
-							<div className="flex-1 h-10 rounded-md flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-600 cursor-pointer transition">
-								<DeleteMatchButton matchId={match.id} />
+							{/* ELIMINAR */}
+							<div className="flex-1 h-10">
+								<div className="h-full w-full rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-600 flex items-center justify-center cursor-pointer transition">
+									<DeleteMatchButton matchId={match.id} />
+								</div>
 							</div>
 						</div>
 					)}
