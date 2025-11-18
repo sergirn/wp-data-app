@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import type { Match } from "@/lib/types";
 import { useClub } from "@/lib/club-context";
 import { useProfile } from "@/lib/profile-context";
@@ -175,18 +175,23 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 					{/* ===================== */}
 					{canEdit && (
 						<div className="flex gap-3 mt-4" onClick={(e) => e.stopPropagation()}>
-							{/* EDITAR */}
-							<Button asChild className="flex-1 h-10 flex items-center justify-center gap-2 text-sm">
-								<Link href={`/nuevo-partido?matchId=${match.id}`}>
-									<Edit className="h-4 w-4" />
-									Editar Partido
-								</Link>
-							</Button>
-
-							{/* ELIMINAR */}
+							{/* EDITAR – muy tenue, gris azulado suave */}
 							<div className="flex-1 h-10">
-								<div className="h-full w-full rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-600 flex items-center justify-center cursor-pointer transition">
+								<Link
+									href={`/nuevo-partido?matchId=${match.id}`}
+									className="h-full w-full rounded-md flex items-center justify-center gap-2 text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-all duration-200 group"
+								>
+									<Edit className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+									<span className="hidden sm:inline text-sm">Editar</span>
+								</Link>
+							</div>
+
+							{/* ELIMINAR – tenue pero sigue siendo rojo, solo mucho más suave */}
+							<div className="flex-1 h-10">
+								<div className="h-full w-full rounded-md flex items-center justify-center gap-2 text-red-500/70 hover:bg-red-500/8 hover:text-red-500/90 transition-all duration-200 cursor-pointer group">
+									<Trash2 className="h-4 w-4" /> {/* o el icono que uses */}
 									<DeleteMatchButton matchId={match.id} />
+									<span className="hidden sm:inline text-sm">Eliminar</span>
 								</div>
 							</div>
 						</div>
