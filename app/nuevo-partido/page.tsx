@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatInput } from "@/components/stat-input";
 import type { Player, MatchStats, Profile, Match } from "@/lib/types";
-import { Loader2, Save, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Save, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PlayerSubstitutionDialog } from "@/components/player-substitution-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,20 @@ interface MatchEditParams {
 }
 
 export default function NewMatchPage({ searchParams }: { searchParams: Promise<MatchEditParams> }) {
+	// ADD STATE FOR QUARTERLY SCORES
+	const [closedQuarters, setClosedQuarters] = useState<Record<number, boolean>>({
+		1: false,
+		2: false,
+		3: false,
+		4: false
+	});
+	const [quarterScores, setQuarterScores] = useState<Record<number, { home: number; away: number }>>({
+		1: { home: 0, away: 0 },
+		2: { home: 0, away: 0 },
+		3: { home: 0, away: 0 },
+		4: { home: 0, away: 0 }
+	});
+
 	const router = useRouter();
 	const supabase = createClient();
 	const [allPlayers, setAllPlayers] = useState<Player[]>([]);
@@ -39,6 +53,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
 	const [existingMatch, setExistingMatch] = useState<Match | null>(null);
 
+	// ADD STATE FOR THE ADD PLAYER DIALOG
+	const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false);
+	const [selectedAddPlayer, setSelectedAddPlayer] = useState<Player | null>(null);
+
 	const [matchDate, setMatchDate] = useState(new Date().toISOString().split("T")[0]);
 	const [opponent, setOpponent] = useState("");
 	const [location, setLocation] = useState("");
@@ -48,6 +66,30 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const [notes, setNotes] = useState("");
 
 	const [stats, setStats] = useState<Record<number, Partial<MatchStats>>>({});
+
+	const calculateQuarterScores = (playerStats: Record<number, Partial<MatchStats>>) => {
+		let homeGoals = 0;
+		let awayGoals = 0;
+
+		Object.entries(playerStats).forEach(([playerId, playerStat]) => {
+			const player = allPlayers.find((p) => p.id === Number(playerId));
+
+			if (player?.is_goalkeeper) {
+				const goalkeeperGoals =
+					(playerStat.portero_goles_boya_parada || 0) +
+					(playerStat.portero_goles_hombre_menos || 0) +
+					(playerStat.portero_goles_dir_mas_5m || 0) +
+					(playerStat.portero_goles_contraataque || 0) +
+					(playerStat.portero_goles_penalti || 0);
+
+				awayGoals += goalkeeperGoals;
+			} else {
+				homeGoals += playerStat.goles_totales || 0;
+			}
+		});
+
+		return { homeGoals, awayGoals };
+	};
 
 	const calculateScores = (playerStats: Record<number, Partial<MatchStats>>) => {
 		let homeGoals = 0;
@@ -264,7 +306,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		tiros_penalti_juego: 0,
 		faltas_exp_3_int: 0,
 		faltas_exp_3_bruta: 0,
-		acciones_perdida_poco: 0,
+		acciones_perdida_poco: 0, // AÑADIDO ESTO
 		portero_goles_lanzamiento: 0,
 		portero_goles_penalti_encajado: 0,
 		portero_tiros_parado: 0,
@@ -291,6 +333,32 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		return allPlayers.filter((player) => player.is_goalkeeper === isGoalkeeper && !activePlayerIds.includes(player.id));
 	};
 
+	// ADD FUNCTION TO ADD PLAYER TO THE FIELD (MAX 12 FIELD PLAYERS)
+	const handleAddPlayer = (playerId: number) => {
+		const player = allPlayers.find((p) => p.id === playerId);
+
+		if (!player) return;
+
+		// Check if adding would exceed 12 field players
+		const currentFieldPlayers = activePlayerIds.filter((id) => {
+			const p = allPlayers.find((pl) => pl.id === id);
+			return p && !p.is_goalkeeper;
+		}).length;
+
+		if (!player.is_goalkeeper && currentFieldPlayers >= 12) {
+			alert("No se pueden añadir más de 12 jugadores de campo");
+			return;
+		}
+
+		setActivePlayerIds((prev) => [...prev, playerId]);
+		setStats((prev) => ({
+			...prev,
+			[playerId]: createEmptyStats(playerId)
+		}));
+		setShowAddPlayerDialog(false);
+		setSelectedAddPlayer(null);
+	};
+
 	const handleSubstitution = (oldPlayerId: number, newPlayerId: number) => {
 		setActivePlayerIds((prev) => prev.filter((id) => id !== oldPlayerId).concat(newPlayerId));
 
@@ -298,6 +366,16 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			const newStats = { ...prev };
 			delete newStats[oldPlayerId];
 			newStats[newPlayerId] = createEmptyStats(newPlayerId);
+			return newStats;
+		});
+	};
+
+	const handleRemovePlayer = (playerId: number) => {
+		setActivePlayerIds((prev) => prev.filter((id) => id !== playerId));
+
+		setStats((prev) => {
+			const newStats = { ...prev };
+			delete newStats[playerId];
 			return newStats;
 		});
 	};
@@ -321,6 +399,21 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			setSeason(match.season || getCurrentSeason());
 			setJornada(match.jornada || 1);
 			setNotes(match.notes || "");
+
+			setQuarterScores({
+				1: { home: match.q1_score || 0, away: match.q1_score_rival || 0 },
+				2: { home: match.q2_score || 0, away: match.q2_score_rival || 0 },
+				3: { home: match.q3_score || 0, away: match.q3_score_rival || 0 },
+				4: { home: match.q4_score || 0, away: match.q4_score_rival || 0 }
+			});
+
+			// ALSO SET CLOSED QUARTERS BASED ON MATCH DATA
+			setClosedQuarters({
+				1: match.q1_score !== undefined && match.q1_score_rival !== undefined,
+				2: match.q2_score !== undefined && match.q2_score_rival !== undefined,
+				3: match.q3_score !== undefined && match.q3_score_rival !== undefined,
+				4: match.q4_score !== undefined && match.q4_score_rival !== undefined
+			});
 
 			const { data: matchStats, error: statsError } = await supabase.from("match_stats").select("*").eq("match_id", matchId);
 
@@ -413,10 +506,41 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				}
 			}
 
-			return {
+			const updatedAllStats = {
 				...prev,
 				[playerId]: newStats
 			};
+
+			setQuarterScores((prev) => {
+				const updated = { ...prev };
+
+				// encuentra el primer cuarto que NO está cerrado
+				const activeQuarter = [1, 2, 3, 4].find((q) => !closedQuarters[q]);
+				if (!activeQuarter) return updated;
+
+				// recalcula solo el parcial ACTIVO desde cero
+				const { homeGoals, awayGoals } = calculateScores(updatedAllStats);
+
+				// diferencia respecto al total del cuarto anterior
+				const previousQuartersTotal = Object.values(prev)
+					.slice(0, activeQuarter - 1)
+					.reduce(
+						(acc, q) => ({
+							home: acc.home + q.home,
+							away: acc.away + q.away
+						}),
+						{ home: 0, away: 0 }
+					);
+
+				updated[activeQuarter] = {
+					home: homeGoals - previousQuartersTotal.home,
+					away: awayGoals - previousQuartersTotal.away
+				};
+
+				return updated;
+			});
+
+			return updatedAllStats;
 		});
 	};
 
@@ -448,7 +572,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						is_home: isHome,
 						season: season || null,
 						jornada: jornada || null,
-						notes: notes || null
+						notes: notes || null,
+						q1_score: quarterScores[1].home,
+						q2_score: quarterScores[2].home,
+						q3_score: quarterScores[3].home,
+						q4_score: quarterScores[4].home,
+						q1_score_rival: quarterScores[1].away,
+						q2_score_rival: quarterScores[2].away,
+						q3_score_rival: quarterScores[3].away,
+						q4_score_rival: quarterScores[4].away
 					})
 					.eq("id", editingMatchId);
 
@@ -479,7 +611,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						season: season || null,
 						jornada: jornada || null,
 						notes: notes || null,
-						club_id: profile.club_id
+						club_id: profile.club_id,
+						q1_score: quarterScores[1].home,
+						q2_score: quarterScores[2].home,
+						q3_score: quarterScores[3].home,
+						q4_score: quarterScores[4].home,
+						q1_score_rival: quarterScores[1].away,
+						q2_score_rival: quarterScores[2].away,
+						q3_score_rival: quarterScores[3].away,
+						q4_score_rival: quarterScores[4].away
 					})
 					.select()
 					.single();
@@ -542,7 +682,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				<p className="text-muted-foreground text-lg">
 					{editingMatchId ? "Actualiza las estadísticas del partido" : "Registra las estadísticas del partido"}
 				</p>
-				<div className="flex items-center gap-3 mt-3">
+				<div className="flex items-center gap-3 mt-3 flex-wrap">
 					<Badge variant="secondary" className="text-sm">
 						Convocatoria: {activePlayerIds.length} jugadores
 					</Badge>
@@ -652,6 +792,71 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 										min={1}
 									/>
 								</div>
+
+								<div className="space-y-2 md:col-span-3 border-t pt-4 mt-4">
+									<h3 className="font-semibold text-sm mb-3">Puntuación por Parciales</h3>
+									<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+										{[1, 2, 3, 4].map((q) => (
+											<div
+												key={q}
+												className={`space-y-2 p-3 border rounded ${
+													closedQuarters[q] ? "bg-gray-200/50 opacity-60 dark:bg-gray-800/50" : "bg-muted/30"
+												}`}
+											>
+												<div className="flex items-center justify-between mb-2">
+													<Label className="text-sm font-medium">Parcial {q}</Label>
+												</div>
+												<div className="grid grid-cols-2 gap-2">
+													<div>
+														<Label className="text-xs">Propios</Label>
+														<Input
+															type="number"
+															value={quarterScores[q].home}
+															onChange={(e) => {
+																if (!closedQuarters[q]) {
+																	setQuarterScores((prev) => ({
+																		...prev,
+																		[q]: { ...prev[q], home: Number.parseInt(e.target.value) || 0 }
+																	}));
+																}
+															}}
+															disabled={closedQuarters[q]}
+															min={0}
+															className="text-center font-bold text-lg"
+														/>
+													</div>
+													<div>
+														<Label className="text-xs">Rival</Label>
+														<Input
+															type="number"
+															value={quarterScores[q].away}
+															onChange={(e) => {
+																if (!closedQuarters[q]) {
+																	setQuarterScores((prev) => ({
+																		...prev,
+																		[q]: { ...prev[q], away: Number.parseInt(e.target.value) || 0 }
+																	}));
+																}
+															}}
+															disabled={closedQuarters[q]}
+															min={0}
+															className="text-center font-bold text-lg"
+														/>
+													</div>
+												</div>
+												<Button
+													size="sm"
+													variant={closedQuarters[q] ? "default" : "destructive"}
+													onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
+													className="w-full mt-2 text-xs"
+												>
+													{closedQuarters[q] ? "Abrir Parcial" : "Cerrar Parcial"}
+												</Button>
+											</div>
+										))}
+									</div>
+								</div>
+
 								<div className="space-y-2 md:col-span-2">
 									<Label htmlFor="notes">Notas</Label>
 									<Textarea
@@ -711,6 +916,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 										)}
 									</div>
 								))}
+								{/* ADD "CONVOCAR" BUTTON TO ADD NEW FIELD PLAYERS */}
+								{getAvailablePlayers(false).length > 0 && fieldPlayers.length < 12 && (
+									<Button
+										variant="outline"
+										className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-green-500/10 bg-transparent w-full border-2 border-dashed hover:border-green-500 transition-all"
+										onClick={() => setShowAddPlayerDialog(true)}
+									>
+										<Plus className="h-8 w-8 text-green-500" />
+										<span className="font-medium text-sm text-center">Convocar Jugador</span>
+									</Button>
+								)}
 							</div>
 						</CardContent>
 					</Card>
@@ -778,7 +994,71 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						handleSubstitution(substitutionPlayer.id, newPlayerId);
 						setSubstitutionPlayer(null);
 					}}
+					onRemove={(playerId) => {
+						handleRemovePlayer(playerId);
+						setSubstitutionPlayer(null);
+					}}
 				/>
+			)}
+
+			{/* ADD DIALOG TO SELECT PLAYER TO ADD */}
+			{showAddPlayerDialog && (
+				<Dialog open={showAddPlayerDialog} onOpenChange={setShowAddPlayerDialog}>
+					<DialogContent className="sm:max-w-md">
+						<DialogHeader>
+							<DialogTitle className="flex items-center gap-2">
+								<Plus className="h-5 w-5" />
+								Convocar Jugador
+							</DialogTitle>
+							<DialogDescription>Selecciona un jugador de campo para añadir a la convocatoria (máximo 12)</DialogDescription>
+						</DialogHeader>
+
+						<div className="space-y-4 py-4">
+							<div className="space-y-2">
+								<Label htmlFor="add-player">Selecciona el jugador</Label>
+								<Select
+									value={selectedAddPlayer?.id.toString() || ""}
+									onValueChange={(value) => {
+										const player = allPlayers.find((p) => p.id === Number(value));
+										setSelectedAddPlayer(player || null);
+									}}
+								>
+									<SelectTrigger id="add-player">
+										<SelectValue placeholder="Elige un jugador..." />
+									</SelectTrigger>
+									<SelectContent>
+										{getAvailablePlayers(false).length === 0 ? (
+											<div className="p-2 text-sm text-muted-foreground text-center">No hay jugadores disponibles</div>
+										) : (
+											getAvailablePlayers(false).map((player) => (
+												<SelectItem key={player.id} value={player.id.toString()}>
+													#{player.number} - {player.name}
+												</SelectItem>
+											))
+										)}
+									</SelectContent>
+								</Select>
+							</div>
+
+							<div className="flex justify-end gap-2 pt-4">
+								<Button variant="outline" onClick={() => setShowAddPlayerDialog(false)}>
+									Cancelar
+								</Button>
+								<Button
+									onClick={() => {
+										if (selectedAddPlayer) {
+											handleAddPlayer(selectedAddPlayer.id);
+										}
+									}}
+									disabled={!selectedAddPlayer}
+								>
+									<Plus className="mr-2 h-4 w-4" />
+									Convocar
+								</Button>
+							</div>
+						</div>
+					</DialogContent>
+				</Dialog>
 			)}
 
 			{selectedPlayer && (
@@ -952,6 +1232,11 @@ function FieldPlayerStatsDialog({
 						label="Recibe Gol"
 						value={safeNumber(stats.acciones_recibir_gol)}
 						onChange={(v) => onUpdate("acciones_recibir_gol", v)}
+					/>
+					<StatField
+						label="Pérdida Posesión"
+						value={safeNumber(stats.acciones_perdida_poco)}
+						onChange={(v) => onUpdate("acciones_perdida_poco", v)}
 					/>
 				</div>
 			</TabsContent>
