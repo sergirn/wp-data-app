@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatInput } from "@/components/stat-input";
 import type { Player, MatchStats, Profile, Match } from "@/lib/types";
-import { Loader2, Save, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2, Save, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PlayerSubstitutionDialog } from "@/components/player-substitution-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const [loadingLineup, setLoadingLineup] = useState(false);
 	const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
 	const [existingMatch, setExistingMatch] = useState<Match | null>(null);
+
+	// ADD STATE FOR THE ADD PLAYER DIALOG
+	const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false);
+	const [selectedAddPlayer, setSelectedAddPlayer] = useState<Player | null>(null);
 
 	const [matchDate, setMatchDate] = useState(new Date().toISOString().split("T")[0]);
 	const [opponent, setOpponent] = useState("");
@@ -291,6 +295,32 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		return allPlayers.filter((player) => player.is_goalkeeper === isGoalkeeper && !activePlayerIds.includes(player.id));
 	};
 
+	// ADD FUNCTION TO ADD PLAYER TO THE FIELD (MAX 12 FIELD PLAYERS)
+	const handleAddPlayer = (playerId: number) => {
+		const player = allPlayers.find((p) => p.id === playerId);
+
+		if (!player) return;
+
+		// Check if adding would exceed 12 field players
+		const currentFieldPlayers = activePlayerIds.filter((id) => {
+			const p = allPlayers.find((pl) => pl.id === id);
+			return p && !p.is_goalkeeper;
+		}).length;
+
+		if (!player.is_goalkeeper && currentFieldPlayers >= 12) {
+			alert("No se pueden añadir más de 12 jugadores de campo");
+			return;
+		}
+
+		setActivePlayerIds((prev) => [...prev, playerId]);
+		setStats((prev) => ({
+			...prev,
+			[playerId]: createEmptyStats(playerId)
+		}));
+		setShowAddPlayerDialog(false);
+		setSelectedAddPlayer(null);
+	};
+
 	const handleSubstitution = (oldPlayerId: number, newPlayerId: number) => {
 		setActivePlayerIds((prev) => prev.filter((id) => id !== oldPlayerId).concat(newPlayerId));
 
@@ -298,6 +328,16 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			const newStats = { ...prev };
 			delete newStats[oldPlayerId];
 			newStats[newPlayerId] = createEmptyStats(newPlayerId);
+			return newStats;
+		});
+	};
+
+	const handleRemovePlayer = (playerId: number) => {
+		setActivePlayerIds((prev) => prev.filter((id) => id !== playerId));
+
+		setStats((prev) => {
+			const newStats = { ...prev };
+			delete newStats[playerId];
 			return newStats;
 		});
 	};
@@ -711,6 +751,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 										)}
 									</div>
 								))}
+								{/* ADD "CONVOCAR" BUTTON TO ADD NEW FIELD PLAYERS */}
+								{getAvailablePlayers(false).length > 0 && fieldPlayers.length < 12 && (
+									<Button
+										variant="outline"
+										className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-green-500/10 bg-transparent w-full border-2 border-dashed hover:border-green-500 transition-all"
+										onClick={() => setShowAddPlayerDialog(true)}
+									>
+										<Plus className="h-8 w-8 text-green-500" />
+										<span className="font-medium text-sm text-center">Convocar Jugador</span>
+									</Button>
+								)}
 							</div>
 						</CardContent>
 					</Card>
@@ -778,7 +829,71 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						handleSubstitution(substitutionPlayer.id, newPlayerId);
 						setSubstitutionPlayer(null);
 					}}
+					onRemove={(playerId) => {
+						handleRemovePlayer(playerId);
+						setSubstitutionPlayer(null);
+					}}
 				/>
+			)}
+
+			{/* ADD DIALOG TO SELECT PLAYER TO ADD */}
+			{showAddPlayerDialog && (
+				<Dialog open={showAddPlayerDialog} onOpenChange={setShowAddPlayerDialog}>
+					<DialogContent className="sm:max-w-md">
+						<DialogHeader>
+							<DialogTitle className="flex items-center gap-2">
+								<Plus className="h-5 w-5" />
+								Convocar Jugador
+							</DialogTitle>
+							<DialogDescription>Selecciona un jugador de campo para añadir a la convocatoria (máximo 12)</DialogDescription>
+						</DialogHeader>
+
+						<div className="space-y-4 py-4">
+							<div className="space-y-2">
+								<Label htmlFor="add-player">Selecciona el jugador</Label>
+								<Select
+									value={selectedAddPlayer?.id.toString() || ""}
+									onValueChange={(value) => {
+										const player = allPlayers.find((p) => p.id === Number(value));
+										setSelectedAddPlayer(player || null);
+									}}
+								>
+									<SelectTrigger id="add-player">
+										<SelectValue placeholder="Elige un jugador..." />
+									</SelectTrigger>
+									<SelectContent>
+										{getAvailablePlayers(false).length === 0 ? (
+											<div className="p-2 text-sm text-muted-foreground text-center">No hay jugadores disponibles</div>
+										) : (
+											getAvailablePlayers(false).map((player) => (
+												<SelectItem key={player.id} value={player.id.toString()}>
+													#{player.number} - {player.name}
+												</SelectItem>
+											))
+										)}
+									</SelectContent>
+								</Select>
+							</div>
+
+							<div className="flex justify-end gap-2 pt-4">
+								<Button variant="outline" onClick={() => setShowAddPlayerDialog(false)}>
+									Cancelar
+								</Button>
+								<Button
+									onClick={() => {
+										if (selectedAddPlayer) {
+											handleAddPlayer(selectedAddPlayer.id);
+										}
+									}}
+									disabled={!selectedAddPlayer}
+								>
+									<Plus className="mr-2 h-4 w-4" />
+									Convocar
+								</Button>
+							</div>
+						</div>
+					</DialogContent>
+				</Dialog>
 			)}
 
 			{selectedPlayer && (
