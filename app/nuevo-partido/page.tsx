@@ -511,18 +511,33 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				[playerId]: newStats
 			};
 
-			setQuarterScores((prevQuarters) => {
-				const newQuarters = { ...prevQuarters };
+			setQuarterScores((prev) => {
+				const updated = { ...prev };
 
-				// Only update quarters that are NOT closed
-				for (let q = 1; q <= 4; q++) {
-					if (!closedQuarters[q]) {
-						const { homeGoals, awayGoals } = calculateQuarterScores(updatedAllStats);
-						newQuarters[q] = { home: homeGoals, away: awayGoals };
-					}
-				}
+				// encuentra el primer cuarto que NO está cerrado
+				const activeQuarter = [1, 2, 3, 4].find((q) => !closedQuarters[q]);
+				if (!activeQuarter) return updated;
 
-				return newQuarters;
+				// recalcula solo el parcial ACTIVO desde cero
+				const { homeGoals, awayGoals } = calculateScores(updatedAllStats);
+
+				// diferencia respecto al total del cuarto anterior
+				const previousQuartersTotal = Object.values(prev)
+					.slice(0, activeQuarter - 1)
+					.reduce(
+						(acc, q) => ({
+							home: acc.home + q.home,
+							away: acc.away + q.away
+						}),
+						{ home: 0, away: 0 }
+					);
+
+				updated[activeQuarter] = {
+					home: homeGoals - previousQuartersTotal.home,
+					away: awayGoals - previousQuartersTotal.away
+				};
+
+				return updated;
 			});
 
 			return updatedAllStats;
