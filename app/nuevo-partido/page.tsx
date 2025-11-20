@@ -706,22 +706,28 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 			<Tabs defaultValue="info" className="w-full">
 				<TabsList className="grid w-full grid-cols-3 mb-6 h-auto">
+					{/* TAB: Información */}
 					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-						<span className="block truncate sm:text-[13px] md:text-sm">
-							{window.innerWidth < 640 ? "Info" : "Información de Partido"}
-						</span>
+						{/* Móvil */}
+						<span className="sm:hidden block truncate">Info</span>
+						{/* Desktop */}
+						<span className="hidden sm:inline block truncate">Información de Partido</span>
 					</TabsTrigger>
 
+					{/* TAB: Jugadores de Campo */}
 					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-						<span className="block truncate sm:text-[13px] md:text-sm">
-							{window.innerWidth < 640 ? `Campo (${fieldPlayers.length})` : `Jugadores de Campo (${fieldPlayers.length})`}
-						</span>
+						{/* Móvil */}
+						<span className="sm:hidden block truncate">Campo ({fieldPlayers.length})</span>
+						{/* Desktop */}
+						<span className="hidden sm:inline block truncate">Jugadores de Campo ({fieldPlayers.length})</span>
 					</TabsTrigger>
 
+					{/* TAB: Porteros */}
 					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-						<span className="block truncate sm:text-[13px] md:text-sm">
-							{window.innerWidth < 640 ? `Porteros (${goalkeepers.length})` : `Porteros (${goalkeepers.length})`}
-						</span>
+						{/* Móvil */}
+						<span className="sm:hidden block truncate">Porteros ({goalkeepers.length})</span>
+						{/* Desktop */}
+						<span className="hidden sm:inline block truncate">Porteros ({goalkeepers.length})</span>
 					</TabsTrigger>
 				</TabsList>
 
@@ -1139,9 +1145,8 @@ function FieldPlayerStatsDialog({
 					Tiros
 				</TabsTrigger>
 				<TabsTrigger value="superioridad" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
-					<span className="block truncate sm:text-[13px] md:text-sm">
-						{typeof window !== "undefined" && window.innerWidth < 640 ? "Sup." : "Superioridad"}
-					</span>
+					<span className="sm:hidden block truncate">Sup.</span>
+					<span className="hidden sm:inline block truncate">Superioridad</span>
 				</TabsTrigger>
 				<TabsTrigger value="faltas" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
 					Faltas
@@ -1295,9 +1300,8 @@ function GoalkeeperStatsDialog({
 					Paradas
 				</TabsTrigger>
 				<TabsTrigger value="inferioridad" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-					<span className="block truncate sm:text-[13px] md:text-sm">
-						{typeof window !== "undefined" && window.innerWidth < 640 ? "Inf." : "Inferioridad"}
-					</span>
+					<span className="sm:hidden block truncate">Inf.</span>
+					<span className="hidden sm:inline block truncate">Inferioridad</span>
 				</TabsTrigger>
 				<TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 					Acciones
