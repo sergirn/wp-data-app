@@ -1131,12 +1131,17 @@ function FieldPlayerStatsDialog({
 }) {
 	return (
 		<Tabs defaultValue="goles" className="w-full">
-			<TabsList className="grid w-full grid-cols-4 h-auto">
+			<TabsList className="grid w-full grid-cols-5 h-auto">
 				<TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
 					Goles
 				</TabsTrigger>
 				<TabsTrigger value="tiros" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
 					Tiros
+				</TabsTrigger>
+				<TabsTrigger value="superioridad" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
+					<span className="block truncate sm:text-[13px] md:text-sm">
+						{typeof window !== "undefined" && window.innerWidth < 640 ? "Sup." : "Superioridad"}
+					</span>
 				</TabsTrigger>
 				<TabsTrigger value="faltas" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
 					Faltas
@@ -1151,7 +1156,6 @@ function FieldPlayerStatsDialog({
 				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 					<StatField label="Totales" value={safeNumber(stats.goles_totales)} onChange={() => {}} readOnly />
 					<StatField label="Boya/Jugada" value={safeNumber(stats.goles_boya_jugada)} onChange={(v) => onUpdate("goles_boya_jugada", v)} />
-					<StatField label="Hombre +" value={safeNumber(stats.goles_hombre_mas)} onChange={(v) => onUpdate("goles_hombre_mas", v)} />
 					<StatField label="Lanzamiento" value={safeNumber(stats.goles_lanzamiento)} onChange={(v) => onUpdate("goles_lanzamiento", v)} />
 					<StatField label="Dir +5m" value={safeNumber(stats.goles_dir_mas_5m)} onChange={(v) => onUpdate("goles_dir_mas_5m", v)} />
 					<StatField
@@ -1173,7 +1177,6 @@ function FieldPlayerStatsDialog({
 				</p>
 				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 					<StatField label="Totales" value={safeNumber(stats.tiros_totales)} onChange={() => {}} readOnly />
-					<StatField label="Hombre +" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
 					<StatField
 						label="Penalti Fallado"
 						value={safeNumber(stats.tiros_penalti_fallado)}
@@ -1184,6 +1187,28 @@ function FieldPlayerStatsDialog({
 					<StatField label="Parados" value={safeNumber(stats.tiros_parados)} onChange={(v) => onUpdate("tiros_parados", v)} />
 					<StatField label="Bloqueado" value={safeNumber(stats.tiros_bloqueado)} onChange={(v) => onUpdate("tiros_bloqueado", v)} />
 					<StatField label="Eficiencia %" value={safeNumber(stats.tiros_eficiencia)} onChange={() => {}} readOnly suffix="%" />
+				</div>
+			</TabsContent>
+
+			<TabsContent value="superioridad" className="space-y-4 mt-4">
+				<p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
+
+				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+					<StatField label="Goles Hombre +" value={safeNumber(stats.goles_hombre_mas)} onChange={(v) => onUpdate("goles_hombre_mas", v)} />
+
+					<StatField label="Fallos Hombre +" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
+
+					<StatField
+						label="Eficiencia %"
+						value={(() => {
+							const g = safeNumber(stats.goles_hombre_mas);
+							const t = safeNumber(stats.tiros_hombre_mas);
+							return g + t > 0 ? Math.round((g / (g + t)) * 100) : 0;
+						})()}
+						onChange={() => {}}
+						readOnly
+						suffix="%"
+					/>
 				</div>
 			</TabsContent>
 
@@ -1262,12 +1287,17 @@ function GoalkeeperStatsDialog({
 
 	return (
 		<Tabs defaultValue="goles" className="w-full">
-			<TabsList className="grid w-full grid-cols-3 h-auto">
+			<TabsList className="grid w-full grid-cols-4 h-auto">
 				<TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 					Goles
 				</TabsTrigger>
 				<TabsTrigger value="paradas" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 					Paradas
+				</TabsTrigger>
+				<TabsTrigger value="inferioridad" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+					<span className="block truncate sm:text-[13px] md:text-sm">
+						{typeof window !== "undefined" && window.innerWidth < 640 ? "Inf." : "Inferioridad"}
+					</span>
 				</TabsTrigger>
 				<TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 					Acciones
@@ -1284,11 +1314,6 @@ function GoalkeeperStatsDialog({
 						label="Boya"
 						value={safeNumber(stats.portero_goles_boya_parada)}
 						onChange={(v) => onUpdate("portero_goles_boya_parada", v)}
-					/>
-					<StatField
-						label="Hombre -"
-						value={safeNumber(stats.portero_goles_hombre_menos)}
-						onChange={(v) => onUpdate("portero_goles_hombre_menos", v)}
 					/>
 					<StatField
 						label="Dir +5m"
@@ -1326,10 +1351,38 @@ function GoalkeeperStatsDialog({
 						value={safeNumber(stats.portero_paradas_penalti_parado)}
 						onChange={(v) => onUpdate("portero_paradas_penalti_parado", v)}
 					/>
+				</div>
+			</TabsContent>
+
+			<TabsContent value="inferioridad" className="space-y-4 mt-4">
+				<p className="text-sm text-muted-foreground mb-4">
+					Estadísticas de inferioridad numérica (Hombre -). Se suman automáticamente al marcador del rival.
+				</p>
+
+				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 					<StatField
-						label="Parada/Defensa Hombre -"
+						label="Goles Hombre -"
+						value={safeNumber(stats.portero_goles_hombre_menos)}
+						onChange={(v) => onUpdate("portero_goles_hombre_menos", v)}
+					/>
+
+					<StatField
+						label="Paradas/defensa Hombre -"
 						value={safeNumber(stats.portero_paradas_hombre_menos)}
 						onChange={(v) => onUpdate("portero_paradas_hombre_menos", v)}
+					/>
+
+					<StatField
+						label="Eficiencia %"
+						value={(() => {
+							const goles = safeNumber(stats.portero_goles_hombre_menos);
+							const paradas = safeNumber(stats.portero_paradas_hombre_menos);
+							const total = goles + paradas;
+							return total > 0 ? Math.round((paradas / total) * 100) : 0;
+						})()}
+						onChange={() => {}}
+						readOnly
+						suffix="%"
 					/>
 				</div>
 			</TabsContent>
