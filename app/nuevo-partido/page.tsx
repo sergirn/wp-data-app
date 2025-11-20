@@ -24,6 +24,20 @@ interface MatchEditParams {
 }
 
 export default function NewMatchPage({ searchParams }: { searchParams: Promise<MatchEditParams> }) {
+	// ADD STATE FOR QUARTERLY SCORES
+	const [closedQuarters, setClosedQuarters] = useState<Record<number, boolean>>({
+		1: false,
+		2: false,
+		3: false,
+		4: false
+	});
+	const [quarterScores, setQuarterScores] = useState<Record<number, { home: number; away: number }>>({
+		1: { home: 0, away: 0 },
+		2: { home: 0, away: 0 },
+		3: { home: 0, away: 0 },
+		4: { home: 0, away: 0 }
+	});
+
 	const router = useRouter();
 	const supabase = createClient();
 	const [allPlayers, setAllPlayers] = useState<Player[]>([]);
@@ -52,6 +66,30 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const [notes, setNotes] = useState("");
 
 	const [stats, setStats] = useState<Record<number, Partial<MatchStats>>>({});
+
+	const calculateQuarterScores = (playerStats: Record<number, Partial<MatchStats>>) => {
+		let homeGoals = 0;
+		let awayGoals = 0;
+
+		Object.entries(playerStats).forEach(([playerId, playerStat]) => {
+			const player = allPlayers.find((p) => p.id === Number(playerId));
+
+			if (player?.is_goalkeeper) {
+				const goalkeeperGoals =
+					(playerStat.portero_goles_boya_parada || 0) +
+					(playerStat.portero_goles_hombre_menos || 0) +
+					(playerStat.portero_goles_dir_mas_5m || 0) +
+					(playerStat.portero_goles_contraataque || 0) +
+					(playerStat.portero_goles_penalti || 0);
+
+				awayGoals += goalkeeperGoals;
+			} else {
+				homeGoals += playerStat.goles_totales || 0;
+			}
+		});
+
+		return { homeGoals, awayGoals };
+	};
 
 	const calculateScores = (playerStats: Record<number, Partial<MatchStats>>) => {
 		let homeGoals = 0;
@@ -268,7 +306,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		tiros_penalti_juego: 0,
 		faltas_exp_3_int: 0,
 		faltas_exp_3_bruta: 0,
-		acciones_perdida_poco: 0,
+		acciones_perdida_poco: 0, // AÑADIDO ESTO
 		portero_goles_lanzamiento: 0,
 		portero_goles_penalti_encajado: 0,
 		portero_tiros_parado: 0,
@@ -362,6 +400,21 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			setJornada(match.jornada || 1);
 			setNotes(match.notes || "");
 
+			setQuarterScores({
+				1: { home: match.q1_score || 0, away: match.q1_score_rival || 0 },
+				2: { home: match.q2_score || 0, away: match.q2_score_rival || 0 },
+				3: { home: match.q3_score || 0, away: match.q3_score_rival || 0 },
+				4: { home: match.q4_score || 0, away: match.q4_score_rival || 0 }
+			});
+
+			// ALSO SET CLOSED QUARTERS BASED ON MATCH DATA
+			setClosedQuarters({
+				1: match.q1_score !== undefined && match.q1_score_rival !== undefined,
+				2: match.q2_score !== undefined && match.q2_score_rival !== undefined,
+				3: match.q3_score !== undefined && match.q3_score_rival !== undefined,
+				4: match.q4_score !== undefined && match.q4_score_rival !== undefined
+			});
+
 			const { data: matchStats, error: statsError } = await supabase.from("match_stats").select("*").eq("match_id", matchId);
 
 			if (statsError) {
@@ -453,10 +506,26 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				}
 			}
 
-			return {
+			const updatedAllStats = {
 				...prev,
 				[playerId]: newStats
 			};
+
+			setQuarterScores((prevQuarters) => {
+				const newQuarters = { ...prevQuarters };
+
+				// Only update quarters that are NOT closed
+				for (let q = 1; q <= 4; q++) {
+					if (!closedQuarters[q]) {
+						const { homeGoals, awayGoals } = calculateQuarterScores(updatedAllStats);
+						newQuarters[q] = { home: homeGoals, away: awayGoals };
+					}
+				}
+
+				return newQuarters;
+			});
+
+			return updatedAllStats;
 		});
 	};
 
@@ -488,7 +557,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						is_home: isHome,
 						season: season || null,
 						jornada: jornada || null,
-						notes: notes || null
+						notes: notes || null,
+						q1_score: quarterScores[1].home,
+						q2_score: quarterScores[2].home,
+						q3_score: quarterScores[3].home,
+						q4_score: quarterScores[4].home,
+						q1_score_rival: quarterScores[1].away,
+						q2_score_rival: quarterScores[2].away,
+						q3_score_rival: quarterScores[3].away,
+						q4_score_rival: quarterScores[4].away
 					})
 					.eq("id", editingMatchId);
 
@@ -519,7 +596,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						season: season || null,
 						jornada: jornada || null,
 						notes: notes || null,
-						club_id: profile.club_id
+						club_id: profile.club_id,
+						q1_score: quarterScores[1].home,
+						q2_score: quarterScores[2].home,
+						q3_score: quarterScores[3].home,
+						q4_score: quarterScores[4].home,
+						q1_score_rival: quarterScores[1].away,
+						q2_score_rival: quarterScores[2].away,
+						q3_score_rival: quarterScores[3].away,
+						q4_score_rival: quarterScores[4].away
 					})
 					.select()
 					.single();
@@ -582,7 +667,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				<p className="text-muted-foreground text-lg">
 					{editingMatchId ? "Actualiza las estadísticas del partido" : "Registra las estadísticas del partido"}
 				</p>
-				<div className="flex items-center gap-3 mt-3">
+				<div className="flex items-center gap-3 mt-3 flex-wrap">
 					<Badge variant="secondary" className="text-sm">
 						Convocatoria: {activePlayerIds.length} jugadores
 					</Badge>
@@ -692,6 +777,71 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 										min={1}
 									/>
 								</div>
+
+								<div className="space-y-2 md:col-span-3 border-t pt-4 mt-4">
+									<h3 className="font-semibold text-sm mb-3">Puntuación por Parciales</h3>
+									<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+										{[1, 2, 3, 4].map((q) => (
+											<div
+												key={q}
+												className={`space-y-2 p-3 border rounded ${
+													closedQuarters[q] ? "bg-gray-200/50 opacity-60 dark:bg-gray-800/50" : "bg-muted/30"
+												}`}
+											>
+												<div className="flex items-center justify-between mb-2">
+													<Label className="text-sm font-medium">Parcial {q}</Label>
+												</div>
+												<div className="grid grid-cols-2 gap-2">
+													<div>
+														<Label className="text-xs">Propios</Label>
+														<Input
+															type="number"
+															value={quarterScores[q].home}
+															onChange={(e) => {
+																if (!closedQuarters[q]) {
+																	setQuarterScores((prev) => ({
+																		...prev,
+																		[q]: { ...prev[q], home: Number.parseInt(e.target.value) || 0 }
+																	}));
+																}
+															}}
+															disabled={closedQuarters[q]}
+															min={0}
+															className="text-center font-bold text-lg"
+														/>
+													</div>
+													<div>
+														<Label className="text-xs">Rival</Label>
+														<Input
+															type="number"
+															value={quarterScores[q].away}
+															onChange={(e) => {
+																if (!closedQuarters[q]) {
+																	setQuarterScores((prev) => ({
+																		...prev,
+																		[q]: { ...prev[q], away: Number.parseInt(e.target.value) || 0 }
+																	}));
+																}
+															}}
+															disabled={closedQuarters[q]}
+															min={0}
+															className="text-center font-bold text-lg"
+														/>
+													</div>
+												</div>
+												<Button
+													size="sm"
+													variant={closedQuarters[q] ? "default" : "destructive"}
+													onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
+													className="w-full mt-2 text-xs"
+												>
+													{closedQuarters[q] ? "Abrir Parcial" : "Cerrar Parcial"}
+												</Button>
+											</div>
+										))}
+									</div>
+								</div>
+
 								<div className="space-y-2 md:col-span-2">
 									<Label htmlFor="notes">Notas</Label>
 									<Textarea
@@ -1067,6 +1217,11 @@ function FieldPlayerStatsDialog({
 						label="Recibe Gol"
 						value={safeNumber(stats.acciones_recibir_gol)}
 						onChange={(v) => onUpdate("acciones_recibir_gol", v)}
+					/>
+					<StatField
+						label="Pérdida Posesión"
+						value={safeNumber(stats.acciones_perdida_poco)}
+						onChange={(v) => onUpdate("acciones_perdida_poco", v)}
 					/>
 				</div>
 			</TabsContent>

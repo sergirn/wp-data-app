@@ -148,6 +148,39 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				</CardContent>
 			</Card>
 
+			{(match.q1_score || match.q2_score || match.q3_score || match.q4_score) && (
+				<Card className="mb-6">
+					<CardHeader>
+						<CardTitle>Puntuación por Parciales</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+							{[
+								{ q: 1, home: match.q1_score, away: match.q1_score_rival },
+								{ q: 2, home: match.q2_score, away: match.q2_score_rival },
+								{ q: 3, home: match.q3_score, away: match.q3_score_rival },
+								{ q: 4, home: match.q4_score, away: match.q4_score_rival }
+							].map(({ q, home, away }) => (
+								<div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
+									<p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+									<div className="flex justify-around items-center gap-2">
+										<div>
+											<p className="text-2xl font-bold">{home || 0}</p>
+											<p className="text-xs text-muted-foreground">{clubName}</p>
+										</div>
+										<p className="text-muted-foreground font-bold">-</p>
+										<div>
+											<p className="text-2xl font-bold">{away || 0}</p>
+											<p className="text-xs text-muted-foreground">{match.opponent}</p>
+										</div>
+									</div>
+								</div>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+			)}
+
 			{/* Field Players Stats */}
 			<Card className="mb-6">
 				<CardHeader>
