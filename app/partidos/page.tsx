@@ -196,6 +196,10 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 									text-red-700 dark:text-red-400 
 									bg-red-500/5 hover:bg-red-500/20 
 									transition-all duration-200 cursor-pointer font-medium"
+									onClick={(e) => {
+										e.preventDefault();
+										e.stopPropagation();
+									}}
 								>
 									<DeleteMatchButton matchId={match.id} />
 									<span className="hidden sm:inline text-sm">Eliminar</span>
