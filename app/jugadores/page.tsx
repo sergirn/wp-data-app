@@ -228,7 +228,7 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
                 <img 
                   src={player.photo_url || "/placeholder.svg"} 
                   alt={player.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
               ) : (
                 <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
@@ -292,7 +292,7 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
                 <img 
                   src={player.photo_url || "/placeholder.svg"} 
                   alt={player.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
               ) : (
                 <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
