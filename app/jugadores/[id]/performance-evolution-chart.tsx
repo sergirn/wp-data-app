@@ -48,17 +48,12 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
         const savePercentage = totalShots > 0 
           ? Math.round((stat.portero_paradas_totales / totalShots) * 100) 
           : 0
-          const cumulativeParadas =
-        sortedStats.slice(0, index + 1).reduce((sum, s) => sum + s.portero_paradas_totales, 0)
-
-        const paradasMedia = cumulativeParadas / (index + 1)
 
         return {
-          
           match: `J${index + 1}`,
           date: shortDate,
           opponent: stat.matches.opponent.substring(0, 10),
-          paradas: Number(paradasMedia.toFixed(1)),
+          paradas: stat.portero_paradas_totales,
           eficiencia: savePercentage,
           goles: stat.goles_totales,
         }
