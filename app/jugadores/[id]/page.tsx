@@ -52,7 +52,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 						<div className="flex items-center gap-4">
 							<div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
 								{player.photo_url ? (
-									<img src={player.photo_url || "/placeholder.svg"} alt={player.name} className="w-full h-full object-cover" />
+									<img src={player.photo_url || "/placeholder.svg"} alt={player.name} className="w-full h-full object-cover object-top" />
 								) : (
 									<span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
 								)}
