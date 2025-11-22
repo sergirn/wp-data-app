@@ -9,6 +9,7 @@ import { DeleteMatchButton } from "@/components/delete-match-button";
 import { MatchExportButton } from "@/components/match-export-button";
 import { getCurrentProfile } from "@/lib/auth";
 
+
 interface MatchWithStats extends Match {
 	match_stats: (MatchStats & { players: Player })[];
 	clubs: Club;
@@ -47,6 +48,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			? "bg-red-500/10 text-red-700 dark:text-red-300"
 			: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300";
 
+			
 	const fieldPlayersStats = match.match_stats
 		.filter((stat: any) => !stat.players.is_goalkeeper)
 		.sort((a: any, b: any) => a.players.number - b.players.number);
@@ -151,35 +153,51 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			{(match.q1_score || match.q2_score || match.q3_score || match.q4_score) && (
 				<Card className="mb-6">
 					<CardHeader>
-						<CardTitle>Puntuación por Parciales</CardTitle>
+					<CardTitle>Puntuación por Parciales</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-							{[
-								{ q: 1, home: match.q1_score, away: match.q1_score_rival },
-								{ q: 2, home: match.q2_score, away: match.q2_score_rival },
-								{ q: 3, home: match.q3_score, away: match.q3_score_rival },
-								{ q: 4, home: match.q4_score, away: match.q4_score_rival }
-							].map(({ q, home, away }) => (
-								<div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
-									<p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
-									<div className="flex justify-around items-center gap-2">
-										<div>
-											<p className="text-2xl font-bold">{home || 0}</p>
-											<p className="text-xs text-muted-foreground">{clubName}</p>
-										</div>
-										<p className="text-muted-foreground font-bold">-</p>
-										<div>
-											<p className="text-2xl font-bold">{away || 0}</p>
-											<p className="text-xs text-muted-foreground">{match.opponent}</p>
-										</div>
-									</div>
-								</div>
-							))}
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+						{[
+						{ q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner },
+						{ q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner },
+						{ q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner },
+						{ q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner },
+						].map(({ q, home, away, sprint }) => (
+						<div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
+							<p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+
+							<div className="flex justify-around items-center gap-2">
+							<div>
+								<p className="text-2xl font-bold">{home || 0}</p>
+								<p className="text-xs text-muted-foreground">{clubName}</p>
+							</div>
+
+							<p className="text-muted-foreground font-bold">-</p>
+
+							<div>
+								<p className="text-2xl font-bold">{away || 0}</p>
+								<p className="text-xs text-muted-foreground">{match.opponent}</p>
+							</div>
+							</div>
+
+							{/* Sprint ganado/perdido */}
+							<div className="mt-3">
+							{sprint === 1 ? (
+								<span className="text-sm font-semibold text-green-600 dark:text-green-400">
+								Sprint ganado
+								</span>
+							) : (
+								<span className="text-sm font-semibold text-red-500 dark:text-red-400">
+								Sprint perdido
+								</span>
+							)}
+							</div>
 						</div>
+						))}
+					</div>
 					</CardContent>
 				</Card>
-			)}
+				)}
 
 			{/* Field Players Stats */}
 			<Card className="mb-6">
@@ -301,7 +319,7 @@ function PlayerStatsDisplay({ stat, player }: { stat: MatchStats; player: Player
 							{stat.goles_boya_cada > 0 && <StatBadge label="Boya/Cada" value={stat.goles_boya_cada} />}
 							{stat.goles_hombre_mas > 0 && <StatBadge label="Hombre +" value={stat.goles_hombre_mas} />}
 							{stat.goles_lanzamiento > 0 && <StatBadge label="Lanzamiento" value={stat.goles_lanzamiento} />}
-							{stat.goles_dir_mas_5m > 0 && <StatBadge label="Dir +5m" value={stat.goles_dir_mas_5m} />}
+							{stat.goles_dir_mas_5m > 0 && <StatBadge label="Dir +6m" value={stat.goles_dir_mas_5m} />}
 							{stat.goles_contraataque > 0 && <StatBadge label="Contraataque" value={stat.goles_contraataque} />}
 							{stat.goles_penalti_juego > 0 && <StatBadge label="Penalti" value={stat.goles_penalti_juego} />}
 							{stat.goles_corner > 0 && <StatBadge label="Corner" value={stat.goles_corner} />}
@@ -398,7 +416,7 @@ function GoalkeeperStatsDisplay({ stat, player }: { stat: MatchStats; player: Pl
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
 							{stat.portero_goles_boya_parada > 0 && <StatBadge label="Boya/Parada" value={stat.portero_goles_boya_parada} />}
 							{stat.portero_goles_lanzamiento > 0 && <StatBadge label="Lanzamiento" value={stat.portero_goles_lanzamiento} />}
-							{stat.portero_goles_dir_mas_5m > 0 && <StatBadge label="Dir +5m" value={stat.portero_goles_dir_mas_5m} />}
+							{stat.portero_goles_dir_mas_5m > 0 && <StatBadge label="Dir +6m" value={stat.portero_goles_dir_mas_5m} />}
 							{stat.goles_contraataque > 0 && <StatBadge label="Contraataque" value={stat.goles_contraataque} />}
 							{stat.goles_penalti_juego > 0 && <StatBadge label="Penalti" value={stat.goles_penalti_juego} />}
 						</div>

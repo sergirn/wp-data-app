@@ -38,6 +38,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		4: { home: 0, away: 0 }
 	});
 
+	const [sprintWinners, setSprintWinners] = useState({
+		1: 0,
+		2: 0,
+		3: 0,
+		4: 0
+	});
+
 	const router = useRouter();
 	const supabase = createClient();
 	const [allPlayers, setAllPlayers] = useState<Player[]>([]);
@@ -99,21 +106,27 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			const player = allPlayers.find((p) => p.id === Number(playerId));
 
 			if (player?.is_goalkeeper) {
-				const goalkeeperGoals =
-					(playerStat.portero_goles_boya_parada || 0) +
-					(playerStat.portero_goles_hombre_menos || 0) +
-					(playerStat.portero_goles_dir_mas_5m || 0) +
-					(playerStat.portero_goles_contraataque || 0) +
-					(playerStat.portero_goles_penalti || 0);
+			// Goles que recibe el portero
+			const goalkeeperGoals =
+				(playerStat.portero_goles_boya_parada || 0) +
+				(playerStat.portero_goles_hombre_menos || 0) +
+				(playerStat.portero_goles_dir_mas_5m || 0) +
+				(playerStat.portero_goles_contraataque || 0) +
+				(playerStat.portero_goles_penalti || 0);
 
-				awayGoals += goalkeeperGoals;
+			awayGoals += goalkeeperGoals;
+
 			} else {
-				homeGoals += playerStat.goles_totales || 0;
+			// Goles que marca el jugador de campo
+			homeGoals += playerStat.goles_totales || 0;
+
+			// 🔥 NUEVO: goles que RECIBE el jugador (errores defensivos = gol rival)
+			awayGoals += playerStat.acciones_recibir_gol || 0;
 			}
 		});
 
 		return { homeGoals, awayGoals };
-	};
+		};
 
 	useEffect(() => {
 		async function initializeFromParams() {
@@ -407,6 +420,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				4: { home: match.q4_score || 0, away: match.q4_score_rival || 0 }
 			});
 
+			setSprintWinners({
+				1: match.sprint1_winner || 0,
+				2: match.sprint2_winner || 0,
+				3: match.sprint3_winner || 0,
+				4: match.sprint4_winner || 0
+			});
+
 			// ALSO SET CLOSED QUARTERS BASED ON MATCH DATA
 			setClosedQuarters({
 				1: match.q1_score !== undefined && match.q1_score_rival !== undefined,
@@ -580,7 +600,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						q1_score_rival: quarterScores[1].away,
 						q2_score_rival: quarterScores[2].away,
 						q3_score_rival: quarterScores[3].away,
-						q4_score_rival: quarterScores[4].away
+						q4_score_rival: quarterScores[4].away,
+						sprint1_winner: sprintWinners[1],
+						sprint2_winner: sprintWinners[2],
+						sprint3_winner: sprintWinners[3],
+						sprint4_winner: sprintWinners[4]
 					})
 					.eq("id", editingMatchId);
 
@@ -619,7 +643,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						q1_score_rival: quarterScores[1].away,
 						q2_score_rival: quarterScores[2].away,
 						q3_score_rival: quarterScores[3].away,
-						q4_score_rival: quarterScores[4].away
+						q4_score_rival: quarterScores[4].away,
+						sprint1_winner: sprintWinners[1],
+						sprint2_winner: sprintWinners[2],
+						sprint3_winner: sprintWinners[3],
+						sprint4_winner: sprintWinners[4]
 					})
 					.select()
 					.single();
@@ -850,6 +878,23 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 														/>
 													</div>
 												</div>
+												{/* SPRINT WINNER CHECKBOX */}
+													<button
+														type="button"
+														onClick={() =>
+															setSprintWinners((prev) => ({
+															...prev,
+															[q]: prev[q] === 1 ? 0 : 1
+															}))
+														}
+														className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border 
+															${sprintWinners[q] === 1 
+															? "bg-green-500 text-white border-green-600" 
+															: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
+															}`}
+														>
+														{sprintWinners[q] === 1 ? "Sprint ganado" : "Sprint NO ganado"}
+														</button>
 												<Button
 													size="sm"
 													variant={closedQuarters[q] ? "default" : "destructive"}
