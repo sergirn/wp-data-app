@@ -87,33 +87,20 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
   }
 
   if (player.is_goalkeeper) {
-    const totalRivalGoals =
-      stat.matches.is_home ? stat.matches.away_score : stat.matches.home_score
-
-    const totalShots = stat.portero_paradas_totales + totalRivalGoals
-
-    const savePercentage =
-      totalShots > 0 ? Math.round((stat.portero_paradas_totales / totalShots) * 100) : 0
-
-    // --- NUEVO: media acumulada de paradas por partido ---
-    const cumulativeParadas = sortedStats
-      .slice(0, index + 1)
-      .reduce((sum, s) => sum + s.portero_paradas_totales, 0)
-
-    const paradasMedia = cumulativeParadas / (index + 1)
-
-    return {
-      match: `J${index + 1}`,
-      date: shortDate,
-      opponent: stat.matches.opponent.substring(0, 10),
-
-      // NUEVO: media de paradas
-      paradas: Number(paradasMedia.toFixed(1)),
-
-      eficiencia: savePercentage,
-      goles: totalRivalGoals,
+    const chartConfig = {
+      paradas: {
+        label: "Paradas",
+        color: "hsl(200 80% 50%)",
+      },
+      eficiencia: {
+        label: "Eficiencia %",
+        color: "hsl(160 70% 50%)",
+      },
+      goles: {
+        label: "Goles",
+        color: "hsl(280 70% 60%)",
+      },
     }
-  }
 
     return (
       <div className="space-y-6">
