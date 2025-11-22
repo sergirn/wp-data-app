@@ -191,19 +191,21 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 
 							{/* ELIMINAR – texto siempre fuerte, fondo flojo → rojo al hover */}
 							<div className="flex-1 h-10">
-								<div
+								<Link
+									href="#"
+									onClickCapture={(e) => {
+										e.preventDefault(); // evita navegar
+										e.stopPropagation(); // evita que llegue al Link padre
+										// Aquí haces la eliminación real
+									}}
 									className="group h-full w-full rounded-md flex items-center justify-center gap-2 
 									text-red-700 dark:text-red-400 
 									bg-red-500/5 hover:bg-red-500/20 
-									transition-all duration-200 cursor-pointer font-medium"
-									onClick={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-									}}
+									transition-all duration-200 font-medium cursor-pointer"
 								>
 									<DeleteMatchButton matchId={match.id} />
 									<span className="hidden sm:inline text-sm">Eliminar</span>
-								</div>
+								</Link>
 							</div>
 						</div>
 					)}
