@@ -126,7 +126,13 @@ function calculateTotalStats(stats: any[], isGoalkeeper = false) {
 			acciones_penalti_provocado: acc.acciones_penalti_provocado + (stat.acciones_penalti_provocado || 0),
 			acciones_recibir_gol: acc.acciones_recibir_gol + (stat.acciones_recibir_gol || 0),
 
-			portero_goles_totales: acc.portero_goles_totales + (stat.portero_goles_totales || 0),
+			portero_goles_totales:
+				acc.portero_goles_totales +
+				((stat.portero_goles_boya || 0) +
+					(stat.portero_goles_hombre_menos || 0) +
+					(stat.portero_goles_dir_mas_5m || 0) +
+					(stat.portero_goles_contraataque || 0) +
+					(stat.portero_goles_penalti || 0)),
 			portero_goles_boya: acc.portero_goles_boya + (stat.portero_goles_boya || 0),
 			portero_goles_hombre_menos: acc.portero_goles_hombre_menos + (stat.portero_goles_hombre_menos || 0),
 			portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
@@ -528,7 +534,7 @@ function MatchStatsView({ matchStats, player }: { matchStats: MatchStatsWithMatc
 										<p className="text-xs text-muted-foreground">Paradas</p>
 									</div>
 									<div className="text-center p-3 bg-muted rounded-lg">
-										<p className="text-xl font-bold">{stat.portero_recibir_gol}</p>
+										<p className="text-xl font-bold">{stat.portero_goles_totales}</p>
 										<p className="text-xs text-muted-foreground">Goles Recibidos</p>
 									</div>
 								</>
