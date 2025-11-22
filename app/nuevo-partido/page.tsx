@@ -897,7 +897,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 													<img
 														src={player.photo_url || "/placeholder.svg"}
 														alt={player.name}
-														className="w-full h-full object-cover"
+														className="w-full h-full object-cover object-top"
 													/>
 												) : (
 													<span className="text-primary-foreground font-bold text-lg">{player.number}</span>
@@ -957,7 +957,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 													<img
 														src={player.photo_url || "/placeholder.svg"}
 														alt={player.name}
-														className="w-full h-full object-cover"
+														className="w-full h-full object-cover object-top"
 													/>
 												) : (
 													<span className="text-primary-foreground font-bold">{player.number}</span>
@@ -1077,7 +1077,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 										<img
 											src={selectedPlayer.photo_url || "/placeholder.svg"}
 											alt={selectedPlayer.name}
-											className="w-full h-full object-cover"
+											className="w-full h-full object-cover object-top"
 										/>
 									) : (
 										<span className="text-primary-foreground font-bold">{selectedPlayer.number}</span>

@@ -270,46 +270,65 @@ export default function HomePage() {
             </div>
           </CardHeader>
           <CardContent>
-            {players && players.length > 0 ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
-                  {displayedPlayers.map((player) => (
-                    <Link
-                      key={player.id}
-                      href={`/jugadores/${player.id}`}
-                      className="flex items-center gap-3 p-3 rounded-lg border-2 hover:bg-muted hover:border-primary transition-all"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary-foreground font-bold text-base">{player.number}</span>
-                      </div>
-                      <span className="text-sm font-medium truncate">{player.name}</span>
-                    </Link>
-                  ))}
-                </div>
-                {hasMorePlayers && (
-                  <Button variant="ghost" className="w-full mt-2" onClick={() => setShowAllPlayers(!showAllPlayers)}>
-                    {showAllPlayers ? (
-                      <>
-                        <ChevronUp className="mr-2 h-4 w-4" />
-                        Mostrar menos
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="mr-2 h-4 w-4" />
-                        Ver {players.length - 10} jugadores más
-                      </>
-                    )}
-                  </Button>
-                )}
+          {players && players.length > 0 ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+                {displayedPlayers.map((player) => (
+                  <Link
+                    key={player.id}
+                    href={`/jugadores/${player.id}`}
+                    className="flex items-center gap-3 p-3 rounded-lg border-2 hover:bg-muted hover:border-primary transition-all"
+                  >
+                    {/* FOTO O NÚMERO */}
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-primary flex items-center justify-center flex-shrink-0">
+                      {player.photo_url ? (
+                        <img
+                          src={player.photo_url}
+                          alt={player.name}
+                          className="w-full h-full object-cover object-top"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="text-primary-foreground font-bold text-base">
+                          {player.number} 
+                        </span>
+                      )}
+                    </div>
+
+                    {/* NOMBRE */}
+                    <span className="text-sm font-medium truncate">{player.name}</span>
+                  </Link>
+                ))}
               </div>
-            ) : (
-              <p className="text-muted-foreground text-center py-8 text-sm">
-                {connectionError || tablesNotFound
-                  ? "No se pueden cargar los jugadores"
-                  : `No hay jugadores registrados para ${currentClub?.short_name}`}
-              </p>
-            )}
-          </CardContent>
+
+              {hasMorePlayers && (
+                <Button
+                  variant="ghost"
+                  className="w-full mt-2"
+                  onClick={() => setShowAllPlayers(!showAllPlayers)}
+                >
+                  {showAllPlayers ? (
+                    <>
+                      <ChevronUp className="mr-2 h-4 w-4" />
+                      Mostrar menos
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="mr-2 h-4 w-4" />
+                      Ver {players.length - 10} jugadores más
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8 text-sm">
+              {connectionError || tablesNotFound
+                ? "No se pueden cargar los jugadores"
+                : `No hay jugadores registrados para ${currentClub?.short_name}`}
+            </p>
+          )}
+        </CardContent>
         </Card>
       </div>
     </main>
