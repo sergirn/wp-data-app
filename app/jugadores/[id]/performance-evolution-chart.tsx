@@ -90,11 +90,7 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
       eficiencia: {
         label: "Eficiencia %",
         color: "hsl(160 70% 50%)",
-      },
-      goles: {
-        label: "Goles",
-        color: "hsl(280 70% 60%)",
-      },
+      }
     }
 
     return (
