@@ -330,7 +330,7 @@ function FieldPlayerTotalStats({ stats }: { stats: any }) {
 						<StatItem label="Boya/Jugada" value={stats.goles_boya_jugada} />
 						<StatItem label="Hombre +" value={stats.goles_hombre_mas} />
 						<StatItem label="Lanzamiento" value={stats.goles_lanzamiento} />
-						<StatItem label="Dir +5m" value={stats.goles_dir_mas_5m} />
+						<StatItem label="Dir +6m" value={stats.goles_dir_mas_5m} />
 						<StatItem label="Contraataque" value={stats.goles_contraataque} />
 						<StatItem label="Penalti Anotado" value={stats.goles_penalti_anotado} />
 					</div>
@@ -421,7 +421,7 @@ function GoalkeeperTotalStats({ stats }: { stats: any }) {
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 						<StatItem label="Boya" value={stats.portero_goles_boya} />
 						<StatItem label="Hombre -" value={stats.portero_goles_hombre_menos} />
-						<StatItem label="Dir +5m" value={stats.portero_goles_dir_mas_5m} />
+						<StatItem label="Dir +6m" value={stats.portero_goles_dir_mas_5m} />
 						<StatItem label="Contraataque" value={stats.portero_goles_contraataque} />
 						<StatItem label="Penalti" value={stats.portero_goles_penalti} />
 					</div>
