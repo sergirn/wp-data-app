@@ -262,8 +262,8 @@ function calculateTeamTotals(stats: any[]) {
       tiros: acc.tiros + (stat.tiros_totales || 0),
       faltas:
         acc.faltas +
-        (stat.faltas_exp_3_int || 0) +
-        (stat.faltas_exp_3_bruta || 0) +
+        (stat.faltas_exp_20_1c1 || 0) +
+        (stat.faltas_exp_20_boya || 0) +
         (stat.faltas_penalti || 0) +
         (stat.faltas_contrafaltas || 0),
       asistencias: acc.asistencias + (stat.acciones_asistencias || 0),
@@ -285,7 +285,9 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
     stat.acciones_recuperacion > 0 ||
     stat.acciones_rebote > 0 ||
     stat.acciones_exp_provocada > 0 ||
-    stat.acciones_penalti_provocado > 0
+    stat.acciones_penalti_provocado > 0 ||
+    stat.acciones_recibir_gol > 0 ||
+    stat.acciones_perdida_poco > 0
 
   // Calculated metrics
   const totalShots = stat.goles_totales + stat.tiros_totales
@@ -424,10 +426,10 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
                   <div className="space-y-2 text-sm">
                     <StatRow label="Boya/Jugada" value={stat.goles_boya_jugada} />
                     <StatRow label="Hombre +" value={stat.goles_hombre_mas} />
-                    <StatRow label="Contraataque" value={stat.goles_contraataque} />
-                    <StatRow label="Penalti" value={stat.goles_penalti_anotado} />
                     <StatRow label="Lanzamiento" value={stat.goles_lanzamiento} />
-                    <StatRow label="Directo +6m" value={stat.goles_dir_mas_5m} />
+                    <StatRow label="Dir +5m" value={stat.goles_dir_mas_5m} />
+                    <StatRow label="Contraataque" value={stat.goles_contraataque} />
+                    <StatRow label="Penalti Anotado" value={stat.goles_penalti_anotado} />
                   </div>
                 </CardContent>
               </Card>
@@ -460,9 +462,7 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
               {stat.goles_lanzamiento > 0 && (
                 <StatCard label="Lanzamiento" value={stat.goles_lanzamiento} color="blue" />
               )}
-              {stat.goles_dir_mas_5m > 0 && (
-                <StatCard label="Directo +6m" value={stat.goles_dir_mas_5m} color="purple" />
-              )}
+              {stat.goles_dir_mas_5m > 0 && <StatCard label="Dir +5m" value={stat.goles_dir_mas_5m} color="purple" />}
               {stat.goles_contraataque > 0 && (
                 <StatCard label="Contraataque" value={stat.goles_contraataque} color="green" />
               )}
@@ -519,12 +519,10 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
                   <div className="space-y-2 text-sm">
                     <StatRow label={'Exp 20" 1c1'} value={stat.faltas_exp_20_1c1} />
                     <StatRow label={'Exp 20" Boya'} value={stat.faltas_exp_20_boya} />
-                    <StatRow label={"Exp 3º Int"} value={stat.faltas_exp_3_int} />
-                    <StatRow label={"Exp 3º Bruta"} value={stat.faltas_exp_3_bruta} />
                     <StatRow label="Penalti" value={stat.faltas_penalti} />
                     <StatRow label="Contrafaltas" value={stat.faltas_contrafaltas} />
                     <StatRow label="Pérdida de Posesión" value={stat.acciones_perdida_poco} />
-                    <StatRow label="Gol Recibido" value={stat.acciones_recibir_gol} highlight />
+                    <StatRow label="Recibe Gol" value={stat.acciones_recibir_gol} highlight />
                   </div>
                 </CardContent>
               </Card>
@@ -538,21 +536,22 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
 
 function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: Player }) {
   const hasStats =
-    stat.portero_goles_totales > 0 ||
     stat.portero_paradas_totales > 0 ||
-    stat.portero_tiros_parado > 0 ||
+    stat.portero_goles_boya_parada > 0 ||
+    stat.portero_goles_hombre_menos > 0 ||
+    stat.portero_goles_dir_mas_5m > 0 ||
+    stat.portero_goles_contraataque > 0 ||
+    stat.portero_goles_penalti > 0 ||
     stat.acciones_asistencias > 0 ||
-    stat.portero_acciones_rebote > 0 ||
-    stat.portero_acciones_recuperacion > 0
+    stat.acciones_recuperacion > 0 ||
+    stat.portero_acciones_perdida_pos > 0
 
   const totalGoalsReceived =
     (stat.portero_goles_boya_parada || 0) +
     (stat.portero_goles_hombre_menos || 0) +
     (stat.portero_goles_dir_mas_5m || 0) +
     (stat.portero_goles_contraataque || 0) +
-    (stat.portero_goles_penalti || 0) +
-    (stat.portero_goles_lanzamiento || 0) +
-    (stat.portero_goles_penalti_encajado || 0)
+    (stat.portero_goles_penalti || 0)
 
   // Calculated metrics for goalkeepers
   const totalShotsReceived = (stat.portero_paradas_totales || 0) + totalGoalsReceived
@@ -666,7 +665,6 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                     <StatRow label="Paradas Totales" value={stat.portero_paradas_totales} />
                     <StatRow label="% Eficiencia" value={`${savePercentage}%`} />
                     <StatRow label="Goles Recibidos" value={totalGoalsReceived} highlight />
-                    <StatRow label="Recibir Gol (Acción)" value={stat.portero_recibir_gol} />
                   </div>
                 </CardContent>
               </Card>
@@ -674,17 +672,14 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
               <Card className="bg-muted/30">
                 <CardContent className="pt-4">
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
-                    Goles Encajados ({totalGoalsReceived})
+                    <Shield className="w-4 h-4" />
+                    Paradas Detalladas
                   </h4>
                   <div className="space-y-2 text-sm">
-                    <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
-                    <StatRow label="Hombre Menos" value={stat.portero_goles_hombre_menos} />
-                    <StatRow label="Lanzamiento" value={stat.portero_goles_lanzamiento} />
-                    <StatRow label="Dir +5m" value={stat.portero_goles_dir_mas_5m} />
-                    <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
-                    <StatRow label="Penalti" value={stat.portero_goles_penalti} />
-                    <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
+                    <StatRow label="Parada + Recup" value={stat.portero_tiros_parada_recup} />
+                    <StatRow label="Parada Fuera" value={stat.portero_paradas_fuera} />
+                    <StatRow label="Penalti Parado" value={stat.portero_paradas_penalti_parado} />
+                    <StatRow label="Paradas Hombre -" value={stat.portero_paradas_hombre_menos} />
                   </div>
                 </CardContent>
               </Card>
@@ -693,26 +688,17 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
 
           <TabsContent value="saves" className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {stat.portero_tiros_parado > 0 && (
-                <StatCard label="Parado" value={stat.portero_tiros_parado} color="green" />
-              )}
               {stat.portero_tiros_parada_recup > 0 && (
                 <StatCard label="Parada + Recup" value={stat.portero_tiros_parada_recup} color="green" />
               )}
+              {stat.portero_paradas_fuera > 0 && (
+                <StatCard label="Parada Fuera" value={stat.portero_paradas_fuera} color="blue" />
+              )}
               {stat.portero_paradas_penalti_parado > 0 && (
-                <StatCard label="Penalti Parado" value={stat.portero_paradas_penalti_parado} color="blue" />
+                <StatCard label="Penalti Parado" value={stat.portero_paradas_penalti_parado} color="green" />
               )}
               {stat.portero_paradas_hombre_menos > 0 && (
                 <StatCard label="Hombre -" value={stat.portero_paradas_hombre_menos} color="purple" />
-              )}
-              {stat.portero_paradas_fuera > 0 && (
-                <StatCard label="Fuera" value={stat.portero_paradas_fuera} color="gray" />
-              )}
-              {stat.portero_paradas_parada_fuera > 0 && (
-                <StatCard label="Parada Fuera" value={stat.portero_paradas_parada_fuera} color="blue" />
-              )}
-              {stat.portero_paradas_pedida > 0 && (
-                <StatCard label="Pedida" value={stat.portero_paradas_pedida} color="orange" />
               )}
             </div>
             {(stat.portero_paradas_totales || 0) === 0 && (
@@ -729,12 +715,9 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                 <div className="space-y-2 text-sm">
                   <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
                   <StatRow label="Hombre Menos" value={stat.portero_goles_hombre_menos} />
-                  <StatRow label="Lanzamiento" value={stat.portero_goles_lanzamiento} />
-                  <StatRow label="Directo +5m" value={stat.portero_goles_dir_mas_5m} />
+                  <StatRow label="Dir +5m" value={stat.portero_goles_dir_mas_5m} />
                   <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
                   <StatRow label="Penalti" value={stat.portero_goles_penalti} />
-                  <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
-                  <StatRow label="Boya" value={stat.portero_goles_boya} />
                 </div>
               </CardContent>
             </Card>
@@ -745,32 +728,17 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
 
           <TabsContent value="actions" className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {stat.portero_acciones_rebote > 0 && (
-                <StatCard label="Rebote" value={stat.portero_acciones_rebote} color="purple" />
+              {stat.acciones_asistencias > 0 && (
+                <StatCard label="Asistencias" value={stat.acciones_asistencias} color="green" />
               )}
-              {stat.portero_acciones_asistencias > 0 && (
-                <StatCard label="Asistencias" value={stat.portero_acciones_asistencias} color="green" />
-              )}
-              {stat.portero_acciones_recuperacion > 0 && (
-                <StatCard label="Recuperación" value={stat.portero_acciones_recuperacion} color="blue" />
+              {stat.acciones_recuperacion > 0 && (
+                <StatCard label="Recuperación" value={stat.acciones_recuperacion} color="blue" />
               )}
               {stat.portero_acciones_perdida_pos > 0 && (
                 <StatCard label="Pérdida de Pos" value={stat.portero_acciones_perdida_pos} color="orange" />
               )}
-              {stat.portero_acciones_exp_provocada > 0 && (
-                <StatCard label="Exp Provocada" value={stat.portero_acciones_exp_provocada} color="green" />
-              )}
-              {stat.portero_penalti_provocado > 0 && (
-                <StatCard label="Penalti Provocado" value={stat.portero_penalti_provocado} color="green" />
-              )}
-              {stat.portero_faltas_exp_3_int > 0 && (
-                <StatCard label={"Exp 3º Int"} value={stat.portero_faltas_exp_3_int} color="red" />
-              )}
-              {stat.portero_acciones_gol_recibido > 0 && (
-                <StatCard label="Gol Recibido" value={stat.portero_acciones_gol_recibido} color="red" />
-              )}
-              {stat.portero_recibir_gol > 0 && (
-                <StatCard label="Recibir Gol" value={stat.portero_recibir_gol} color="red" />
+              {stat.acciones_exp_provocada > 0 && (
+                <StatCard label="Exp Provocada" value={stat.acciones_exp_provocada} color="green" />
               )}
             </div>
           </TabsContent>
