@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, Edit } from "lucide-react"
+import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield } from "lucide-react"
 import { notFound } from "next/navigation"
 import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
@@ -200,11 +203,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
           <CardTitle>Estadísticas - Jugadores de Campo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
+          <Accordion type="multiple" className="space-y-2">
             {fieldPlayersStats.map((stat: any) => (
-              <PlayerStatsDisplay key={stat.id} stat={stat} player={stat.players} />
+              <PlayerStatsAccordion key={stat.id} stat={stat} player={stat.players} />
             ))}
-          </div>
+          </Accordion>
         </CardContent>
       </Card>
 
@@ -215,11 +218,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
             <CardTitle>Estadísticas - Porteros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
+            <Accordion type="multiple" className="space-y-2">
               {goalkeepersStats.map((stat: any) => (
-                <GoalkeeperStatsDisplay key={stat.id} stat={stat} player={stat.players} />
+                <GoalkeeperStatsAccordion key={stat.id} stat={stat} player={stat.players} />
               ))}
-            </div>
+            </Accordion>
           </CardContent>
         </Card>
       )}
@@ -269,7 +272,7 @@ function calculateTeamTotals(stats: any[]) {
   )
 }
 
-function PlayerStatsDisplay({ stat, player }: { stat: MatchStats; player: Player }) {
+function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Player }) {
   const hasStats =
     stat.goles_totales > 0 ||
     stat.tiros_totales > 0 ||
@@ -284,13 +287,31 @@ function PlayerStatsDisplay({ stat, player }: { stat: MatchStats; player: Player
     stat.acciones_exp_provocada > 0 ||
     stat.acciones_penalti_provocado > 0
 
+  // Calculated metrics
+  const totalShots = stat.goles_totales + stat.tiros_totales
+  const shootingEfficiency = totalShots > 0 ? ((stat.goles_totales / totalShots) * 100).toFixed(1) : "0.0"
+  const superiorityGoals = stat.goles_hombre_mas || 0
+  const superiorityAttempts = superiorityGoals + (stat.tiros_hombre_mas || 0)
+  const superiorityEfficiency =
+    superiorityAttempts > 0 ? ((superiorityGoals / superiorityAttempts) * 100).toFixed(1) : "0.0"
+  const totalActions =
+    (stat.acciones_asistencias || 0) +
+    (stat.acciones_bloqueo || 0) +
+    (stat.acciones_recuperacion || 0) +
+    (stat.acciones_rebote || 0)
+  const totalFouls =
+    (stat.faltas_exp_20_1c1 || 0) +
+    (stat.faltas_exp_20_boya || 0) +
+    (stat.faltas_penalti || 0) +
+    (stat.faltas_contrafaltas || 0)
+
   if (!hasStats) {
     return (
-      <Card className="bg-muted/30">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-3 mb-2">
+      <AccordionItem value={`player-${stat.id}`} className="border rounded-lg px-4 bg-muted/30">
+        <AccordionTrigger className="hover:no-underline">
+          <div className="flex items-center gap-3 w-full">
             {player.photo_url ? (
-              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary">
+              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-muted">
                 <img
                   src={player.photo_url || "/placeholder.svg"}
                   alt={player.name}
@@ -298,24 +319,26 @@ function PlayerStatsDisplay({ stat, player }: { stat: MatchStats; player: Player
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="text-muted-foreground font-bold text-lg">{player.number}</span>
               </div>
             )}
-            <h3 className="font-semibold text-lg">{player.name}</h3>
+            <div className="flex-1 text-left">
+              <h3 className="font-semibold text-lg">{player.name}</h3>
+              <p className="text-sm text-muted-foreground">Sin estadísticas registradas</p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground ml-15">Sin estadísticas registradas</p>
-        </CardContent>
-      </Card>
+        </AccordionTrigger>
+      </AccordionItem>
     )
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center gap-3 mb-4">
+    <AccordionItem value={`player-${stat.id}`} className="border rounded-lg px-4 bg-card">
+      <AccordionTrigger className="hover:no-underline">
+        <div className="flex items-center gap-3 w-full">
           {player.photo_url ? (
-            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary">
+            <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary shadow-sm">
               <img
                 src={player.photo_url || "/placeholder.svg"}
                 alt={player.name}
@@ -323,98 +346,191 @@ function PlayerStatsDisplay({ stat, player }: { stat: MatchStats; player: Player
               />
             </div>
           ) : (
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+              <span className="text-primary-foreground font-bold text-xl">{player.number}</span>
             </div>
           )}
-          <h3 className="font-semibold text-lg">{player.name}</h3>
+          <div className="flex-1 text-left min-w-0">
+            <h3 className="font-semibold text-lg mb-1 truncate">{player.name}</h3>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                <Target className="w-3 h-3 mr-1" />
+                {stat.goles_totales} goles
+              </Badge>
+              <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-300">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                {shootingEfficiency}% efic.
+              </Badge>
+              <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                <Activity className="w-3 h-3 mr-1" />
+                {totalActions} acciones
+              </Badge>
+            </div>
+          </div>
         </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <Tabs defaultValue="overview" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="overview" className="text-xs md:text-sm">
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger value="goals" className="text-xs md:text-sm">
+              Goles
+            </TabsTrigger>
+            <TabsTrigger value="shots" className="text-xs md:text-sm">
+              Tiros
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="text-xs md:text-sm">
+              Acciones
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-4">
-          {stat.goles_totales > 0 && (
-            <div>
-              <h4 className="font-semibold text-sm bg-blue-500/10 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded mb-2">
-                GOLES ({stat.goles_totales})
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
-                {stat.goles_boya_jugada > 0 && <StatBadge label="Boya/Jugada" value={stat.goles_boya_jugada} />}
-                {stat.goles_hombre_mas > 0 && <StatBadge label="Hombre +" value={stat.goles_hombre_mas} />}
-                {stat.goles_lanzamiento > 0 && <StatBadge label="Lanzamiento" value={stat.goles_lanzamiento} />}
-                {stat.goles_dir_mas_5m > 0 && <StatBadge label="Dir +6m" value={stat.goles_dir_mas_5m} />}
-                {stat.goles_contraataque > 0 && <StatBadge label="Contraataque" value={stat.goles_contraataque} />}
-                {stat.goles_penalti_anotado > 0 && <StatBadge label="Penalti" value={stat.goles_penalti_anotado} />}
-              </div>
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricCard
+                label="Eficiencia de Tiro"
+                value={`${shootingEfficiency}%`}
+                subtitle={`${stat.goles_totales}/${totalShots} tiros`}
+                color="blue"
+              />
+              <MetricCard
+                label="Superioridad"
+                value={`${superiorityEfficiency}%`}
+                subtitle={`${superiorityGoals} goles en sup.`}
+                color="green"
+              />
+              <MetricCard
+                label="Total Acciones"
+                value={totalActions.toString()}
+                subtitle="Acciones positivas"
+                color="purple"
+              />
+              <MetricCard
+                label="Faltas Cometidas"
+                value={totalFouls.toString()}
+                subtitle="Faltas totales"
+                color="orange"
+              />
             </div>
-          )}
 
-          {stat.tiros_totales > 0 && (
-            <div>
-              <h4 className="font-semibold text-sm bg-green-500/10 text-green-700 dark:text-green-300 px-3 py-1.5 rounded mb-2">
-                TIROS ({stat.tiros_totales})
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
-                {stat.tiros_hombre_mas > 0 && <StatBadge label="Hombre + (fallado)" value={stat.tiros_hombre_mas} />}
-                {stat.tiros_penalti_fallado > 0 && (
-                  <StatBadge label="Penalti fallado" value={stat.tiros_penalti_fallado} />
-                )}
-                {stat.tiros_corner > 0 && <StatBadge label="Corner" value={stat.tiros_corner} />}
-                {stat.tiros_fuera > 0 && <StatBadge label="Fuera" value={stat.tiros_fuera} />}
-                {stat.tiros_parados > 0 && <StatBadge label="Parados" value={stat.tiros_parados} />}
-                {stat.tiros_bloqueado > 0 && <StatBadge label="Bloqueado" value={stat.tiros_bloqueado} />}
-              </div>
-            </div>
-          )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Target className="w-4 h-4" />
+                    Desglose de Goles ({stat.goles_totales})
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Boya/Jugada" value={stat.goles_boya_jugada} />
+                    <StatRow label="Hombre +" value={stat.goles_hombre_mas} />
+                    <StatRow label="Contraataque" value={stat.goles_contraataque} />
+                    <StatRow label="Penalti" value={stat.goles_penalti_anotado} />
+                    <StatRow label="Lanzamiento" value={stat.goles_lanzamiento} />
+                    <StatRow label="Directo +6m" value={stat.goles_dir_mas_5m} />
+                  </div>
+                </CardContent>
+              </Card>
 
-          {(stat.faltas_exp_20_1c1 > 0 ||
-            stat.faltas_exp_20_boya > 0 ||
-            stat.faltas_penalti > 0 ||
-            stat.faltas_contrafaltas > 0) && (
-            <div>
-              <h4 className="font-semibold text-sm bg-orange-500/10 text-orange-700 dark:text-orange-300 px-3 py-1.5 rounded mb-2">
-                FALTAS
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {stat.faltas_exp_20_1c1 > 0 && <StatBadge label='Exp 20" 1c1' value={stat.faltas_exp_20_1c1} />}
-                {stat.faltas_exp_20_boya > 0 && <StatBadge label='Exp 20" Boya' value={stat.faltas_exp_20_boya} />}
-                {stat.faltas_penalti > 0 && <StatBadge label="Penalti" value={stat.faltas_penalti} />}
-                {stat.faltas_contrafaltas > 0 && <StatBadge label="Contrafaltas" value={stat.faltas_contrafaltas} />}
-              </div>
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Acciones Destacadas
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Asistencias" value={stat.acciones_asistencias} />
+                    <StatRow label="Bloqueos" value={stat.acciones_bloqueo} />
+                    <StatRow label="Recuperaciones" value={stat.acciones_recuperacion} />
+                    <StatRow label="Rebotes" value={stat.acciones_rebote} />
+                    <StatRow label="Exp. Provocadas" value={stat.acciones_exp_provocada} />
+                    <StatRow label="Penaltis Provocados" value={stat.acciones_penalti_provocado} />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
+          </TabsContent>
 
-          {(stat.acciones_asistencias > 0 ||
-            stat.acciones_bloqueo > 0 ||
-            stat.acciones_recuperacion > 0 ||
-            stat.acciones_rebote > 0 ||
-            stat.acciones_exp_provocada > 0 ||
-            stat.acciones_penalti_provocado > 0) && (
-            <div>
-              <h4 className="font-semibold text-sm bg-purple-500/10 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded mb-2">
-                ACCIONES
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {stat.acciones_asistencias > 0 && <StatBadge label="Asistencias" value={stat.acciones_asistencias} />}
-                {stat.acciones_bloqueo > 0 && <StatBadge label="Bloqueo" value={stat.acciones_bloqueo} />}
-                {stat.acciones_recuperacion > 0 && (
-                  <StatBadge label="Recuperación" value={stat.acciones_recuperacion} />
-                )}
-                {stat.acciones_rebote > 0 && <StatBadge label="Rebote" value={stat.acciones_rebote} />}
-                {stat.acciones_exp_provocada > 0 && (
-                  <StatBadge label="Exp. Provocada" value={stat.acciones_exp_provocada} />
-                )}
-                {stat.acciones_penalti_provocado > 0 && (
-                  <StatBadge label="Penalti Provocado" value={stat.acciones_penalti_provocado} />
-                )}
-              </div>
+          <TabsContent value="goals" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.goles_boya_jugada > 0 && (
+                <StatCard label="Boya/Jugada" value={stat.goles_boya_jugada} color="blue" />
+              )}
+              {stat.goles_hombre_mas > 0 && <StatCard label="Hombre +" value={stat.goles_hombre_mas} color="green" />}
+              {stat.goles_lanzamiento > 0 && (
+                <StatCard label="Lanzamiento" value={stat.goles_lanzamiento} color="blue" />
+              )}
+              {stat.goles_dir_mas_5m > 0 && (
+                <StatCard label="Directo +6m" value={stat.goles_dir_mas_5m} color="purple" />
+              )}
+              {stat.goles_contraataque > 0 && (
+                <StatCard label="Contraataque" value={stat.goles_contraataque} color="green" />
+              )}
+              {stat.goles_penalti_anotado > 0 && (
+                <StatCard label="Penalti Anotado" value={stat.goles_penalti_anotado} color="blue" />
+              )}
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            {stat.goles_totales === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin goles en este partido</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="shots" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.tiros_hombre_mas > 0 && (
+                <StatCard label="Hombre + (fallado)" value={stat.tiros_hombre_mas} color="orange" />
+              )}
+              {stat.tiros_penalti_fallado > 0 && (
+                <StatCard label="Penalti Fallado" value={stat.tiros_penalti_fallado} color="red" />
+              )}
+              {stat.tiros_corner > 0 && <StatCard label="Corner" value={stat.tiros_corner} color="blue" />}
+              {stat.tiros_fuera > 0 && <StatCard label="Fuera" value={stat.tiros_fuera} color="gray" />}
+              {stat.tiros_parados > 0 && <StatCard label="Parados" value={stat.tiros_parados} color="orange" />}
+              {stat.tiros_bloqueado > 0 && <StatCard label="Bloqueado" value={stat.tiros_bloqueado} color="red" />}
+            </div>
+            {stat.tiros_totales === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin tiros fallados en este partido</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="actions" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-purple-500/5">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 text-purple-700 dark:text-purple-300">
+                    Acciones Positivas
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Asistencias" value={stat.acciones_asistencias} highlight />
+                    <StatRow label="Bloqueos" value={stat.acciones_bloqueo} />
+                    <StatRow label="Recuperaciones" value={stat.acciones_recuperacion} />
+                    <StatRow label="Rebotes" value={stat.acciones_rebote} />
+                    <StatRow label="Exp. Provocadas" value={stat.acciones_exp_provocada} />
+                    <StatRow label="Penaltis Provocados" value={stat.acciones_penalti_provocado} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-orange-500/5">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 text-orange-700 dark:text-orange-300">Faltas</h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label={'Exp 20" 1c1'} value={stat.faltas_exp_20_1c1} />
+                    <StatRow label={'Exp 20" Boya'} value={stat.faltas_exp_20_boya} />
+                    <StatRow label="Penalti" value={stat.faltas_penalti} />
+                    <StatRow label="Contrafaltas" value={stat.faltas_contrafaltas} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </AccordionContent>
+    </AccordionItem>
   )
 }
 
-function GoalkeeperStatsDisplay({ stat, player }: { stat: MatchStats; player: Player }) {
+function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: Player }) {
   const hasStats =
     stat.portero_goles_totales > 0 ||
     stat.portero_paradas_totales > 0 ||
@@ -423,13 +539,23 @@ function GoalkeeperStatsDisplay({ stat, player }: { stat: MatchStats; player: Pl
     stat.portero_acciones_rebote > 0 ||
     stat.portero_acciones_recuperacion > 0
 
+  // Calculated metrics for goalkeepers
+  const totalShotsReceived = (stat.portero_paradas_totales || 0) + (stat.portero_acciones_gol_recibido || 0)
+  const savePercentage =
+    totalShotsReceived > 0 ? (((stat.portero_paradas_totales || 0) / totalShotsReceived) * 100).toFixed(1) : "0.0"
+  const goalsPerMatch = stat.portero_acciones_gol_recibido || 0
+  const savesPerMatch = stat.portero_paradas_totales || 0
+  const penaltySaves = stat.portero_paradas_penalti_parado || 0
+  const penaltyReceived = (stat.portero_paradas_penalti_parado || 0) + (stat.portero_goles_penalti_encajado || 0)
+  const penaltySaveRate = penaltyReceived > 0 ? ((penaltySaves / penaltyReceived) * 100).toFixed(1) : "0.0"
+
   if (!hasStats) {
     return (
-      <Card className="bg-muted/30">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-3 mb-2">
+      <AccordionItem value={`goalkeeper-${stat.id}`} className="border rounded-lg px-4 bg-muted/30">
+        <AccordionTrigger className="hover:no-underline">
+          <div className="flex items-center gap-3 w-full">
             {player.photo_url ? (
-              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary">
+              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-muted">
                 <img
                   src={player.photo_url || "/placeholder.svg"}
                   alt={player.name}
@@ -437,27 +563,31 @@ function GoalkeeperStatsDisplay({ stat, player }: { stat: MatchStats; player: Pl
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="text-muted-foreground font-bold text-lg">{player.number}</span>
               </div>
             )}
-            <div>
+            <div className="flex-1 text-left">
               <h3 className="font-semibold text-lg">{player.name}</h3>
-              <span className="text-xs text-muted-foreground bg-blue-500/10 px-2 py-0.5 rounded">Portero</span>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                  Portero
+                </Badge>
+                <p className="text-sm text-muted-foreground">Sin estadísticas registradas</p>
+              </div>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground ml-15">Sin estadísticas registradas</p>
-        </CardContent>
-      </Card>
+        </AccordionTrigger>
+      </AccordionItem>
     )
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center gap-3 mb-4">
+    <AccordionItem value={`goalkeeper-${stat.id}`} className="border rounded-lg px-4 bg-card">
+      <AccordionTrigger className="hover:no-underline">
+        <div className="flex items-center gap-3 w-full">
           {player.photo_url ? (
-            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary">
+            <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary shadow-sm">
               <img
                 src={player.photo_url || "/placeholder.svg"}
                 alt={player.name}
@@ -465,129 +595,247 @@ function GoalkeeperStatsDisplay({ stat, player }: { stat: MatchStats; player: Pl
               />
             </div>
           ) : (
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+              <span className="text-primary-foreground font-bold text-xl">{player.number}</span>
             </div>
           )}
-          <div>
-            <h3 className="font-semibold text-lg">{player.name}</h3>
-            <span className="text-xs text-muted-foreground bg-blue-500/10 px-2 py-0.5 rounded">Portero</span>
+          <div className="flex-1 text-left min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-lg truncate">{player.name}</h3>
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                Portero
+              </Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-300">
+                <Shield className="w-3 h-3 mr-1" />
+                {stat.portero_paradas_totales} paradas
+              </Badge>
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                {savePercentage}% efic.
+              </Badge>
+              <Badge variant="secondary" className="bg-red-500/10 text-red-700 dark:text-red-300">
+                {goalsPerMatch} goles recib.
+              </Badge>
+            </div>
           </div>
         </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <Tabs defaultValue="overview" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="overview" className="text-xs md:text-sm">
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger value="saves" className="text-xs md:text-sm">
+              Paradas
+            </TabsTrigger>
+            <TabsTrigger value="goals" className="text-xs md:text-sm">
+              Goles
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="text-xs md:text-sm">
+              Acciones
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-4">
-          {stat.portero_goles_totales > 0 && (
-            <div>
-              <h4 className="font-semibold text-sm bg-blue-500/10 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded mb-2">
-                GOLES ({stat.portero_goles_totales})
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {stat.portero_goles_boya > 0 && <StatBadge label="Boya" value={stat.portero_goles_boya} />}
-                {stat.portero_goles_hombre_menos > 0 && (
-                  <StatBadge label="Hombre -" value={stat.portero_goles_hombre_menos} />
-                )}
-                {stat.portero_goles_lanzamiento > 0 && (
-                  <StatBadge label="Lanzamiento" value={stat.portero_goles_lanzamiento} />
-                )}
-                {stat.portero_goles_dir_mas_5m > 0 && (
-                  <StatBadge label="Dir +6m" value={stat.portero_goles_dir_mas_5m} />
-                )}
-                {stat.portero_goles_contraataque > 0 && (
-                  <StatBadge label="Contraataque" value={stat.portero_goles_contraataque} />
-                )}
-                {stat.portero_goles_penalti > 0 && <StatBadge label="Penalti" value={stat.portero_goles_penalti} />}
-              </div>
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricCard
+                label="Eficiencia"
+                value={`${savePercentage}%`}
+                subtitle={`${stat.portero_paradas_totales}/${totalShotsReceived} tiros`}
+                color="green"
+              />
+              <MetricCard label="Paradas" value={savesPerMatch.toString()} subtitle="Paradas totales" color="blue" />
+              <MetricCard
+                label="Goles Recibidos"
+                value={goalsPerMatch.toString()}
+                subtitle="Goles encajados"
+                color="red"
+              />
+              <MetricCard
+                label="Penaltis"
+                value={`${penaltySaveRate}%`}
+                subtitle={`${penaltySaves} parados`}
+                color="purple"
+              />
             </div>
-          )}
 
-          {(stat.portero_goles_boya_parada > 0 ||
-            stat.portero_goles_penalti_encajado > 0 ||
-            stat.portero_acciones_gol_recibido > 0) && (
-            <div>
-              <h4 className="font-semibold text-sm bg-red-500/10 text-red-700 dark:text-red-300 px-3 py-1.5 rounded mb-2">
-                GOLES ENCAJADOS
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {stat.portero_goles_boya_parada > 0 && (
-                  <StatBadge label="Boya/Parada" value={stat.portero_goles_boya_parada} />
-                )}
-                {stat.portero_goles_penalti_encajado > 0 && (
-                  <StatBadge label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
-                )}
-                {stat.portero_acciones_gol_recibido > 0 && (
-                  <StatBadge label="Goles Recibidos" value={stat.portero_acciones_gol_recibido} />
-                )}
-              </div>
-            </div>
-          )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Desglose de Paradas ({stat.portero_paradas_totales})
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Parado" value={stat.portero_tiros_parado} />
+                    <StatRow label="Parada + Recup" value={stat.portero_tiros_parada_recup} />
+                    <StatRow label="Penalti Parado" value={stat.portero_paradas_penalti_parado} />
+                    <StatRow label="Hombre -" value={stat.portero_paradas_hombre_menos} />
+                    <StatRow label="Fuera" value={stat.portero_paradas_fuera} />
+                  </div>
+                </CardContent>
+              </Card>
 
-          {(stat.portero_paradas_totales > 0 ||
-            stat.portero_tiros_parado > 0 ||
-            stat.portero_tiros_parada_recup > 0 ||
-            stat.portero_paradas_penalti_parado > 0 ||
-            stat.portero_paradas_hombre_menos > 0 ||
-            stat.portero_paradas_fuera > 0) && (
-            <div>
-              <h4 className="font-semibold text-sm bg-green-500/10 text-green-700 dark:text-green-300 px-3 py-1.5 rounded mb-2">
-                PARADAS ({stat.portero_paradas_totales})
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {stat.portero_tiros_parado > 0 && <StatBadge label="Parado" value={stat.portero_tiros_parado} />}
-                {stat.portero_tiros_parada_recup > 0 && (
-                  <StatBadge label="Parada Recup" value={stat.portero_tiros_parada_recup} />
-                )}
-                {stat.portero_paradas_penalti_parado > 0 && (
-                  <StatBadge label="Penalti Parado" value={stat.portero_paradas_penalti_parado} />
-                )}
-                {stat.portero_paradas_hombre_menos > 0 && (
-                  <StatBadge label="Hombre -" value={stat.portero_paradas_hombre_menos} />
-                )}
-                {stat.portero_paradas_fuera > 0 && <StatBadge label="Fuera" value={stat.portero_paradas_fuera} />}
-              </div>
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Goles Encajados ({stat.portero_acciones_gol_recibido || 0})
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
+                    <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
+                    <StatRow label="Goles Totales" value={stat.portero_acciones_gol_recibido} />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
+          </TabsContent>
 
-          {(stat.portero_faltas_exp_3_int > 0 || stat.faltas_penalti > 0) && (
-            <div>
-              <h4 className="font-semibold text-sm bg-orange-500/10 text-orange-700 dark:text-orange-300 px-3 py-1.5 rounded mb-2">
-                FALTAS
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {stat.portero_faltas_exp_3_int > 0 && (
-                  <StatBadge label="Exp 3º Int" value={stat.portero_faltas_exp_3_int} />
-                )}
-                {stat.faltas_penalti > 0 && <StatBadge label="Penalti" value={stat.faltas_penalti} />}
-              </div>
+          <TabsContent value="saves" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.portero_tiros_parado > 0 && (
+                <StatCard label="Parado" value={stat.portero_tiros_parado} color="green" />
+              )}
+              {stat.portero_tiros_parada_recup > 0 && (
+                <StatCard label="Parada + Recup" value={stat.portero_tiros_parada_recup} color="green" />
+              )}
+              {stat.portero_paradas_penalti_parado > 0 && (
+                <StatCard label="Penalti Parado" value={stat.portero_paradas_penalti_parado} color="blue" />
+              )}
+              {stat.portero_paradas_hombre_menos > 0 && (
+                <StatCard label="Hombre -" value={stat.portero_paradas_hombre_menos} color="purple" />
+              )}
+              {stat.portero_paradas_fuera > 0 && (
+                <StatCard label="Fuera" value={stat.portero_paradas_fuera} color="gray" />
+              )}
             </div>
-          )}
+            {(stat.portero_paradas_totales || 0) === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin paradas en este partido</p>
+            )}
+          </TabsContent>
 
-          {(stat.portero_acciones_rebote > 0 ||
-            stat.acciones_asistencias > 0 ||
-            stat.portero_acciones_recuperacion > 0 ||
-            stat.portero_acciones_perdida_pos > 0 ||
-            stat.portero_acciones_exp_provocada > 0) && (
-            <div>
-              <h4 className="font-semibold text-sm bg-purple-500/10 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded mb-2">
-                ACCIONES
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                {stat.portero_acciones_rebote > 0 && <StatBadge label="Rebote" value={stat.portero_acciones_rebote} />}
-                {stat.acciones_asistencias > 0 && <StatBadge label="Asistencias" value={stat.acciones_asistencias} />}
-                {stat.portero_acciones_recuperacion > 0 && (
-                  <StatBadge label="Recuperación" value={stat.portero_acciones_recuperacion} />
-                )}
-                {stat.portero_acciones_perdida_pos > 0 && (
-                  <StatBadge label="Pérdida de Pos" value={stat.portero_acciones_perdida_pos} />
-                )}
-                {stat.portero_acciones_exp_provocada > 0 && (
-                  <StatBadge label="Exp Provocada" value={stat.portero_acciones_exp_provocada} />
-                )}
-              </div>
+          <TabsContent value="goals" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-blue-500/5">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 text-blue-700 dark:text-blue-300">
+                    Goles Anotados ({stat.portero_goles_totales || 0})
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Boya" value={stat.portero_goles_boya} />
+                    <StatRow label="Hombre -" value={stat.portero_goles_hombre_menos} />
+                    <StatRow label="Lanzamiento" value={stat.portero_goles_lanzamiento} />
+                    <StatRow label="Directo +6m" value={stat.portero_goles_dir_mas_5m} />
+                    <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
+                    <StatRow label="Penalti" value={stat.portero_goles_penalti} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-red-500/5">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 text-red-700 dark:text-red-300">Goles Encajados</h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
+                    <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
+                    <StatRow label="Total Recibidos" value={stat.portero_acciones_gol_recibido} highlight />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          </TabsContent>
+
+          <TabsContent value="actions" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.portero_acciones_rebote > 0 && (
+                <StatCard label="Rebote" value={stat.portero_acciones_rebote} color="purple" />
+              )}
+              {stat.acciones_asistencias > 0 && (
+                <StatCard label="Asistencias" value={stat.acciones_asistencias} color="green" />
+              )}
+              {stat.portero_acciones_recuperacion > 0 && (
+                <StatCard label="Recuperación" value={stat.portero_acciones_recuperacion} color="blue" />
+              )}
+              {stat.portero_acciones_perdida_pos > 0 && (
+                <StatCard label="Pérdida de Pos" value={stat.portero_acciones_perdida_pos} color="orange" />
+              )}
+              {stat.portero_acciones_exp_provocada > 0 && (
+                <StatCard label="Exp Provocada" value={stat.portero_acciones_exp_provocada} color="green" />
+              )}
+              {stat.portero_faltas_exp_3_int > 0 && (
+                <StatCard label="Exp 3º Int" value={stat.portero_faltas_exp_3_int} color="red" />
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  subtitle,
+  color,
+}: { label: string; value: string; subtitle: string; color: string }) {
+  const colorClasses = {
+    blue: "bg-blue-500/10 border-blue-500/20",
+    green: "bg-green-500/10 border-green-500/20",
+    purple: "bg-purple-500/10 border-purple-500/20",
+    orange: "bg-orange-500/10 border-orange-500/20",
+    red: "bg-red-500/10 border-red-500/20",
+    gray: "bg-gray-500/10 border-gray-500/20",
+  }
+
+  const textColorClasses = {
+    blue: "text-blue-700 dark:text-blue-300",
+    green: "text-green-700 dark:text-green-300",
+    purple: "text-purple-700 dark:text-purple-300",
+    orange: "text-orange-700 dark:text-orange-300",
+    red: "text-red-700 dark:text-red-300",
+    gray: "text-gray-700 dark:text-gray-300",
+  }
+
+  return (
+    <div className={`p-4 rounded-lg border ${colorClasses[color as keyof typeof colorClasses]}`}>
+      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${textColorClasses[color as keyof typeof textColorClasses]}`}>{value}</p>
+      <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+    </div>
+  )
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  const colorClasses = {
+    blue: "bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300",
+    green: "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300",
+    purple: "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300",
+    orange: "bg-orange-500/10 border-orange-500/20 text-orange-700 dark:text-orange-300",
+    red: "bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-300",
+    gray: "bg-gray-500/10 border-gray-500/20 text-gray-700 dark:text-gray-300",
+  }
+
+  return (
+    <div className={`p-3 rounded-lg border ${colorClasses[color as keyof typeof colorClasses]}`}>
+      <p className="text-sm font-medium mb-1">{label}</p>
+      <p className="text-2xl font-bold">{value}</p>
+    </div>
+  )
+}
+
+function StatRow({ label, value, highlight }: { label: string; value?: number; highlight?: boolean }) {
+  if (!value || value === 0) return null
+
+  return (
+    <div className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+      <span className={`text-muted-foreground ${highlight ? "font-semibold" : ""}`}>{label}</span>
+      <span className={`font-semibold ${highlight ? "text-primary" : ""}`}>{value}</span>
+    </div>
   )
 }
 
