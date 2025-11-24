@@ -397,11 +397,13 @@ function drawStatBox(
 
   const rgb = hexToRgb(color)
 
-  // Light background
-  pdf.setFillColor(rgb.r, rgb.g, rgb.b)
-  pdf.setGlobalAlpha(0.1)
+  // Light background with much lighter RGB values
+  const lightR = Math.min(255, rgb.r + (255 - rgb.r) * 0.9)
+  const lightG = Math.min(255, rgb.g + (255 - rgb.g) * 0.9)
+  const lightB = Math.min(255, rgb.b + (255 - rgb.b) * 0.9)
+
+  pdf.setFillColor(lightR, lightG, lightB)
   pdf.roundedRect(x, y, width, height, 2, 2, "F")
-  pdf.setGlobalAlpha(1)
 
   // Border
   pdf.setDrawColor(rgb.r, rgb.g, rgb.b)
