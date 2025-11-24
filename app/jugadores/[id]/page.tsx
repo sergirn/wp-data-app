@@ -202,33 +202,31 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
   return matchStats.reduce(
     (acc, stat) => {
       const match = stat.matches
-      // Real goals received from match
+      // Real goals received from match score
       const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0
 
       return {
-        // Goles encajados
+        // Goles encajados - usando los campos exactos de nuevo-partido
         portero_goles_boya: acc.portero_goles_boya + (stat.portero_goles_boya || 0),
         portero_goles_hombre_menos: acc.portero_goles_hombre_menos + (stat.portero_goles_hombre_menos || 0),
         portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
         portero_goles_contraataque: acc.portero_goles_contraataque + (stat.portero_goles_contraataque || 0),
         portero_goles_penalti: acc.portero_goles_penalti + (stat.portero_goles_penalti || 0),
-        portero_goles_penalti_encajado: acc.portero_goles_penalti_encajado + (stat.portero_goles_penalti_encajado || 0),
 
-        // Paradas
+        // Paradas - usando los campos exactos de nuevo-partido
         portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
         portero_paradas_parada_recup: acc.portero_paradas_parada_recup + (stat.portero_paradas_parada_recup || 0),
         portero_paradas_fuera: acc.portero_paradas_fuera + (stat.portero_paradas_fuera || 0),
         portero_paradas_penalti_parado: acc.portero_paradas_penalti_parado + (stat.portero_paradas_penalti_parado || 0),
         portero_paradas_hombre_menos: acc.portero_paradas_hombre_menos + (stat.portero_paradas_hombre_menos || 0),
-        portero_paradas_parada_fuera: acc.portero_paradas_parada_fuera + (stat.portero_paradas_parada_fuera || 0),
 
-        // Acciones
+        // Acciones - usando los campos exactos de nuevo-partido
         portero_acciones_asistencias: acc.portero_acciones_asistencias + (stat.portero_acciones_asistencias || 0),
         portero_acciones_recuperacion: acc.portero_acciones_recuperacion + (stat.portero_acciones_recuperacion || 0),
         portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0),
         portero_acciones_exp_provocada: acc.portero_acciones_exp_provocada + (stat.portero_acciones_exp_provocada || 0),
 
-        // Goles recibidos reales
+        // Goles recibidos reales del marcador del partido
         goles_recibidos_reales: acc.goles_recibidos_reales + rivalGoals,
       }
     },
@@ -238,14 +236,12 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
       portero_goles_dir_mas_5m: 0,
       portero_goles_contraataque: 0,
       portero_goles_penalti: 0,
-      portero_goles_penalti_encajado: 0,
 
       portero_paradas_totales: 0,
       portero_paradas_parada_recup: 0,
       portero_paradas_fuera: 0,
       portero_paradas_penalti_parado: 0,
       portero_paradas_hombre_menos: 0,
-      portero_paradas_parada_fuera: 0,
 
       portero_acciones_asistencias: 0,
       portero_acciones_recuperacion: 0,
@@ -808,8 +804,6 @@ function GoalkeeperAdvancedEfficiency({ stats }: { stats: any }) {
     </div>
   )
 }
-
-// existing code ...
 
 function calculateTotalStats(stats: any[], isGoalkeeper = false) {
   const baseStats = stats.reduce(
