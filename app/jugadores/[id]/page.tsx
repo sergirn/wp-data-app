@@ -52,8 +52,12 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
     return <GoalkeeperPage player={player} matchStats={matchStats || []} />
   }
 
-  // Calculate total stats for field players
-  const totalStats = calculateTotalStats(matchStats || [], player.is_goalkeeper)
+  return <FieldPlayerPage player={player} matchStats={matchStats || []} />
+}
+
+function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: MatchStatsWithMatch[] }) {
+  const matchCount = matchStats.length
+  const fieldPlayerStats = calculateFieldPlayerStats(matchStats)
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -80,39 +84,738 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
                 )}
               </div>
               <div>
-                <CardTitle className="text-3xl">{player.name}</CardTitle>
-                <p className="text-muted-foreground">{player.is_goalkeeper ? "Portero" : "Jugador de Campo"}</p>
+                <CardTitle className="text-2xl md:text-3xl">{player.name}</CardTitle>
+                <p className="text-sm md:text-base text-muted-foreground">Jugador de Campo</p>
               </div>
             </div>
           </CardHeader>
         </Card>
       </div>
 
-      <Tabs defaultValue="totals" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
-          <TabsTrigger value="totals">Estadísticas Totales</TabsTrigger>
-          <TabsTrigger value="evolution">Evolución</TabsTrigger>
-          <TabsTrigger value="matches">Por Partido</TabsTrigger>
-          <TabsTrigger value="efficiency">Eficiencia</TabsTrigger>
+      <Tabs defaultValue="resumen" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-1">
+          <TabsTrigger value="resumen" className="text-xs md:text-sm py-2">
+            Resumen
+          </TabsTrigger>
+          <TabsTrigger value="categorias" className="text-xs md:text-sm py-2">
+            Por Categorías
+          </TabsTrigger>
+          <TabsTrigger value="evolucion" className="text-xs md:text-sm py-2">
+            Evolución
+          </TabsTrigger>
+          <TabsTrigger value="partidos" className="text-xs md:text-sm py-2">
+            Por Partido
+          </TabsTrigger>
+          <TabsTrigger value="eficiencia" className="text-xs md:text-sm py-2">
+            Eficiencia
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="totals">
-          <TotalStatsView player={player} stats={totalStats} matchCount={matchStats?.length || 0} />
+        <TabsContent value="resumen" className="space-y-6">
+          <FieldPlayerSummary stats={fieldPlayerStats} matchCount={matchCount} />
         </TabsContent>
 
-        <TabsContent value="evolution">
-          <PerformanceEvolutionChart matchStats={matchStats || []} player={player} />
+        <TabsContent value="categorias" className="space-y-6">
+          <FieldPlayerCategoriesStats stats={fieldPlayerStats} />
         </TabsContent>
 
-        <TabsContent value="matches">
-          <MatchStatsView matchStats={matchStats || []} player={player} />
+        <TabsContent value="evolucion" className="space-y-6">
+          <PerformanceEvolutionChart matchStats={matchStats} player={player} />
         </TabsContent>
 
-        <TabsContent value="efficiency">
-          <EfficiencyView player={player} stats={totalStats} />
+        <TabsContent value="partidos" className="space-y-6">
+          <FieldPlayerMatchStats matchStats={matchStats} player={player} />
+        </TabsContent>
+
+        <TabsContent value="eficiencia" className="space-y-6">
+          <FieldPlayerAdvancedEfficiency stats={fieldPlayerStats} />
         </TabsContent>
       </Tabs>
     </main>
+  )
+}
+
+function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
+  return matchStats.reduce(
+    (acc, stat) => {
+      return {
+        // Goles
+        goles_totales: acc.goles_totales + (stat.goles_totales || 0),
+        goles_boya_jugada: acc.goles_boya_jugada + (stat.goles_boya_jugada || 0),
+        goles_hombre_mas: acc.goles_hombre_mas + (stat.goles_hombre_mas || 0),
+        goles_lanzamiento: acc.goles_lanzamiento + (stat.goles_lanzamiento || 0),
+        goles_dir_mas_5m: acc.goles_dir_mas_5m + (stat.goles_dir_mas_5m || 0),
+        goles_contraataque: acc.goles_contraataque + (stat.goles_contraataque || 0),
+        goles_penalti_anotado: acc.goles_penalti_anotado + (stat.goles_penalti_anotado || 0),
+
+        // Tiros
+        tiros_totales: acc.tiros_totales + (stat.tiros_totales || 0),
+        tiros_hombre_mas: acc.tiros_hombre_mas + (stat.tiros_hombre_mas || 0),
+        tiros_penalti_fallado: acc.tiros_penalti_fallado + (stat.tiros_penalti_fallado || 0),
+        tiros_corner: acc.tiros_corner + (stat.tiros_corner || 0),
+        tiros_fuera: acc.tiros_fuera + (stat.tiros_fuera || 0),
+        tiros_parados: acc.tiros_parados + (stat.tiros_parados || 0),
+        tiros_bloqueado: acc.tiros_bloqueado + (stat.tiros_bloqueado || 0),
+
+        // Faltas
+        faltas_exp_20_1c1: acc.faltas_exp_20_1c1 + (stat.faltas_exp_20_1c1 || 0),
+        faltas_exp_20_boya: acc.faltas_exp_20_boya + (stat.faltas_exp_20_boya || 0),
+        faltas_penalti: acc.faltas_penalti + (stat.faltas_penalti || 0),
+        faltas_contrafaltas: acc.faltas_contrafaltas + (stat.faltas_contrafaltas || 0),
+
+        // Acciones
+        acciones_bloqueo: acc.acciones_bloqueo + (stat.acciones_bloqueo || 0),
+        acciones_asistencias: acc.acciones_asistencias + (stat.acciones_asistencias || 0),
+        acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
+        acciones_rebote: acc.acciones_rebote + (stat.acciones_rebote || 0),
+        acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
+        acciones_penalti_provocado: acc.acciones_penalti_provocado + (stat.acciones_penalti_provocado || 0),
+        acciones_recibir_gol: acc.acciones_recibir_gol + (stat.acciones_recibir_gol || 0),
+        acciones_perdida_poco: acc.acciones_perdida_poco + (stat.acciones_perdida_poco || 0),
+      }
+    },
+    {
+      goles_totales: 0,
+      goles_boya_jugada: 0,
+      goles_hombre_mas: 0,
+      goles_lanzamiento: 0,
+      goles_dir_mas_5m: 0,
+      goles_contraataque: 0,
+      goles_penalti_anotado: 0,
+      tiros_totales: 0,
+      tiros_hombre_mas: 0,
+      tiros_penalti_fallado: 0,
+      tiros_corner: 0,
+      tiros_fuera: 0,
+      tiros_parados: 0,
+      tiros_bloqueado: 0,
+      faltas_exp_20_1c1: 0,
+      faltas_exp_20_boya: 0,
+      faltas_penalti: 0,
+      faltas_contrafaltas: 0,
+      acciones_bloqueo: 0,
+      acciones_asistencias: 0,
+      acciones_recuperacion: 0,
+      acciones_rebote: 0,
+      acciones_exp_provocada: 0,
+      acciones_penalti_provocado: 0,
+      acciones_recibir_gol: 0,
+      acciones_perdida_poco: 0,
+    },
+  )
+}
+
+function FieldPlayerSummary({ stats, matchCount }: { stats: any; matchCount: number }) {
+  const golesPerMatch = matchCount > 0 ? (stats.goles_totales / matchCount).toFixed(1) : "0.0"
+  const tirosPerMatch = matchCount > 0 ? (stats.tiros_totales / matchCount).toFixed(1) : "0.0"
+  const eficiencia = stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0"
+  const asistPerMatch = matchCount > 0 ? (stats.acciones_asistencias / matchCount).toFixed(1) : "0.0"
+
+  return (
+    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-6">
+      <Card>
+        <CardContent className="pt-4 md:pt-6">
+          <div className="text-center">
+            <p className="text-2xl md:text-3xl font-bold">{matchCount}</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Partidos</p>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-4 md:pt-6">
+          <div className="text-center">
+            <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">{stats.goles_totales}</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles</p>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-4 md:pt-6">
+          <div className="text-center">
+            <p className="text-2xl md:text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.tiros_totales}</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Tiros</p>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-4 md:pt-6">
+          <div className="text-center">
+            <p className="text-2xl md:text-3xl font-bold text-purple-600 dark:text-purple-400">{eficiencia}%</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Eficiencia</p>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-4 md:pt-6">
+          <div className="text-center">
+            <p className="text-2xl md:text-3xl font-bold text-orange-600 dark:text-orange-400">{golesPerMatch}</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles/Partido</p>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="pt-4 md:pt-6">
+          <div className="text-center">
+            <p className="text-2xl md:text-3xl font-bold text-teal-600 dark:text-teal-400">
+              {stats.acciones_asistencias}
+            </p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Asistencias</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function FieldPlayerCategoriesStats({ stats }: { stats: any }) {
+  return (
+    <div className="space-y-6 mb-6">
+      {/* Goles por Tipo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">Goles por Tipo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <StatItem
+              label="Boya/Jugada"
+              value={stats.goles_boya_jugada}
+              color="bg-green-500/10 text-green-600 dark:text-green-400"
+            />
+            <StatItem
+              label="Hombre +"
+              value={stats.goles_hombre_mas}
+              color="bg-green-500/10 text-green-600 dark:text-green-400"
+            />
+            <StatItem
+              label="Lanzamiento"
+              value={stats.goles_lanzamiento}
+              color="bg-green-500/10 text-green-600 dark:text-green-400"
+            />
+            <StatItem
+              label="+6m"
+              value={stats.goles_dir_mas_5m}
+              color="bg-green-500/10 text-green-600 dark:text-green-400"
+            />
+            <StatItem
+              label="Contraataque"
+              value={stats.goles_contraataque}
+              color="bg-green-500/10 text-green-600 dark:text-green-400"
+            />
+            <StatItem
+              label="Penalti"
+              value={stats.goles_penalti_anotado}
+              color="bg-green-500/10 text-green-600 dark:text-green-400"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tiros Fallados */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">Tiros Fallados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <StatItem
+              label="Hombre +"
+              value={stats.tiros_hombre_mas}
+              color="bg-red-500/10 text-red-600 dark:text-red-400"
+            />
+            <StatItem
+              label="Penalti"
+              value={stats.tiros_penalti_fallado}
+              color="bg-red-500/10 text-red-600 dark:text-red-400"
+            />
+            <StatItem label="Corner" value={stats.tiros_corner} color="bg-red-500/10 text-red-600 dark:text-red-400" />
+            <StatItem label="Fuera" value={stats.tiros_fuera} color="bg-red-500/10 text-red-600 dark:text-red-400" />
+            <StatItem
+              label="Parados"
+              value={stats.tiros_parados}
+              color="bg-red-500/10 text-red-600 dark:text-red-400"
+            />
+            <StatItem
+              label="Bloqueados"
+              value={stats.tiros_bloqueado}
+              color="bg-red-500/10 text-red-600 dark:text-red-400"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Faltas */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">Faltas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {/* CHANGE: Fixed string literal with embedded quotes */}
+            <StatItem
+              label='Exp 20" 1c1'
+              value={stats.faltas_exp_20_1c1}
+              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+            />
+            <StatItem
+              label='Exp 20" Boya'
+              value={stats.faltas_exp_20_boya}
+              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+            />
+            <StatItem
+              label="Penalti"
+              value={stats.faltas_penalti}
+              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+            />
+            <StatItem
+              label="Contrafaltas"
+              value={stats.faltas_contrafaltas}
+              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Acciones */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">Acciones</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <StatItem
+              label="Bloqueos"
+              value={stats.acciones_bloqueo}
+              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            />
+            <StatItem
+              label="Asistencias"
+              value={stats.acciones_asistencias}
+              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            />
+            <StatItem
+              label="Recuperaciones"
+              value={stats.acciones_recuperacion}
+              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            />
+            <StatItem
+              label="Rebotes"
+              value={stats.acciones_rebote}
+              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            />
+            <StatItem
+              label="Exp Provocadas"
+              value={stats.acciones_exp_provocada}
+              color="bg-purple-500/10 text-purple-600 dark:text-purple-400"
+            />
+            <StatItem
+              label="Penalti Provocado"
+              value={stats.acciones_penalti_provocado}
+              color="bg-purple-500/10 text-purple-600 dark:text-purple-400"
+            />
+            <StatItem
+              label="Gol Recibido"
+              value={stats.acciones_recibir_gol}
+              color="bg-red-500/10 text-red-600 dark:text-red-400"
+            />
+            <StatItem
+              label="Pérdida Posición"
+              value={stats.acciones_perdida_poco}
+              color="bg-orange-500/10 text-orange-600 dark:text-orange-400"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function FieldPlayerMatchStats({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
+  if (matchStats.length === 0) {
+    return (
+      <Card className="mb-6">
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">No hay estadísticas de partidos registradas</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-4 mb-6">
+      <h2 className="text-xl md:text-2xl font-bold">Estadísticas por Partido</h2>
+      {matchStats.map((stat) => {
+        const match = stat.matches
+        const goles = stat.goles_totales || 0
+        const tiros = stat.tiros_totales || 0
+        const eficiencia = tiros > 0 ? ((goles / tiros) * 100).toFixed(1) : "0.0"
+
+        return (
+          <Card key={stat.id}>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base md:text-lg">{match?.opponent}</CardTitle>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    {match?.match_date
+                      ? new Date(match.match_date).toLocaleDateString("es-ES", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg md:text-2xl font-bold">
+                    {match?.home_score} - {match?.away_score}
+                  </span>
+                  <Button asChild variant="outline" size="sm" className="text-xs bg-transparent">
+                    <Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Main Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4">
+                <div className="text-center p-3 md:p-4 bg-green-500/10 rounded-lg">
+                  <p className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{goles}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Goles</p>
+                </div>
+                <div className="text-center p-3 md:p-4 bg-blue-500/10 rounded-lg">
+                  <p className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{tiros}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Tiros</p>
+                </div>
+                <div className="text-center p-3 md:p-4 bg-purple-500/10 rounded-lg">
+                  <p className="text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400">{eficiencia}%</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Eficiencia</p>
+                </div>
+                <div className="text-center p-3 md:p-4 bg-teal-500/10 rounded-lg">
+                  <p className="text-xl md:text-2xl font-bold text-teal-600 dark:text-teal-400">
+                    {stat.acciones_asistencias || 0}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Asistencias</p>
+                </div>
+              </div>
+
+              {/* Detailed Stats */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Goles por Tipo */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Goles por Tipo</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Boya:</span>
+                      <span className="font-semibold">{stat.goles_boya_jugada || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Hombre +:</span>
+                      <span className="font-semibold">{stat.goles_hombre_mas || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Lanz:</span>
+                      <span className="font-semibold">{stat.goles_lanzamiento || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>+6m:</span>
+                      <span className="font-semibold">{stat.goles_dir_mas_5m || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Contra:</span>
+                      <span className="font-semibold">{stat.goles_contraataque || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Penalti:</span>
+                      <span className="font-semibold">{stat.goles_penalti_anotado || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tiros Fallados */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Tiros Fallados</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Hombre +:</span>
+                      <span className="font-semibold">{stat.tiros_hombre_mas || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Penalti:</span>
+                      <span className="font-semibold">{stat.tiros_penalti_fallado || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Corner:</span>
+                      <span className="font-semibold">{stat.tiros_corner || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Fuera:</span>
+                      <span className="font-semibold">{stat.tiros_fuera || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Parados:</span>
+                      <span className="font-semibold">{stat.tiros_parados || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Bloq:</span>
+                      <span className="font-semibold">{stat.tiros_bloqueado || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Faltas */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Faltas</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Exp 20" 1c1:</span>
+                      <span className="font-semibold">{stat.faltas_exp_20_1c1 || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Exp 20" Boya:</span>
+                      <span className="font-semibold">{stat.faltas_exp_20_boya || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Penalti:</span>
+                      <span className="font-semibold">{stat.faltas_penalti || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Contrafalta:</span>
+                      <span className="font-semibold">{stat.faltas_contrafaltas || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Acciones</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Bloqueos:</span>
+                      <span className="font-semibold">{stat.acciones_bloqueo || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Recuperaciones:</span>
+                      <span className="font-semibold">{stat.acciones_recuperacion || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Rebotes:</span>
+                      <span className="font-semibold">{stat.acciones_rebote || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Exp Prov:</span>
+                      <span className="font-semibold">{stat.acciones_exp_provocada || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Pen Prov:</span>
+                      <span className="font-semibold">{stat.acciones_penalti_provocado || 0}</span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-muted rounded">
+                      <span>Gol Recibido:</span>
+                      <span className="font-semibold">{stat.acciones_recibir_gol || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
+function FieldPlayerAdvancedEfficiency({ stats }: { stats: any }) {
+  const totalTiros = stats.tiros_totales + stats.goles_totales
+  const eficienciaGeneral = totalTiros > 0 ? ((stats.goles_totales / totalTiros) * 100).toFixed(1) : "0.0"
+
+  // Goles vs Tiros Fallados
+  const golesVsTirosData = [
+    { name: "Goles", value: stats.goles_totales, fill: "hsl(160, 70%, 50%)" },
+    { name: "Tiros Fallados", value: stats.tiros_totales, fill: "hsl(0, 70%, 60%)" },
+  ]
+
+  // Eficiencia por tipo de gol
+  const eficienciaPorTipo = [
+    {
+      name: "Boya/Jugada",
+      goles: stats.goles_boya_jugada,
+    },
+    {
+      name: "Hombre +",
+      goles: stats.goles_hombre_mas,
+    },
+    {
+      name: "Lanzamiento",
+      goles: stats.goles_lanzamiento,
+    },
+    {
+      name: "+6m",
+      goles: stats.goles_dir_mas_5m,
+    },
+    {
+      name: "Contraataque",
+      goles: stats.goles_contraataque,
+    },
+    {
+      name: "Penalti",
+      goles: stats.goles_penalti_anotado,
+    },
+  ]
+
+  // Eficiencia ofensiva/defensiva
+  const accionesPositivas = stats.acciones_asistencias + stats.acciones_recuperacion + stats.acciones_bloqueo
+  const accionesNegativas = stats.acciones_recibir_gol + stats.acciones_perdida_poco
+
+  const chartConfig = {
+    goles: { label: "Goles", color: "hsl(160, 70%, 50%)" },
+    tiros: { label: "Tiros Fallados", color: "hsl(0, 70%, 60%)" },
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl md:text-2xl font-bold">Eficiencia Avanzada</h2>
+
+      {/* Goles vs Tiros Fallados */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">Goles vs Tiros Fallados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6 items-center">
+            <div className="flex flex-col items-center justify-center">
+              <ChartContainer config={chartConfig} className="h-[250px] md:h-[300px] w-full">
+                <PieChart>
+                  <Pie
+                    data={golesVsTirosData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                  >
+                    {golesVsTirosData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ChartContainer>
+            </div>
+            <div className="space-y-4">
+              <div className="text-center md:text-left">
+                <p className="text-4xl md:text-6xl font-bold text-primary">{eficienciaGeneral}%</p>
+                <p className="text-muted-foreground mt-2 text-base md:text-lg">Eficiencia General</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 md:p-6 bg-teal-500/10 rounded-lg">
+                  <p className="text-2xl md:text-4xl font-bold text-teal-600 dark:text-teal-400">
+                    {stats.goles_totales}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles</p>
+                </div>
+                <div className="text-center p-4 md:p-6 bg-red-500/10 rounded-lg">
+                  <p className="text-2xl md:text-4xl font-bold text-red-600 dark:text-red-400">{stats.tiros_totales}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Fallados</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Distribución de Goles */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">Distribución de Goles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+            {eficienciaPorTipo.map((tipo) => {
+              const porcentaje = stats.goles_totales > 0 ? ((tipo.goles / stats.goles_totales) * 100).toFixed(0) : "0"
+
+              return (
+                <div key={tipo.name} className="text-center p-3 md:p-4 bg-muted rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-primary">{porcentaje}%</p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{tipo.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{tipo.goles} goles</p>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Balance Ofensivo/Defensivo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl">Balance Ofensivo/Defensivo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="text-base md:text-lg font-semibold text-green-600 dark:text-green-400">
+                Acciones Positivas
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
+                    {stats.acciones_asistencias}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Asistencias</p>
+                </div>
+                <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
+                    {stats.acciones_recuperacion}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Recuperaciones</p>
+                </div>
+                <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
+                    {stats.acciones_bloqueo}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Bloqueos</p>
+                </div>
+                <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
+                    {accionesPositivas}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Total</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-base md:text-lg font-semibold text-red-600 dark:text-red-400">Acciones Negativas</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-4 bg-red-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
+                    {stats.acciones_recibir_gol}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles Recibidos</p>
+                </div>
+                <div className="text-center p-4 bg-red-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
+                    {stats.acciones_perdida_poco}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Pérdidas</p>
+                </div>
+                <div className="text-center p-4 bg-red-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
+                    {stats.faltas_exp_20_1c1 + stats.faltas_exp_20_boya}
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Expulsiones</p>
+                </div>
+                <div className="text-center p-4 bg-red-500/10 rounded-lg">
+                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{accionesNegativas}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Total</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -1183,9 +1886,9 @@ function GoalkeeperTotalStats({ stats }: { stats: any }) {
 
 function StatItem({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
-    <div className={`text-center p-4 rounded-lg ${color || "bg-muted"}`}>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-sm text-muted-foreground mt-1">{label}</p>
+    <div className={`text-center p-3 md:p-4 rounded-lg ${color || "bg-muted"}`}>
+      <p className="text-xl md:text-2xl font-bold">{value}</p>
+      <p className="text-xs md:text-sm text-muted-foreground mt-1">{label}</p>
     </div>
   )
 }
