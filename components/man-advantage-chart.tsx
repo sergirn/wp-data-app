@@ -1,10 +1,7 @@
 "use client"
-
-import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Legend } from "recharts"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import type { Match, MatchStats, Player } from "@/lib/types"
 
 interface ManAdvantageChartProps {
@@ -14,11 +11,6 @@ interface ManAdvantageChartProps {
 }
 
 export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChartProps) {
-  const MATCHES_PER_PAGE = 10
-  const [currentPage, setCurrentPage] = useState(0)
-  const [selectedMatchIndex, setSelectedMatchIndex] = useState<number | null>(null)
-
-  // Calculate man advantage stats per match
   const matchData = matches.map((match, index) => {
     const matchStats = stats.filter((s) => s.match_id === match.id)
     const totalGoals = matchStats.reduce((sum, s) => sum + (s.goles_hombre_mas || 0), 0)
@@ -40,86 +32,97 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
     }
   })
 
+  const chartData = matchData.map((match, index) => {
+    const previousMatches = matchData.slice(0, index + 1)
+    const avgGoals = previousMatches.reduce((sum, m) => sum + m.goles, 0) / (index + 1)
+    const avgMisses = previousMatches.reduce((sum, m) => sum + m.fallos, 0) / (index + 1)
+
+    return {
+      date: match.date,
+      avgGoals: Number(avgGoals.toFixed(2)),
+      avgMisses: Number(avgMisses.toFixed(2)),
+    }
+  })
+
   // Calculate overall stats
   const totalGoals = matchData.reduce((sum, m) => sum + m.goles, 0)
   const totalMisses = matchData.reduce((sum, m) => sum + m.fallos, 0)
   const totalAttempts = totalGoals + totalMisses
   const overallEfficiency = totalAttempts > 0 ? Math.round((totalGoals / totalAttempts) * 100) : 0
-
-  const totalPages = Math.ceil(matchData.length / MATCHES_PER_PAGE)
-  const startIndex = currentPage * MATCHES_PER_PAGE
-  const endIndex = Math.min(startIndex + MATCHES_PER_PAGE, matchData.length)
-  const displayedMatches = matchData.slice(startIndex, endIndex)
-
-  const handleMatchClick = (index: number) => {
-    setSelectedMatchIndex(index)
-    // Calculate which page this match is on
-    const page = Math.floor(index / MATCHES_PER_PAGE)
-    setCurrentPage(page)
-  }
+  const avgGoalsPerMatch = matchData.length > 0 ? (totalGoals / matchData.length).toFixed(2) : "0.00"
+  const avgMissesPerMatch = matchData.length > 0 ? (totalMisses / matchData.length).toFixed(2) : "0.00"
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Eficiencia en Hombre +</CardTitle>
-        <CardDescription>
-          Goles vs Fallos en superioridad numérica - {totalGoals}/{totalAttempts} ({overallEfficiency}% eficiencia)
-        </CardDescription>
+        <CardTitle>Eficiencia en Superioridad</CardTitle>
+        <CardDescription>Media de goles anotados vs fallados por partido en superioridad numérica</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
           <div className="rounded-lg border bg-card p-4">
             <div className="text-sm font-medium text-muted-foreground mb-1">Total Goles</div>
             <div className="text-3xl font-bold text-green-600 dark:text-green-400">{totalGoals}</div>
           </div>
           <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Total Fallos</div>
+            <div className="text-sm font-medium text-muted-foreground mb-1">Media Goles/Partido</div>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{avgGoalsPerMatch}</div>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Total Fallados</div>
             <div className="text-3xl font-bold text-red-600 dark:text-red-400">{totalMisses}</div>
           </div>
           <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Eficiencia</div>
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{overallEfficiency}%</div>
+            <div className="text-sm font-medium text-muted-foreground mb-1">Media Fallos/Partido</div>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{avgMissesPerMatch}</div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Mostrando partidos {startIndex + 1}-{endIndex} de {matchData.length}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-                disabled={currentPage === 0}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={currentPage === totalPages - 1}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={displayedMatches}>
-              <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-              <Legend />
-              <Bar dataKey="goles" name="Goles" stackId="a" fill="#22c55e" radius={[0, 0, 4, 4]} />
-              <Bar dataKey="fallos" name="Fallos" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3">Evolución de Medias por Partido</h3>
+          <ChartContainer
+            config={{
+              avgGoals: {
+                label: "Media Goles",
+                color: "hsl(142, 71%, 45%)",
+              },
+              avgMisses: {
+                label: "Media Fallos",
+                color: "hsl(0, 84%, 60%)",
+              },
+            }}
+            className="h-[400px]"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="avgGoals"
+                  stroke="var(--color-avgGoals)"
+                  name="Media Goles"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="avgMisses"
+                  stroke="var(--color-avgMisses)"
+                  name="Media Fallos"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         </div>
 
         <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-3">Detalle por Partido (Haz clic para ver en gráfica)</h3>
+          <h3 className="text-lg font-semibold mb-3">Eficiencia por Partido</h3>
           <div className="rounded-md border">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -135,13 +138,7 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
                 </thead>
                 <tbody>
                   {matchData.map((match) => (
-                    <tr
-                      key={match.matchId}
-                      onClick={() => handleMatchClick(match.index)}
-                      className={`border-b last:border-0 cursor-pointer transition-colors ${
-                        selectedMatchIndex === match.index ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-muted/50"
-                      }`}
-                    >
+                    <tr key={match.matchId} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="p-3">{match.fullDate}</td>
                       <td className="p-3 font-medium">{match.fullOpponent}</td>
                       <td className="p-3 text-center">
