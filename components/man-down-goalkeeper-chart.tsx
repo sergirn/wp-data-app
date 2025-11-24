@@ -35,13 +35,13 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
 
   const chartData = matchData.map((match, index) => {
     const previousMatches = matchData.slice(0, index + 1)
-    const avgSaves = previousMatches.reduce((sum, m) => sum + m.golesEvitados, 0) / (index + 1)
-    const avgGoalsConced = previousMatches.reduce((sum, m) => sum + m.golesRecibidos, 0) / (index + 1)
+    const avgEfficiency = previousMatches.reduce((sum, m) => sum + m.eficiencia, 0) / (index + 1)
 
     return {
       date: match.date,
-      avgSaves: Number(avgSaves.toFixed(2)),
-      avgGoalsConced: Number(avgGoalsConced.toFixed(2)),
+      paradas: match.golesEvitados,
+      recibidos: match.golesRecibidos,
+      mediaEficiencia: Number(avgEfficiency.toFixed(1)),
     }
   })
 
@@ -57,7 +57,7 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
     <Card>
       <CardHeader>
         <CardTitle>Eficiencia en Inferioridad</CardTitle>
-        <CardDescription>Media de goles evitados vs recibidos por partido en inferioridad numérica</CardDescription>
+        <CardDescription>Goles evitados vs recibidos por partido en inferioridad numérica</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -80,16 +80,20 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
         </div>
 
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3">Evolución de Medias por Partido</h3>
+          <h3 className="text-lg font-semibold mb-3">Evolución por Partido</h3>
           <ChartContainer
             config={{
-              avgSaves: {
-                label: "Media Evitados",
+              paradas: {
+                label: "Goles Evitados",
                 color: "hsl(142, 71%, 45%)",
               },
-              avgGoalsConced: {
-                label: "Media Recibidos",
+              recibidos: {
+                label: "Goles Recibidos",
                 color: "hsl(0, 84%, 60%)",
+              },
+              mediaEficiencia: {
+                label: "Media Eficiencia %",
+                color: "hsl(217, 91%, 60%)",
               },
             }}
             className="h-[400px]"
@@ -103,19 +107,28 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
                 <Legend />
                 <Line
                   type="monotone"
-                  dataKey="avgSaves"
-                  stroke="var(--color-avgSaves)"
-                  name="Media Evitados"
+                  dataKey="paradas"
+                  stroke="var(--color-paradas)"
+                  name="Goles Evitados"
                   strokeWidth={2}
                   dot={{ r: 4 }}
                 />
                 <Line
                   type="monotone"
-                  dataKey="avgGoalsConced"
-                  stroke="var(--color-avgGoalsConced)"
-                  name="Media Recibidos"
+                  dataKey="recibidos"
+                  stroke="var(--color-recibidos)"
+                  name="Goles Recibidos"
                   strokeWidth={2}
                   dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="mediaEficiencia"
+                  stroke="var(--color-mediaEficiencia)"
+                  name="Media Eficiencia %"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  dot={{ r: 5 }}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -34,13 +34,13 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
 
   const chartData = matchData.map((match, index) => {
     const previousMatches = matchData.slice(0, index + 1)
-    const avgGoals = previousMatches.reduce((sum, m) => sum + m.goles, 0) / (index + 1)
-    const avgMisses = previousMatches.reduce((sum, m) => sum + m.fallos, 0) / (index + 1)
+    const avgEfficiency = previousMatches.reduce((sum, m) => sum + m.eficiencia, 0) / (index + 1)
 
     return {
       date: match.date,
-      avgGoals: Number(avgGoals.toFixed(2)),
-      avgMisses: Number(avgMisses.toFixed(2)),
+      goles: match.goles,
+      fallos: match.fallos,
+      mediaEficiencia: Number(avgEfficiency.toFixed(1)),
     }
   })
 
@@ -56,7 +56,7 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
     <Card>
       <CardHeader>
         <CardTitle>Eficiencia en Superioridad</CardTitle>
-        <CardDescription>Media de goles anotados vs fallados por partido en superioridad numérica</CardDescription>
+        <CardDescription>Goles anotados vs fallados por partido en superioridad numérica</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -79,16 +79,20 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
         </div>
 
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3">Evolución de Medias por Partido</h3>
+          <h3 className="text-lg font-semibold mb-3">Evolución por Partido</h3>
           <ChartContainer
             config={{
-              avgGoals: {
-                label: "Media Goles",
+              goles: {
+                label: "Goles Anotados",
                 color: "hsl(142, 71%, 45%)",
               },
-              avgMisses: {
-                label: "Media Fallos",
+              fallos: {
+                label: "Tiros Fallados",
                 color: "hsl(0, 84%, 60%)",
+              },
+              mediaEficiencia: {
+                label: "Media Eficiencia %",
+                color: "hsl(217, 91%, 60%)",
               },
             }}
             className="h-[400px]"
@@ -102,19 +106,28 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
                 <Legend />
                 <Line
                   type="monotone"
-                  dataKey="avgGoals"
-                  stroke="var(--color-avgGoals)"
-                  name="Media Goles"
+                  dataKey="goles"
+                  stroke="var(--color-goles)"
+                  name="Goles Anotados"
                   strokeWidth={2}
                   dot={{ r: 4 }}
                 />
                 <Line
                   type="monotone"
-                  dataKey="avgMisses"
-                  stroke="var(--color-avgMisses)"
-                  name="Media Fallos"
+                  dataKey="fallos"
+                  stroke="var(--color-fallos)"
+                  name="Tiros Fallados"
                   strokeWidth={2}
                   dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="mediaEficiencia"
+                  stroke="var(--color-mediaEficiencia)"
+                  name="Media Eficiencia %"
+                  strokeWidth={3}
+                  strokeDasharray="5 5"
+                  dot={{ r: 5 }}
                 />
               </LineChart>
             </ResponsiveContainer>
