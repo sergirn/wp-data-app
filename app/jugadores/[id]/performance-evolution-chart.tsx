@@ -303,6 +303,50 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
         </CardContent>
       </Card>
 
+      {/* Summary cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Goles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {(chartData.reduce((sum, d) => sum + d.goles, 0) / chartData.length).toFixed(1)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Tiros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold">
+              {(chartData.reduce((sum, d) => sum + d.tiros, 0) / chartData.length).toFixed(1)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Asistencias</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {(chartData.reduce((sum, d) => sum + d.asistencias, 0) / chartData.length).toFixed(1)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Eficiencia Media</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {(chartData.reduce((sum, d) => sum + d.eficiencia, 0) / chartData.length).toFixed(1)}%
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Bloqueos vs Goles Recibidos</CardTitle>
@@ -412,49 +456,7 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
         </Card>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Goles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {(chartData.reduce((sum, d) => sum + d.goles, 0) / chartData.length).toFixed(1)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Tiros</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
-              {(chartData.reduce((sum, d) => sum + d.tiros, 0) / chartData.length).toFixed(1)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Asistencias</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {(chartData.reduce((sum, d) => sum + d.asistencias, 0) / chartData.length).toFixed(1)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Eficiencia Media</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {(chartData.reduce((sum, d) => sum + d.eficiencia, 0) / chartData.length).toFixed(1)}%
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      
     </div>
   )
 }
