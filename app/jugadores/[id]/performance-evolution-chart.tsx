@@ -368,6 +368,50 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
         </CardContent>
       </Card>
 
+      {/* Summary cards for Blocks vs Goals Received chart */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Bloqueos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {blocksVsGoalsData.reduce((sum, d) => sum + d.bloqueos, 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Bloqueos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {(blocksVsGoalsData.reduce((sum, d) => sum + d.bloqueos, 0) / blocksVsGoalsData.length).toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Goles Recibidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {blocksVsGoalsData.reduce((sum, d) => sum + d.golesRecibidos, 0)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Promedio Goles Recibidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {(blocksVsGoalsData.reduce((sum, d) => sum + d.golesRecibidos, 0) / blocksVsGoalsData.length).toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
