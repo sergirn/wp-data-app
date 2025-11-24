@@ -17,8 +17,8 @@ interface MatchWithStats extends Match {
   clubs: Club
 }
 
-export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function MatchDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const profile = await getCurrentProfile()
   const supabase = await createClient()
 
@@ -539,14 +539,21 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
     stat.portero_acciones_rebote > 0 ||
     stat.portero_acciones_recuperacion > 0
 
+  const totalGoalsReceived =
+    (stat.portero_goles_boya_parada || 0) +
+    (stat.portero_goles_hombre_menos || 0) +
+    (stat.portero_goles_dir_mas_5m || 0) +
+    (stat.portero_goles_contraataque || 0) +
+    (stat.portero_goles_penalti || 0)
+
   // Calculated metrics for goalkeepers
-  const totalShotsReceived = (stat.portero_paradas_totales || 0) + (stat.portero_acciones_gol_recibido || 0)
+  const totalShotsReceived = (stat.portero_paradas_totales || 0) + totalGoalsReceived
   const savePercentage =
     totalShotsReceived > 0 ? (((stat.portero_paradas_totales || 0) / totalShotsReceived) * 100).toFixed(1) : "0.0"
-  const goalsPerMatch = stat.portero_acciones_gol_recibido || 0
+  const goalsPerMatch = totalGoalsReceived
   const savesPerMatch = stat.portero_paradas_totales || 0
   const penaltySaves = stat.portero_paradas_penalti_parado || 0
-  const penaltyReceived = (stat.portero_paradas_penalti_parado || 0) + (stat.portero_goles_penalti_encajado || 0)
+  const penaltyReceived = (stat.portero_paradas_penalti_parado || 0) + (stat.portero_goles_penalti || 0)
   const penaltySaveRate = penaltyReceived > 0 ? ((penaltySaves / penaltyReceived) * 100).toFixed(1) : "0.0"
 
   if (!hasStats) {
@@ -640,41 +647,17 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <MetricCard
-                label="Eficiencia"
-                value={`${savePercentage}%`}
-                subtitle={`${stat.portero_paradas_totales}/${totalShotsReceived} tiros`}
-                color="green"
-              />
-              <MetricCard label="Paradas" value={savesPerMatch.toString()} subtitle="Paradas totales" color="blue" />
-              <MetricCard
-                label="Goles Recibidos"
-                value={goalsPerMatch.toString()}
-                subtitle="Goles encajados"
-                color="red"
-              />
-              <MetricCard
-                label="Penaltis"
-                value={`${penaltySaveRate}%`}
-                subtitle={`${penaltySaves} parados`}
-                color="purple"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <Card className="bg-muted/30">
                 <CardContent className="pt-4">
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    Desglose de Paradas ({stat.portero_paradas_totales})
+                    <Activity className="w-4 h-4" />
+                    Rendimiento General
                   </h4>
                   <div className="space-y-2 text-sm">
-                    <StatRow label="Parado" value={stat.portero_tiros_parado} />
-                    <StatRow label="Parada + Recup" value={stat.portero_tiros_parada_recup} />
-                    <StatRow label="Penalti Parado" value={stat.portero_paradas_penalti_parado} />
-                    <StatRow label="Hombre -" value={stat.portero_paradas_hombre_menos} />
-                    <StatRow label="Fuera" value={stat.portero_paradas_fuera} />
+                    <StatRow label="Paradas Totales" value={stat.portero_paradas_totales} />
+                    <StatRow label="% Eficiencia" value={`${savePercentage}%`} />
+                    <StatRow label="Goles Recibidos" value={totalGoalsReceived} highlight />
                   </div>
                 </CardContent>
               </Card>
@@ -683,12 +666,14 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                 <CardContent className="pt-4">
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <Activity className="w-4 h-4" />
-                    Goles Encajados ({stat.portero_acciones_gol_recibido || 0})
+                    Goles Encajados ({totalGoalsReceived})
                   </h4>
                   <div className="space-y-2 text-sm">
                     <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
-                    <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
-                    <StatRow label="Goles Totales" value={stat.portero_acciones_gol_recibido} />
+                    <StatRow label="Hombre Menos" value={stat.portero_goles_hombre_menos} />
+                    <StatRow label="Dir +5m" value={stat.portero_goles_dir_mas_5m} />
+                    <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
+                    <StatRow label="Penalti" value={stat.portero_goles_penalti} />
                   </div>
                 </CardContent>
               </Card>
