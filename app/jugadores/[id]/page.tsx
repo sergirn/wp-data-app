@@ -90,7 +90,6 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
                   <p className="text-sm md:text-base text-muted-foreground">Jugador de Campo</p>
                 </div>
               </div>
-              <ExportPDFButton player={player} matchStats={matchStats} />
             </div>
           </CardHeader>
         </Card>
@@ -135,6 +134,12 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
           <FieldPlayerAdvancedEfficiency stats={fieldPlayerStats} />
         </TabsContent>
       </Tabs>
+
+      <footer className="mt-12 pt-6 border-t">
+        <div className="flex justify-center">
+          <ExportPDFButton player={player} matchStats={matchStats} />
+        </div>
+      </footer>
     </main>
   )
 }
@@ -859,7 +864,6 @@ function GoalkeeperPage({ player, matchStats }: { player: Player; matchStats: Ma
                   <p className="text-sm md:text-base text-muted-foreground">Portero</p>
                 </div>
               </div>
-              <ExportPDFButton player={player} matchStats={matchStats} />
             </div>
           </CardHeader>
         </Card>
@@ -904,6 +908,12 @@ function GoalkeeperPage({ player, matchStats }: { player: Player; matchStats: Ma
           <GoalkeeperAdvancedEfficiency stats={goalkeeperStats} />
         </TabsContent>
       </Tabs>
+
+      <footer className="mt-12 pt-6 border-t">
+        <div className="flex justify-center">
+          <ExportPDFButton player={player} matchStats={matchStats} />
+        </div>
+      </footer>
     </main>
   )
 }

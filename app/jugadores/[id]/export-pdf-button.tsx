@@ -26,169 +26,337 @@ export function ExportPDFButton({ player, matchStats }: ExportPDFButtonProps) {
       const pdf = new jsPDF("p", "mm", "a4")
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const margin = 15
+      const margin = 20
       let yPosition = margin
 
-      // Header
-      pdf.setFillColor(37, 99, 235) // Primary color
-      pdf.rect(0, 0, pageWidth, 40, "F")
+      pdf.setFillColor(15, 23, 42) // Dark blue background
+      pdf.rect(0, 0, pageWidth, 60, "F")
 
+      // Accent bar
+      pdf.setFillColor(59, 130, 246) // Blue accent
+      pdf.rect(0, 55, pageWidth, 5, "F")
+
+      // Title
       pdf.setTextColor(255, 255, 255)
-      pdf.setFontSize(24)
+      pdf.setFontSize(28)
       pdf.setFont("helvetica", "bold")
-      pdf.text("EXPEDIENTE DEL JUGADOR", pageWidth / 2, 20, { align: "center" })
+      pdf.text("EXPEDIENTE DEPORTIVO", pageWidth / 2, 25, { align: "center" })
 
-      pdf.setFontSize(14)
-      pdf.setFont("helvetica", "normal")
-      const currentDate = new Date().toLocaleDateString("es-ES")
-      pdf.text(currentDate, pageWidth / 2, 30, { align: "center" })
-
-      yPosition = 50
-
-      // Player Info
-      pdf.setTextColor(0, 0, 0)
-      pdf.setFontSize(18)
-      pdf.setFont("helvetica", "bold")
-      pdf.text(player.name, margin, yPosition)
-      yPosition += 10
-
+      // Subtitle
       pdf.setFontSize(12)
       pdf.setFont("helvetica", "normal")
-      pdf.text(`Dorsal: ${player.number}`, margin, yPosition)
-      yPosition += 7
-      pdf.text(`Posición: ${player.is_goalkeeper ? "Portero" : "Jugador de Campo"}`, margin, yPosition)
-      yPosition += 7
-      pdf.text(`Partidos jugados: ${matchStats.length}`, margin, yPosition)
-      yPosition += 15
+      pdf.text("Análisis de Rendimiento Individual", pageWidth / 2, 35, { align: "center" })
 
-      // Calculate stats
+      // Date
+      pdf.setFontSize(10)
+      const currentDate = new Date().toLocaleDateString("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+      pdf.text(`Generado el ${currentDate}`, pageWidth / 2, 45, { align: "center" })
+
+      yPosition = 75
+
+      pdf.setFillColor(249, 250, 251) // Light gray background
+      pdf.roundedRect(margin, yPosition, pageWidth - 2 * margin, 45, 3, 3, "F")
+
+      // Player photo placeholder
+      pdf.setFillColor(59, 130, 246)
+      pdf.circle(margin + 22, yPosition + 22, 15, "F")
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFontSize(20)
+      pdf.setFont("helvetica", "bold")
+      pdf.text(player.number.toString(), margin + 22, yPosition + 27, { align: "center" })
+
+      // Player info
+      pdf.setTextColor(15, 23, 42)
+      pdf.setFontSize(22)
+      pdf.setFont("helvetica", "bold")
+      pdf.text(player.name, margin + 45, yPosition + 15)
+
+      pdf.setFontSize(11)
+      pdf.setFont("helvetica", "normal")
+      pdf.setTextColor(71, 85, 105)
+      pdf.text(`Dorsal: #${player.number}`, margin + 45, yPosition + 25)
+      pdf.text(`Posición: ${player.is_goalkeeper ? "Portero" : "Jugador de Campo"}`, margin + 45, yPosition + 32)
+      pdf.text(`Temporada: 2024/2025`, margin + 45, yPosition + 39)
+
+      yPosition += 60
+
       const stats = player.is_goalkeeper
         ? calculateGoalkeeperStatsForPDF(matchStats)
         : calculateFieldPlayerStatsForPDF(matchStats)
 
-      // Stats Summary
-      pdf.setFillColor(240, 240, 240)
-      pdf.rect(margin, yPosition, pageWidth - 2 * margin, 10, "F")
-      pdf.setFontSize(14)
+      // Stats summary with boxes
+      pdf.setFontSize(16)
       pdf.setFont("helvetica", "bold")
-      pdf.text("RESUMEN DE ESTADÍSTICAS", margin + 5, yPosition + 7)
-      yPosition += 15
+      pdf.setTextColor(15, 23, 42)
+      pdf.text("RESUMEN DE RENDIMIENTO", margin, yPosition)
+      yPosition += 12
 
-      pdf.setFontSize(11)
-      pdf.setFont("helvetica", "normal")
+      const boxWidth = (pageWidth - 2 * margin - 10) / 3
+      const boxHeight = 25
 
       if (player.is_goalkeeper) {
-        // Goalkeeper stats
-        pdf.text(`Paradas Totales: ${stats.totalSaves}`, margin + 5, yPosition)
-        pdf.text(`Promedio: ${stats.avgSaves}`, pageWidth / 2, yPosition)
-        yPosition += 7
+        // Goalkeeper stat boxes
+        drawStatBox(
+          pdf,
+          margin,
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Partidos Jugados",
+          matchStats.length.toString(),
+          "#3b82f6",
+        )
+        drawStatBox(
+          pdf,
+          margin + boxWidth + 5,
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Paradas Totales",
+          stats.totalSaves.toString(),
+          "#10b981",
+        )
+        drawStatBox(
+          pdf,
+          margin + 2 * (boxWidth + 5),
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Eficiencia",
+          `${stats.savePercentage}%`,
+          "#f59e0b",
+        )
+        yPosition += boxHeight + 5
 
-        pdf.text(`Goles Recibidos: ${stats.totalGoalsReceived}`, margin + 5, yPosition)
-        pdf.text(`Promedio: ${stats.avgGoalsReceived}`, pageWidth / 2, yPosition)
-        yPosition += 7
-
-        pdf.text(`Eficiencia: ${stats.savePercentage}%`, margin + 5, yPosition)
-        yPosition += 12
+        drawStatBox(
+          pdf,
+          margin,
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Goles Recibidos",
+          stats.totalGoalsReceived.toString(),
+          "#ef4444",
+        )
+        drawStatBox(
+          pdf,
+          margin + boxWidth + 5,
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Promedio Paradas",
+          stats.avgSaves,
+          "#8b5cf6",
+        )
+        drawStatBox(
+          pdf,
+          margin + 2 * (boxWidth + 5),
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Promedio Goles",
+          stats.avgGoalsReceived,
+          "#ec4899",
+        )
       } else {
-        // Field player stats
-        pdf.text(`Goles: ${stats.totalGoals}`, margin + 5, yPosition)
-        pdf.text(`Promedio: ${stats.avgGoals}`, pageWidth / 2, yPosition)
-        yPosition += 7
+        // Field player stat boxes
+        drawStatBox(
+          pdf,
+          margin,
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Partidos Jugados",
+          matchStats.length.toString(),
+          "#3b82f6",
+        )
+        drawStatBox(
+          pdf,
+          margin + boxWidth + 5,
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Goles",
+          stats.totalGoals.toString(),
+          "#10b981",
+        )
+        drawStatBox(
+          pdf,
+          margin + 2 * (boxWidth + 5),
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Asistencias",
+          stats.totalAssists.toString(),
+          "#f59e0b",
+        )
+        yPosition += boxHeight + 5
 
-        pdf.text(`Asistencias: ${stats.totalAssists}`, margin + 5, yPosition)
-        pdf.text(`Promedio: ${stats.avgAssists}`, pageWidth / 2, yPosition)
-        yPosition += 7
-
-        pdf.text(`Tiros Totales: ${stats.totalShots}`, margin + 5, yPosition)
-        pdf.text(`Eficiencia: ${stats.shootingEfficiency}%`, pageWidth / 2, yPosition)
-        yPosition += 12
+        drawStatBox(pdf, margin, yPosition, boxWidth, boxHeight, "Promedio Goles", stats.avgGoals, "#8b5cf6")
+        drawStatBox(
+          pdf,
+          margin + boxWidth + 5,
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Eficiencia Tiro",
+          `${stats.shootingEfficiency}%`,
+          "#ec4899",
+        )
+        drawStatBox(
+          pdf,
+          margin + 2 * (boxWidth + 5),
+          yPosition,
+          boxWidth,
+          boxHeight,
+          "Tiros Totales",
+          stats.totalShots.toString(),
+          "#06b6d4",
+        )
       }
 
-      // Capture charts if visible
+      yPosition += boxHeight + 15
+
       const chartsElements = document.querySelectorAll("[data-export-chart]")
 
-      for (let i = 0; i < chartsElements.length; i++) {
-        const chartElement = chartsElements[i] as HTMLElement
-
-        if (yPosition > pageHeight - 80) {
-          pdf.addPage()
-          yPosition = margin
-        }
-
-        try {
-          const canvas = await html2canvas(chartElement, {
-            scale: 2,
-            backgroundColor: "#ffffff",
-            logging: false,
-          })
-
-          const imgData = canvas.toDataURL("image/png")
-          const imgWidth = pageWidth - 2 * margin
-          const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-          pdf.addImage(imgData, "PNG", margin, yPosition, imgWidth, imgHeight)
-          yPosition += imgHeight + 10
-        } catch (error) {
-          console.error("[v0] Error capturing chart:", error)
-        }
-      }
-
-      // Match by match stats
-      if (yPosition > pageHeight - 60) {
+      if (chartsElements.length > 0) {
         pdf.addPage()
         yPosition = margin
+
+        pdf.setFontSize(16)
+        pdf.setFont("helvetica", "bold")
+        pdf.setTextColor(15, 23, 42)
+        pdf.text("ANÁLISIS GRÁFICO", margin, yPosition)
+        yPosition += 10
+
+        for (let i = 0; i < chartsElements.length; i++) {
+          const chartElement = chartsElements[i] as HTMLElement
+
+          if (yPosition > pageHeight - 100 && i > 0) {
+            pdf.addPage()
+            yPosition = margin
+          }
+
+          try {
+            // Wait for chart to be fully rendered
+            await new Promise((resolve) => setTimeout(resolve, 500))
+
+            const canvas = await html2canvas(chartElement, {
+              scale: 2,
+              backgroundColor: "#ffffff",
+              logging: false,
+              useCORS: true,
+              allowTaint: true,
+            })
+
+            const imgData = canvas.toDataURL("image/png", 1.0)
+            const imgWidth = pageWidth - 2 * margin
+            const imgHeight = Math.min((canvas.height * imgWidth) / canvas.width, 100)
+
+            // Add border around chart
+            pdf.setDrawColor(229, 231, 235)
+            pdf.setLineWidth(0.5)
+            pdf.rect(margin, yPosition, imgWidth, imgHeight)
+
+            pdf.addImage(imgData, "PNG", margin, yPosition, imgWidth, imgHeight)
+            yPosition += imgHeight + 15
+          } catch (error) {
+            console.error("[v0] Error capturing chart:", error)
+          }
+        }
       }
 
-      pdf.setFillColor(240, 240, 240)
-      pdf.rect(margin, yPosition, pageWidth - 2 * margin, 10, "F")
-      pdf.setFontSize(14)
+      pdf.addPage()
+      yPosition = margin
+
+      pdf.setFontSize(16)
       pdf.setFont("helvetica", "bold")
-      pdf.text("ESTADÍSTICAS POR PARTIDO", margin + 5, yPosition + 7)
-      yPosition += 15
+      pdf.setTextColor(15, 23, 42)
+      pdf.text("ESTADÍSTICAS POR PARTIDO", margin, yPosition)
+      yPosition += 12
 
+      // Table header
+      pdf.setFillColor(59, 130, 246)
+      pdf.rect(margin, yPosition, pageWidth - 2 * margin, 8, "F")
+      pdf.setTextColor(255, 255, 255)
       pdf.setFontSize(9)
-      pdf.setFont("helvetica", "normal")
+      pdf.setFont("helvetica", "bold")
 
-      for (const stat of matchStats.slice(0, 10)) {
-        // Limit to 10 most recent matches
-        if (yPosition > pageHeight - 30) {
+      if (player.is_goalkeeper) {
+        pdf.text("FECHA", margin + 2, yPosition + 6)
+        pdf.text("RIVAL", margin + 30, yPosition + 6)
+        pdf.text("PARADAS", margin + 80, yPosition + 6)
+        pdf.text("GOLES", margin + 110, yPosition + 6)
+        pdf.text("EFIC.", margin + 140, yPosition + 6)
+      } else {
+        pdf.text("FECHA", margin + 2, yPosition + 6)
+        pdf.text("RIVAL", margin + 30, yPosition + 6)
+        pdf.text("GOLES", margin + 80, yPosition + 6)
+        pdf.text("ASIST.", margin + 110, yPosition + 6)
+        pdf.text("TIROS", margin + 140, yPosition + 6)
+      }
+      yPosition += 8
+
+      // Table rows
+      pdf.setFont("helvetica", "normal")
+      let rowIndex = 0
+
+      for (const stat of matchStats.slice(0, 15)) {
+        if (yPosition > pageHeight - 20) {
           pdf.addPage()
           yPosition = margin
         }
 
-        const matchDate = new Date(stat.matches.match_date).toLocaleDateString("es-ES")
-        pdf.setFont("helvetica", "bold")
-        pdf.text(`${matchDate} - vs ${stat.matches.rival}`, margin + 5, yPosition)
-        yPosition += 5
-
-        pdf.setFont("helvetica", "normal")
-        if (player.is_goalkeeper) {
-          pdf.text(
-            `Paradas: ${calculateMatchSaves(stat)} | Goles: ${calculateMatchGoalsReceived(stat)} | Eficiencia: ${calculateMatchEfficiency(stat)}%`,
-            margin + 10,
-            yPosition,
-          )
-        } else {
-          pdf.text(
-            `Goles: ${calculateMatchGoals(stat)} | Asistencias: ${stat.acciones_asistencias || 0} | Tiros: ${calculateMatchShots(stat)}`,
-            margin + 10,
-            yPosition,
-          )
+        // Alternate row colors
+        if (rowIndex % 2 === 0) {
+          pdf.setFillColor(249, 250, 251)
+          pdf.rect(margin, yPosition, pageWidth - 2 * margin, 7, "F")
         }
+
+        pdf.setTextColor(15, 23, 42)
+        const matchDate = new Date(stat.matches.match_date).toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "2-digit",
+        })
+        pdf.text(matchDate, margin + 2, yPosition + 5)
+        pdf.text(stat.matches.rival.substring(0, 20), margin + 30, yPosition + 5)
+
+        if (player.is_goalkeeper) {
+          pdf.text(calculateMatchSaves(stat).toString(), margin + 85, yPosition + 5)
+          pdf.text(calculateMatchGoalsReceived(stat).toString(), margin + 115, yPosition + 5)
+          pdf.text(`${calculateMatchEfficiency(stat)}%`, margin + 143, yPosition + 5)
+        } else {
+          pdf.text(calculateMatchGoals(stat).toString(), margin + 85, yPosition + 5)
+          pdf.text((stat.acciones_asistencias || 0).toString(), margin + 115, yPosition + 5)
+          pdf.text(calculateMatchShots(stat).toString(), margin + 145, yPosition + 5)
+        }
+
         yPosition += 7
+        rowIndex++
       }
 
-      // Footer
       const totalPages = pdf.getNumberOfPages()
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i)
+
+        // Footer bar
+        pdf.setFillColor(241, 245, 249)
+        pdf.rect(0, pageHeight - 15, pageWidth, 15, "F")
+
         pdf.setFontSize(8)
-        pdf.setTextColor(128, 128, 128)
-        pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: "center" })
+        pdf.setTextColor(100, 116, 139)
+        pdf.setFont("helvetica", "normal")
+        pdf.text(`Expediente de ${player.name}`, margin, pageHeight - 7)
+        pdf.text(`Página ${i} de ${totalPages}`, pageWidth - margin, pageHeight - 7, { align: "right" })
       }
 
-      // Save PDF
-      pdf.save(`expediente_${player.name.replace(/\s+/g, "_")}_${currentDate}.pdf`)
+      // Save PDF with professional naming
+      const fileName = `Expediente_${player.name.replace(/\s+/g, "_")}_${new Date().getFullYear()}.pdf`
+      pdf.save(fileName)
     } catch (error) {
       console.error("[v0] Error generating PDF:", error)
       alert("Error al generar el PDF. Por favor, intenta de nuevo.")
@@ -198,11 +366,59 @@ export function ExportPDFButton({ player, matchStats }: ExportPDFButtonProps) {
   }
 
   return (
-    <Button onClick={exportToPDF} disabled={isExporting} className="gap-2">
+    <Button onClick={exportToPDF} disabled={isExporting} variant="outline" size="sm" className="gap-2 bg-transparent">
       <Download className="h-4 w-4" />
-      {isExporting ? "Generando PDF..." : "Exportar a PDF"}
+      {isExporting ? "Generando..." : "Exportar PDF"}
     </Button>
   )
+}
+
+function drawStatBox(
+  pdf: jsPDF,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  label: string,
+  value: string,
+  color: string,
+) {
+  // Convert hex color to RGB
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result
+      ? {
+          r: Number.parseInt(result[1], 16),
+          g: Number.parseInt(result[2], 16),
+          b: Number.parseInt(result[3], 16),
+        }
+      : { r: 0, g: 0, b: 0 }
+  }
+
+  const rgb = hexToRgb(color)
+
+  // Light background
+  pdf.setFillColor(rgb.r, rgb.g, rgb.b)
+  pdf.setGlobalAlpha(0.1)
+  pdf.roundedRect(x, y, width, height, 2, 2, "F")
+  pdf.setGlobalAlpha(1)
+
+  // Border
+  pdf.setDrawColor(rgb.r, rgb.g, rgb.b)
+  pdf.setLineWidth(0.5)
+  pdf.roundedRect(x, y, width, height, 2, 2, "S")
+
+  // Label
+  pdf.setFontSize(8)
+  pdf.setFont("helvetica", "normal")
+  pdf.setTextColor(100, 116, 139)
+  pdf.text(label, x + width / 2, y + 10, { align: "center" })
+
+  // Value
+  pdf.setFontSize(16)
+  pdf.setFont("helvetica", "bold")
+  pdf.setTextColor(rgb.r, rgb.g, rgb.b)
+  pdf.text(value, x + width / 2, y + 20, { align: "center" })
 }
 
 // Helper functions for PDF calculations
