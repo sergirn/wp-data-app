@@ -1,8 +1,9 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { Bar, Line, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid, Tooltip } from "recharts"
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
+import { Badge } from "@/components/ui/badge"
 import type { Match, MatchStats, Player } from "@/lib/types"
 
 interface ManDownGoalkeeperChartProps {
@@ -39,9 +40,9 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
 
     return {
       date: match.date,
-      paradas: match.golesEvitados,
+      evitados: match.golesEvitados,
       recibidos: match.golesRecibidos,
-      mediaEficiencia: Number(avgEfficiency.toFixed(1)),
+      eficienciaAcumulada: Number(avgEfficiency.toFixed(1)),
     }
   })
 
@@ -50,32 +51,44 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
   const totalGoalsConced = matchData.reduce((sum, m) => sum + m.golesRecibidos, 0)
   const totalShots = totalSaves + totalGoalsConced
   const overallEfficiency = totalShots > 0 ? Math.round((totalSaves / totalShots) * 100) : 0
-  const avgSavesPerMatch = matchData.length > 0 ? (totalSaves / matchData.length).toFixed(2) : "0.00"
-  const avgGoalsConcedPerMatch = matchData.length > 0 ? (totalGoalsConced / matchData.length).toFixed(2) : "0.00"
+  const avgSavesPerMatch = matchData.length > 0 ? (totalSaves / matchData.length).toFixed(1) : "0.0"
+  const avgGoalsConcedPerMatch = matchData.length > 0 ? (totalGoalsConced / matchData.length).toFixed(1) : "0.0"
+
+  const getEfficiencyColor = (eff: number) => {
+    if (eff >= 50) return "bg-green-500"
+    if (eff >= 30) return "bg-yellow-500"
+    return "bg-red-500"
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Eficiencia en Inferioridad</CardTitle>
-        <CardDescription>Goles evitados vs recibidos por partido en inferioridad numérica</CardDescription>
+        <CardDescription>Análisis de rendimiento del portero en situaciones de inferioridad numérica</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-4 mb-6">
           <div className="rounded-lg border bg-card p-4">
             <div className="text-sm font-medium text-muted-foreground mb-1">Total Evitados</div>
             <div className="text-3xl font-bold text-green-600 dark:text-green-400">{totalSaves}</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Media Evitados/Partido</div>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{avgSavesPerMatch}</div>
+            <div className="text-xs text-muted-foreground mt-1">Media: {avgSavesPerMatch}/partido</div>
           </div>
           <div className="rounded-lg border bg-card p-4">
             <div className="text-sm font-medium text-muted-foreground mb-1">Total Recibidos</div>
             <div className="text-3xl font-bold text-red-600 dark:text-red-400">{totalGoalsConced}</div>
+            <div className="text-xs text-muted-foreground mt-1">Media: {avgGoalsConcedPerMatch}/partido</div>
           </div>
           <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Media Recibidos/Partido</div>
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{avgGoalsConcedPerMatch}</div>
+            <div className="text-sm font-medium text-muted-foreground mb-1">Eficiencia Global</div>
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{overallEfficiency}%</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {totalSaves}/{totalShots} tiros
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-sm font-medium text-muted-foreground mb-1">Partidos</div>
+            <div className="text-3xl font-bold">{matchData.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Total registrados</div>
           </div>
         </div>
 
@@ -83,7 +96,7 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
           <h3 className="text-lg font-semibold mb-3">Evolución por Partido</h3>
           <ChartContainer
             config={{
-              paradas: {
+              evitados: {
                 label: "Goles Evitados",
                 color: "hsl(142, 71%, 45%)",
               },
@@ -91,99 +104,105 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
                 label: "Goles Recibidos",
                 color: "hsl(0, 84%, 60%)",
               },
-              mediaEficiencia: {
-                label: "Media Eficiencia %",
+              eficienciaAcumulada: {
+                label: "Eficiencia Acumulada %",
                 color: "hsl(217, 91%, 60%)",
               },
             }}
             className="h-[400px]"
           >
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <YAxis
+                  yAxisId="left"
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  label={{ value: "Cantidad", angle: -90, position: "insideLeft", style: { fontSize: 12 } }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  label={{ value: "Eficiencia %", angle: 90, position: "insideRight", style: { fontSize: 12 } }}
+                />
+                <Tooltip content={<ChartTooltipContent />} />
                 <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="paradas"
-                  stroke="var(--color-paradas)"
+                <Bar
+                  yAxisId="left"
+                  dataKey="evitados"
+                  fill="var(--color-evitados)"
                   name="Goles Evitados"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
+                  radius={[4, 4, 0, 0]}
                 />
-                <Line
-                  type="monotone"
+                <Bar
+                  yAxisId="left"
                   dataKey="recibidos"
-                  stroke="var(--color-recibidos)"
+                  fill="var(--color-recibidos)"
                   name="Goles Recibidos"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
+                  radius={[4, 4, 0, 0]}
                 />
                 <Line
+                  yAxisId="right"
                   type="monotone"
-                  dataKey="mediaEficiencia"
-                  stroke="var(--color-mediaEficiencia)"
-                  name="Media Eficiencia %"
+                  dataKey="eficienciaAcumulada"
+                  stroke="var(--color-eficienciaAcumulada)"
+                  name="Eficiencia Acumulada %"
                   strokeWidth={3}
-                  strokeDasharray="5 5"
-                  dot={{ r: 5 }}
+                  dot={{ r: 5, fill: "var(--color-eficienciaAcumulada)" }}
                 />
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
 
         <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-3">Eficiencia por Partido</h3>
-          <div className="rounded-md border">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="p-3 text-left font-medium">Fecha</th>
-                    <th className="p-3 text-left font-medium">Rival</th>
-                    <th className="p-3 text-center font-medium">Goles Evitados</th>
-                    <th className="p-3 text-center font-medium">Goles Recibidos</th>
-                    <th className="p-3 text-center font-medium">Total</th>
-                    <th className="p-3 text-center font-medium">Eficiencia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matchData.map((match) => (
-                    <tr key={match.matchId} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                      <td className="p-3">{match.fullDate}</td>
-                      <td className="p-3 font-medium">{match.fullOpponent}</td>
-                      <td className="p-3 text-center">
-                        <span className="inline-flex items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-green-700 dark:text-green-400 font-medium">
-                          {match.golesEvitados}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className="inline-flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-red-700 dark:text-red-400 font-medium">
-                          {match.golesRecibidos}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center font-medium">{match.total}</td>
-                      <td className="p-3 text-center">
-                        <span
-                          className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 font-medium ${
-                            match.eficiencia >= 50
-                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                              : match.eficiencia >= 30
-                                ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
-                                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                          }`}
-                        >
-                          {match.eficiencia}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <h3 className="text-lg font-semibold mb-3">Detalle por Partido</h3>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {matchData.map((match) => (
+              <Card key={match.matchId} className="overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-base">{match.fullOpponent}</CardTitle>
+                      <CardDescription className="text-xs">{match.fullDate}</CardDescription>
+                    </div>
+                    <Badge className={`${getEfficiencyColor(match.eficiencia)} text-white`}>{match.eficiencia}%</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Evitados</span>
+                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                        {match.golesEvitados}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Recibidos</span>
+                      <span className="text-lg font-bold text-red-600 dark:text-red-400">{match.golesRecibidos}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <span className="text-sm font-medium">Total Tiros</span>
+                      <span className="text-lg font-bold">{match.total}</span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full bg-muted rounded-full h-2 mt-2">
+                      <div
+                        className="bg-green-600 dark:bg-green-400 h-2 rounded-full transition-all"
+                        style={{ width: `${match.eficiencia}%` }}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </CardContent>
