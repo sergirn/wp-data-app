@@ -25,6 +25,8 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
       matchId: match.id,
       match: `${match.opponent.substring(0, 15)}${match.opponent.length > 15 ? "..." : ""}`,
       fullOpponent: match.opponent,
+      jornada: `J${match.jornada || index + 1}`,
+      jornadaNumber: match.jornada || index + 1,
       date: new Date(match.match_date).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
       fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
       golesEvitados: savesMade,
@@ -39,7 +41,7 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
     const avgEfficiency = previousMatches.reduce((sum, m) => sum + m.eficiencia, 0) / (index + 1)
 
     return {
-      date: match.date,
+      jornada: match.jornada,
       evitados: match.golesEvitados,
       recibidos: match.golesRecibidos,
       eficienciaAcumulada: Number(avgEfficiency.toFixed(1)),
@@ -109,12 +111,12 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
                 color: "hsl(217, 91%, 60%)",
               },
             }}
-            className="h-[400px]"
+            className="h-[400px] w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="jornada" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis
                   yAxisId="left"
                   stroke="#888888"
@@ -170,6 +172,7 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
+                      <div className="text-xs font-semibold text-muted-foreground mb-1">{match.jornada}</div>
                       <CardTitle className="text-base">{match.fullOpponent}</CardTitle>
                       <CardDescription className="text-xs">{match.fullDate}</CardDescription>
                     </div>
