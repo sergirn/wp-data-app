@@ -513,12 +513,18 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
 
               <Card className="bg-orange-500/5">
                 <CardContent className="pt-4">
-                  <h4 className="font-semibold text-sm mb-3 text-orange-700 dark:text-orange-300">Faltas</h4>
+                  <h4 className="font-semibold text-sm mb-3 text-orange-700 dark:text-orange-300">
+                    Faltas y Negativas
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <StatRow label={'Exp 20" 1c1'} value={stat.faltas_exp_20_1c1} />
                     <StatRow label={'Exp 20" Boya'} value={stat.faltas_exp_20_boya} />
+                    <StatRow label={"Exp 3º Int"} value={stat.faltas_exp_3_int} />
+                    <StatRow label={"Exp 3º Bruta"} value={stat.faltas_exp_3_bruta} />
                     <StatRow label="Penalti" value={stat.faltas_penalti} />
                     <StatRow label="Contrafaltas" value={stat.faltas_contrafaltas} />
+                    <StatRow label="Pérdida de Posesión" value={stat.acciones_perdida_poco} />
+                    <StatRow label="Gol Recibido" value={stat.acciones_recibir_gol} highlight />
                   </div>
                 </CardContent>
               </Card>
@@ -544,7 +550,9 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
     (stat.portero_goles_hombre_menos || 0) +
     (stat.portero_goles_dir_mas_5m || 0) +
     (stat.portero_goles_contraataque || 0) +
-    (stat.portero_goles_penalti || 0)
+    (stat.portero_goles_penalti || 0) +
+    (stat.portero_goles_lanzamiento || 0) +
+    (stat.portero_goles_penalti_encajado || 0)
 
   // Calculated metrics for goalkeepers
   const totalShotsReceived = (stat.portero_paradas_totales || 0) + totalGoalsReceived
@@ -658,6 +666,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                     <StatRow label="Paradas Totales" value={stat.portero_paradas_totales} />
                     <StatRow label="% Eficiencia" value={`${savePercentage}%`} />
                     <StatRow label="Goles Recibidos" value={totalGoalsReceived} highlight />
+                    <StatRow label="Recibir Gol (Acción)" value={stat.portero_recibir_gol} />
                   </div>
                 </CardContent>
               </Card>
@@ -671,9 +680,11 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                   <div className="space-y-2 text-sm">
                     <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
                     <StatRow label="Hombre Menos" value={stat.portero_goles_hombre_menos} />
+                    <StatRow label="Lanzamiento" value={stat.portero_goles_lanzamiento} />
                     <StatRow label="Dir +5m" value={stat.portero_goles_dir_mas_5m} />
                     <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
                     <StatRow label="Penalti" value={stat.portero_goles_penalti} />
+                    <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
                   </div>
                 </CardContent>
               </Card>
@@ -697,6 +708,12 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
               {stat.portero_paradas_fuera > 0 && (
                 <StatCard label="Fuera" value={stat.portero_paradas_fuera} color="gray" />
               )}
+              {stat.portero_paradas_parada_fuera > 0 && (
+                <StatCard label="Parada Fuera" value={stat.portero_paradas_parada_fuera} color="blue" />
+              )}
+              {stat.portero_paradas_pedida > 0 && (
+                <StatCard label="Pedida" value={stat.portero_paradas_pedida} color="orange" />
+              )}
             </div>
             {(stat.portero_paradas_totales || 0) === 0 && (
               <p className="text-center text-muted-foreground py-8">Sin paradas en este partido</p>
@@ -704,34 +721,26 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
           </TabsContent>
 
           <TabsContent value="goals" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-blue-500/5">
-                <CardContent className="pt-4">
-                  <h4 className="font-semibold text-sm mb-3 text-blue-700 dark:text-blue-300">
-                    Goles Anotados ({stat.portero_goles_totales || 0})
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <StatRow label="Boya" value={stat.portero_goles_boya} />
-                    <StatRow label="Hombre -" value={stat.portero_goles_hombre_menos} />
-                    <StatRow label="Lanzamiento" value={stat.portero_goles_lanzamiento} />
-                    <StatRow label="Directo +6m" value={stat.portero_goles_dir_mas_5m} />
-                    <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
-                    <StatRow label="Penalti" value={stat.portero_goles_penalti} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-red-500/5">
-                <CardContent className="pt-4">
-                  <h4 className="font-semibold text-sm mb-3 text-red-700 dark:text-red-300">Goles Encajados</h4>
-                  <div className="space-y-2 text-sm">
-                    <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
-                    <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
-                    <StatRow label="Total Recibidos" value={stat.portero_acciones_gol_recibido} highlight />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="bg-red-500/5">
+              <CardContent className="pt-4">
+                <h4 className="font-semibold text-sm mb-3 text-red-700 dark:text-red-300">
+                  Goles Encajados ({totalGoalsReceived})
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
+                  <StatRow label="Hombre Menos" value={stat.portero_goles_hombre_menos} />
+                  <StatRow label="Lanzamiento" value={stat.portero_goles_lanzamiento} />
+                  <StatRow label="Directo +5m" value={stat.portero_goles_dir_mas_5m} />
+                  <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
+                  <StatRow label="Penalti" value={stat.portero_goles_penalti} />
+                  <StatRow label="Penalti Encajado" value={stat.portero_goles_penalti_encajado} />
+                  <StatRow label="Boya" value={stat.portero_goles_boya} />
+                </div>
+              </CardContent>
+            </Card>
+            {totalGoalsReceived === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin goles encajados en este partido</p>
+            )}
           </TabsContent>
 
           <TabsContent value="actions" className="space-y-4">
@@ -739,8 +748,8 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
               {stat.portero_acciones_rebote > 0 && (
                 <StatCard label="Rebote" value={stat.portero_acciones_rebote} color="purple" />
               )}
-              {stat.acciones_asistencias > 0 && (
-                <StatCard label="Asistencias" value={stat.acciones_asistencias} color="green" />
+              {stat.portero_acciones_asistencias > 0 && (
+                <StatCard label="Asistencias" value={stat.portero_acciones_asistencias} color="green" />
               )}
               {stat.portero_acciones_recuperacion > 0 && (
                 <StatCard label="Recuperación" value={stat.portero_acciones_recuperacion} color="blue" />
@@ -751,8 +760,17 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
               {stat.portero_acciones_exp_provocada > 0 && (
                 <StatCard label="Exp Provocada" value={stat.portero_acciones_exp_provocada} color="green" />
               )}
+              {stat.portero_penalti_provocado > 0 && (
+                <StatCard label="Penalti Provocado" value={stat.portero_penalti_provocado} color="green" />
+              )}
               {stat.portero_faltas_exp_3_int > 0 && (
-                <StatCard label="Exp 3º Int" value={stat.portero_faltas_exp_3_int} color="red" />
+                <StatCard label={"Exp 3º Int"} value={stat.portero_faltas_exp_3_int} color="red" />
+              )}
+              {stat.portero_acciones_gol_recibido > 0 && (
+                <StatCard label="Gol Recibido" value={stat.portero_acciones_gol_recibido} color="red" />
+              )}
+              {stat.portero_recibir_gol > 0 && (
+                <StatCard label="Recibir Gol" value={stat.portero_recibir_gol} color="red" />
               )}
             </div>
           </TabsContent>
