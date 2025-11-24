@@ -323,7 +323,8 @@ export function ExportPDFButton({ player, matchStats }: ExportPDFButtonProps) {
           month: "2-digit",
         })
         pdf.text(matchDate, margin + 2, yPosition + 5)
-        pdf.text(stat.matches.rival.substring(0, 20), margin + 30, yPosition + 5)
+        const rivalText = stat.matches.rival ? stat.matches.rival.substring(0, 20) : "Sin rival"
+        pdf.text(rivalText, margin + 30, yPosition + 5)
 
         if (player.is_goalkeeper) {
           pdf.text(calculateMatchSaves(stat).toString(), margin + 85, yPosition + 5)
