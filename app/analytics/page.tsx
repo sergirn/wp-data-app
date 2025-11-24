@@ -13,7 +13,7 @@ import { ManDownGoalkeeperChart } from "@/components/man-down-goalkeeper-chart"
 import { GoalDifferenceEvolutionChart } from "@/components/goal-difference-evolution-chart"
 import { useClub } from "@/lib/club-context"
 import { useEffect, useState, useMemo } from "react"
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from "next/navigation"
 
 export default function AnalyticsPage() {
   const { currentClub } = useClub()
@@ -255,10 +255,10 @@ export default function AnalyticsPage() {
       <Tabs defaultValue="man-advantage" className="mb-4 sm:mb-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="man-advantage" className="text-xs sm:text-sm">
-            Hombre +
+            Superioridad
           </TabsTrigger>
           <TabsTrigger value="man-down" className="text-xs sm:text-sm">
-            Hombre -
+            Inferioridad
           </TabsTrigger>
         </TabsList>
         <TabsContent value="man-advantage">
