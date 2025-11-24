@@ -206,47 +206,47 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
       const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0
 
       return {
-        // Goles encajados - usando los campos exactos de nuevo-partido
-        portero_goles_boya: acc.portero_goles_boya + (stat.portero_goles_boya || 0),
+        // Goles encajados
+        portero_goles_boya_parada: acc.portero_goles_boya_parada + (stat.portero_goles_boya_parada || 0),
         portero_goles_hombre_menos: acc.portero_goles_hombre_menos + (stat.portero_goles_hombre_menos || 0),
         portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
         portero_goles_contraataque: acc.portero_goles_contraataque + (stat.portero_goles_contraataque || 0),
         portero_goles_penalti: acc.portero_goles_penalti + (stat.portero_goles_penalti || 0),
 
-        // Paradas - usando los campos exactos de nuevo-partido
+        // Paradas
         portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
-        portero_paradas_parada_recup: acc.portero_paradas_parada_recup + (stat.portero_paradas_parada_recup || 0),
+        portero_tiros_parada_recup: acc.portero_tiros_parada_recup + (stat.portero_tiros_parada_recup || 0),
         portero_paradas_fuera: acc.portero_paradas_fuera + (stat.portero_paradas_fuera || 0),
         portero_paradas_penalti_parado: acc.portero_paradas_penalti_parado + (stat.portero_paradas_penalti_parado || 0),
         portero_paradas_hombre_menos: acc.portero_paradas_hombre_menos + (stat.portero_paradas_hombre_menos || 0),
 
-        // Acciones - usando los campos exactos de nuevo-partido
-        portero_acciones_asistencias: acc.portero_acciones_asistencias + (stat.portero_acciones_asistencias || 0),
-        portero_acciones_recuperacion: acc.portero_acciones_recuperacion + (stat.portero_acciones_recuperacion || 0),
+        // Acciones
+        acciones_asistencias: acc.acciones_asistencias + (stat.acciones_asistencias || 0),
+        acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
         portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0),
-        portero_acciones_exp_provocada: acc.portero_acciones_exp_provocada + (stat.portero_acciones_exp_provocada || 0),
+        acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
 
         // Goles recibidos reales del marcador del partido
         goles_recibidos_reales: acc.goles_recibidos_reales + rivalGoals,
       }
     },
     {
-      portero_goles_boya: 0,
+      portero_goles_boya_parada: 0,
       portero_goles_hombre_menos: 0,
       portero_goles_dir_mas_5m: 0,
       portero_goles_contraataque: 0,
       portero_goles_penalti: 0,
 
       portero_paradas_totales: 0,
-      portero_paradas_parada_recup: 0,
+      portero_tiros_parada_recup: 0,
       portero_paradas_fuera: 0,
       portero_paradas_penalti_parado: 0,
       portero_paradas_hombre_menos: 0,
 
-      portero_acciones_asistencias: 0,
-      portero_acciones_recuperacion: 0,
+      acciones_asistencias: 0,
+      acciones_recuperacion: 0,
       portero_acciones_perdida_pos: 0,
-      portero_acciones_exp_provocada: 0,
+      acciones_exp_provocada: 0,
 
       goles_recibidos_reales: 0,
     },
@@ -324,8 +324,8 @@ function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatItem
-              label="Boya"
-              value={stats.portero_goles_boya}
+              label="Boya/Parada"
+              value={stats.portero_goles_boya_parada}
               color="bg-red-500/10 text-red-600 dark:text-red-400"
             />
             <StatItem
@@ -360,12 +360,12 @@ function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatItem
-              label="Recup"
-              value={stats.portero_paradas_parada_recup}
+              label="Parada + Recup"
+              value={stats.portero_tiros_parada_recup}
               color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
             />
             <StatItem
-              label="Fuera"
+              label="+6m"
               value={stats.portero_paradas_fuera}
               color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
             />
@@ -392,12 +392,12 @@ function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatItem
               label="Asistencias"
-              value={stats.portero_acciones_asistencias}
+              value={stats.acciones_asistencias}
               color="bg-green-500/10 text-green-600 dark:text-green-400"
             />
             <StatItem
               label="Recuperaciones"
-              value={stats.portero_acciones_recuperacion}
+              value={stats.acciones_recuperacion}
               color="bg-green-500/10 text-green-600 dark:text-green-400"
             />
             <StatItem
@@ -407,7 +407,7 @@ function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
             />
             <StatItem
               label="Exp. Provocadas"
-              value={stats.portero_acciones_exp_provocada}
+              value={stats.acciones_exp_provocada}
               color="bg-purple-500/10 text-purple-600 dark:text-purple-400"
             />
           </div>
@@ -576,10 +576,10 @@ function GoalkeeperMatchStats({ matchStats, player }: { matchStats: MatchStatsWi
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex justify-between p-2 bg-muted rounded">
                       <span>Recup:</span>
-                      <span className="font-semibold">{stat.portero_paradas_parada_recup || 0}</span>
+                      <span className="font-semibold">{stat.portero_tiros_parada_recup || 0}</span>
                     </div>
                     <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Fuera:</span>
+                      <span>+6m:</span>
                       <span className="font-semibold">{stat.portero_paradas_fuera || 0}</span>
                     </div>
                     <div className="flex justify-between p-2 bg-muted rounded">
@@ -598,8 +598,8 @@ function GoalkeeperMatchStats({ matchStats, player }: { matchStats: MatchStatsWi
                   <h4 className="font-semibold text-sm text-muted-foreground">Goles Encajados por Tipo</h4>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Boya:</span>
-                      <span className="font-semibold">{stat.portero_goles_boya || 0}</span>
+                      <span>Boya/Parada:</span>
+                      <span className="font-semibold">{stat.portero_goles_boya_parada || 0}</span>
                     </div>
                     <div className="flex justify-between p-2 bg-muted rounded">
                       <span>Hombre -:</span>
@@ -641,9 +641,9 @@ function GoalkeeperAdvancedEfficiency({ stats }: { stats: any }) {
   // Eficiencia por tipo de tiro
   const eficienciaByType = [
     {
-      name: "Boya",
+      name: "Boya/Parada",
       paradas: 0, // Not tracked separately
-      goles: stats.portero_goles_boya,
+      goles: stats.portero_goles_boya_parada,
     },
     {
       name: "Hombre -",
@@ -652,7 +652,7 @@ function GoalkeeperAdvancedEfficiency({ stats }: { stats: any }) {
     },
     {
       name: "+6m",
-      paradas: 0, // Not tracked separately
+      paradas: stats.portero_paradas_fuera,
       goles: stats.portero_goles_dir_mas_5m,
     },
     {
@@ -839,27 +839,27 @@ function calculateTotalStats(stats: any[], isGoalkeeper = false) {
 
       portero_goles_totales:
         acc.portero_goles_totales +
-        ((stat.portero_goles_boya || 0) +
+        ((stat.portero_goles_boya_parada || 0) + // Updated field
           (stat.portero_goles_hombre_menos || 0) +
           (stat.portero_goles_dir_mas_5m || 0) +
           (stat.portero_goles_contraataque || 0) +
           (stat.portero_goles_penalti || 0)),
-      portero_goles_boya: acc.portero_goles_boya + (stat.portero_goles_boya || 0),
+      portero_goles_boya_parada: acc.portero_goles_boya_parada + (stat.portero_goles_boya_parada || 0), // Updated field
       portero_goles_hombre_menos: acc.portero_goles_hombre_menos + (stat.portero_goles_hombre_menos || 0),
       portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
       portero_goles_contraataque: acc.portero_goles_contraataque + (stat.portero_goles_contraataque || 0),
       portero_goles_penalti: acc.portero_goles_penalti + (stat.portero_goles_penalti || 0),
 
       portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
-      portero_paradas_parada_recup: acc.portero_paradas_parada_recup + (stat.portero_paradas_parada_recup || 0),
+      portero_tiros_parada_recup: acc.portero_tiros_parada_recup + (stat.portero_tiros_parada_recup || 0), // Updated field
       portero_paradas_fuera: acc.portero_paradas_fuera + (stat.portero_paradas_fuera || 0),
       portero_paradas_penalti_parado: acc.portero_paradas_penalti_parado + (stat.portero_paradas_penalti_parado || 0),
       portero_paradas_hombre_menos: acc.portero_paradas_hombre_menos + (stat.portero_paradas_hombre_menos || 0),
 
-      portero_acciones_asistencias: acc.portero_acciones_asistencias + (stat.portero_acciones_asistencias || 0),
-      portero_acciones_recuperacion: acc.portero_acciones_recuperacion + (stat.portero_acciones_recuperacion || 0),
-      portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0),
-      portero_acciones_exp_provocada: acc.portero_acciones_exp_provocada + (stat.portero_acciones_exp_provocada || 0),
+      portero_acciones_asistencias: acc.portero_acciones_asistencias + (stat.acciones_asistencias || 0), // Updated field
+      portero_acciones_recuperacion: acc.portero_acciones_recuperacion + (stat.acciones_recuperacion || 0), // Updated field
+      portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0), // Updated field
+      portero_acciones_exp_provocada: acc.portero_acciones_exp_provocada + (stat.acciones_exp_provocada || 0), // Updated field
     }),
     {
       goles_totales: 0,
@@ -892,22 +892,22 @@ function calculateTotalStats(stats: any[], isGoalkeeper = false) {
       acciones_recibir_gol: 0,
 
       portero_goles_totales: 0,
-      portero_goles_boya: 0,
+      portero_goles_boya_parada: 0, // Updated field
       portero_goles_hombre_menos: 0,
       portero_goles_dir_mas_5m: 0,
       portero_goles_contraataque: 0,
       portero_goles_penalti: 0,
 
       portero_paradas_totales: 0,
-      portero_paradas_parada_recup: 0,
+      portero_tiros_parada_recup: 0, // Updated field
       portero_paradas_fuera: 0,
       portero_paradas_penalti_parado: 0,
       portero_paradas_hombre_menos: 0,
 
-      portero_acciones_asistencias: 0,
-      portero_acciones_recuperacion: 0,
-      portero_acciones_perdida_pos: 0,
-      portero_acciones_exp_provocada: 0,
+      portero_acciones_asistencias: 0, // Updated field
+      portero_acciones_recuperacion: 0, // Updated field
+      portero_acciones_perdida_pos: 0, // Updated field
+      portero_acciones_exp_provocada: 0, // Updated field
     },
   )
 
@@ -1139,7 +1139,7 @@ function GoalkeeperTotalStats({ stats }: { stats: any }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Boya" value={stats.portero_goles_boya} />
+            <StatItem label="Boya" value={stats.portero_goles_boya_parada} /> {/* Updated field */}
             <StatItem label="Hombre -" value={stats.portero_goles_hombre_menos} />
             <StatItem label="Dir +6m" value={stats.portero_goles_dir_mas_5m} />
             <StatItem label="Contraataque" value={stats.portero_goles_contraataque} />
@@ -1155,7 +1155,7 @@ function GoalkeeperTotalStats({ stats }: { stats: any }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Parada Recup" value={stats.portero_paradas_parada_recup} />
+            <StatItem label="Parada Recup" value={stats.portero_tiros_parada_recup} /> {/* Updated field */}
             <StatItem label="Parada Fuera" value={stats.portero_paradas_fuera} />
             <StatItem label="Penalti Parado" value={stats.portero_paradas_penalti_parado} />
             <StatItem label="Parada Hombre -" value={stats.portero_paradas_hombre_menos} />
@@ -1170,10 +1170,10 @@ function GoalkeeperTotalStats({ stats }: { stats: any }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Asistencias" value={stats.portero_acciones_asistencias} />
-            <StatItem label="Recuperación" value={stats.portero_acciones_recuperacion} />
-            <StatItem label="Pérdida de Pos" value={stats.portero_acciones_perdida_pos} />
-            <StatItem label="Exp Provocada" value={stats.portero_acciones_exp_provocada} />
+            <StatItem label="Asistencias" value={stats.portero_acciones_asistencias} /> {/* Updated field */}
+            <StatItem label="Recuperación" value={stats.portero_acciones_recuperacion} /> {/* Updated field */}
+            <StatItem label="Pérdida de Pos" value={stats.portero_acciones_perdida_pos} /> {/* Updated field */}
+            <StatItem label="Exp Provocada" value={stats.portero_acciones_exp_provocada} /> {/* Updated field */}
           </div>
         </CardContent>
       </Card>

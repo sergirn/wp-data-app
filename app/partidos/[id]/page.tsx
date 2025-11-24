@@ -677,7 +677,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                   </h4>
                   <div className="space-y-2 text-sm">
                     <StatRow label="Parada + Recup" value={stat.portero_tiros_parada_recup} />
-                    <StatRow label="Parada Fuera" value={stat.portero_paradas_fuera} />
+                    <StatRow label="+6m" value={stat.portero_paradas_fuera} />
                     <StatRow label="Penalti Parado" value={stat.portero_paradas_penalti_parado} />
                     <StatRow label="Paradas Hombre -" value={stat.portero_paradas_hombre_menos} />
                   </div>
@@ -692,7 +692,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                 <StatCard label="Parada + Recup" value={stat.portero_tiros_parada_recup} color="green" />
               )}
               {stat.portero_paradas_fuera > 0 && (
-                <StatCard label="Parada Fuera" value={stat.portero_paradas_fuera} color="blue" />
+                <StatCard label="+6m" value={stat.portero_paradas_fuera} color="blue" />
               )}
               {stat.portero_paradas_penalti_parado > 0 && (
                 <StatCard label="Penalti Parado" value={stat.portero_paradas_penalti_parado} color="green" />
