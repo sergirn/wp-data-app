@@ -158,9 +158,6 @@ export default async function MatchDetailPage({ params }: { params: { id: string
 
         {/* Análisis de Superioridad/Inferioridad con Tabs */}
         <Card>
-          <CardHeader>
-            <CardTitle>Análisis de Situaciones Especiales</CardTitle>
-          </CardHeader>
           <CardContent>
             <Tabs defaultValue="superioridad" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
