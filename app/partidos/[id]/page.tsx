@@ -1,2282 +1,819 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
-import { notFound } from "next/navigation"
-import type { Player, MatchStats, Match } from "@/lib/types"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-} from "./chartSection"
-import { PerformanceEvolutionChart } from "./performance-evolution-chart"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
+import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield } from "lucide-react"
+import { notFound } from "next/navigation"
+import type { Match, MatchStats, Player, Club } from "@/lib/types"
+import { DeleteMatchButton } from "@/components/delete-match-button"
+import { MatchExportButton } from "@/components/match-export-button"
+import { getCurrentProfile } from "@/lib/auth"
 
-interface MatchStatsWithMatch extends MatchStats {
-  matches: Match
+interface MatchWithStats extends Match {
+  match_stats: (MatchStats & { players: Player })[]
+  clubs: Club
 }
 
-export default async function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function MatchDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
+  const profile = await getCurrentProfile()
   const supabase = await createClient()
 
-  const { data: player, error: playerError } = await supabase.from("players").select("*").eq("id", id).single()
-
-  if (playerError || !player) {
-    notFound()
-  }
-
-  const { data: matchStats } = await supabase
-    .from("match_stats")
+  const { data: match, error } = await supabase
+    .from("matches")
     .select(
       `
       *,
-      matches (*)
+      clubs (*),
+      match_stats (
+        *,
+        players (*)
+      )
     `,
     )
-    .eq("player_id", id)
-    .order("matches(match_date)", { ascending: false })
+    .eq("id", id)
+    .maybeSingle()
 
-  if (player.is_goalkeeper) {
-    return <GoalkeeperPage player={player} matchStats={matchStats || []} />
+  if (error || !match) {
+    notFound()
   }
 
-  return <FieldPlayerPage player={player} matchStats={matchStats || []} />
-}
+  const matchDate = new Date(match.match_date)
+  const result =
+    match.home_score > match.away_score ? "Victoria" : match.home_score < match.away_score ? "Derrota" : "Empate"
+  const resultColor =
+    result === "Victoria"
+      ? "bg-green-500/10 text-green-700 dark:text-green-300"
+      : result === "Derrota"
+        ? "bg-red-500/10 text-red-700 dark:text-red-300"
+        : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300"
 
-function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: MatchStatsWithMatch[] }) {
-  const matchCount = matchStats.length
-  const fieldPlayerStats = calculateFieldPlayerStats(matchStats)
+  const fieldPlayersStats = match.match_stats
+    .filter((stat: any) => !stat.players.is_goalkeeper)
+    .sort((a: any, b: any) => a.players.number - b.players.number)
+
+  const goalkeepersStats = match.match_stats
+    .filter((stat: any) => stat.players.is_goalkeeper)
+    .sort((a: any, b: any) => a.players.number - b.players.number)
+
+  const teamTotals = calculateTeamTotals(match.match_stats)
+
+  const players = match.match_stats.map((s: any) => s.players)
+  const stats = match.match_stats
+
+  const canEdit = profile?.role === "admin" || profile?.role === "coach"
+
+  const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo"
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-6">
         <Button variant="ghost" asChild className="mb-4">
-          <Link href="/jugadores">
+          <Link href="/partidos">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Jugadores
+            Volver a Partidos
           </Link>
         </Button>
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
-                {player.photo_url ? (
-                  <img
-                    src={player.photo_url || "/placeholder.svg"}
-                    alt={player.name}
-                    className="w-full h-full object-cover object-top"
-                  />
-                ) : (
-                  <span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
-                )}
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <CardTitle className="text-2xl">
+                    {clubName} vs {match.opponent}
+                  </CardTitle>
+                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${resultColor}`}>{result}</span>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span>
+                    {matchDate.toLocaleDateString("es-ES", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </span>
+                  {match.location && <span>• {match.location}</span>}
+                  {match.season && <span>• {match.season}</span>}
+                  {match.jornada && <span>• Jornada {match.jornada}</span>}
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-2xl md:text-3xl">{player.name}</CardTitle>
-                <p className="text-sm md:text-base text-muted-foreground">Jugador de Campo</p>
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <p className="text-4xl font-bold">{match.home_score}</p>
+                  <p className="text-xs text-muted-foreground">{clubName}</p>
+                </div>
+                <div className="text-3xl font-bold text-muted-foreground">-</div>
+                <div className="text-center">
+                  <p className="text-4xl font-bold">{match.away_score}</p>
+                  <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                </div>
               </div>
             </div>
           </CardHeader>
+          {match.notes && (
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold">Notas:</span> {match.notes}
+              </p>
+            </CardContent>
+          )}
         </Card>
       </div>
 
-      <Tabs defaultValue="resumen" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-1">
-          <TabsTrigger value="resumen" className="text-xs md:text-sm py-2">
-            Resumen
-          </TabsTrigger>
-          <TabsTrigger value="categorias" className="text-xs md:text-sm py-2">
-            Por Categorías
-          </TabsTrigger>
-          <TabsTrigger value="evolucion" className="text-xs md:text-sm py-2">
-            Evolución
-          </TabsTrigger>
-          <TabsTrigger value="partidos" className="text-xs md:text-sm py-2">
-            Por Partido
-          </TabsTrigger>
-          <TabsTrigger value="eficiencia" className="text-xs md:text-sm py-2">
-            Eficiencia
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="resumen" className="space-y-6">
-          <FieldPlayerSummary stats={fieldPlayerStats} matchCount={matchCount} />
-        </TabsContent>
-
-        <TabsContent value="categorias" className="space-y-6">
-          <FieldPlayerCategoriesStats stats={fieldPlayerStats} />
-        </TabsContent>
-
-        <TabsContent value="evolucion" className="space-y-6">
-          <PerformanceEvolutionChart matchStats={matchStats} player={player} />
-        </TabsContent>
-
-        <TabsContent value="partidos" className="space-y-6">
-          <FieldPlayerMatchStats matchStats={matchStats} player={player} />
-        </TabsContent>
-
-        <TabsContent value="eficiencia" className="space-y-6">
-          <FieldPlayerAdvancedEfficiency stats={fieldPlayerStats} />
-        </TabsContent>
-      </Tabs>
-    </main>
-  )
-}
-
-function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
-  return matchStats.reduce(
-    (acc, stat) => {
-      return {
-        // Goles
-        goles_totales: acc.goles_totales + (stat.goles_totales || 0),
-        goles_boya_jugada: acc.goles_boya_jugada + (stat.goles_boya_jugada || 0),
-        goles_hombre_mas: acc.goles_hombre_mas + (stat.goles_hombre_mas || 0),
-        goles_lanzamiento: acc.goles_lanzamiento + (stat.goles_lanzamiento || 0),
-        goles_dir_mas_5m: acc.goles_dir_mas_5m + (stat.goles_dir_mas_5m || 0),
-        goles_contraataque: acc.goles_contraataque + (stat.goles_contraataque || 0),
-        goles_penalti_anotado: acc.goles_penalti_anotado + (stat.goles_penalti_anotado || 0),
-
-        // Tiros
-        tiros_totales: acc.tiros_totales + (stat.tiros_totales || 0),
-        tiros_hombre_mas: acc.tiros_hombre_mas + (stat.tiros_hombre_mas || 0),
-        tiros_penalti_fallado: acc.tiros_penalti_fallado + (stat.tiros_penalti_fallado || 0),
-        tiros_corner: acc.tiros_corner + (stat.tiros_corner || 0),
-        tiros_fuera: acc.tiros_fuera + (stat.tiros_fuera || 0),
-        tiros_parados: acc.tiros_parados + (stat.tiros_parados || 0),
-        tiros_bloqueado: acc.tiros_bloqueado + (stat.tiros_bloqueado || 0),
-
-        // Faltas
-        faltas_exp_20_1c1: acc.faltas_exp_20_1c1 + (stat.faltas_exp_20_1c1 || 0),
-        faltas_exp_20_boya: acc.faltas_exp_20_boya + (stat.faltas_exp_20_boya || 0),
-        faltas_penalti: acc.faltas_penalti + (stat.faltas_penalti || 0),
-        faltas_contrafaltas: acc.faltas_contrafaltas + (stat.faltas_contrafaltas || 0),
-
-        // Acciones
-        acciones_bloqueo: acc.acciones_bloqueo + (stat.acciones_bloqueo || 0),
-        acciones_asistencias: acc.acciones_asistencias + (stat.acciones_asistencias || 0),
-        acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
-        acciones_rebote: acc.acciones_rebote + (stat.acciones_rebote || 0),
-        acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
-        acciones_penalti_provocado: acc.acciones_penalti_provocado + (stat.acciones_penalti_provocado || 0),
-        acciones_recibir_gol: acc.acciones_recibir_gol + (stat.acciones_recibir_gol || 0),
-        acciones_perdida_poco: acc.acciones_perdida_poco + (stat.acciones_perdida_poco || 0),
-      }
-    },
-    {
-      goles_totales: 0,
-      goles_boya_jugada: 0,
-      goles_hombre_mas: 0,
-      goles_lanzamiento: 0,
-      goles_dir_mas_5m: 0,
-      goles_contraataque: 0,
-      goles_penalti_anotado: 0,
-      tiros_totales: 0,
-      tiros_hombre_mas: 0,
-      tiros_penalti_fallado: 0,
-      tiros_corner: 0,
-      tiros_fuera: 0,
-      tiros_parados: 0,
-      tiros_bloqueado: 0,
-      faltas_exp_20_1c1: 0,
-      faltas_exp_20_boya: 0,
-      faltas_penalti: 0,
-      faltas_contrafaltas: 0,
-      acciones_bloqueo: 0,
-      acciones_asistencias: 0,
-      acciones_recuperacion: 0,
-      acciones_rebote: 0,
-      acciones_exp_provocada: 0,
-      acciones_penalti_provocado: 0,
-      acciones_recibir_gol: 0,
-      acciones_perdida_poco: 0,
-    },
-  )
-}
-
-function FieldPlayerSummary({ stats, matchCount }: { stats: any; matchCount: number }) {
-  const golesPerMatch = matchCount > 0 ? (stats.goles_totales / matchCount).toFixed(1) : "0.0"
-  const tirosPerMatch = matchCount > 0 ? (stats.tiros_totales / matchCount).toFixed(1) : "0.0"
-  const eficiencia = stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0"
-  const asistPerMatch = matchCount > 0 ? (stats.acciones_asistencias / matchCount).toFixed(1) : "0.0"
-
-  return (
-    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-6">
-      <Card>
-        <CardContent className="pt-4 md:pt-6">
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold">{matchCount}</p>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">Partidos</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-4 md:pt-6">
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">{stats.goles_totales}</p>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-4 md:pt-6">
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.tiros_totales}</p>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">Tiros</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-4 md:pt-6">
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold text-purple-600 dark:text-purple-400">{eficiencia}%</p>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">Eficiencia</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-4 md:pt-6">
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold text-orange-600 dark:text-orange-400">{golesPerMatch}</p>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles/Partido</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-4 md:pt-6">
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold text-teal-600 dark:text-teal-400">
-              {stats.acciones_asistencias}
-            </p>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">Asistencias</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function FieldPlayerCategoriesStats({ stats }: { stats: any }) {
-  return (
-    <div className="space-y-6 mb-6">
-      {/* Goles por Tipo */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Goles por Tipo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-            <StatItem
-              label="Boya/Jugada"
-              value={stats.goles_boya_jugada}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-            <StatItem
-              label="Hombre +"
-              value={stats.goles_hombre_mas}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-            <StatItem
-              label="Lanzamiento"
-              value={stats.goles_lanzamiento}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-            <StatItem
-              label="+6m"
-              value={stats.goles_dir_mas_5m}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-            <StatItem
-              label="Contraataque"
-              value={stats.goles_contraataque}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-            <StatItem
-              label="Penalti"
-              value={stats.goles_penalti_anotado}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tiros Fallados */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Tiros Fallados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-            <StatItem
-              label="Hombre +"
-              value={stats.tiros_hombre_mas}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem
-              label="Penalti"
-              value={stats.tiros_penalti_fallado}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem label="Corner" value={stats.tiros_corner} color="bg-red-500/10 text-red-600 dark:text-red-400" />
-            <StatItem label="Fuera" value={stats.tiros_fuera} color="bg-red-500/10 text-red-600 dark:text-red-400" />
-            <StatItem
-              label="Parados"
-              value={stats.tiros_parados}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem
-              label="Bloqueados"
-              value={stats.tiros_bloqueado}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Faltas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Faltas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {/* CHANGE: Fixed string literal with embedded quotes */}
-            <StatItem
-              label='Exp 20" 1c1'
-              value={stats.faltas_exp_20_1c1}
-              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-            />
-            <StatItem
-              label='Exp 20" Boya'
-              value={stats.faltas_exp_20_boya}
-              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-            />
-            <StatItem
-              label="Penalti"
-              value={stats.faltas_penalti}
-              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-            />
-            <StatItem
-              label="Contrafaltas"
-              value={stats.faltas_contrafaltas}
-              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Acciones */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Acciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <StatItem
-              label="Bloqueos"
-              value={stats.acciones_bloqueo}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-            <StatItem
-              label="Asistencias"
-              value={stats.acciones_asistencias}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-            <StatItem
-              label="Recuperaciones"
-              value={stats.acciones_recuperacion}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-            <StatItem
-              label="Rebotes"
-              value={stats.acciones_rebote}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-            <StatItem
-              label="Exp Provocadas"
-              value={stats.acciones_exp_provocada}
-              color="bg-purple-500/10 text-purple-600 dark:text-purple-400"
-            />
-            <StatItem
-              label="Penalti Provocado"
-              value={stats.acciones_penalti_provocado}
-              color="bg-purple-500/10 text-purple-600 dark:text-purple-400"
-            />
-            <StatItem
-              label="Gol Recibido"
-              value={stats.acciones_recibir_gol}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem
-              label="Pérdida Posición"
-              value={stats.acciones_perdida_poco}
-              color="bg-orange-500/10 text-orange-600 dark:text-orange-400"
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function FieldPlayerMatchStats({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
-  if (matchStats.length === 0) {
-    return (
+      {/* Team Totals */}
       <Card className="mb-6">
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">No hay estadísticas de partidos registradas</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <div className="space-y-4 mb-6">
-      <h2 className="text-xl md:text-2xl font-bold">Estadísticas por Partido</h2>
-      {matchStats.map((stat) => {
-        const match = stat.matches
-        const goles = stat.goles_totales || 0
-        const tiros = stat.tiros_totales || 0
-        const eficiencia = tiros > 0 ? ((goles / tiros) * 100).toFixed(1) : "0.0"
-
-        return (
-          <Card key={stat.id}>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <div>
-                  <CardTitle className="text-base md:text-lg">{match?.opponent}</CardTitle>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    {match?.match_date
-                      ? new Date(match.match_date).toLocaleDateString("es-ES", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg md:text-2xl font-bold">
-                    {match?.home_score} - {match?.away_score}
-                  </span>
-                  <Button asChild variant="outline" size="sm" className="text-xs bg-transparent">
-                    <Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Main Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4">
-                <div className="text-center p-3 md:p-4 bg-green-500/10 rounded-lg">
-                  <p className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{goles}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Goles</p>
-                </div>
-                <div className="text-center p-3 md:p-4 bg-blue-500/10 rounded-lg">
-                  <p className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{tiros}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Tiros</p>
-                </div>
-                <div className="text-center p-3 md:p-4 bg-purple-500/10 rounded-lg">
-                  <p className="text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400">{eficiencia}%</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Eficiencia</p>
-                </div>
-                <div className="text-center p-3 md:p-4 bg-teal-500/10 rounded-lg">
-                  <p className="text-xl md:text-2xl font-bold text-teal-600 dark:text-teal-400">
-                    {stat.acciones_asistencias || 0}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Asistencias</p>
-                </div>
-              </div>
-
-              {/* Detailed Stats */}
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Goles por Tipo */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Goles por Tipo</h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Boya:</span>
-                      <span className="font-semibold">{stat.goles_boya_jugada || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Hombre +:</span>
-                      <span className="font-semibold">{stat.goles_hombre_mas || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Lanz:</span>
-                      <span className="font-semibold">{stat.goles_lanzamiento || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>+6m:</span>
-                      <span className="font-semibold">{stat.goles_dir_mas_5m || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Contra:</span>
-                      <span className="font-semibold">{stat.goles_contraataque || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Penalti:</span>
-                      <span className="font-semibold">{stat.goles_penalti_anotado || 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tiros Fallados */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Tiros Fallados</h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Hombre +:</span>
-                      <span className="font-semibold">{stat.tiros_hombre_mas || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Penalti:</span>
-                      <span className="font-semibold">{stat.tiros_penalti_fallado || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Corner:</span>
-                      <span className="font-semibold">{stat.tiros_corner || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Fuera:</span>
-                      <span className="font-semibold">{stat.tiros_fuera || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Parados:</span>
-                      <span className="font-semibold">{stat.tiros_parados || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Bloq:</span>
-                      <span className="font-semibold">{stat.tiros_bloqueado || 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Faltas */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Faltas</h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Exp 20" 1c1:</span>
-                      <span className="font-semibold">{stat.faltas_exp_20_1c1 || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Exp 20" Boya:</span>
-                      <span className="font-semibold">{stat.faltas_exp_20_boya || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Penalti:</span>
-                      <span className="font-semibold">{stat.faltas_penalti || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Contrafalta:</span>
-                      <span className="font-semibold">{stat.faltas_contrafaltas || 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Acciones */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-xs md:text-sm text-muted-foreground">Acciones</h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Bloqueos:</span>
-                      <span className="font-semibold">{stat.acciones_bloqueo || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Recuperaciones:</span>
-                      <span className="font-semibold">{stat.acciones_recuperacion || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Rebotes:</span>
-                      <span className="font-semibold">{stat.acciones_rebote || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Exp Prov:</span>
-                      <span className="font-semibold">{stat.acciones_exp_provocada || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Pen Prov:</span>
-                      <span className="font-semibold">{stat.acciones_penalti_provocado || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Gol Recibido:</span>
-                      <span className="font-semibold">{stat.acciones_recibir_gol || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
-    </div>
-  )
-}
-
-function FieldPlayerAdvancedEfficiency({ stats }: { stats: any }) {
-  const totalTiros = stats.tiros_totales + stats.goles_totales
-  const eficienciaGeneral = totalTiros > 0 ? ((stats.goles_totales / totalTiros) * 100).toFixed(1) : "0.0"
-
-  // Goles vs Tiros Fallados
-  const golesVsTirosData = [
-    { name: "Goles", value: stats.goles_totales, fill: "hsl(160, 70%, 50%)" },
-    { name: "Tiros Fallados", value: stats.tiros_totales, fill: "hsl(0, 70%, 60%)" },
-  ]
-
-  // Eficiencia por tipo de gol
-  const eficienciaPorTipo = [
-    {
-      name: "Boya/Jugada",
-      goles: stats.goles_boya_jugada,
-    },
-    {
-      name: "Hombre +",
-      goles: stats.goles_hombre_mas,
-    },
-    {
-      name: "Lanzamiento",
-      goles: stats.goles_lanzamiento,
-    },
-    {
-      name: "+6m",
-      goles: stats.goles_dir_mas_5m,
-    },
-    {
-      name: "Contraataque",
-      goles: stats.goles_contraataque,
-    },
-    {
-      name: "Penalti",
-      goles: stats.goles_penalti_anotado,
-    },
-  ]
-
-  // Eficiencia ofensiva/defensiva
-  const accionesPositivas = stats.acciones_asistencias + stats.acciones_recuperacion + stats.acciones_bloqueo
-  const accionesNegativas = stats.acciones_recibir_gol + stats.acciones_perdida_poco
-
-  const chartConfig = {
-    goles: { label: "Goles", color: "hsl(160, 70%, 50%)" },
-    tiros: { label: "Tiros Fallados", color: "hsl(0, 70%, 60%)" },
-  }
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xl md:text-2xl font-bold">Eficiencia Avanzada</h2>
-
-      {/* Goles vs Tiros Fallados */}
-      <Card>
         <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Goles vs Tiros Fallados</CardTitle>
+          <CardTitle>Totales del Equipo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-6 items-center">
-            <div className="flex flex-col items-center justify-center">
-              <ChartContainer config={chartConfig} className="h-[250px] md:h-[300px] w-full">
-                <PieChart>
-                  <Pie
-                    data={golesVsTirosData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                  >
-                    {golesVsTirosData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ChartContainer>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-500/10 rounded-lg">
+              <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
+              <p className="text-sm text-muted-foreground">Goles</p>
             </div>
-            <div className="space-y-4">
-              <div className="text-center md:text-left">
-                <p className="text-4xl md:text-6xl font-bold text-primary">{eficienciaGeneral}%</p>
-                <p className="text-muted-foreground mt-2 text-base md:text-lg">Eficiencia General</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 md:p-6 bg-teal-500/10 rounded-lg">
-                  <p className="text-2xl md:text-4xl font-bold text-teal-600 dark:text-teal-400">
-                    {stats.goles_totales}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles</p>
-                </div>
-                <div className="text-center p-4 md:p-6 bg-red-500/10 rounded-lg">
-                  <p className="text-2xl md:text-4xl font-bold text-red-600 dark:text-red-400">{stats.tiros_totales}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Fallados</p>
-                </div>
-              </div>
+            <div className="text-center p-4 bg-green-500/10 rounded-lg">
+              <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
+              <p className="text-sm text-muted-foreground">Tiros</p>
+            </div>
+            <div className="text-center p-4 bg-orange-500/10 rounded-lg">
+              <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
+              <p className="text-sm text-muted-foreground">Faltas</p>
+            </div>
+            <div className="text-center p-4 bg-purple-500/10 rounded-lg">
+              <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
+              <p className="text-sm text-muted-foreground">Asistencias</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Distribución de Goles */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Distribución de Goles</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-            {eficienciaPorTipo.map((tipo) => {
-              const porcentaje = stats.goles_totales > 0 ? ((tipo.goles / stats.goles_totales) * 100).toFixed(0) : "0"
-
-              return (
-                <div key={tipo.name} className="text-center p-3 md:p-4 bg-muted rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-primary">{porcentaje}%</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{tipo.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{tipo.goles} goles</p>
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Balance Ofensivo/Defensivo */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Balance Ofensivo/Defensivo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-base md:text-lg font-semibold text-green-600 dark:text-green-400">
-                Acciones Positivas
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center p-4 bg-green-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
-                    {stats.acciones_asistencias}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Asistencias</p>
-                </div>
-                <div className="text-center p-4 bg-green-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
-                    {stats.acciones_recuperacion}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Recuperaciones</p>
-                </div>
-                <div className="text-center p-4 bg-green-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
-                    {stats.acciones_bloqueo}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Bloqueos</p>
-                </div>
-                <div className="text-center p-4 bg-green-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
-                    {accionesPositivas}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Total</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-base md:text-lg font-semibold text-red-600 dark:text-red-400">Acciones Negativas</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
-                    {stats.acciones_recibir_gol}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Goles Recibidos</p>
-                </div>
-                <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
-                    {stats.acciones_perdida_poco}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Pérdidas</p>
-                </div>
-                <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">
-                    {stats.faltas_exp_20_1c1 + stats.faltas_exp_20_boya}
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Expulsiones</p>
-                </div>
-                <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                  <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{accionesNegativas}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">Total</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function GoalkeeperPage({ player, matchStats }: { player: Player; matchStats: MatchStatsWithMatch[] }) {
-  const matchCount = matchStats.length
-
-  // Calculate goalkeeper stats
-  const goalkeeperStats = calculateGoalkeeperStats(matchStats)
-
-  return (
-    <main className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link href="/jugadores">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Jugadores
-          </Link>
-        </Button>
-
-        <Card>
+      {(match.q1_score || match.q2_score || match.q3_score || match.q4_score) && (
+        <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
-                {player.photo_url ? (
-                  <img
-                    src={player.photo_url || "/placeholder.svg"}
-                    alt={player.name}
-                    className="w-full h-full object-cover object-top"
-                  />
-                ) : (
-                  <span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
-                )}
-              </div>
-              <div>
-                <CardTitle className="text-3xl">{player.name}</CardTitle>
-                <p className="text-muted-foreground">Portero</p>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="resumen" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-1">
-          <TabsTrigger value="resumen" className="text-xs md:text-sm py-2">
-            Resumen
-          </TabsTrigger>
-          <TabsTrigger value="categorias" className="text-xs md:text-sm py-2">
-            Por Categorías
-          </TabsTrigger>
-          <TabsTrigger value="evolucion" className="text-xs md:text-sm py-2">
-            Evolución
-          </TabsTrigger>
-          <TabsTrigger value="partidos" className="text-xs md:text-sm py-2">
-            Por Partido
-          </TabsTrigger>
-          <TabsTrigger value="eficiencia" className="text-xs md:text-sm py-2">
-            Eficiencia
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="resumen" className="space-y-6">
-          <GoalkeeperSummary stats={goalkeeperStats} matchCount={matchCount} />
-        </TabsContent>
-
-        <TabsContent value="categorias" className="space-y-6">
-          <GoalkeeperCategoriesStats stats={goalkeeperStats} />
-        </TabsContent>
-
-        <TabsContent value="evolucion" className="space-y-6">
-          <GoalkeeperEvolutionChart matchStats={matchStats} />
-        </TabsContent>
-
-        <TabsContent value="partidos" className="space-y-6">
-          <GoalkeeperMatchStats matchStats={matchStats} player={player} />
-        </TabsContent>
-
-        <TabsContent value="eficiencia" className="space-y-6">
-          <GoalkeeperAdvancedEfficiency stats={goalkeeperStats} />
-        </TabsContent>
-      </Tabs>
-    </main>
-  )
-}
-
-function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
-  return matchStats.reduce(
-    (acc, stat) => {
-      const match = stat.matches
-      // Real goals received from match score
-      const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0
-
-      return {
-        // Goles encajados
-        portero_goles_boya_parada: acc.portero_goles_boya_parada + (stat.portero_goles_boya_parada || 0),
-        portero_goles_hombre_menos: acc.portero_goles_hombre_menos + (stat.portero_goles_hombre_menos || 0),
-        portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
-        portero_goles_contraataque: acc.portero_goles_contraataque + (stat.portero_goles_contraataque || 0),
-        portero_goles_penalti: acc.portero_goles_penalti + (stat.portero_goles_penalti || 0),
-
-        // Paradas
-        portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
-        portero_tiros_parada_recup: acc.portero_tiros_parada_recup + (stat.portero_tiros_parada_recup || 0),
-        portero_paradas_fuera: acc.portero_paradas_fuera + (stat.portero_paradas_fuera || 0),
-        portero_paradas_penalti_parado: acc.portero_paradas_penalti_parado + (stat.portero_paradas_penalti_parado || 0),
-        portero_paradas_hombre_menos: acc.portero_paradas_hombre_menos + (stat.portero_paradas_hombre_menos || 0),
-
-        // Acciones
-        acciones_asistencias: acc.acciones_asistencias + (stat.acciones_asistencias || 0),
-        acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
-        portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0),
-        acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
-
-        // Goles recibidos reales del marcador del partido
-        goles_recibidos_reales: acc.goles_recibidos_reales + rivalGoals,
-      }
-    },
-    {
-      portero_goles_boya_parada: 0,
-      portero_goles_hombre_menos: 0,
-      portero_goles_dir_mas_5m: 0,
-      portero_goles_contraataque: 0,
-      portero_goles_penalti: 0,
-
-      portero_paradas_totales: 0,
-      portero_tiros_parada_recup: 0,
-      portero_paradas_fuera: 0,
-      portero_paradas_penalti_parado: 0,
-      portero_paradas_hombre_menos: 0,
-
-      acciones_asistencias: 0,
-      acciones_recuperacion: 0,
-      portero_acciones_perdida_pos: 0,
-      acciones_exp_provocada: 0,
-
-      goles_recibidos_reales: 0,
-    },
-  )
-}
-
-function GoalkeeperSummary({ stats, matchCount }: { stats: any; matchCount: number }) {
-  const totalShots = stats.portero_paradas_totales + stats.goles_recibidos_reales
-  const savePercentage = totalShots > 0 ? ((stats.portero_paradas_totales / totalShots) * 100).toFixed(1) : "0.0"
-  const paradasPerMatch = matchCount > 0 ? (stats.portero_paradas_totales / matchCount).toFixed(1) : "0.0"
-  const golesPerMatch = matchCount > 0 ? (stats.goles_recibidos_reales / matchCount).toFixed(1) : "0.0"
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-6">
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-3xl font-bold">{matchCount}</p>
-            <p className="text-sm text-muted-foreground mt-1">Partidos Jugados</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.portero_paradas_totales}</p>
-            <p className="text-sm text-muted-foreground mt-1">Paradas Totales</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.goles_recibidos_reales}</p>
-            <p className="text-sm text-muted-foreground mt-1">Goles Recibidos</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{savePercentage}%</p>
-            <p className="text-sm text-muted-foreground mt-1">% de Paradas</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{paradasPerMatch}</p>
-            <p className="text-sm text-muted-foreground mt-1">Paradas / Partido</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{golesPerMatch}</p>
-            <p className="text-sm text-muted-foreground mt-1">Goles Rec. / Partido</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
-  return (
-    <div className="space-y-6 mb-6">
-      {/* Goles Encajados */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Goles Encajados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <StatItem
-              label="Boya/Parada"
-              value={stats.portero_goles_boya_parada}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem
-              label="Hombre -"
-              value={stats.portero_goles_hombre_menos}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem
-              label="+6m"
-              value={stats.portero_goles_dir_mas_5m}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem
-              label="Contraataque"
-              value={stats.portero_goles_contraataque}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-            <StatItem
-              label="Penalti"
-              value={stats.portero_goles_penalti}
-              color="bg-red-500/10 text-red-600 dark:text-red-400"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Paradas */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Paradas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem
-              label="Parada + Recup"
-              value={stats.portero_tiros_parada_recup}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-            <StatItem
-              label="+6m"
-              value={stats.portero_paradas_fuera}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-            <StatItem
-              label="Penalti"
-              value={stats.portero_paradas_penalti_parado}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-            <StatItem
-              label="Hombre -"
-              value={stats.portero_paradas_hombre_menos}
-              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Acciones */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Acciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem
-              label="Asistencias"
-              value={stats.acciones_asistencias}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-            <StatItem
-              label="Recuperaciones"
-              value={stats.acciones_recuperacion}
-              color="bg-green-500/10 text-green-600 dark:text-green-400"
-            />
-            <StatItem
-              label="Pérdidas"
-              value={stats.portero_acciones_perdida_pos}
-              color="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-            />
-            <StatItem
-              label="Exp. Provocadas"
-              value={stats.acciones_exp_provocada}
-              color="bg-purple-500/10 text-purple-600 dark:text-purple-400"
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function GoalkeeperEvolutionChart({ matchStats }: { matchStats: MatchStatsWithMatch[] }) {
-  // Sort matches by date (oldest first for evolution)
-  const sortedMatches = [...matchStats].reverse()
-
-  // Calculate cumulative stats
-  let cumulativeParadas = 0
-  let cumulativeGoles = 0
-  let matchesPlayed = 0
-
-  const evolutionData = sortedMatches.map((stat, index) => {
-    const match = stat.matches
-    const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0
-    const paradas = stat.portero_paradas_totales || 0
-
-    cumulativeParadas += paradas
-    cumulativeGoles += rivalGoals
-    matchesPlayed = index + 1
-
-    const totalShots = paradas + rivalGoals
-    const eficiencia = totalShots > 0 ? (paradas / totalShots) * 100 : 0
-    const mediaParadas = cumulativeParadas / matchesPlayed
-
-    return {
-      partido: `J${match?.jornada || index + 1}`,
-      fecha: match?.match_date
-        ? new Date(match.match_date).toLocaleDateString("es-ES", { month: "short", day: "numeric" })
-        : "",
-      mediaParadas: Number.parseFloat(mediaParadas.toFixed(1)),
-      eficiencia: Number.parseFloat(eficiencia.toFixed(1)),
-      golesRecibidos: rivalGoals,
-      paradas: paradas,
-    }
-  })
-
-  const chartConfig = {
-    mediaParadas: { label: "Media Paradas", color: "hsl(200, 80%, 50%)" },
-    eficiencia: { label: "Eficiencia (%)", color: "hsl(160, 70%, 50%)" },
-    golesRecibidos: { label: "Goles Recibidos", color: "hsl(0, 70%, 60%)" },
-  }
-
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Evolución del Rendimiento</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={evolutionData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="partido" className="text-xs" tick={{ fontSize: 12 }} />
-              <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Legend wrapperStyle={{ fontSize: "14px" }} />
-              <Line
-                type="monotone"
-                dataKey="mediaParadas"
-                stroke="hsl(200, 80%, 50%)"
-                strokeWidth={2}
-                name="Media Paradas"
-              />
-              <Line
-                type="monotone"
-                dataKey="eficiencia"
-                stroke="hsl(160, 70%, 50%)"
-                strokeWidth={2}
-                name="Eficiencia (%)"
-              />
-              <Line
-                type="monotone"
-                dataKey="golesRecibidos"
-                stroke="hsl(0, 70%, 60%)"
-                strokeWidth={2}
-                name="Goles Recibidos"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </CardContent>
-    </Card>
-  )
-}
-
-function GoalkeeperMatchStats({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
-  if (matchStats.length === 0) {
-    return (
-      <Card className="mb-6">
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">No hay estadísticas de partidos registradas</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <div className="space-y-4 mb-6">
-      <h2 className="text-2xl font-bold">Estadísticas por Partido</h2>
-      {matchStats.map((stat) => {
-        const match = stat.matches
-        const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0
-        const paradas = stat.portero_paradas_totales || 0
-        const totalShots = paradas + rivalGoals
-        const eficiencia = totalShots > 0 ? ((paradas / totalShots) * 100).toFixed(1) : "0.0"
-
-        return (
-          <Card key={stat.id}>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <div>
-                  <CardTitle className="text-lg">{match?.opponent}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {match?.match_date
-                      ? new Date(match.match_date).toLocaleDateString("es-ES", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-bold">
-                    {match?.home_score} - {match?.away_score}
-                  </span>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Main Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{paradas}</p>
-                  <p className="text-sm text-muted-foreground">Paradas</p>
-                </div>
-                <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">{rivalGoals}</p>
-                  <p className="text-sm text-muted-foreground">Goles Recibidos</p>
-                </div>
-                <div className="text-center p-4 bg-green-500/10 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{eficiencia}%</p>
-                  <p className="text-sm text-muted-foreground">Eficiencia</p>
-                </div>
-                <div className="text-center p-4 bg-purple-500/10 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{totalShots}</p>
-                  <p className="text-sm text-muted-foreground">Tiros Totales</p>
-                </div>
-              </div>
-
-              {/* Detailed Stats */}
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Paradas por Tipo */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-muted-foreground">Paradas por Tipo</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Recup:</span>
-                      <span className="font-semibold">{stat.portero_tiros_parada_recup || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>+6m:</span>
-                      <span className="font-semibold">{stat.portero_paradas_fuera || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Penalti:</span>
-                      <span className="font-semibold">{stat.portero_paradas_penalti_parado || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Hombre -:</span>
-                      <span className="font-semibold">{stat.portero_paradas_hombre_menos || 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Goles Encajados por Tipo */}
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm text-muted-foreground">Goles Encajados por Tipo</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Boya/Parada:</span>
-                      <span className="font-semibold">{stat.portero_goles_boya_parada || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Hombre -:</span>
-                      <span className="font-semibold">{stat.portero_goles_hombre_menos || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>+6m:</span>
-                      <span className="font-semibold">{stat.portero_goles_dir_mas_5m || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Contra:</span>
-                      <span className="font-semibold">{stat.portero_goles_contraataque || 0}</span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-muted rounded">
-                      <span>Penalti:</span>
-                      <span className="font-semibold">{stat.portero_goles_penalti || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
-    </div>
-  )
-}
-
-function GoalkeeperAdvancedEfficiency({ stats }: { stats: any }) {
-  const totalShots = stats.portero_paradas_totales + stats.goles_recibidos_reales
-  const savePercentage = totalShots > 0 ? ((stats.portero_paradas_totales / totalShots) * 100).toFixed(1) : "0.0"
-
-  // Paradas vs Goles Recibidos
-  const paradasVsGolesData = [
-    { name: "Paradas", value: stats.portero_paradas_totales, fill: "hsl(160, 70%, 50%)" },
-    { name: "Goles Recibidos", value: stats.goles_recibidos_reales, fill: "hsl(0, 70%, 60%)" },
-  ]
-
-  // Eficiencia por tipo de tiro
-  const eficienciaByType = [
-    {
-      name: "Boya/Parada",
-      paradas: 0, // Not tracked separately
-      goles: stats.portero_goles_boya_parada,
-    },
-    {
-      name: "Hombre -",
-      paradas: stats.portero_paradas_hombre_menos,
-      goles: stats.portero_goles_hombre_menos,
-    },
-    {
-      name: "+6m",
-      paradas: stats.portero_paradas_fuera,
-      goles: stats.portero_goles_dir_mas_5m,
-    },
-    {
-      name: "Contraataque",
-      paradas: 0, // Not tracked separately
-      goles: stats.portero_goles_contraataque,
-    },
-  ]
-
-  // Eficiencia en penaltis
-  const penaltiTotal = stats.portero_paradas_penalti_parado + stats.portero_goles_penalti
-  const penaltiPercentage =
-    penaltiTotal > 0 ? ((stats.portero_paradas_penalti_parado / penaltiTotal) * 100).toFixed(1) : "0.0"
-
-  const penaltiData = [
-    { name: "Penaltis Parados", value: stats.portero_paradas_penalti_parado, fill: "hsl(160, 70%, 50%)" },
-    { name: "Penaltis Encajados", value: stats.portero_goles_penalti, fill: "hsl(0, 70%, 60%)" },
-  ]
-
-  const chartConfig = {
-    paradas: { label: "Paradas", color: "hsl(160, 70%, 50%)" },
-    goles: { label: "Goles Recibidos", color: "hsl(0, 70%, 60%)" },
-  }
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Eficiencia Avanzada</h2>
-
-      {/* Paradas vs Goles Recibidos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Paradas vs Goles Recibidos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6 items-center">
-            <div className="flex flex-col items-center justify-center">
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <PieChart>
-                  <Pie
-                    data={paradasVsGolesData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={70}
-                    outerRadius={120}
-                    paddingAngle={2}
-                  >
-                    {paradasVsGolesData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ChartContainer>
-            </div>
-            <div className="space-y-4">
-              <div className="text-center md:text-left">
-                <p className="text-6xl font-bold text-primary">{savePercentage}%</p>
-                <p className="text-muted-foreground mt-2 text-lg">Eficiencia General</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-6 bg-teal-500/10 rounded-lg">
-                  <p className="text-4xl font-bold text-teal-600 dark:text-teal-400">{stats.portero_paradas_totales}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Paradas</p>
-                </div>
-                <div className="text-center p-6 bg-red-500/10 rounded-lg">
-                  <p className="text-4xl font-bold text-red-600 dark:text-red-400">{stats.goles_recibidos_reales}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Recibidos</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Eficiencia por Tipo de Tiro */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Eficiencia por Tipo de Tiro</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {eficienciaByType.map((tipo) => {
-              const total = tipo.paradas + tipo.goles
-              const percentage = total > 0 ? ((tipo.paradas / total) * 100).toFixed(0) : "N/A"
-
-              return (
-                <div key={tipo.name} className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-3xl font-bold text-primary">{total > 0 ? `${percentage}%` : "N/A"}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{tipo.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {tipo.paradas}P / {tipo.goles}G
-                  </p>
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Eficiencia en Penaltis */}
-      {penaltiTotal > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Eficiencia en Penaltis</CardTitle>
+            <CardTitle>Puntuación por Parciales</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-6 items-center">
-              <div className="flex flex-col items-center justify-center">
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                  <PieChart>
-                    <Pie
-                      data={penaltiData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={70}
-                      outerRadius={120}
-                      paddingAngle={2}
-                    >
-                      {penaltiData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                  </PieChart>
-                </ChartContainer>
-              </div>
-              <div className="space-y-4">
-                <div className="text-center md:text-left">
-                  <p className="text-6xl font-bold text-primary">{penaltiPercentage}%</p>
-                  <p className="text-muted-foreground mt-2 text-lg">Eficiencia en Penaltis</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-6 bg-teal-500/10 rounded-lg">
-                    <p className="text-4xl font-bold text-teal-600 dark:text-teal-400">
-                      {stats.portero_paradas_penalti_parado}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">Parados</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner },
+                { q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner },
+                { q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner },
+                { q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner },
+              ].map(({ q, home, away, sprint }) => (
+                <div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
+                  <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+
+                  <div className="flex justify-around items-center gap-2">
+                    <div>
+                      <p className="text-2xl font-bold">{home || 0}</p>
+                      <p className="text-xs text-muted-foreground">{clubName}</p>
+                    </div>
+
+                    <p className="text-muted-foreground font-bold">-</p>
+
+                    <div>
+                      <p className="text-2xl font-bold">{away || 0}</p>
+                      <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                    </div>
                   </div>
-                  <div className="text-center p-6 bg-red-500/10 rounded-lg">
-                    <p className="text-4xl font-bold text-red-600 dark:text-red-400">{stats.portero_goles_penalti}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Encajados</p>
+
+                  {/* Sprint ganado/perdido */}
+                  <div className="mt-3">
+                    {sprint === 1 ? (
+                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">Sprint ganado</span>
+                    ) : (
+                      <span className="text-sm font-semibold text-red-500 dark:text-red-400">Sprint perdido</span>
+                    )}
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       )}
-    </div>
-  )
-}
 
-function calculateTotalStats(stats: any[], isGoalkeeper = false) {
-  const baseStats = stats.reduce(
-    (acc, stat) => ({
-      goles_totales: acc.goles_totales + (stat.goles_totales || 0),
-      goles_boya_jugada: acc.goles_boya_jugada + (stat.goles_boya_jugada || 0),
-      goles_hombre_mas: acc.goles_hombre_mas + (stat.goles_hombre_mas || 0),
-      goles_lanzamiento: acc.goles_lanzamiento + (stat.goles_lanzamiento || 0),
-      goles_dir_mas_5m: acc.goles_dir_mas_5m + (stat.goles_dir_mas_5m || 0),
-      goles_contraataque: acc.goles_contraataque + (stat.goles_contraataque || 0),
-      goles_penalti_anotado: acc.goles_penalti_anotado + (stat.goles_penalti_anotado || 0),
-
-      tiros_totales: acc.tiros_totales + (stat.tiros_totales || 0),
-      tiros_hombre_mas: acc.tiros_hombre_mas + (stat.tiros_hombre_mas || 0),
-      tiros_penalti_fallado: acc.tiros_penalti_fallado + (stat.tiros_penalti_fallado || 0),
-      tiros_corner: acc.tiros_corner + (stat.tiros_corner || 0),
-      tiros_fuera: acc.tiros_fuera + (stat.tiros_fuera || 0),
-      tiros_parados: acc.tiros_parados + (stat.tiros_parados || 0),
-      tiros_bloqueado: acc.tiros_bloqueado + (stat.tiros_bloqueado || 0),
-
-      faltas_exp_20_1c1: acc.faltas_exp_20_1c1 + (stat.faltas_exp_20_1c1 || 0),
-      faltas_exp_20_boya: acc.faltas_exp_20_boya + (stat.faltas_exp_20_boya || 0),
-      faltas_penalti: acc.faltas_penalti + (stat.faltas_penalti || 0),
-      faltas_contrafaltas: acc.faltas_contrafaltas + (stat.faltas_contrafaltas || 0),
-
-      acciones_bloqueo: acc.acciones_bloqueo + (stat.acciones_bloqueo || 0),
-      acciones_asistencias: acc.acciones_asistencias + (stat.acciones_asistencias || 0),
-      acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
-      acciones_rebote: acc.acciones_rebote + (stat.acciones_rebote || 0),
-      acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
-      acciones_penalti_provocado: acc.acciones_penalti_provocado + (stat.acciones_penalti_provocado || 0),
-      acciones_recibir_gol: acc.acciones_recibir_gol + (stat.acciones_recibir_gol || 0),
-
-      portero_goles_totales:
-        acc.portero_goles_totales +
-        ((stat.portero_goles_boya_parada || 0) + // Updated field
-          (stat.portero_goles_hombre_menos || 0) +
-          (stat.portero_goles_dir_mas_5m || 0) +
-          (stat.portero_goles_contraataque || 0) +
-          (stat.portero_goles_penalti || 0)),
-      portero_goles_boya_parada: acc.portero_goles_boya_parada + (stat.portero_goles_boya_parada || 0), // Updated field
-      portero_goles_hombre_menos: acc.portero_goles_hombre_menos + (stat.portero_goles_hombre_menos || 0),
-      portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
-      portero_goles_contraataque: acc.portero_goles_contraataque + (stat.portero_goles_contraataque || 0),
-      portero_goles_penalti: acc.portero_goles_penalti + (stat.portero_goles_penalti || 0),
-
-      portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
-      portero_tiros_parada_recup: acc.portero_tiros_parada_recup + (stat.portero_tiros_parada_recup || 0), // Updated field
-      portero_paradas_fuera: acc.portero_paradas_fuera + (stat.portero_paradas_fuera || 0),
-      portero_paradas_penalti_parado: acc.portero_paradas_penalti_parado + (stat.portero_paradas_penalti_parado || 0),
-      portero_paradas_hombre_menos: acc.portero_paradas_hombre_menos + (stat.portero_paradas_hombre_menos || 0),
-
-      portero_acciones_asistencias: acc.portero_acciones_asistencias + (stat.acciones_asistencias || 0), // Updated field
-      portero_acciones_recuperacion: acc.portero_acciones_recuperacion + (stat.acciones_recuperacion || 0), // Updated field
-      portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0), // Updated field
-      portero_acciones_exp_provocada: acc.portero_acciones_exp_provocada + (stat.acciones_exp_provocada || 0), // Updated field
-    }),
-    {
-      goles_totales: 0,
-      goles_boya_jugada: 0,
-      goles_hombre_mas: 0,
-      goles_lanzamiento: 0,
-      goles_dir_mas_5m: 0,
-      goles_contraataque: 0,
-      goles_penalti_anotado: 0,
-
-      tiros_totales: 0,
-      tiros_hombre_mas: 0,
-      tiros_penalti_fallado: 0,
-      tiros_corner: 0,
-      tiros_fuera: 0,
-      tiros_parados: 0,
-      tiros_bloqueado: 0,
-
-      faltas_exp_20_1c1: 0,
-      faltas_exp_20_boya: 0,
-      faltas_penalti: 0,
-      faltas_contrafaltas: 0,
-
-      acciones_bloqueo: 0,
-      acciones_asistencias: 0,
-      acciones_recuperacion: 0,
-      acciones_rebote: 0,
-      acciones_exp_provocada: 0,
-      acciones_penalti_provocado: 0,
-      acciones_recibir_gol: 0,
-
-      portero_goles_totales: 0,
-      portero_goles_boya_parada: 0, // Updated field
-      portero_goles_hombre_menos: 0,
-      portero_goles_dir_mas_5m: 0,
-      portero_goles_contraataque: 0,
-      portero_goles_penalti: 0,
-
-      portero_paradas_totales: 0,
-      portero_tiros_parada_recup: 0, // Updated field
-      portero_paradas_fuera: 0,
-      portero_paradas_penalti_parado: 0,
-      portero_paradas_hombre_menos: 0,
-
-      portero_acciones_asistencias: 0, // Updated field
-      portero_acciones_recuperacion: 0, // Updated field
-      portero_acciones_perdida_pos: 0, // Updated field
-      portero_acciones_exp_provocada: 0, // Updated field
-    },
-  )
-
-  if (isGoalkeeper) {
-    const totalRivalGoles = stats.reduce((sum, stat) => {
-      const match = stat.matches
-      if (!match) return sum
-      const rivalGoals = match.is_home ? match.away_score : match.home_score
-      return sum + rivalGoals
-    }, 0)
-
-    return {
-      ...baseStats,
-      portero_rival_goles_totales: totalRivalGoles,
-    }
-  }
-
-  return baseStats
-}
-
-function TotalStatsView({ player, stats, matchCount }: { player: Player; stats: any; matchCount: number }) {
-  const golesPerMatch = matchCount > 0 ? (stats.goles_totales / matchCount).toFixed(1) : "0.0"
-  const tirosPerMatch = matchCount > 0 ? (stats.tiros_totales / matchCount).toFixed(1) : "0.0"
-  const eficiencia = stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0"
-
-  if (player.is_goalkeeper) {
-    const paradasPerMatch = matchCount > 0 ? (stats.portero_paradas_totales / matchCount).toFixed(1) : "0.0"
-    const golesRivalPerMatch = matchCount > 0 ? (stats.portero_rival_goles_totales / matchCount).toFixed(1) : "0.0"
-    const totalShots = stats.portero_paradas_totales + stats.portero_rival_goles_totales
-    const eficienciaPortero = totalShots > 0 ? ((stats.portero_paradas_totales / totalShots) * 100).toFixed(1) : "0.0"
-
-    return (
-      <div className="space-y-6">
-        {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-4xl font-bold">{matchCount}</p>
-                <p className="text-sm text-muted-foreground mt-1">Partidos Jugados</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-blue-700 dark:text-blue-300">{stats.portero_paradas_totales}</p>
-                <p className="text-sm text-muted-foreground mt-1">Paradas Totales</p>
-                <p className="text-xs text-muted-foreground mt-1">{paradasPerMatch} por partido</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-green-700 dark:text-green-300">
-                  {stats.portero_rival_goles_totales}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Goles Totales</p>
-                <p className="text-xs text-muted-foreground mt-1">{golesRivalPerMatch} por partido</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-purple-700 dark:text-purple-300">{eficienciaPortero}%</p>
-                <p className="text-sm text-muted-foreground mt-1">Eficiencia</p>
-                <p className="text-xs text-muted-foreground mt-1">Paradas / Total</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Detailed Stats */}
-        <GoalkeeperTotalStats stats={stats} />
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-4xl font-bold">{matchCount}</p>
-              <p className="text-sm text-muted-foreground mt-1">Partidos Jugados</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-4xl font-bold text-blue-700 dark:text-blue-300">{stats.goles_totales}</p>
-              <p className="text-sm text-muted-foreground mt-1">Goles Totales</p>
-              <p className="text-xs text-muted-foreground mt-1">{golesPerMatch} por partido</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-4xl font-bold text-green-700 dark:text-green-300">{stats.tiros_totales}</p>
-              <p className="text-sm text-muted-foreground mt-1">Tiros Totales</p>
-              <p className="text-xs text-muted-foreground mt-1">{tirosPerMatch} por partido</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-4xl font-bold text-purple-700 dark:text-purple-300">{eficiencia}%</p>
-              <p className="text-sm text-muted-foreground mt-1">Eficiencia</p>
-              <p className="text-xs text-muted-foreground mt-1">Goles / Tiros</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Detailed Stats */}
-      <FieldPlayerTotalStats stats={stats} />
-    </div>
-  )
-}
-
-function FieldPlayerTotalStats({ stats }: { stats: any }) {
-  return (
-    <div className="space-y-6">
-      {/* Goals Breakdown */}
-      <Card>
+      {/* Field Players Stats */}
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-lg">Desglose de Goles</CardTitle>
+          <CardTitle>Estadísticas - Jugadores de Campo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Boya/Jugada" value={stats.goles_boya_jugada} />
-            <StatItem label="Hombre +" value={stats.goles_hombre_mas} />
-            <StatItem label="Lanzamiento" value={stats.goles_lanzamiento} />
-            <StatItem label="Dir +6m" value={stats.goles_dir_mas_5m} />
-            <StatItem label="Contraataque" value={stats.goles_contraataque} />
-            <StatItem label="Penalti Anotado" value={stats.goles_penalti_anotado} />
-          </div>
+          <Accordion type="multiple" className="space-y-2">
+            {fieldPlayersStats.map((stat: any) => (
+              <PlayerStatsAccordion key={stat.id} stat={stat} player={stat.players} />
+            ))}
+          </Accordion>
         </CardContent>
       </Card>
 
-      {/* Shots Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Desglose de Tiros (Fallados)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Penalti Fallado" value={stats.tiros_penalti_fallado} />
-            <StatItem label="Corner" value={stats.tiros_corner} />
-            <StatItem label="Fuera" value={stats.tiros_fuera} />
-            <StatItem label="Parados" value={stats.tiros_parados} />
-            <StatItem label="Bloqueados" value={stats.tiros_bloqueado} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Fouls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Faltas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label='Exp 18"' value={stats.faltas_exp_20_1c1} />
-            <StatItem label="Exp 18 Boya" value={stats.faltas_exp_20_boya} />
-            <StatItem label="Penalti" value={stats.faltas_penalti} />
-            <StatItem label="Contrafaltas" value={stats.faltas_contrafaltas} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Acciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Bloqueo" value={stats.acciones_bloqueo} />
-            <StatItem label="Asistencias" value={stats.acciones_asistencias} />
-            <StatItem label="Recuperación" value={stats.acciones_recuperacion} />
-            <StatItem label="Rebote" value={stats.acciones_rebote} />
-            <StatItem label="Exp Provocada" value={stats.acciones_exp_provocada} />
-            <StatItem label="Perdida Pos." value={stats.acciones_penalti_provocado} />
-            <StatItem label="Recibe Gol" value={stats.acciones_recibir_gol} />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function GoalkeeperTotalStats({ stats }: { stats: any }) {
-  const savePercentage =
-    stats.portero_paradas_totales + stats.portero_goles_totales > 0
-      ? ((stats.portero_paradas_totales / (stats.portero_paradas_totales + stats.portero_goles_totales)) * 100).toFixed(
-          1,
-        )
-      : "0.0"
-
-  return (
-    <div className="space-y-6">
-      {/* Goalkeeper Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Resumen de Portero</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Paradas" value={stats.portero_paradas_totales} />
-            <StatItem label="Goles Recibidos" value={stats.portero_goles_totales} />
-            <StatItem label="% Paradas" value={`${savePercentage}%`} />
-            <StatItem label="Penalti Parado" value={stats.portero_paradas_penalti_parado} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Goals Conceded */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Goles Encajados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Boya" value={stats.portero_goles_boya_parada} /> {/* Updated field */}
-            <StatItem label="Hombre -" value={stats.portero_goles_hombre_menos} />
-            <StatItem label="Dir +6m" value={stats.portero_goles_dir_mas_5m} />
-            <StatItem label="Contraataque" value={stats.portero_goles_contraataque} />
-            <StatItem label="Penalti" value={stats.portero_goles_penalti} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Saves */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Paradas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Parada Recup" value={stats.portero_tiros_parada_recup} /> {/* Updated field */}
-            <StatItem label="Parada Fuera" value={stats.portero_paradas_fuera} />
-            <StatItem label="Penalti Parado" value={stats.portero_paradas_penalti_parado} />
-            <StatItem label="Parada Hombre -" value={stats.portero_paradas_hombre_menos} />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Acciones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatItem label="Asistencias" value={stats.portero_acciones_asistencias} /> {/* Updated field */}
-            <StatItem label="Recuperación" value={stats.portero_acciones_recuperacion} /> {/* Updated field */}
-            <StatItem label="Pérdida de Pos" value={stats.portero_acciones_perdida_pos} /> {/* Updated field */}
-            <StatItem label="Exp Provocada" value={stats.portero_acciones_exp_provocada} /> {/* Updated field */}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function StatItem({ label, value, color }: { label: string; value: number | string; color?: string }) {
-  return (
-    <div className={`text-center p-3 md:p-4 rounded-lg ${color || "bg-muted"}`}>
-      <p className="text-xl md:text-2xl font-bold">{value}</p>
-      <p className="text-xs md:text-sm text-muted-foreground mt-1">{label}</p>
-    </div>
-  )
-}
-
-function MatchStatsView({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
-  if (matchStats.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">No hay estadísticas de partidos registradas</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      {matchStats.map((stat) => (
-        <Card key={stat.id}>
+      {/* Goalkeepers Stats */}
+      {goalkeepersStats.length > 0 && (
+        <Card className="mb-6">
           <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div>
-                <CardTitle className="text-lg">CN Sant Andreu vs {stat.matches.opponent}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(stat.matches.match_date).toLocaleDateString("es-ES", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">
-                  {stat.matches.home_score} - {stat.matches.away_score}
-                </span>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/partidos/${stat.matches.id}`}>Ver Partido</Link>
-                </Button>
-              </div>
-            </div>
+            <CardTitle>Estadísticas - Porteros</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              <div className="text-center p-3 bg-blue-500/10 rounded-lg">
-                <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{stat.goles_totales}</p>
-                <p className="text-xs text-muted-foreground">Goles</p>
-              </div>
-              <div className="text-center p-3 bg-green-500/10 rounded-lg">
-                <p className="text-xl font-bold text-green-700 dark:text-green-300">{stat.tiros_totales}</p>
-                <p className="text-xs text-muted-foreground">Tiros</p>
-              </div>
-              <div className="text-center p-3 bg-purple-500/10 rounded-lg">
-                <p className="text-xl font-bold text-purple-700 dark:text-purple-300">{stat.acciones_asistencias}</p>
-                <p className="text-xs text-muted-foreground">Asistencias</p>
-              </div>
-              {player.is_goalkeeper ? (
-                <>
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <p className="text-xl font-bold">{stat.tiros_parados}</p>
-                    <p className="text-xs text-muted-foreground">Paradas</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <p className="text-xl font-bold">{stat.portero_goles_totales}</p>
-                    <p className="text-xs text-muted-foreground">Goles Recibidos</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <p className="text-xl font-bold">{stat.acciones_bloqueo}</p>
-                    <p className="text-xs text-muted-foreground">Bloqueos</p>
-                  </div>
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <p className="text-xl font-bold">{stat.acciones_recuperacion}</p>
-                    <p className="text-xs text-muted-foreground">Recuperaciones</p>
-                  </div>
-                </>
-              )}
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <p className="text-xl font-bold">
-                  {stat.tiros_totales > 0 ? ((stat.goles_totales / stat.tiros_totales) * 100).toFixed(0) : 0}%
-                </p>
-                <p className="text-xs text-muted-foreground">Eficiencia</p>
-              </div>
-            </div>
+            <Accordion type="multiple" className="space-y-2">
+              {goalkeepersStats.map((stat: any) => (
+                <GoalkeeperStatsAccordion key={stat.id} stat={stat} player={stat.players} />
+              ))}
+            </Accordion>
           </CardContent>
         </Card>
-      ))}
-    </div>
-  )
-}
+      )}
 
-function EfficiencyView({ player, stats }: { player: Player; stats: any }) {
-  if (player.is_goalkeeper) {
-    return <GoalkeeperEfficiencyView stats={stats} />
-  }
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
+        <div className="w-full sm:w-auto">
+          <MatchExportButton match={match} players={players} stats={stats} />
+        </div>
 
-  const overallEfficiency =
-    stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0"
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
+          {canEdit && (
+            <Button asChild>
+              <Link href={`/nuevo-partido?matchId=${match.id}`}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar Partido
+              </Link>
+            </Button>
+          )}
 
-  const categories = [
-    { name: "Boya/Jugada", goles: stats.goles_boya_jugada, tiros: stats.goles_boya_jugada },
-    { name: "Hombre +", goles: stats.goles_hombre_mas, tiros: stats.goles_hombre_mas + stats.tiros_hombre_mas },
-    { name: "Lanzamiento", goles: stats.goles_lanzamiento, tiros: stats.goles_lanzamiento },
-    { name: "Dir +5m", goles: stats.goles_dir_mas_5m, tiros: stats.goles_dir_mas_5m },
-    { name: "Contraataque", goles: stats.goles_contraataque, tiros: stats.goles_contraataque },
-    {
-      name: "Penalti",
-      goles: stats.goles_penalti_anotado,
-      tiros: stats.goles_penalti_anotado + stats.tiros_penalti_fallado,
-    },
-  ]
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              <DeleteMatchButton matchId={match.id} />
 
-  const chartColors = [
-    "hsl(200 80% 50%)", // Blue for goals
-    "hsl(0 70% 60%)", // Red for misses
-    "hsl(160 70% 50%)", // Teal
-    "hsl(280 70% 60%)", // Purple
-    "hsl(40 90% 55%)", // Orange
-  ]
-
-  // Overall efficiency donut data with distinct colors
-  const overallData = [
-    { name: "Goles", value: stats.goles_totales, fill: chartColors[0] },
-    { name: "Fallados", value: stats.tiros_totales - stats.goles_totales, fill: chartColors[1] },
-  ]
-
-  const overallConfig = {
-    goles: { label: "Goles", color: chartColors[0] },
-    fallados: { label: "Fallados", color: chartColors[1] },
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Overall Efficiency */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Eficiencia General</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6 items-center">
-            <div className="flex flex-col items-center justify-center">
-              <ChartContainer config={overallConfig} className="h-[250px] w-full">
-                <PieChart>
-                  <Pie
-                    data={overallData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                  >
-                    {overallData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ChartContainer>
-            </div>
-            <div className="space-y-4">
-              <div className="text-center md:text-left">
-                <p className="text-5xl font-bold text-primary">{overallEfficiency}%</p>
-                <p className="text-muted-foreground mt-2">Eficiencia Total</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.goles_totales}</p>
-                  <p className="text-sm text-muted-foreground">Goles</p>
-                </div>
-                <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                  <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                    {stats.tiros_totales - stats.goles_totales}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Fallados</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Efficiency by Category */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Eficiencia por Categoría</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category, index) => {
-              const efficiency = category.tiros > 0 ? ((category.goles / category.tiros) * 100).toFixed(1) : "0.0"
-
-              const categoryData = [
-                { name: "Goles", value: category.goles, fill: chartColors[0] },
-                { name: "Fallados", value: category.tiros - category.goles, fill: chartColors[1] },
-              ]
-
-              const categoryConfig = {
-                goles: { label: "Goles", color: chartColors[0] },
-                fallados: { label: "Fallados", color: chartColors[1] },
-              }
-
-              if (category.tiros === 0) return null
-
-              return (
-                <Card key={category.name} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{category.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={categoryConfig} className="h-[180px] w-full">
-                      <PieChart>
-                        <Pie
-                          data={categoryData}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={40}
-                          outerRadius={70}
-                          paddingAngle={2}
-                        >
-                          {categoryData.map((entry, idx) => (
-                            <Cell key={`cell-${idx}`} fill={entry.fill} />
-                          ))}
-                        </Pie>
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                      </PieChart>
-                    </ChartContainer>
-                    <div className="text-center mt-2">
-                      <p className="text-2xl font-bold text-primary">{efficiency}%</p>
-                      <p className="text-xs text-muted-foreground">
-                        {category.goles} / {category.tiros} tiros
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function GoalkeeperEfficiencyView({ stats }: { stats: any }) {
-  const chartColors = [
-    "hsl(160 70% 50%)", // Teal for saves
-    "hsl(0 70% 60%)", // Red for goals conceded
-    "hsl(200 80% 50%)", // Blue
-    "hsl(280 70% 60%)", // Purple
-  ]
-
-  const totalRivalGoles = stats.portero_rival_goles_totales || stats.portero_goles_totales
-
-  return (
-    <div className="space-y-6">
-      {/* Goalkeeper Efficiency */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Eficiencia de Portero</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            {(() => {
-              const totalShots = stats.portero_paradas_totales + totalRivalGoles
-              const savePercentage =
-                totalShots > 0 ? ((stats.portero_paradas_totales / totalShots) * 100).toFixed(1) : "0.0"
-
-              const goalkeeperData = [
-                { name: "Paradas", value: stats.portero_paradas_totales, fill: chartColors[0] },
-                { name: "Goles Recibidos", value: totalRivalGoles, fill: chartColors[1] },
-              ]
-
-              const goalkeeperConfig = {
-                paradas: { label: "Paradas", color: chartColors[0] },
-                recibidos: { label: "Goles Recibidos", color: chartColors[1] },
-              }
-
-              return (
-                <>
-                  <div className="flex flex-col items-center justify-center">
-                    <ChartContainer config={goalkeeperConfig} className="h-[250px] w-full">
-                      <PieChart>
-                        <Pie
-                          data={goalkeeperData}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
-                        >
-                          {goalkeeperData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Pie>
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                      </PieChart>
-                    </ChartContainer>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="text-center md:text-left">
-                      <p className="text-5xl font-bold text-primary">{savePercentage}%</p>
-                      <p className="text-muted-foreground mt-2">Porcentaje de Paradas</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-teal-500/10 rounded-lg">
-                        <p className="text-3xl font-bold text-teal-600 dark:text-teal-400">
-                          {stats.portero_paradas_totales}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Paradas</p>
-                      </div>
-                      <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                        <p className="text-3xl font-bold text-red-600 dark:text-red-400">{totalRivalGoles}</p>
-                        <p className="text-sm text-muted-foreground">Recibidos</p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )
-            })()}
-          </div>
-
-          {/* Penalty Efficiency */}
-          {(stats.portero_paradas_penalti_parado > 0 || stats.portero_goles_penalti > 0) && (
-            <div className="grid md:grid-cols-2 gap-6 mt-6 pt-6 border-t">
-              {(() => {
-                const penaltyTotal = stats.portero_paradas_penalti_parado + stats.portero_goles_penalti
-                const penaltyPercentage =
-                  penaltyTotal > 0 ? ((stats.portero_paradas_penalti_parado / penaltyTotal) * 100).toFixed(1) : "0.0"
-
-                const penaltyData = [
-                  { name: "Penaltis Parados", value: stats.portero_paradas_penalti_parado, fill: chartColors[0] },
-                  { name: "Penaltis Encajados", value: stats.portero_goles_penalti, fill: chartColors[1] },
-                ]
-
-                const penaltyConfig = {
-                  parados: { label: "Penaltis Parados", color: chartColors[0] },
-                  encajados: { label: "Penaltis Encajados", color: chartColors[1] },
-                }
-
-                return (
-                  <>
-                    <div className="flex flex-col items-center justify-center">
-                      <ChartContainer config={penaltyConfig} className="h-[250px] w-full">
-                        <PieChart>
-                          <Pie
-                            data={penaltyData}
-                            dataKey="value"
-                            nameKey="name"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
-                          >
-                            {penaltyData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                        </PieChart>
-                      </ChartContainer>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="text-center md:text-left">
-                        <p className="text-5xl font-bold text-primary">{penaltyPercentage}%</p>
-                        <p className="text-muted-foreground mt-2">Eficiencia en Penaltis</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-teal-500/10 rounded-lg">
-                          <p className="text-3xl font-bold text-teal-600 dark:text-teal-400">
-                            {stats.portero_paradas_penalti_parado}
-                          </p>
-                          <p className="text-sm text-muted-foreground">Parados</p>
-                        </div>
-                        <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                          <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                            {stats.portero_goles_penalti}
-                          </p>
-                          <p className="text-sm text-muted-foreground">Encajados</p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )
-              })()}
+              <span className="hidden sm:inline text-sm text-red-600 dark:text-red-400">Eliminar Partido</span>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function calculateTeamTotals(stats: any[]) {
+  return stats.reduce(
+    (acc, stat) => ({
+      goles: acc.goles + (stat.goles_totales || 0),
+      tiros: acc.tiros + (stat.tiros_totales || 0),
+      faltas:
+        acc.faltas +
+        (stat.faltas_exp_20_1c1 || 0) +
+        (stat.faltas_exp_20_boya || 0) +
+        (stat.faltas_penalti || 0) +
+        (stat.faltas_contrafaltas || 0),
+      asistencias: acc.asistencias + (stat.acciones_asistencias || 0),
+    }),
+    { goles: 0, tiros: 0, faltas: 0, asistencias: 0 },
+  )
+}
+
+function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Player }) {
+  const hasStats =
+    stat.goles_totales > 0 ||
+    stat.tiros_totales > 0 ||
+    stat.faltas_exp_20_1c1 > 0 ||
+    stat.faltas_exp_20_boya > 0 ||
+    stat.faltas_penalti > 0 ||
+    stat.faltas_contrafaltas > 0 ||
+    stat.acciones_asistencias > 0 ||
+    stat.acciones_bloqueo > 0 ||
+    stat.acciones_recuperacion > 0 ||
+    stat.acciones_rebote > 0 ||
+    stat.acciones_exp_provocada > 0 ||
+    stat.acciones_penalti_provocado > 0 ||
+    stat.acciones_recibir_gol > 0 ||
+    stat.acciones_perdida_poco > 0
+
+  // Calculated metrics
+  const totalShots = stat.goles_totales + stat.tiros_totales
+  const shootingEfficiency = totalShots > 0 ? ((stat.goles_totales / totalShots) * 100).toFixed(1) : "0.0"
+  const superiorityGoals = stat.goles_hombre_mas || 0
+  const superiorityAttempts = superiorityGoals + (stat.tiros_hombre_mas || 0)
+  const superiorityEfficiency =
+    superiorityAttempts > 0 ? ((superiorityGoals / superiorityAttempts) * 100).toFixed(1) : "0.0"
+  const totalActions =
+    (stat.acciones_asistencias || 0) +
+    (stat.acciones_bloqueo || 0) +
+    (stat.acciones_recuperacion || 0) +
+    (stat.acciones_rebote || 0)
+  const totalFouls =
+    (stat.faltas_exp_20_1c1 || 0) +
+    (stat.faltas_exp_20_boya || 0) +
+    (stat.faltas_penalti || 0) +
+    (stat.faltas_contrafaltas || 0)
+
+  if (!hasStats) {
+    return (
+      <AccordionItem value={`player-${stat.id}`} className="border rounded-lg px-4 bg-muted/30">
+        <AccordionTrigger className="hover:no-underline">
+          <div className="flex items-center gap-3 w-full">
+            {player.photo_url ? (
+              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-muted">
+                <img
+                  src={player.photo_url || "/placeholder.svg"}
+                  alt={player.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="text-muted-foreground font-bold text-lg">{player.number}</span>
+              </div>
+            )}
+            <div className="flex-1 text-left">
+              <h3 className="font-semibold text-lg">{player.name}</h3>
+              <p className="text-sm text-muted-foreground">Sin estadísticas registradas</p>
+            </div>
+          </div>
+        </AccordionTrigger>
+      </AccordionItem>
+    )
+  }
+
+  return (
+    <AccordionItem value={`player-${stat.id}`} className="border rounded-lg px-4 bg-card">
+      <AccordionTrigger className="hover:no-underline">
+        <div className="flex items-center gap-3 w-full">
+          {player.photo_url ? (
+            <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary shadow-sm">
+              <img
+                src={player.photo_url || "/placeholder.svg"}
+                alt={player.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+              <span className="text-primary-foreground font-bold text-xl">{player.number}</span>
+            </div>
+          )}
+          <div className="flex-1 text-left min-w-0">
+            <h3 className="font-semibold text-lg mb-1 truncate">{player.name}</h3>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                <Target className="w-3 h-3 mr-1" />
+                {stat.goles_totales} goles
+              </Badge>
+              <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-300">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                {shootingEfficiency}% efic.
+              </Badge>
+              <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                <Activity className="w-3 h-3 mr-1" />
+                {totalActions} acciones
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <Tabs defaultValue="overview" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="overview" className="text-xs md:text-sm">
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger value="goals" className="text-xs md:text-sm">
+              Goles
+            </TabsTrigger>
+            <TabsTrigger value="shots" className="text-xs md:text-sm">
+              Tiros
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="text-xs md:text-sm">
+              Acciones
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricCard
+                label="Eficiencia de Tiro"
+                value={`${shootingEfficiency}%`}
+                subtitle={`${stat.goles_totales}/${totalShots} tiros`}
+                color="blue"
+              />
+              <MetricCard
+                label="Superioridad"
+                value={`${superiorityEfficiency}%`}
+                subtitle={`${superiorityGoals} goles en sup.`}
+                color="green"
+              />
+              <MetricCard
+                label="Total Acciones"
+                value={totalActions.toString()}
+                subtitle="Acciones positivas"
+                color="purple"
+              />
+              <MetricCard
+                label="Faltas Cometidas"
+                value={totalFouls.toString()}
+                subtitle="Faltas totales"
+                color="orange"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Target className="w-4 h-4" />
+                    Desglose de Goles ({stat.goles_totales})
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Boya/Jugada" value={stat.goles_boya_jugada} />
+                    <StatRow label="Hombre +" value={stat.goles_hombre_mas} />
+                    <StatRow label="Lanzamiento" value={stat.goles_lanzamiento} />
+                    <StatRow label="Dir +5m" value={stat.goles_dir_mas_5m} />
+                    <StatRow label="Contraataque" value={stat.goles_contraataque} />
+                    <StatRow label="Penalti Anotado" value={stat.goles_penalti_anotado} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Acciones Destacadas
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Asistencias" value={stat.acciones_asistencias} />
+                    <StatRow label="Bloqueos" value={stat.acciones_bloqueo} />
+                    <StatRow label="Recuperaciones" value={stat.acciones_recuperacion} />
+                    <StatRow label="Rebotes" value={stat.acciones_rebote} />
+                    <StatRow label="Exp. Provocadas" value={stat.acciones_exp_provocada} />
+                    <StatRow label="Penaltis Provocados" value={stat.acciones_penalti_provocado} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="goals" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.goles_boya_jugada > 0 && (
+                <StatCard label="Boya/Jugada" value={stat.goles_boya_jugada} color="blue" />
+              )}
+              {stat.goles_hombre_mas > 0 && <StatCard label="Hombre +" value={stat.goles_hombre_mas} color="green" />}
+              {stat.goles_lanzamiento > 0 && (
+                <StatCard label="Lanzamiento" value={stat.goles_lanzamiento} color="blue" />
+              )}
+              {stat.goles_dir_mas_5m > 0 && <StatCard label="Dir +5m" value={stat.goles_dir_mas_5m} color="purple" />}
+              {stat.goles_contraataque > 0 && (
+                <StatCard label="Contraataque" value={stat.goles_contraataque} color="green" />
+              )}
+              {stat.goles_penalti_anotado > 0 && (
+                <StatCard label="Penalti Anotado" value={stat.goles_penalti_anotado} color="blue" />
+              )}
+            </div>
+            {stat.goles_totales === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin goles en este partido</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="shots" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.tiros_hombre_mas > 0 && (
+                <StatCard label="Hombre + (fallado)" value={stat.tiros_hombre_mas} color="orange" />
+              )}
+              {stat.tiros_penalti_fallado > 0 && (
+                <StatCard label="Penalti Fallado" value={stat.tiros_penalti_fallado} color="red" />
+              )}
+              {stat.tiros_corner > 0 && <StatCard label="Corner" value={stat.tiros_corner} color="blue" />}
+              {stat.tiros_fuera > 0 && <StatCard label="Fuera" value={stat.tiros_fuera} color="gray" />}
+              {stat.tiros_parados > 0 && <StatCard label="Parados" value={stat.tiros_parados} color="orange" />}
+              {stat.tiros_bloqueado > 0 && <StatCard label="Bloqueado" value={stat.tiros_bloqueado} color="red" />}
+            </div>
+            {stat.tiros_totales === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin tiros fallados en este partido</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="actions" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-purple-500/5">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 text-purple-700 dark:text-purple-300">
+                    Acciones Positivas
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Asistencias" value={stat.acciones_asistencias} highlight />
+                    <StatRow label="Bloqueos" value={stat.acciones_bloqueo} />
+                    <StatRow label="Recuperaciones" value={stat.acciones_recuperacion} />
+                    <StatRow label="Rebotes" value={stat.acciones_rebote} />
+                    <StatRow label="Exp. Provocadas" value={stat.acciones_exp_provocada} />
+                    <StatRow label="Penaltis Provocados" value={stat.acciones_penalti_provocado} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-orange-500/5">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 text-orange-700 dark:text-orange-300">
+                    Faltas y Negativas
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label={'Exp 20" 1c1'} value={stat.faltas_exp_20_1c1} />
+                    <StatRow label={'Exp 20" Boya'} value={stat.faltas_exp_20_boya} />
+                    <StatRow label="Penalti" value={stat.faltas_penalti} />
+                    <StatRow label="Contrafaltas" value={stat.faltas_contrafaltas} />
+                    <StatRow label="Pérdida de Posesión" value={stat.acciones_perdida_poco} />
+                    <StatRow label="Recibe Gol" value={stat.acciones_recibir_gol} highlight />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
+function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: Player }) {
+  const hasStats =
+    stat.portero_paradas_totales > 0 ||
+    stat.portero_goles_boya_parada > 0 ||
+    stat.portero_goles_hombre_menos > 0 ||
+    stat.portero_goles_dir_mas_5m > 0 ||
+    stat.portero_goles_contraataque > 0 ||
+    stat.portero_goles_penalti > 0 ||
+    stat.acciones_asistencias > 0 ||
+    stat.acciones_recuperacion > 0 ||
+    stat.portero_acciones_perdida_pos > 0
+
+  const totalGoalsReceived =
+    (stat.portero_goles_boya_parada || 0) +
+    (stat.portero_goles_hombre_menos || 0) +
+    (stat.portero_goles_dir_mas_5m || 0) +
+    (stat.portero_goles_contraataque || 0) +
+    (stat.portero_goles_penalti || 0)
+
+  // Calculated metrics for goalkeepers
+  const totalShotsReceived = (stat.portero_paradas_totales || 0) + totalGoalsReceived
+  const savePercentage =
+    totalShotsReceived > 0 ? (((stat.portero_paradas_totales || 0) / totalShotsReceived) * 100).toFixed(1) : "0.0"
+  const goalsPerMatch = totalGoalsReceived
+  const savesPerMatch = stat.portero_paradas_totales || 0
+  const penaltySaves = stat.portero_paradas_penalti_parado || 0
+  const penaltyReceived = (stat.portero_paradas_penalti_parado || 0) + (stat.portero_goles_penalti || 0)
+  const penaltySaveRate = penaltyReceived > 0 ? ((penaltySaves / penaltyReceived) * 100).toFixed(1) : "0.0"
+
+  if (!hasStats) {
+    return (
+      <AccordionItem value={`goalkeeper-${stat.id}`} className="border rounded-lg px-4 bg-muted/30">
+        <AccordionTrigger className="hover:no-underline">
+          <div className="flex items-center gap-3 w-full">
+            {player.photo_url ? (
+              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-muted">
+                <img
+                  src={player.photo_url || "/placeholder.svg"}
+                  alt={player.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <span className="text-muted-foreground font-bold text-lg">{player.number}</span>
+              </div>
+            )}
+            <div className="flex-1 text-left">
+              <h3 className="font-semibold text-lg">{player.name}</h3>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                  Portero
+                </Badge>
+                <p className="text-sm text-muted-foreground">Sin estadísticas registradas</p>
+              </div>
+            </div>
+          </div>
+        </AccordionTrigger>
+      </AccordionItem>
+    )
+  }
+
+  return (
+    <AccordionItem value={`goalkeeper-${stat.id}`} className="border rounded-lg px-4 bg-card">
+      <AccordionTrigger className="hover:no-underline">
+        <div className="flex items-center gap-3 w-full">
+          {player.photo_url ? (
+            <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-primary shadow-sm">
+              <img
+                src={player.photo_url || "/placeholder.svg"}
+                alt={player.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+              <span className="text-primary-foreground font-bold text-xl">{player.number}</span>
+            </div>
+          )}
+          <div className="flex-1 text-left min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-lg truncate">{player.name}</h3>
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                Portero
+              </Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-300">
+                <Shield className="w-3 h-3 mr-1" />
+                {stat.portero_paradas_totales} paradas
+              </Badge>
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                {savePercentage}% efic.
+              </Badge>
+              <Badge variant="secondary" className="bg-red-500/10 text-red-700 dark:text-red-300">
+                {goalsPerMatch} goles recib.
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <Tabs defaultValue="overview" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="overview" className="text-xs md:text-sm">
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger value="saves" className="text-xs md:text-sm">
+              Paradas
+            </TabsTrigger>
+            <TabsTrigger value="goals" className="text-xs md:text-sm">
+              Goles
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="text-xs md:text-sm">
+              Acciones
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Rendimiento General
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Paradas Totales" value={stat.portero_paradas_totales} />
+                    <StatRow label="% Eficiencia" value={`${savePercentage}%`} />
+                    <StatRow label="Goles Recibidos" value={totalGoalsReceived} highlight />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Paradas Detalladas
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Parada + Recup" value={stat.portero_tiros_parada_recup} />
+                    <StatRow label="+6m" value={stat.portero_paradas_fuera} />
+                    <StatRow label="Penalti Parado" value={stat.portero_paradas_penalti_parado} />
+                    <StatRow label="Paradas Hombre -" value={stat.portero_paradas_hombre_menos} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="saves" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.portero_tiros_parada_recup > 0 && (
+                <StatCard label="Parada + Recup" value={stat.portero_tiros_parada_recup} color="green" />
+              )}
+              {stat.portero_paradas_fuera > 0 && (
+                <StatCard label="+6m" value={stat.portero_paradas_fuera} color="blue" />
+              )}
+              {stat.portero_paradas_penalti_parado > 0 && (
+                <StatCard label="Penalti Parado" value={stat.portero_paradas_penalti_parado} color="green" />
+              )}
+              {stat.portero_paradas_hombre_menos > 0 && (
+                <StatCard label="Hombre -" value={stat.portero_paradas_hombre_menos} color="purple" />
+              )}
+            </div>
+            {(stat.portero_paradas_totales || 0) === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin paradas en este partido</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="goals" className="space-y-4">
+            <Card className="bg-red-500/5">
+              <CardContent className="pt-4">
+                <h4 className="font-semibold text-sm mb-3 text-red-700 dark:text-red-300">
+                  Goles Encajados ({totalGoalsReceived})
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <StatRow label="Boya/Parada" value={stat.portero_goles_boya_parada} />
+                  <StatRow label="Hombre Menos" value={stat.portero_goles_hombre_menos} />
+                  <StatRow label="Dir +5m" value={stat.portero_goles_dir_mas_5m} />
+                  <StatRow label="Contraataque" value={stat.portero_goles_contraataque} />
+                  <StatRow label="Penalti" value={stat.portero_goles_penalti} />
+                </div>
+              </CardContent>
+            </Card>
+            {totalGoalsReceived === 0 && (
+              <p className="text-center text-muted-foreground py-8">Sin goles encajados en este partido</p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="actions" className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.acciones_asistencias > 0 && (
+                <StatCard label="Asistencias" value={stat.acciones_asistencias} color="green" />
+              )}
+              {stat.acciones_recuperacion > 0 && (
+                <StatCard label="Recuperación" value={stat.acciones_recuperacion} color="blue" />
+              )}
+              {stat.portero_acciones_perdida_pos > 0 && (
+                <StatCard label="Pérdida de Pos" value={stat.portero_acciones_perdida_pos} color="orange" />
+              )}
+              {stat.acciones_exp_provocada > 0 && (
+                <StatCard label="Exp Provocada" value={stat.acciones_exp_provocada} color="green" />
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  subtitle,
+  color,
+}: { label: string; value: string; subtitle: string; color: string }) {
+  const colorClasses = {
+    blue: "bg-blue-500/10 border-blue-500/20",
+    green: "bg-green-500/10 border-green-500/20",
+    purple: "bg-purple-500/10 border-purple-500/20",
+    orange: "bg-orange-500/10 border-orange-500/20",
+    red: "bg-red-500/10 border-red-500/20",
+    gray: "bg-gray-500/10 border-gray-500/20",
+  }
+
+  const textColorClasses = {
+    blue: "text-blue-700 dark:text-blue-300",
+    green: "text-green-700 dark:text-green-300",
+    purple: "text-purple-700 dark:text-purple-300",
+    orange: "text-orange-700 dark:text-orange-300",
+    red: "text-red-700 dark:text-red-300",
+    gray: "text-gray-700 dark:text-gray-300",
+  }
+
+  return (
+    <div className={`p-4 rounded-lg border ${colorClasses[color as keyof typeof colorClasses]}`}>
+      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${textColorClasses[color as keyof typeof textColorClasses]}`}>{value}</p>
+      <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+    </div>
+  )
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  const colorClasses = {
+    blue: "bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300",
+    green: "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300",
+    purple: "bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-300",
+    orange: "bg-orange-500/10 border-orange-500/20 text-orange-700 dark:text-orange-300",
+    red: "bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-300",
+    gray: "bg-gray-500/10 border-gray-500/20 text-gray-700 dark:text-gray-300",
+  }
+
+  return (
+    <div className={`p-3 rounded-lg border ${colorClasses[color as keyof typeof colorClasses]}`}>
+      <p className="text-sm font-medium mb-1">{label}</p>
+      <p className="text-2xl font-bold">{value}</p>
+    </div>
+  )
+}
+
+function StatRow({ label, value, highlight }: { label: string; value?: number; highlight?: boolean }) {
+  if (!value || value === 0) return null
+
+  return (
+    <div className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+      <span className={`text-muted-foreground ${highlight ? "font-semibold" : ""}`}>{label}</span>
+      <span className={`font-semibold ${highlight ? "text-primary" : ""}`}>{value}</span>
+    </div>
+  )
+}
+
+function StatBadge({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="bg-muted px-3 py-1.5 rounded">
+      <span className="text-muted-foreground">{label}:</span> <span className="font-semibold ml-1">{value}</span>
     </div>
   )
 }
