@@ -120,8 +120,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			// Goles que marca el jugador de campo
 			homeGoals += playerStat.goles_totales || 0;
 
-			// 🔥 NUEVO: goles que RECIBE el jugador (errores defensivos = gol rival)
-			awayGoals += playerStat.acciones_recibir_gol || 0;
 			}
 		});
 
