@@ -27,6 +27,7 @@ export function ProfileProvider({
   }
 
   useEffect(() => {
+    // If we already have a profile from server, don't fetch again
     if (initialProfile) {
       setProfile(initialProfile)
       setLoading(false)
@@ -37,29 +38,17 @@ export function ProfileProvider({
       try {
         const supabase = createClient()
 
-        if (!supabase) {
-          console.warn("[v0] Supabase client not available, skipping profile fetch")
-          setLoading(false)
-          return
-        }
-
         const {
           data: { user },
-          error: authError,
         } = await supabase.auth.getUser()
-
-        if (authError) {
-          console.warn("[v0] Auth error:", authError.message)
-          setLoading(false)
-          return
-        }
 
         if (user) {
           const { data: profileData } = await supabase.from("user_profiles").select("*").eq("id", user.id).single()
+
           setProfile(profileData)
         }
       } catch (error) {
-        console.warn("[v0] Error fetching profile:", error instanceof Error ? error.message : "Unknown error")
+        console.error("[v0] Error fetching profile:", error)
       } finally {
         setLoading(false)
       }

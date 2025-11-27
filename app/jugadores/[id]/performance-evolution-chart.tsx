@@ -157,55 +157,53 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
             <CardDescription>Progreso a lo largo de la temporada</CardDescription>
           </CardHeader>
           <CardContent>
-            <div data-export-chart>
-              <ChartContainer config={chartConfig} className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="match" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                    <ChartTooltip
-                      content={<ChartTooltipContent />}
-                      labelFormatter={(value, payload) => {
-                        if (payload && payload[0]) {
-                          const data = payload[0].payload
-                          return `${data.match} - ${data.opponent} (${data.date})`
-                        }
-                        return value
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="paradas"
-                      stroke={chartConfig.paradas.color}
-                      strokeWidth={2}
-                      dot={{ fill: chartConfig.paradas.color, r: 4 }}
-                      activeDot={{ r: 6 }}
-                      name="Paradas"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="eficiencia"
-                      stroke={chartConfig.eficiencia.color}
-                      strokeWidth={2}
-                      dot={{ fill: chartConfig.eficiencia.color, r: 4 }}
-                      activeDot={{ r: 6 }}
-                      name="Eficiencia %"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="goles"
-                      stroke={chartConfig.goles.color}
-                      strokeWidth={2}
-                      dot={{ fill: chartConfig.goles.color, r: 4 }}
-                      activeDot={{ r: 6 }}
-                      name="Goles"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
+            <ChartContainer config={chartConfig} className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="match" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <ChartTooltip
+                    content={<ChartTooltipContent />}
+                    labelFormatter={(value, payload) => {
+                      if (payload && payload[0]) {
+                        const data = payload[0].payload
+                        return `${data.match} - ${data.opponent} (${data.date})`
+                      }
+                      return value
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="paradas"
+                    stroke={chartConfig.paradas.color}
+                    strokeWidth={2}
+                    dot={{ fill: chartConfig.paradas.color, r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Paradas"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="eficiencia"
+                    stroke={chartConfig.eficiencia.color}
+                    strokeWidth={2}
+                    dot={{ fill: chartConfig.eficiencia.color, r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Eficiencia %"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="goles"
+                    stroke={chartConfig.goles.color}
+                    strokeWidth={2}
+                    dot={{ fill: chartConfig.goles.color, r: 4 }}
+                    activeDot={{ r: 6 }}
+                    name="Goles"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -255,55 +253,53 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
           <CardDescription>Progreso a lo largo de la temporada</CardDescription>
         </CardHeader>
         <CardContent>
-          <div data-export-chart>
-            <ChartContainer config={chartConfig} className="h-[400px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="match" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                  <ChartTooltip
-                    content={<ChartTooltipContent />}
-                    labelFormatter={(value, payload) => {
-                      if (payload && payload[0]) {
-                        const data = payload[0].payload
-                        return `${data.match} - ${data.opponent} (${data.date})`
-                      }
-                      return value
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="goles"
-                    stroke={chartConfig.goles.color}
-                    strokeWidth={2}
-                    dot={{ fill: chartConfig.goles.color, r: 4 }}
-                    activeDot={{ r: 6 }}
-                    name="Goles"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="asistencias"
-                    stroke={chartConfig.asistencias.color}
-                    strokeWidth={2}
-                    dot={{ fill: chartConfig.asistencias.color, r: 4 }}
-                    activeDot={{ r: 6 }}
-                    name="Asistencias"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="eficiencia"
-                    stroke={chartConfig.eficiencia.color}
-                    strokeWidth={2}
-                    dot={{ fill: chartConfig.eficiencia.color, r: 4 }}
-                    activeDot={{ r: 6 }}
-                    name="Eficiencia %"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
+          <ChartContainer config={chartConfig} className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="match" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <ChartTooltip
+                  content={<ChartTooltipContent />}
+                  labelFormatter={(value, payload) => {
+                    if (payload && payload[0]) {
+                      const data = payload[0].payload
+                      return `${data.match} - ${data.opponent} (${data.date})`
+                    }
+                    return value
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="goles"
+                  stroke={chartConfig.goles.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.goles.color, r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Goles"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="asistencias"
+                  stroke={chartConfig.asistencias.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.asistencias.color, r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Asistencias"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="eficiencia"
+                  stroke={chartConfig.eficiencia.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.eficiencia.color, r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Eficiencia %"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         </CardContent>
       </Card>
 
@@ -357,64 +353,62 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
           <CardDescription>Comparación defensiva por partido con medias acumuladas</CardDescription>
         </CardHeader>
         <CardContent>
-          <div data-export-chart>
-            <ChartContainer config={chartConfig} className="h-[400px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={blocksVsGoalsData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="match" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                  <ChartTooltip
-                    content={<ChartTooltipContent />}
-                    labelFormatter={(value, payload) => {
-                      if (payload && payload[0]) {
-                        const data = payload[0].payload
-                        return `${data.match} - ${data.opponent} (${data.date})`
-                      }
-                      return value
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="bloqueos"
-                    stroke={chartConfig.bloqueos.color}
-                    strokeWidth={2}
-                    dot={{ fill: chartConfig.bloqueos.color, r: 4 }}
-                    activeDot={{ r: 6 }}
-                    name="Bloqueos"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="golesRecibidos"
-                    stroke={chartConfig.golesRecibidos.color}
-                    strokeWidth={2}
-                    dot={{ fill: chartConfig.golesRecibidos.color, r: 4 }}
-                    activeDot={{ r: 6 }}
-                    name="Goles Recibidos"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="mediaBloqueos"
-                    stroke={chartConfig.mediaBloqueos.color}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                    name="Media Bloqueos"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="mediaGolesRecibidos"
-                    stroke={chartConfig.mediaGolesRecibidos.color}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={false}
-                    name="Media Goles Recibidos"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
+          <ChartContainer config={chartConfig} className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={blocksVsGoalsData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="match" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <ChartTooltip
+                  content={<ChartTooltipContent />}
+                  labelFormatter={(value, payload) => {
+                    if (payload && payload[0]) {
+                      const data = payload[0].payload
+                      return `${data.match} - ${data.opponent} (${data.date})`
+                    }
+                    return value
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="bloqueos"
+                  stroke={chartConfig.bloqueos.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.bloqueos.color, r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Bloqueos"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="golesRecibidos"
+                  stroke={chartConfig.golesRecibidos.color}
+                  strokeWidth={2}
+                  dot={{ fill: chartConfig.golesRecibidos.color, r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Goles Recibidos"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="mediaBloqueos"
+                  stroke={chartConfig.mediaBloqueos.color}
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  name="Media Bloqueos"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="mediaGolesRecibidos"
+                  stroke={chartConfig.mediaGolesRecibidos.color}
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  name="Media Goles Recibidos"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         </CardContent>
       </Card>
 
@@ -461,6 +455,8 @@ export function PerformanceEvolutionChart({ matchStats, player }: PerformanceEvo
           </CardContent>
         </Card>
       </div>
+
+      
     </div>
   )
 }
