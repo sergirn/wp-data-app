@@ -11,6 +11,7 @@ import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
 import { MatchExportButton } from "@/components/match-export-button"
 import { getCurrentProfile } from "@/lib/auth"
+import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts"
 
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
@@ -60,6 +61,8 @@ export default async function MatchDetailPage({ params }: { params: { id: string
     .sort((a: any, b: any) => a.players.number - b.players.number)
 
   const teamTotals = calculateTeamTotals(match.match_stats)
+  const superioridadStats = calculateSuperioridadStats(match.match_stats)
+  const inferioridadStats = calculateInferioridadStats(match.match_stats) // Added
 
   const players = match.match_stats.map((s: any) => s.players)
   const stats = match.match_stats
@@ -125,32 +128,152 @@ export default async function MatchDetailPage({ params }: { params: { id: string
         </Card>
       </div>
 
-      {/* Team Totals */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Totales del Equipo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
-              <p className="text-sm text-muted-foreground">Goles</p>
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Totales del Equipo - 2x2 Grid */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Totales del Equipo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-blue-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
+                <p className="text-sm text-muted-foreground">Goles</p>
+              </div>
+              <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
+                <p className="text-sm text-muted-foreground">Tiros</p>
+              </div>
+              <div className="text-center p-4 bg-orange-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
+                <p className="text-sm text-muted-foreground">Faltas</p>
+              </div>
+              <div className="text-center p-4 bg-purple-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
+                <p className="text-sm text-muted-foreground">Asistencias</p>
+              </div>
             </div>
-            <div className="text-center p-4 bg-green-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
-              <p className="text-sm text-muted-foreground">Tiros</p>
-            </div>
-            <div className="text-center p-4 bg-orange-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
-              <p className="text-sm text-muted-foreground">Faltas</p>
-            </div>
-            <div className="text-center p-4 bg-purple-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
-              <p className="text-sm text-muted-foreground">Asistencias</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Análisis de Superioridad/Inferioridad con Tabs */}
+        <Card>
+          <CardContent>
+            <Tabs defaultValue="superioridad" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
+                  Superioridad
+                </TabsTrigger>
+                <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
+                  Inferioridad
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="superioridad" className="mt-4">
+                <div className="flex flex-col md:flex-row items-center justify-around gap-4">
+                  {/* Pie Chart */}
+                  <div className="w-full md:w-1/2 h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Anotadas", value: superioridadStats.anotadas },
+                            { name: "Falladas", value: superioridadStats.falladas },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#ef4444" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Stats Summary */}
+                  <div className="w-full md:w-1/2 space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Anotadas</span>
+                      <span className="text-xl font-bold text-green-700 dark:text-green-300">
+                        {superioridadStats.anotadas}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-red-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Falladas</span>
+                      <span className="text-xl font-bold text-red-700 dark:text-red-300">
+                        {superioridadStats.falladas}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Eficiencia</span>
+                      <span className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                        {superioridadStats.eficiencia}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="inferioridad" className="mt-4">
+                <div className="flex flex-col md:flex-row items-center justify-around gap-4">
+                  {/* Pie Chart */}
+                  <div className="w-full md:w-1/2 h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Evitados", value: inferioridadStats.evitados },
+                            { name: "Recibidos", value: inferioridadStats.recibidos },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#ef4444" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Stats Summary */}
+                  <div className="w-full md:w-1/2 space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Evitados</span>
+                      <span className="text-xl font-bold text-green-700 dark:text-green-300">
+                        {inferioridadStats.evitados}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-red-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Recibidos</span>
+                      <span className="text-xl font-bold text-red-700 dark:text-red-300">
+                        {inferioridadStats.recibidos}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Eficiencia</span>
+                      <span className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                        {inferioridadStats.eficiencia}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
 
       {(match.q1_score || match.q2_score || match.q3_score || match.q4_score) && (
         <Card className="mb-6">
@@ -270,6 +393,34 @@ function calculateTeamTotals(stats: any[]) {
     }),
     { goles: 0, tiros: 0, faltas: 0, asistencias: 0 },
   )
+}
+
+function calculateSuperioridadStats(stats: any[]) {
+  const anotadas = stats.reduce((acc, stat) => acc + (stat.goles_hombre_mas || 0), 0)
+  const falladas = stats.reduce((acc, stat) => acc + (stat.tiros_hombre_mas || 0), 0)
+  const total = anotadas + falladas
+  const eficiencia = total > 0 ? ((anotadas / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    anotadas,
+    falladas,
+    total,
+    eficiencia: Number.parseFloat(eficiencia),
+  }
+}
+
+function calculateInferioridadStats(stats: any[]) {
+  const evitados = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos || 0), 0)
+  const total = evitados + recibidos
+  const eficiencia = total > 0 ? ((evitados / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    evitados,
+    recibidos,
+    total,
+    eficiencia: Number.parseFloat(eficiencia),
+  }
 }
 
 function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Player }) {

@@ -22,6 +22,7 @@ import {
   ResponsiveContainer,
 } from "./chartSection"
 import { PerformanceEvolutionChart } from "./performance-evolution-chart"
+import { ExportPDFButton } from "./export-pdf-button"
 
 interface MatchStatsWithMatch extends MatchStats {
   matches: Match
@@ -71,21 +72,23 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
-                {player.photo_url ? (
-                  <img
-                    src={player.photo_url || "/placeholder.svg"}
-                    alt={player.name}
-                    className="w-full h-full object-cover object-top"
-                  />
-                ) : (
-                  <span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
-                )}
-              </div>
-              <div>
-                <CardTitle className="text-2xl md:text-3xl">{player.name}</CardTitle>
-                <p className="text-sm md:text-base text-muted-foreground">Jugador de Campo</p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {player.photo_url ? (
+                    <img
+                      src={player.photo_url || "/placeholder.svg"}
+                      alt={player.name}
+                      className="w-full h-full object-cover object-top"
+                    />
+                  ) : (
+                    <span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
+                  )}
+                </div>
+                <div>
+                  <CardTitle className="text-2xl md:text-3xl">{player.name}</CardTitle>
+                  <p className="text-sm md:text-base text-muted-foreground">Jugador de Campo</p>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -131,6 +134,12 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
           <FieldPlayerAdvancedEfficiency stats={fieldPlayerStats} />
         </TabsContent>
       </Tabs>
+
+      <footer className="mt-12 pt-6 border-t">
+        <div className="flex justify-center">
+          <ExportPDFButton player={player} matchStats={matchStats} />
+        </div>
+      </footer>
     </main>
   )
 }
@@ -837,21 +846,23 @@ function GoalkeeperPage({ player, matchStats }: { player: Player; matchStats: Ma
 
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
-                {player.photo_url ? (
-                  <img
-                    src={player.photo_url || "/placeholder.svg"}
-                    alt={player.name}
-                    className="w-full h-full object-cover object-top"
-                  />
-                ) : (
-                  <span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
-                )}
-              </div>
-              <div>
-                <CardTitle className="text-3xl">{player.name}</CardTitle>
-                <p className="text-muted-foreground">Portero</p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {player.photo_url ? (
+                    <img
+                      src={player.photo_url || "/placeholder.svg"}
+                      alt={player.name}
+                      className="w-full h-full object-cover object-top"
+                    />
+                  ) : (
+                    <span className="text-primary-foreground font-bold text-2xl">{player.number}</span>
+                  )}
+                </div>
+                <div>
+                  <CardTitle className="text-2xl md:text-3xl">{player.name}</CardTitle>
+                  <p className="text-sm md:text-base text-muted-foreground">Portero</p>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -897,6 +908,12 @@ function GoalkeeperPage({ player, matchStats }: { player: Player; matchStats: Ma
           <GoalkeeperAdvancedEfficiency stats={goalkeeperStats} />
         </TabsContent>
       </Tabs>
+
+      <footer className="mt-12 pt-6 border-t">
+        <div className="flex justify-center">
+          <ExportPDFButton player={player} matchStats={matchStats} />
+        </div>
+      </footer>
     </main>
   )
 }
