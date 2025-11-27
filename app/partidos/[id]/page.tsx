@@ -11,6 +11,8 @@ import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
 import { MatchExportButton } from "@/components/match-export-button"
 import { getCurrentProfile } from "@/lib/auth"
+import { MatchSuperiorityChart } from "@/components/match-superiority-chart"
+import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
 
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
@@ -60,6 +62,8 @@ export default async function MatchDetailPage({ params }: { params: { id: string
     .sort((a: any, b: any) => a.players.number - b.players.number)
 
   const teamTotals = calculateTeamTotals(match.match_stats)
+  const superioridadStats = calculateSuperioridadStats(match.match_stats)
+  const inferioridadStats = calculateInferioridadStats(match.match_stats) // Added
 
   const players = match.match_stats.map((s: any) => s.players)
   const stats = match.match_stats
@@ -125,32 +129,58 @@ export default async function MatchDetailPage({ params }: { params: { id: string
         </Card>
       </div>
 
-      {/* Team Totals */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Totales del Equipo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
-              <p className="text-sm text-muted-foreground">Goles</p>
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Totales del Equipo - 2x2 Grid */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Totales del Equipo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-blue-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
+                <p className="text-sm text-muted-foreground">Goles</p>
+              </div>
+              <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
+                <p className="text-sm text-muted-foreground">Tiros</p>
+              </div>
+              <div className="text-center p-4 bg-orange-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
+                <p className="text-sm text-muted-foreground">Faltas</p>
+              </div>
+              <div className="text-center p-4 bg-purple-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
+                <p className="text-sm text-muted-foreground">Asistencias</p>
+              </div>
             </div>
-            <div className="text-center p-4 bg-green-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
-              <p className="text-sm text-muted-foreground">Tiros</p>
-            </div>
-            <div className="text-center p-4 bg-orange-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
-              <p className="text-sm text-muted-foreground">Faltas</p>
-            </div>
-            <div className="text-center p-4 bg-purple-500/10 rounded-lg">
-              <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
-              <p className="text-sm text-muted-foreground">Asistencias</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Análisis de Superioridad/Inferioridad con Tabs */}
+        <Card>
+          <CardContent>
+            <Tabs defaultValue="superioridad" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
+                  Superioridad
+                </TabsTrigger>
+                <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
+                  Inferioridad
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="superioridad" className="mt-4">
+                <MatchSuperiorityChart stats={superioridadStats} />
+              </TabsContent>
+
+              <TabsContent value="inferioridad" className="mt-4">
+                <MatchInferiorityChart stats={inferioridadStats} />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
 
       {(match.q1_score || match.q2_score || match.q3_score || match.q4_score) && (
         <Card className="mb-6">
@@ -270,6 +300,34 @@ function calculateTeamTotals(stats: any[]) {
     }),
     { goles: 0, tiros: 0, faltas: 0, asistencias: 0 },
   )
+}
+
+function calculateSuperioridadStats(stats: any[]) {
+  const anotadas = stats.reduce((acc, stat) => acc + (stat.goles_hombre_mas || 0), 0)
+  const falladas = stats.reduce((acc, stat) => acc + (stat.tiros_hombre_mas || 0), 0)
+  const total = anotadas + falladas
+  const eficiencia = total > 0 ? ((anotadas / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    anotadas,
+    falladas,
+    total,
+    eficiencia: Number.parseFloat(eficiencia),
+  }
+}
+
+function calculateInferioridadStats(stats: any[]) {
+  const evitados = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos || 0), 0)
+  const total = evitados + recibidos
+  const eficiencia = total > 0 ? ((evitados / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    evitados,
+    recibidos,
+    total,
+    eficiencia: Number.parseFloat(eficiencia),
+  }
 }
 
 function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Player }) {
@@ -494,38 +552,19 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
           </TabsContent>
 
           <TabsContent value="actions" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-purple-500/5">
-                <CardContent className="pt-4">
-                  <h4 className="font-semibold text-sm mb-3 text-purple-700 dark:text-purple-300">
-                    Acciones Positivas
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <StatRow label="Asistencias" value={stat.acciones_asistencias} highlight />
-                    <StatRow label="Bloqueos" value={stat.acciones_bloqueo} />
-                    <StatRow label="Recuperaciones" value={stat.acciones_recuperacion} />
-                    <StatRow label="Rebotes" value={stat.acciones_rebote} />
-                    <StatRow label="Exp. Provocadas" value={stat.acciones_exp_provocada} />
-                    <StatRow label="Penaltis Provocados" value={stat.acciones_penalti_provocado} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-orange-500/5">
-                <CardContent className="pt-4">
-                  <h4 className="font-semibold text-sm mb-3 text-orange-700 dark:text-orange-300">
-                    Faltas y Negativas
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <StatRow label={'Exp 20" 1c1'} value={stat.faltas_exp_20_1c1} />
-                    <StatRow label={'Exp 20" Boya'} value={stat.faltas_exp_20_boya} />
-                    <StatRow label="Penalti" value={stat.faltas_penalti} />
-                    <StatRow label="Contrafaltas" value={stat.faltas_contrafaltas} />
-                    <StatRow label="Pérdida de Posesión" value={stat.acciones_perdida_poco} />
-                    <StatRow label="Recibe Gol" value={stat.acciones_recibir_gol} highlight />
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.acciones_asistencias > 0 && (
+                <StatCard label="Asistencias" value={stat.acciones_asistencias} color="green" />
+              )}
+              {stat.acciones_recuperacion > 0 && (
+                <StatCard label="Recuperación" value={stat.acciones_recuperacion} color="blue" />
+              )}
+              {stat.portero_acciones_perdida_pos > 0 && (
+                <StatCard label="Pérdida de Pos" value={stat.portero_acciones_perdida_pos} color="orange" />
+              )}
+              {stat.acciones_exp_provocada > 0 && (
+                <StatCard label="Exp Provocada" value={stat.acciones_exp_provocada} color="green" />
+              )}
             </div>
           </TabsContent>
         </Tabs>
