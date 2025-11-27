@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
+"use client"
+
+import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -6,61 +8,102 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield } from "lucide-react"
-import { notFound } from "next/navigation"
 import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
 import { MatchExportButton } from "@/components/match-export-button"
-import { getCurrentProfile } from "@/lib/auth"
 import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
   clubs: Club
 }
 
-export default async function MatchDetailPage({ params }: { params: { id: string } }) {
+export default function MatchDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
-  let profile = null
-  let supabase = null
+  const router = useRouter()
+  const [match, setMatch] = useState<MatchWithStats | null>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  try {
-    profile = await getCurrentProfile()
-    supabase = await createClient()
-  } catch (error) {
-    console.error("[v0] Error initializing:", error)
-  }
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const supabase = createClient()
 
-  if (!supabase) {
+        if (!supabase) {
+          setError("Error de conexión con la base de datos")
+          setLoading(false)
+          return
+        }
+
+        const { data: matchData, error: matchError } = await supabase
+          .from("matches")
+          .select(
+            `
+              *,
+              clubs (
+                id,
+                name
+              ),
+              match_stats (
+                *,
+                players (
+                  id,
+                  name,
+                  number,
+                  position,
+                  photo_url
+                )
+              )
+            `,
+          )
+          .eq("id", id)
+          .single()
+
+        if (matchError) {
+          console.error("[v0] Error fetching match:", matchError)
+          setError("Error al cargar el partido")
+          setLoading(false)
+          return
+        }
+
+        setMatch(matchData as MatchWithStats)
+        setLoading(false)
+      } catch (err) {
+        console.error("[v0] Error loading data:", err)
+        setError("Error al cargar los datos")
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [id])
+
+  if (loading) {
     return (
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <Card>
           <CardContent className="p-6">
-            <p className="text-center text-muted-foreground">
-              Error de conexión. Por favor, intenta de nuevo más tarde.
-            </p>
+            <p className="text-center text-muted-foreground">Cargando...</p>
           </CardContent>
         </Card>
       </main>
     )
   }
 
-  const { data: match, error } = await supabase
-    .from("matches")
-    .select(
-      `
-      *,
-      clubs (*),
-      match_stats (
-        *,
-        players (*)
-      )
-    `,
-    )
-    .eq("id", id)
-    .maybeSingle()
-
   if (error || !match) {
-    notFound()
+    return (
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-center text-muted-foreground">{error || "Partido no encontrado"}</p>
+          </CardContent>
+        </Card>
+      </main>
+    )
   }
 
   const matchDate = new Date(match.match_date)
@@ -461,7 +504,6 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
     stat.acciones_recibir_gol > 0 ||
     stat.acciones_perdida_poco > 0
 
-  // Calculated metrics
   const totalShots = stat.goles_totales + stat.tiros_totales
   const shootingEfficiency = totalShots > 0 ? ((stat.goles_totales / totalShots) * 100).toFixed(1) : "0.0"
   const superiorityGoals = stat.goles_hombre_mas || 0
@@ -525,8 +567,8 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
             </div>
           )}
           <div className="flex-1 text-left min-w-0">
-            <h3 className="font-semibold text-lg mb-1 truncate">{player.name}</h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-lg truncate">{player.name}</h3>
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
                 <Target className="w-3 h-3 mr-1" />
                 {stat.goles_totales} goles
@@ -538,6 +580,11 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
               <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 dark:text-purple-300">
                 <Activity className="w-3 h-3 mr-1" />
                 {totalActions} acciones
+              </Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-red-500/10 text-red-700 dark:text-red-300">
+                {totalFouls} faltas
               </Badge>
             </div>
           </div>
@@ -561,34 +608,22 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <MetricCard
-                label="Eficiencia de Tiro"
-                value={`${shootingEfficiency}%`}
-                subtitle={`${stat.goles_totales}/${totalShots} tiros`}
-                color="blue"
-              />
-              <MetricCard
-                label="Superioridad"
-                value={`${superiorityEfficiency}%`}
-                subtitle={`${superiorityGoals} goles en sup.`}
-                color="green"
-              />
-              <MetricCard
-                label="Total Acciones"
-                value={totalActions.toString()}
-                subtitle="Acciones positivas"
-                color="purple"
-              />
-              <MetricCard
-                label="Faltas Cometidas"
-                value={totalFouls.toString()}
-                subtitle="Faltas totales"
-                color="orange"
-              />
-            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Rendimiento General
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <StatRow label="Eficiencia de Tiro" value={`${shootingEfficiency}%`} />
+                    <StatRow label="Superioridad" value={`${superiorityEfficiency}%`} />
+                    <StatRow label="Total Acciones" value={totalActions} />
+                    <StatRow label="Faltas Cometidas" value={totalFouls} />
+                  </div>
+                </CardContent>
+              </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="bg-muted/30">
                 <CardContent className="pt-4">
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
@@ -605,7 +640,9 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="bg-muted/30">
                 <CardContent className="pt-4">
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
@@ -706,7 +743,6 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
     (stat.portero_goles_contraataque || 0) +
     (stat.portero_goles_penalti || 0)
 
-  // Calculated metrics for goalkeepers
   const totalShotsReceived = (stat.portero_paradas_totales || 0) + totalGoalsReceived
   const savePercentage =
     totalShotsReceived > 0 ? (((stat.portero_paradas_totales || 0) / totalShotsReceived) * 100).toFixed(1) : "0.0"
@@ -776,7 +812,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-300">
                 <Shield className="w-3 h-3 mr-1" />
-                {stat.portero_paradas_totales} paradas
+                {savesPerMatch} paradas
               </Badge>
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
                 <TrendingUp className="w-3 h-3 mr-1" />
@@ -815,7 +851,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                     Rendimiento General
                   </h4>
                   <div className="space-y-2 text-sm">
-                    <StatRow label="Paradas Totales" value={stat.portero_paradas_totales} />
+                    <StatRow label="Paradas Totales" value={savesPerMatch} />
                     <StatRow label="% Eficiencia" value={`${savePercentage}%`} />
                     <StatRow label="Goles Recibidos" value={totalGoalsReceived} highlight />
                   </div>
@@ -831,7 +867,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                   <div className="space-y-2 text-sm">
                     <StatRow label="Parada + Recup" value={stat.portero_tiros_parada_recup} />
                     <StatRow label="+6m" value={stat.portero_paradas_fuera} />
-                    <StatRow label="Penalti Parado" value={stat.portero_paradas_penalti_parado} />
+                    <StatRow label="Penalti Parado" value={penaltySaves} />
                     <StatRow label="Paradas Hombre -" value={stat.portero_paradas_hombre_menos} />
                   </div>
                 </CardContent>
@@ -848,7 +884,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
                 <StatCard label="+6m" value={stat.portero_paradas_fuera} color="blue" />
               )}
               {stat.portero_paradas_penalti_parado > 0 && (
-                <StatCard label="Penalti Parado" value={stat.portero_paradas_penalti_parado} color="green" />
+                <StatCard label="Penalti Parado" value={penaltySaves} color="green" />
               )}
               {stat.portero_paradas_hombre_menos > 0 && (
                 <StatCard label="Hombre -" value={stat.portero_paradas_hombre_menos} color="purple" />
@@ -953,7 +989,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 }
 
 function StatRow({ label, value, highlight }: { label: string; value?: number; highlight?: boolean }) {
-  if (!value || value === 0) return null
+  if (!value && value !== 0) return null
 
   return (
     <div className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
