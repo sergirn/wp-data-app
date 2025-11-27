@@ -11,7 +11,8 @@ import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
 import { MatchExportButton } from "@/components/match-export-button"
 import { getCurrentProfile } from "@/lib/auth"
-import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts"
+import { MatchSuperiorityChart } from "@/components/match-superiority-chart"
+import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
 
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
@@ -170,105 +171,11 @@ export default async function MatchDetailPage({ params }: { params: { id: string
               </TabsList>
 
               <TabsContent value="superioridad" className="mt-4">
-                <div className="flex flex-col md:flex-row items-center justify-around gap-4">
-                  {/* Pie Chart */}
-                  <div className="w-full md:w-1/2 h-[180px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: "Anotadas", value: superioridadStats.anotadas },
-                            { name: "Falladas", value: superioridadStats.falladas },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={60}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          <Cell fill="#10b981" />
-                          <Cell fill="#ef4444" />
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Stats Summary */}
-                  <div className="w-full md:w-1/2 space-y-2">
-                    <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
-                      <span className="text-xs font-medium text-muted-foreground">Anotadas</span>
-                      <span className="text-xl font-bold text-green-700 dark:text-green-300">
-                        {superioridadStats.anotadas}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-red-500/10 rounded-lg">
-                      <span className="text-xs font-medium text-muted-foreground">Falladas</span>
-                      <span className="text-xl font-bold text-red-700 dark:text-red-300">
-                        {superioridadStats.falladas}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
-                      <span className="text-xs font-medium text-muted-foreground">Eficiencia</span>
-                      <span className="text-xl font-bold text-blue-700 dark:text-blue-300">
-                        {superioridadStats.eficiencia}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <MatchSuperiorityChart stats={superioridadStats} />
               </TabsContent>
 
               <TabsContent value="inferioridad" className="mt-4">
-                <div className="flex flex-col md:flex-row items-center justify-around gap-4">
-                  {/* Pie Chart */}
-                  <div className="w-full md:w-1/2 h-[180px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: "Evitados", value: inferioridadStats.evitados },
-                            { name: "Recibidos", value: inferioridadStats.recibidos },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={60}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          <Cell fill="#10b981" />
-                          <Cell fill="#ef4444" />
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Stats Summary */}
-                  <div className="w-full md:w-1/2 space-y-2">
-                    <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
-                      <span className="text-xs font-medium text-muted-foreground">Evitados</span>
-                      <span className="text-xl font-bold text-green-700 dark:text-green-300">
-                        {inferioridadStats.evitados}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-red-500/10 rounded-lg">
-                      <span className="text-xs font-medium text-muted-foreground">Recibidos</span>
-                      <span className="text-xl font-bold text-red-700 dark:text-red-300">
-                        {inferioridadStats.recibidos}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
-                      <span className="text-xs font-medium text-muted-foreground">Eficiencia</span>
-                      <span className="text-xl font-bold text-blue-700 dark:text-blue-300">
-                        {inferioridadStats.eficiencia}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <MatchInferiorityChart stats={inferioridadStats} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -645,38 +552,19 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
           </TabsContent>
 
           <TabsContent value="actions" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="bg-purple-500/5">
-                <CardContent className="pt-4">
-                  <h4 className="font-semibold text-sm mb-3 text-purple-700 dark:text-purple-300">
-                    Acciones Positivas
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <StatRow label="Asistencias" value={stat.acciones_asistencias} highlight />
-                    <StatRow label="Bloqueos" value={stat.acciones_bloqueo} />
-                    <StatRow label="Recuperaciones" value={stat.acciones_recuperacion} />
-                    <StatRow label="Rebotes" value={stat.acciones_rebote} />
-                    <StatRow label="Exp. Provocadas" value={stat.acciones_exp_provocada} />
-                    <StatRow label="Penaltis Provocados" value={stat.acciones_penalti_provocado} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-orange-500/5">
-                <CardContent className="pt-4">
-                  <h4 className="font-semibold text-sm mb-3 text-orange-700 dark:text-orange-300">
-                    Faltas y Negativas
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <StatRow label={'Exp 20" 1c1'} value={stat.faltas_exp_20_1c1} />
-                    <StatRow label={'Exp 20" Boya'} value={stat.faltas_exp_20_boya} />
-                    <StatRow label="Penalti" value={stat.faltas_penalti} />
-                    <StatRow label="Contrafaltas" value={stat.faltas_contrafaltas} />
-                    <StatRow label="Pérdida de Posesión" value={stat.acciones_perdida_poco} />
-                    <StatRow label="Recibe Gol" value={stat.acciones_recibir_gol} highlight />
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {stat.acciones_asistencias > 0 && (
+                <StatCard label="Asistencias" value={stat.acciones_asistencias} color="green" />
+              )}
+              {stat.acciones_recuperacion > 0 && (
+                <StatCard label="Recuperación" value={stat.acciones_recuperacion} color="blue" />
+              )}
+              {stat.portero_acciones_perdida_pos > 0 && (
+                <StatCard label="Pérdida de Pos" value={stat.portero_acciones_perdida_pos} color="orange" />
+              )}
+              {stat.acciones_exp_provocada > 0 && (
+                <StatCard label="Exp Provocada" value={stat.acciones_exp_provocada} color="green" />
+              )}
             </div>
           </TabsContent>
         </Tabs>
