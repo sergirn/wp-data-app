@@ -62,6 +62,7 @@ export default async function MatchDetailPage({ params }: { params: { id: string
 
   const teamTotals = calculateTeamTotals(match.match_stats)
   const superioridadStats = calculateSuperioridadStats(match.match_stats)
+  const inferioridadStats = calculateInferioridadStats(match.match_stats) // Added
 
   const players = match.match_stats.map((s: any) => s.players)
   const stats = match.match_stats
@@ -127,14 +128,14 @@ export default async function MatchDetailPage({ params }: { params: { id: string
         </Card>
       </div>
 
-      {/* Team Totals */}
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Totales del Equipo - 2x2 Grid */}
         <Card>
           <CardHeader>
             <CardTitle>Totales del Equipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-blue-500/10 rounded-lg">
                 <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
                 <p className="text-sm text-muted-foreground">Goles</p>
@@ -155,60 +156,124 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           </CardContent>
         </Card>
 
-        {/* Análisis de Superioridad */}
+        {/* Análisis de Superioridad/Inferioridad con Tabs */}
         <Card>
           <CardHeader>
-            <CardTitle>Análisis de Superioridad</CardTitle>
+            <CardTitle>Análisis de Situaciones Especiales</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row items-center justify-around gap-4">
-              {/* Pie Chart */}
-              <div className="w-full md:w-1/2 h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: "Anotadas", value: superioridadStats.anotadas },
-                        { name: "Falladas", value: superioridadStats.falladas },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={70}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      <Cell fill="#10b981" />
-                      <Cell fill="#ef4444" />
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+            <Tabs defaultValue="superioridad" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
+                  Superioridad
+                </TabsTrigger>
+                <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
+                  Inferioridad
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Stats Summary */}
-              <div className="w-full md:w-1/2 space-y-3">
-                <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
-                  <span className="text-sm font-medium text-muted-foreground">Anotadas</span>
-                  <span className="text-2xl font-bold text-green-700 dark:text-green-300">
-                    {superioridadStats.anotadas}
-                  </span>
+              <TabsContent value="superioridad" className="mt-4">
+                <div className="flex flex-col md:flex-row items-center justify-around gap-4">
+                  {/* Pie Chart */}
+                  <div className="w-full md:w-1/2 h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Anotadas", value: superioridadStats.anotadas },
+                            { name: "Falladas", value: superioridadStats.falladas },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#ef4444" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Stats Summary */}
+                  <div className="w-full md:w-1/2 space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Anotadas</span>
+                      <span className="text-xl font-bold text-green-700 dark:text-green-300">
+                        {superioridadStats.anotadas}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-red-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Falladas</span>
+                      <span className="text-xl font-bold text-red-700 dark:text-red-300">
+                        {superioridadStats.falladas}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Eficiencia</span>
+                      <span className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                        {superioridadStats.eficiencia}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-lg">
-                  <span className="text-sm font-medium text-muted-foreground">Falladas</span>
-                  <span className="text-2xl font-bold text-red-700 dark:text-red-300">
-                    {superioridadStats.falladas}
-                  </span>
+              </TabsContent>
+
+              <TabsContent value="inferioridad" className="mt-4">
+                <div className="flex flex-col md:flex-row items-center justify-around gap-4">
+                  {/* Pie Chart */}
+                  <div className="w-full md:w-1/2 h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Evitados", value: inferioridadStats.evitados },
+                            { name: "Recibidos", value: inferioridadStats.recibidos },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={60}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#ef4444" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Stats Summary */}
+                  <div className="w-full md:w-1/2 space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Evitados</span>
+                      <span className="text-xl font-bold text-green-700 dark:text-green-300">
+                        {inferioridadStats.evitados}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-red-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Recibidos</span>
+                      <span className="text-xl font-bold text-red-700 dark:text-red-300">
+                        {inferioridadStats.recibidos}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
+                      <span className="text-xs font-medium text-muted-foreground">Eficiencia</span>
+                      <span className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                        {inferioridadStats.eficiencia}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-blue-500/10 rounded-lg">
-                  <span className="text-sm font-medium text-muted-foreground">Eficiencia</span>
-                  <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                    {superioridadStats.eficiencia}%
-                  </span>
-                </div>
-              </div>
-            </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
@@ -342,6 +407,20 @@ function calculateSuperioridadStats(stats: any[]) {
   return {
     anotadas,
     falladas,
+    total,
+    eficiencia: Number.parseFloat(eficiencia),
+  }
+}
+
+function calculateInferioridadStats(stats: any[]) {
+  const evitados = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos || 0), 0)
+  const total = evitados + recibidos
+  const eficiencia = total > 0 ? ((evitados / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    evitados,
+    recibidos,
     total,
     eficiencia: Number.parseFloat(eficiencia),
   }
