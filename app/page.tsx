@@ -68,7 +68,7 @@ export default function HomePage() {
           .select("*")
           .eq("club_id", currentClub.id)
           .order("match_date", { ascending: false })
-          .limit(5) // Mostrar solo 3 partidos en lugar de 5
+          .limit(3)
 
         if (matchesError) {
           if (matchesError.message?.includes("Could not find the table")) {
@@ -78,9 +78,18 @@ export default function HomePage() {
           }
         } else {
           setMatches(matchesData || [])
+        }
 
-          // Calculate quick stats
-          const allMatches = matchesData || []
+        const { data: allMatchesData, error: allMatchesError } = await supabase
+          .from("matches")
+          .select("*")
+          .eq("club_id", currentClub.id)
+          .order("match_date", { ascending: false })
+
+        if (allMatchesError) {
+          console.error("[v0] Error fetching all matches:", allMatchesError)
+        } else {
+          const allMatches = allMatchesData || []
           const wins = allMatches.filter((m) => m.home_score > m.away_score).length
           const recentForm = allMatches.slice(0, 5).map((m) => {
             if (m.home_score > m.away_score) return "W"
@@ -145,6 +154,17 @@ export default function HomePage() {
     <main className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
+
+        {currentClub?.logo_url && (
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.03] dark:opacity-[0.05] pointer-events-none overflow-hidden">
+            <img
+              src={currentClub.logo_url || "/placeholder.svg"}
+              alt=""
+              className="w-full h-full object-contain scale-150"
+              style={{ transform: "translateX(25%)" }}
+            />
+          </div>
+        )}
 
         <div className="container mx-auto px-4 py-8 sm:py-12 lg:py-16 relative">
           <div className="max-w-4xl">
