@@ -68,7 +68,7 @@ export default function HomePage() {
           .select("*")
           .eq("club_id", currentClub.id)
           .order("match_date", { ascending: false })
-          .limit(5)
+          .limit(3) // Mostrar solo 3 partidos en lugar de 5
 
         if (matchesError) {
           if (matchesError.message?.includes("Could not find the table")) {
@@ -155,13 +155,11 @@ export default function HomePage() {
               <Trophy className="w-3 h-3 mr-1" />
               {currentClub?.short_name || "Sistema Multi-Club"}
             </Badge>
-
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent text-balance">
               Sistema de Estadísticas
             </h1>
-
-            <p className="text-lg sm:text-xl text-muted-foreground mb-4">Análisis profesional de waterpolo</p>
-
+            <p className="text-base sm:text-lg text-muted-foreground mb-4">Análisis profesional de waterpolo</p> //
+            Reducir tamaño de texto de xl a lg
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-primary font-semibold text-xs">
@@ -423,10 +421,10 @@ export default function HomePage() {
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-h-[400px] overflow-y-auto">
               {players && players.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {players.slice(0, 6).map((player) => (
+                  {players.map((player) => (
                     <Link
                       key={player.id}
                       href={`/jugadores/${player.id}`}
@@ -445,10 +443,12 @@ export default function HomePage() {
                         )}
                       </div>
                       <div className="text-center w-full">
-                        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                        <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
                           {player.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">#{player.number}</p>
+                        <p className="text-xs text-muted-foreground">
+                          #{player.number} • {player.position || "N/A"}
+                        </p>
                       </div>
                     </Link>
                   ))}
