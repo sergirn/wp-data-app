@@ -6,7 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Trophy, Users, BarChart3, PlusCircle, Calendar, Target, Clock, Award } from "lucide-react"
+import {
+  AlertCircle,
+  Trophy,
+  Users,
+  BarChart3,
+  PlusCircle,
+  Calendar,
+  Target,
+  TrendingUp,
+  Clock,
+  Award,
+} from "lucide-react"
 import { LandingPage } from "@/components/landing-page"
 import { useClub } from "@/lib/club-context"
 import { useProfile } from "@/lib/profile-context"
@@ -57,6 +68,7 @@ export default function HomePage() {
           .select("*")
           .eq("club_id", currentClub.id)
           .order("match_date", { ascending: false })
+          .limit(5) // Mostrar solo 3 partidos en lugar de 5
 
         if (matchesError) {
           if (matchesError.message?.includes("Could not find the table")) {
@@ -70,7 +82,7 @@ export default function HomePage() {
           // Calculate quick stats
           const allMatches = matchesData || []
           const wins = allMatches.filter((m) => m.home_score > m.away_score).length
-          const recentForm = allMatches.map((m) => {
+          const recentForm = allMatches.slice(0, 5).map((m) => {
             if (m.home_score > m.away_score) return "W"
             if (m.home_score < m.away_score) return "L"
             return "D"
@@ -230,13 +242,18 @@ export default function HomePage() {
             </Card>
 
             <Card className="border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
-              <CardContent className="pt-6">
-                <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="p-2 rounded-lg bg-amber-500/10">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                </div>
+                <div className="flex gap-1 mb-1">
                   {stats.recentForm.length > 0 ? (
                     stats.recentForm.map((result, i) => (
                       <div
                         key={i}
-                        className={`w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        className={`w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs font-bold ${
                           result === "W"
                             ? "bg-green-500/20 text-green-600 dark:text-green-400"
                             : result === "L"
@@ -251,7 +268,7 @@ export default function HomePage() {
                     <span className="text-2xl sm:text-3xl font-bold">-</span>
                   )}
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-2">Forma reciente</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Forma reciente</p>
               </CardContent>
             </Card>
           </div>
