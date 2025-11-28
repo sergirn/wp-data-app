@@ -1328,7 +1328,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                         className="w-full border-dashed border-2 h-auto py-4 rounded-xl hover:border-primary hover:bg-primary/5 transition-all bg-transparent border-border flex items-center justify-center gap-2 font-semibold text-foreground"
                       >
                         <Plus className="h-5 w-5" />
-                        <span>Añadir Lanzador</span>
+                        Añadir Lanzador
                       </button>
 
                       {penaltyShooters.length === 0 && (
@@ -1650,7 +1650,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
       {showPenaltyShooterDialog && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-background border border-border rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="bg-background border border-border rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col">
             {/* Header con gradiente */}
             <div className="relative p-6 border-b border-border bg-gradient-to-br from-blue-500/10 via-primary/5 to-transparent">
               <div className="flex items-start justify-between gap-4">
@@ -1688,38 +1688,38 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                 }
 
                 return (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {availablePlayers.map((player) => (
                       <div
                         key={player.id}
-                        className="group relative p-4 rounded-xl border-2 border-border hover:border-primary/40 bg-card hover:bg-accent/30 transition-all duration-200"
+                        className="group relative p-3 rounded-xl border-2 border-border hover:border-primary/40 bg-card hover:bg-accent/30 transition-all duration-200"
                       >
-                        <div className="flex items-center gap-4">
-                          {/* Número del jugador */}
-                          <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/20 flex items-center justify-center">
-                            <span className="text-xl font-bold text-primary">{player.number}</span>
-                          </div>
-
+                        <div className="flex flex-col gap-3">
                           {/* Info del jugador */}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-base text-foreground truncate mb-0.5">{player.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {player.is_goalkeeper ? "Portero" : "Jugador de campo"}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/20 flex items-center justify-center">
+                              <span className="text-lg font-bold text-primary">{player.number}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-foreground truncate">{player.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {player.is_goalkeeper ? "Portero" : "Jugador"}
+                              </p>
+                            </div>
                           </div>
 
                           {/* Botones de acción */}
-                          <div className="flex gap-2 flex-shrink-0">
+                          <div className="flex gap-2">
                             <button
                               type="button"
                               onClick={() => {
                                 setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: true }])
                                 setShowPenaltyShooterDialog(false)
                               }}
-                              className="px-4 py-2 rounded-lg bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-200 flex items-center gap-1.5"
+                              className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-medium shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-200 flex items-center justify-center gap-1.5"
                             >
                               <CheckCircle className="h-4 w-4" />
-                              <span className="hidden sm:inline">Gol</span>
+                              <span>Gol</span>
                             </button>
                             <button
                               type="button"
@@ -1727,10 +1727,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                                 setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: false }])
                                 setShowPenaltyShooterDialog(false)
                               }}
-                              className="px-4 py-2 rounded-lg bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium shadow-lg shadow-red-600/30 hover:shadow-xl hover:shadow-red-600/40 transition-all duration-200 flex items-center gap-1.5"
+                              className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-medium shadow-lg shadow-red-600/30 hover:shadow-xl hover:shadow-red-600/40 transition-all duration-200 flex items-center justify-center gap-1.5"
                             >
                               <XCircle className="h-4 w-4" />
-                              <span className="hidden sm:inline">Falla</span>
+                              <span>Falla</span>
                             </button>
                           </div>
                         </div>
@@ -1746,9 +1746,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
               <button
                 type="button"
                 onClick={() => setShowPenaltyShooterDialog(false)}
-                className="w-full px-4 py-3 rounded-lg border-2 border-border hover:bg-muted font-medium text-foreground transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
               >
-                Cancelar
+                Cerrar
               </button>
             </div>
           </div>
