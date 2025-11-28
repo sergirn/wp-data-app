@@ -1933,9 +1933,19 @@ function FieldPlayerStatsDialog({
       <TabsContent value="acciones" className="space-y-4 mt-4">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <StatField
-            label="Bloqueo"
-            value={safeNumber(stats.acciones_bloqueo)}
-            onChange={(v) => onUpdate("acciones_bloqueo", v)}
+            label="Gol"
+            value={safeNumber(stats.acciones_goles)}
+            onChange={(v) => onUpdate("acciones_goles", v)}
+          />
+          <StatField
+            label="Gol en Superioridad"
+            value={safeNumber(stats.acciones_gol_superioridad)}
+            onChange={(v) => onUpdate("acciones_gol_superioridad", v)}
+          />
+          <StatField
+            label="Fallo Superioridad"
+            value={safeNumber(stats.acciones_fallo_superioridad)}
+            onChange={(v) => onUpdate("acciones_fallo_superioridad", v)}
           />
           <StatField
             label="Asistencias"
@@ -1948,29 +1958,14 @@ function FieldPlayerStatsDialog({
             onChange={(v) => onUpdate("acciones_recuperacion", v)}
           />
           <StatField
-            label="Rebote"
-            value={safeNumber(stats.acciones_rebote)}
-            onChange={(v) => onUpdate("acciones_rebote", v)}
+            label="Pérdida Posesión"
+            value={safeNumber(stats.portero_acciones_perdida_pos)}
+            onChange={(v) => onUpdate("portero_acciones_perdida_pos", v)}
           />
           <StatField
-            label="Exp Provocada"
+            label="Expulsión Provocada"
             value={safeNumber(stats.acciones_exp_provocada)}
             onChange={(v) => onUpdate("acciones_exp_provocada", v)}
-          />
-          <StatField
-            label="Penalti Provocado"
-            value={safeNumber(stats.acciones_penalti_provocado)}
-            onChange={(v) => onUpdate("acciones_penalti_provocado", v)}
-          />
-          <StatField
-            label="Recibe Gol"
-            value={safeNumber(stats.acciones_recibir_gol)}
-            onChange={(v) => onUpdate("acciones_recibir_gol", v)}
-          />
-          <StatField
-            label="Pérdida Posesión"
-            value={safeNumber(stats.acciones_perdida_poco)}
-            onChange={(v) => onUpdate("acciones_perdida_poco", v)}
           />
         </div>
       </TabsContent>
