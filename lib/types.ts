@@ -19,6 +19,8 @@ export interface Match {
   jornada: number | null
   notes: string | null
   club_id: number
+  penalty_home_score: number | null // Added penalty shootout fields
+  penalty_away_score: number | null
 }
 
 export interface MatchStats {
@@ -85,6 +87,9 @@ export interface MatchStats {
   acciones_perdida_poco: number
 
   // Goalkeeper stats
+  portero_gol: number // Regular goals conceded
+  portero_gol_superioridad: number // Goals conceded in opponent's numerical superiority
+  portero_fallo_superioridad: number // Opponent's misses in numerical superiority
   portero_goles_totales: number // Added total goals conceded
   portero_goles_boya: number // Updated field name
   portero_goles_hombre_menos: number

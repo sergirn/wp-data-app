@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield } from "lucide-react"
+import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield, CheckCircle, XCircle } from "lucide-react"
 import { notFound } from "next/navigation"
 import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
@@ -17,6 +17,15 @@ import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
   clubs: Club
+}
+
+interface PenaltyShootoutPlayer {
+  id: number
+  match_id: number
+  player_id: number
+  shot_order: number
+  scored: boolean
+  players: Player
 }
 
 export default async function MatchDetailPage({ params }: { params: { id: string } }) {
@@ -43,15 +52,37 @@ export default async function MatchDetailPage({ params }: { params: { id: string
     notFound()
   }
 
+  const { data: penaltyShooters } = await supabase
+    .from("penalty_shootout_players")
+    .select("*, players (*)")
+    .eq("match_id", id)
+    .order("shot_order")
+
   const matchDate = new Date(match.match_date)
-  const result =
-    match.home_score > match.away_score ? "Victoria" : match.home_score < match.away_score ? "Derrota" : "Empate"
-  const resultColor =
-    result === "Victoria"
-      ? "bg-green-500/10 text-green-700 dark:text-green-300"
-      : result === "Derrota"
-        ? "bg-red-500/10 text-red-700 dark:text-red-300"
-        : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300"
+
+  const isTied = match.home_score === match.away_score
+  const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null
+
+  let result: string
+  let resultColor: string
+
+  if (hasPenalties) {
+    // Determine winner by penalties
+    result = match.penalty_home_score! > match.penalty_away_score! ? "Victoria (Penaltis)" : "Derrota (Penaltis)"
+    resultColor =
+      match.penalty_home_score! > match.penalty_away_score!
+        ? "bg-green-500/10 text-green-700 dark:text-green-300"
+        : "bg-red-500/10 text-red-700 dark:text-red-300"
+  } else {
+    result =
+      match.home_score > match.away_score ? "Victoria" : match.home_score < match.away_score ? "Derrota" : "Empate"
+    resultColor =
+      result === "Victoria"
+        ? "bg-green-500/10 text-green-700 dark:text-green-300"
+        : result === "Derrota"
+          ? "bg-red-500/10 text-red-700 dark:text-red-300"
+          : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300"
+  }
 
   const fieldPlayersStats = match.match_stats
     .filter((stat: any) => !stat.players.is_goalkeeper)
@@ -118,6 +149,37 @@ export default async function MatchDetailPage({ params }: { params: { id: string
                 </div>
               </div>
             </div>
+            {hasPenalties && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-center gap-4">
+                    <Badge variant="outline" className="text-sm font-semibold px-4 py-1.5">
+                      Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
+                    </Badge>
+                  </div>
+
+                  {penaltyShooters && penaltyShooters.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2 text-center">
+                        Lanzadores de {clubName}
+                      </p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {penaltyShooters.map((shooter: PenaltyShootoutPlayer) => (
+                          <Badge
+                            key={shooter.id}
+                            variant={shooter.scored ? "default" : "destructive"}
+                            className="text-xs flex items-center gap-1.5 px-3 py-1"
+                          >
+                            {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}#
+                            {shooter.players.number} {shooter.players.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </CardHeader>
           {match.notes && (
             <CardContent>
