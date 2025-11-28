@@ -118,15 +118,29 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
   const router = useRouter()
   const matchDate = new Date(match.match_date)
 
-  const result =
-    match.home_score > match.away_score ? "Victoria" : match.home_score < match.away_score ? "Derrota" : "Empate"
+  const isTied = match.home_score === match.away_score
+  const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null
 
-  const resultColor =
-    result === "Victoria"
-      ? "text-green-600 dark:text-green-400"
-      : result === "Derrota"
-        ? "text-red-600 dark:text-red-400"
-        : "text-yellow-600 dark:text-yellow-400"
+  let result: string
+  let resultColor: string
+
+  if (hasPenalties) {
+    // Determinar ganador por penaltis
+    result = match.penalty_home_score! > match.penalty_away_score! ? "Victoria (Penaltis)" : "Derrota (Penaltis)"
+    resultColor =
+      match.penalty_home_score! > match.penalty_away_score!
+        ? "text-green-600 dark:text-green-400"
+        : "text-red-600 dark:text-red-400"
+  } else {
+    result =
+      match.home_score > match.away_score ? "Victoria" : match.home_score < match.away_score ? "Derrota" : "Empate"
+    resultColor =
+      result === "Victoria"
+        ? "text-green-600 dark:text-green-400"
+        : result === "Derrota"
+          ? "text-red-600 dark:text-red-400"
+          : "text-yellow-600 dark:text-yellow-400"
+  }
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking on action buttons
@@ -169,18 +183,26 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
           </div>
 
           {/* MARCADOR */}
-          <div className="flex items-center justify-center gap-4 sm:gap-6 w-full sm:w-auto">
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[80px]">{clubName}</p>
+          <div className="flex flex-col items-center justify-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="text-center">
+                <p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
+                <p className="text-xs text-muted-foreground truncate max-w-[80px]">{clubName}</p>
+              </div>
+
+              <div className="text-xl sm:text-2xl font-bold text-muted-foreground">-</div>
+
+              <div className="text-center">
+                <p className="text-2xl sm:text-3xl font-bold">{match.away_score}</p>
+                <p className="text-xs text-muted-foreground truncate max-w-[80px]">{match.opponent}</p>
+              </div>
             </div>
 
-            <div className="text-xl sm:text-2xl font-bold text-muted-foreground">-</div>
-
-            <div className="text-center">
-              <p className="text-2xl sm:text-3xl font-bold">{match.away_score}</p>
-              <p className="text-xs text-muted-foreground truncate max-w-[80px]">{match.opponent}</p>
-            </div>
+            {hasPenalties && (
+              <div className="text-xs text-muted-foreground font-medium">
+                Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
+              </div>
+            )}
           </div>
         </div>
 

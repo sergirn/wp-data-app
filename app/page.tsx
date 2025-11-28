@@ -352,8 +352,23 @@ export default function HomePage() {
                   {matches && matches.length > 0 ? (
                     <div className="space-y-3">
                       {matches.map((match) => {
-                        const isWin = match.home_score > match.away_score
-                        const isDraw = match.home_score === match.away_score
+                        const isTied = match.home_score === match.away_score
+                        const hasPenalties =
+                          isTied && match.penalty_home_score !== null && match.penalty_away_score !== null
+
+                        let isWin: boolean
+                        let isDraw: boolean
+                        let resultLabel: string
+
+                        if (hasPenalties) {
+                          isWin = match.penalty_home_score! > match.penalty_away_score!
+                          isDraw = false
+                          resultLabel = isWin ? "Victoria (Penaltis)" : "Derrota (Penaltis)"
+                        } else {
+                          isWin = match.home_score > match.away_score
+                          isDraw = match.home_score === match.away_score
+                          resultLabel = isWin ? "Victoria" : isDraw ? "Empate" : "Derrota"
+                        }
 
                         return (
                           <Link
@@ -368,7 +383,7 @@ export default function HomePage() {
                                     variant={isWin ? "default" : isDraw ? "secondary" : "destructive"}
                                     className="text-xs"
                                   >
-                                    {isWin ? "Victoria" : isDraw ? "Empate" : "Derrota"}
+                                    {resultLabel}
                                   </Badge>
                                 </div>
                                 <p className="font-semibold text-base truncate group-hover:text-primary transition-colors">
@@ -386,6 +401,11 @@ export default function HomePage() {
                                 <p className="font-bold text-2xl">
                                   {match.home_score} - {match.away_score}
                                 </p>
+                                {hasPenalties && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Pen: {match.penalty_home_score} - {match.penalty_away_score}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </Link>
