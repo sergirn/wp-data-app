@@ -175,7 +175,7 @@ export default function HomePage() {
               <Trophy className="w-3 h-3 mr-1" />
               Sistema de Estadísticas
             </Badge>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-white-400 dark:to-cyan-400 bg-clip-text text-transparent">
               {currentClub?.name || "Mi Club"}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">Análisis profesional de waterpolo</p>
