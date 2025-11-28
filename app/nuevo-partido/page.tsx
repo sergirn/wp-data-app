@@ -1914,21 +1914,40 @@ function FieldPlayerStatsDialog({
 }) {
   return (
     <Tabs defaultValue="goles" className="w-full">
-      <TabsList className="grid w-full grid-cols-5 h-auto">
-        <TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
+      <TabsList className="grid grid-cols-5 w-full h-auto">
+        <TabsTrigger
+          value="goles"
+          className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
+        >
           Goles
         </TabsTrigger>
-        <TabsTrigger value="tiros" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
+
+        <TabsTrigger
+          value="tiros"
+          className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
+        >
           Tiros
         </TabsTrigger>
-        <TabsTrigger value="superioridad" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
-          <span className="sm:hidden block truncate">Sup.</span>
-          <span className="hidden sm:inline block truncate">Superioridad</span>
+
+        <TabsTrigger
+          value="superioridad"
+          className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
+        >
+          <span className="sm:hidden">Sup.</span>
+          <span className="hidden sm:inline">Superioridad</span>
         </TabsTrigger>
-        <TabsTrigger value="faltas" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
+
+        <TabsTrigger
+          value="faltas"
+          className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
+        >
           Faltas
         </TabsTrigger>
-        <TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-3 py-2">
+
+        <TabsTrigger
+          value="acciones"
+          className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
+        >
           Acciones
         </TabsTrigger>
       </TabsList>
