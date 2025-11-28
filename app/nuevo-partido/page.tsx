@@ -714,35 +714,43 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     setSaving(true)
 
     try {
-      const handleSubmit = async () => {
-        // Calculate penalty saves for goalkeepers
-        const penaltySavesByGoalkeeper: Record<number, number> = {}
-        rivalPenalties.forEach((penalty) => {
-          if (penalty.result === "saved" && penaltyGoalkeeperMap[penalty.id]) {
-            const gkId = penaltyGoalkeeperMap[penalty.id]
-            penaltySavesByGoalkeeper[gkId] = (penaltySavesByGoalkeeper[gkId] || 0) + 1
-          }
-        })
+      const homeQ1 = quarterScores[1].home
+      const awayQ1 = quarterScores[1].away
+      const homeQ2 = quarterScores[2].home
+      const awayQ2 = quarterScores[2].away
+      const homeQ3 = quarterScores[3].home
+      const awayQ3 = quarterScores[3].away
+      const homeQ4 = quarterScores[4].home
+      const awayQ4 = quarterScores[4].away
 
-        // When saving goalkeeper stats, add penalty saves
-        for (const [playerId, playerStat] of Object.entries(stats)) {
-          const player = allPlayers.find((p) => p.id === Number(playerId))
-          if (player?.is_goalkeeper && penaltySavesByGoalkeeper[player.id]) {
-            // Add penalty saves to goalkeeper stats
-            if (!stats[player.id]) {
-              stats[player.id] = {}
-            }
-            stats[player.id].portero_paradas_penalti_parado =
-              (stats[player.id].portero_paradas_penalti_parado || 0) + penaltySavesByGoalkeeper[player.id]
-          }
-        }
-
-        // ... existing code for saving ...
-      }
+      const sprint1Winner = sprintWinners[1]
+      const sprint2Winner = sprintWinners[2]
+      const sprint3Winner = sprintWinners[3]
+      const sprint4Winner = sprintWinners[4]
       // </CHANGE>
 
-      const { homeQ1, homeQ2, homeQ3, homeQ4, awayQ1, awayQ2, awayQ3, awayQ4 } = quarterScores
-      const { sprint1Winner, sprint2Winner, sprint3Winner, sprint4Winner } = sprintWinners
+      // Calculate penalty saves for goalkeepers
+      const penaltySavesByGoalkeeper: Record<number, number> = {}
+      rivalPenalties.forEach((penalty) => {
+        if (penalty.result === "saved" && penaltyGoalkeeperMap[penalty.id]) {
+          const gkId = penaltyGoalkeeperMap[penalty.id]
+          penaltySavesByGoalkeeper[gkId] = (penaltySavesByGoalkeeper[gkId] || 0) + 1
+        }
+      })
+
+      // When saving goalkeeper stats, add penalty saves
+      for (const [playerId, playerStat] of Object.entries(stats)) {
+        const player = allPlayers.find((p) => p.id === Number(playerId))
+        if (player?.is_goalkeeper && penaltySavesByGoalkeeper[player.id]) {
+          // Add penalty saves to goalkeeper stats
+          if (!stats[player.id]) {
+            stats[player.id] = {}
+          }
+          stats[player.id].portero_paradas_penalti_parado =
+            (stats[player.id].portero_paradas_penalti_parado || 0) + penaltySavesByGoalkeeper[player.id]
+        }
+      }
+
       const maxPlayers = fieldPlayers.length
 
       if (editingMatchId && existingMatch) {
