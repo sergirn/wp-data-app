@@ -12,7 +12,6 @@ import { StatInput } from "@/components/stat-input"
 import type { Player, MatchStats, Profile, Match } from "@/lib/types"
 import {
   Loader2,
-  Save,
   AlertCircle,
   RefreshCw,
   Plus,
@@ -21,9 +20,9 @@ import {
   XCircle,
   Trophy,
   X,
-  Trash2,
   Shield,
   Target,
+  Save,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -38,7 +37,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PlayerSubstitutionDialog } from "@/components/player-substitution-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 
 interface MatchEditParams {
@@ -610,7 +608,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         const activeQuarter = [1, 2, 3, 4].find((q) => !closedQuarters[q])
         if (!activeQuarter) return updated
 
-        // recalcula solo el parcial ACTIVO desde cero
+        // recalcula solo el ACTIVO desde cero
         const { homeGoals, awayGoals } = calculateScores(updatedAllStats)
 
         // diferencia respecto al total del cuarto anterior
@@ -883,6 +881,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   })
 
   const players = allPlayers // Use allPlayers for the dialog
+  const homeTeamName = myClub?.name || "Mi Equipo"
+  const awayTeamName = opponent || "Rival"
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -1343,15 +1343,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                         <DialogContent className="max-w-md">
                           <DialogHeader>
                             <DialogTitle>Seleccionar Lanzador</DialogTitle>
-                            <DialogDescription>
-                              Elige el jugador que lanzó el penalti y si anotó o falló
-                            </DialogDescription>
+                            <DialogDescription>Elige el jugador y marca si anotó o falló el penalti</DialogDescription>
                           </DialogHeader>
 
                           {/* Lista filtrada una sola vez */}
                           {(() => {
                             const availablePenaltyPlayers = fieldPlayers.filter(
-                              (p) => !penaltyShooters.some((s) => s.playerId === p.id)
+                              (p) => !penaltyShooters.some((s) => s.playerId === p.id),
                             )
 
                             return (
@@ -1563,14 +1561,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                   <div className="mt-8 p-6 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 shadow-lg">
                     <div className="flex items-center justify-center gap-8 mb-4">
                       <div className="text-center">
-                        <p className="text-sm text-muted-foreground mb-2 font-medium">{myClub?.name || "Mi Equipo"}</p>
+                        <p className="text-sm text-muted-foreground mb-2 font-medium">{homeTeamName}</p>
                         <p className="text-5xl sm:text-6xl font-bold text-primary tabular-nums">
                           {penaltyShooters.filter((s) => s.scored).length}
                         </p>
                       </div>
                       <div className="text-4xl font-bold text-muted-foreground">-</div>
                       <div className="text-center">
-                        <p className="text-sm text-muted-foreground mb-2 font-medium">{opponent || "Rival"}</p>
+                        <p className="text-sm text-muted-foreground mb-2 font-medium">{awayTeamName}</p>
                         <p className="text-5xl sm:text-6xl font-bold text-destructive tabular-nums">
                           {rivalPenalties.filter((p) => p.result === "scored").length}
                         </p>
@@ -1734,159 +1732,124 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
       )}
 
       {showPenaltyShooterDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background border border-border rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6 border-b border-border sticky top-0 bg-background">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border-2 border-border rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-border bg-gradient-to-r from-primary/5 to-primary/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-foreground">Lanzadores de Penaltis</h2>
+                  <h2 className="text-2xl font-bold text-foreground">Seleccionar Lanzador</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Selecciona los jugadores que lanzaron penaltis y marca si anotaron
+                    Elige el jugador y marca si anotó o falló el penalti
                   </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setShowPenaltyShooterDialog(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPenaltyShooterDialog(false)}
+                  className="h-10 w-10 rounded-full"
+                >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
-              {selectedPlayersForPenalty
-                .filter((sp) => sp.played)
-                .map((sp) => {
-                  const player = players.find((p) => p.id === sp.playerId)
-                  const shooterIndex = penaltyShooters.findIndex((ps) => ps.playerId === sp.playerId)
-                  const isSelected = shooterIndex !== -1
-                  const scored = isSelected ? penaltyShooters[shooterIndex].scored : false
+            {/* Player List */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-3">
+                {(() => {
+                  const availablePlayers = fieldPlayers.filter((p) => !penaltyShooters.some((s) => s.playerId === p.id))
 
-                  return (
-                    <div
-                      key={sp.playerId}
-                      className={cn(
-                        "flex items-center justify-between p-4 rounded-lg border-2 transition-colors",
-                        isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center font-bold",
-                            player?.is_goalkeeper
-                              ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                              : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
-                          )}
-                        >
-                          {player?.number}
+                  if (availablePlayers.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                          <Users className="h-8 w-8 text-muted-foreground" />
                         </div>
-                        <div>
-                          <p className="font-semibold text-foreground">{player?.name}</p>
+                        <p className="text-lg font-semibold text-foreground mb-1">Todos los jugadores añadidos</p>
+                        <p className="text-sm text-muted-foreground">
+                          No hay más jugadores disponibles para lanzar penaltis
+                        </p>
+                      </div>
+                    )
+                  }
+
+                  return availablePlayers.map((player) => (
+                    <div
+                      key={player.id}
+                      className="group flex items-center gap-4 p-4 rounded-xl border-2 border-border hover:border-primary/50 hover:bg-accent/50 transition-all duration-200"
+                    >
+                      {/* Player Info */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border-2 border-primary/30 flex items-center justify-center font-bold text-lg text-primary">
+                          {player.number}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">{player.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {player?.is_goalkeeper ? "Portero" : "Jugador"}
+                            {player.is_goalkeeper ? "Portero" : "Jugador"}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {isSelected && (
-                          <>
-                            <Button
-                              type="button"
-                              variant={scored ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => {
-                                const newShooters = [...penaltyShooters]
-                                newShooters[shooterIndex].scored = true
-                                setPenaltyShooters(newShooters)
-                              }}
-                              className={cn(
-                                scored && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800",
-                              )}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Anotó
-                            </Button>
-                            <Button
-                              type="button"
-                              variant={!scored ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => {
-                                const newShooters = [...penaltyShooters]
-                                newShooters[shooterIndex].scored = false
-                                setPenaltyShooters(newShooters)
-                              }}
-                              className={cn(
-                                !scored && "bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800",
-                              )}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Falló
-                            </Button>
-                          </>
-                        )}
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 flex-shrink-0">
                         <Button
                           type="button"
-                          variant={isSelected ? "destructive" : "default"}
                           size="sm"
                           onClick={() => {
-                            if (isSelected) {
-                              setPenaltyShooters(penaltyShooters.filter((ps) => ps.playerId !== sp.playerId))
-                            } else {
-                              setPenaltyShooters([...penaltyShooters, { playerId: sp.playerId, scored: true }])
-                            }
+                            setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: true }])
+                            setShowPenaltyShooterDialog(false)
                           }}
+                          className="bg-green-600 hover:bg-green-700 text-white border-0 shadow-md hover:shadow-lg transition-all"
                         >
-                          {isSelected ? (
-                            <>
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Quitar
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-4 w-4 mr-1" />
-                              Añadir
-                            </>
-                          )}
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Gol
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: false }])
+                            setShowPenaltyShooterDialog(false)
+                          }}
+                          className="bg-red-600 hover:bg-red-700 text-white border-0 shadow-md hover:shadow-lg transition-all"
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Falla
                         </Button>
                       </div>
                     </div>
-                  )
-                })}
-
-              {selectedPlayersForPenalty.filter((sp) => sp.played).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No hay jugadores seleccionados para este partido</p>
-                </div>
-              )}
+                  ))
+                })()}
+              </div>
             </div>
 
+            {/* Footer */}
             <div className="p-6 border-t border-border bg-muted/30">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  {penaltyShooters.length}{" "}
-                  {penaltyShooters.length === 1 ? "lanzador seleccionado" : "lanzadores seleccionados"}
-                </p>
-                <Button type="button" onClick={() => setShowPenaltyShooterDialog(false)}>
-                  Confirmar Selección
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPenaltyShooterDialog(false)}
+                className="w-full"
+              >
+                Cancelar
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex justify-end gap-4 mt-6">
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancelar
-        </Button>
-        <Button onClick={handleSave} disabled={saving} size="lg">
+      <div className="fixed bottom-6 right-6 z-40">
+        <Button onClick={handleSave} disabled={saving} size="lg" className="shadow-lg">
           {saving ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {editingMatchId ? "Actualizando..." : "Guardando..."}
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Guardando...
             </>
           ) : (
             <>
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="mr-2 h-5 w-5" />
               {editingMatchId ? "Actualizar Partido" : "Guardar Partido"}
             </>
           )}
