@@ -156,7 +156,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
 
         {currentClub?.logo_url && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.1] dark:opacity-[0.1] pointer-events-none overflow-hidden">
+          <div className="absolute right-0 top-8 w-[500px] h-[500px] opacity-[0.08] dark:opacity-[0.08] pointer-events-none overflow-hidden">
             <img
               src={currentClub.logo_url || "/placeholder.svg"}
               alt=""
@@ -175,7 +175,7 @@ export default function HomePage() {
               <Trophy className="w-3 h-3 mr-1" />
               Sistema de Estadísticas
             </Badge>
-            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-white-400 dark:to-cyan-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold mb-4 text-white">
               {currentClub?.name || "Mi Club"}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">Análisis profesional de waterpolo</p>
