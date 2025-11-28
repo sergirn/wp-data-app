@@ -10,13 +10,27 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { StatInput } from "@/components/stat-input"
 import type { Player, MatchStats, Profile, Match } from "@/lib/types"
-import { Loader2, Save, AlertCircle, RefreshCw, Plus } from "lucide-react"
+import {
+  Loader2,
+  Save,
+  AlertCircle,
+  RefreshCw,
+  Plus,
+  Users,
+  CheckCircle,
+  XCircle,
+  Trophy,
+  X,
+  Trash2,
+} from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PlayerSubstitutionDialog } from "@/components/player-substitution-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/use-toast"
 
 interface MatchEditParams {
   matchId?: number
@@ -48,6 +62,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   // ADD STATE FOR PENALTY SHOOTOUT
   const [penaltyHomeScore, setPenaltyHomeScore] = useState<number | null>(null)
   const [penaltyAwayScore, setPenaltyAwayScore] = useState<number | null>(null)
+  const [penaltyShooters, setPenaltyShooters] = useState<Array<{ playerId: number; scored: boolean }>>([])
+  const [showPenaltyShooterDialog, setShowPenaltyShooterDialog] = useState(false)
 
   const router = useRouter()
   const supabase = createClient()
@@ -461,6 +477,19 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         setStats(statsMap)
         console.log("[v0] All match stats loaded successfully")
       }
+
+      // LOAD PENALTY SHOOTERS IF THEY EXIST
+      const { data: penaltyPlayers, error: penaltyError } = await supabase
+        .from("penalty_shootout_players")
+        .select("*")
+        .eq("match_id", matchId)
+        .order("shot_order")
+
+      if (penaltyError) {
+        console.error("Error loading penalty shooters:", penaltyError)
+      } else if (penaltyPlayers) {
+        setPenaltyShooters(penaltyPlayers.map((p) => ({ playerId: p.player_id, scored: p.scored })))
+      }
     } catch (error) {
       console.error("Error loading existing match:", error)
     }
@@ -592,9 +621,22 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
       }
     }
 
+    if (homeGoals === awayGoals && penaltyHomeScore !== null && penaltyShooters.length === 0) {
+      toast({
+        title: "Atención",
+        description: "No has seleccionado los lanzadores de penaltis de tu equipo",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSaving(true)
 
     try {
+      const { homeQ1, homeQ2, homeQ3, homeQ4, awayQ1, awayQ2, awayQ3, awayQ4 } = quarterScores
+      const { sprint1Winner, sprint2Winner, sprint3Winner, sprint4Winner } = sprintWinners
+      const maxPlayers = fieldPlayers.length
+
       if (editingMatchId && existingMatch) {
         const { error: matchError } = await supabase
           .from("matches")
@@ -608,18 +650,19 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             season: season || null,
             jornada: jornada || null,
             notes: notes || null,
-            q1_score: quarterScores[1].home,
-            q2_score: quarterScores[2].home,
-            q3_score: quarterScores[3].home,
-            q4_score: quarterScores[4].home,
-            q1_score_rival: quarterScores[1].away,
-            q2_score_rival: quarterScores[2].away,
-            q3_score_rival: quarterScores[3].away,
-            q4_score_rival: quarterScores[4].away,
-            sprint1_winner: sprintWinners[1],
-            sprint2_winner: sprintWinners[2],
-            sprint3_winner: sprintWinners[3],
-            sprint4_winner: sprintWinners[4],
+            q1_score: homeQ1,
+            q2_score: homeQ2,
+            q3_score: homeQ3,
+            q4_score: homeQ4,
+            q1_score_rival: awayQ1,
+            q2_score_rival: awayQ2,
+            q3_score_rival: awayQ3,
+            q4_score_rival: awayQ4,
+            sprint1_winner: sprint1Winner === 1 ? 1 : sprint1Winner === 2 ? 2 : null,
+            sprint2_winner: sprint2Winner === 1 ? 1 : sprint2Winner === 2 ? 2 : null,
+            sprint3_winner: sprint3Winner === 1 ? 1 : sprint3Winner === 2 ? 2 : null,
+            sprint4_winner: sprint4Winner === 1 ? 1 : sprint4Winner === 2 ? 2 : null,
+            max_players_on_field: maxPlayers,
             // ADD PENALTY SHOOTOUT SCORES
             penalty_home_score: homeGoals === awayGoals ? penaltyHomeScore : null,
             penalty_away_score: homeGoals === awayGoals ? penaltyAwayScore : null,
@@ -639,34 +682,51 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
         if (statsError) throw statsError
 
+        // Update penalty shootout players if applicable
+        if (homeGoals === awayGoals) {
+          await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId)
+          if (penaltyShooters.length > 0) {
+            const penaltyPlayers = penaltyShooters.map((shooter, index) => ({
+              match_id: editingMatchId,
+              player_id: shooter.playerId,
+              shot_order: index + 1,
+              scored: shooter.scored,
+            }))
+            const { error: penaltyError } = await supabase.from("penalty_shootout_players").insert(penaltyPlayers)
+            if (penaltyError) throw penaltyError
+          }
+        } else {
+          await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId)
+        }
+
         router.push(`/partidos/${editingMatchId}`)
       } else {
         const { data: matchData, error: matchError } = await supabase
           .from("matches")
           .insert({
+            club_id: profile.club_id,
             match_date: matchDate,
             opponent,
-            location: location || null,
-            home_score: homeGoals,
-            away_score: awayGoals,
             is_home: isHome,
+            location: location || null,
             season: season || null,
             jornada: jornada || null,
+            home_score: homeGoals,
+            away_score: awayGoals,
+            q1_score: homeQ1,
+            q2_score: homeQ2,
+            q3_score: homeQ3,
+            q4_score: homeQ4,
+            q1_score_rival: awayQ1,
+            q2_score_rival: awayQ2,
+            q3_score_rival: awayQ3,
+            q4_score_rival: awayQ4,
+            sprint1_winner: sprint1Winner === 1 ? 1 : sprint1Winner === 2 ? 2 : null,
+            sprint2_winner: sprint2Winner === 1 ? 1 : sprint2Winner === 2 ? 2 : null,
+            sprint3_winner: sprint3Winner === 1 ? 1 : sprint3Winner === 2 ? 2 : null,
+            sprint4_winner: sprint4Winner === 1 ? 1 : sprint4Winner === 2 ? 2 : null,
+            max_players_on_field: maxPlayers,
             notes: notes || null,
-            club_id: profile.club_id,
-            q1_score: quarterScores[1].home,
-            q2_score: quarterScores[2].home,
-            q3_score: quarterScores[3].home,
-            q4_score: quarterScores[4].home,
-            q1_score_rival: quarterScores[1].away,
-            q2_score_rival: quarterScores[2].away,
-            q3_score_rival: quarterScores[3].away,
-            q4_score_rival: quarterScores[4].away,
-            sprint1_winner: sprintWinners[1],
-            sprint2_winner: sprintWinners[2],
-            sprint3_winner: sprintWinners[3],
-            sprint4_winner: sprintWinners[4],
-            // ADD PENALTY SHOOTOUT SCORES
             penalty_home_score: homeGoals === awayGoals ? penaltyHomeScore : null,
             penalty_away_score: homeGoals === awayGoals ? penaltyAwayScore : null,
           })
@@ -683,6 +743,22 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert)
 
         if (statsError) throw statsError
+
+        if (matchData && penaltyShooters.length > 0) {
+          const penaltyPlayers = penaltyShooters.map((shooter, index) => ({
+            match_id: matchData.id,
+            player_id: shooter.playerId,
+            shot_order: index + 1,
+            scored: shooter.scored,
+          }))
+
+          const { error: penaltyError } = await supabase.from("penalty_shootout_players").insert(penaltyPlayers)
+
+          if (penaltyError) {
+            console.error("[v0] Error saving penalty shooters:", penaltyError)
+            // Non-fatal error, we still have the match saved
+          }
+        }
 
         router.push(`/partidos/${matchData.id}`)
       }
@@ -726,6 +802,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   const { homeGoals, awayGoals } = calculateScores(stats)
   // CHECK IF MATCH IS TIED
   const isTied = homeGoals === awayGoals
+
+  const selectedPlayers = activePlayers.map((player) => ({
+    playerId: player.id,
+    played: true, // Assuming all active players are considered "played" for shooter selection
+    is_goalkeeper: player.is_goalkeeper,
+  }))
+
+  const players = allPlayers // Use allPlayers for the dialog
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -854,23 +938,23 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
               {/* ADD PENALTY SHOOTOUT SECTION IF TIED */}
               {isTied && (
-                <div className="border-2 border-yellow-500 rounded-lg p-6 bg-yellow-50 dark:bg-yellow-950/20">
+                <div className="border-2 border-amber-400 dark:border-amber-500 rounded-lg p-6 bg-amber-50 dark:bg-amber-950/30">
                   <div className="flex items-center gap-3 mb-4">
-                    <AlertCircle className="h-6 w-6 text-yellow-600" />
+                    <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                     <div>
-                      <h3 className="text-lg font-bold text-yellow-900 dark:text-yellow-100">
+                      <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100">
                         Partido Empatado - Tanda de Penaltis
                       </h3>
-                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
                         El marcador está {homeGoals}-{awayGoals}. Registra el resultado de los penaltis para determinar
                         el ganador.
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <Label htmlFor="penalty-home" className="text-sm font-semibold">
+                      <Label htmlFor="penalty-home" className="text-sm font-semibold text-foreground">
                         Penaltis - Tu Equipo
                       </Label>
                       <Input
@@ -881,11 +965,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                         value={penaltyHomeScore ?? ""}
                         onChange={(e) => setPenaltyHomeScore(e.target.value ? Number(e.target.value) : null)}
                         placeholder="Goles en penaltis"
-                        className="mt-2"
+                        className="mt-2 bg-background"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="penalty-away" className="text-sm font-semibold">
+                      <Label htmlFor="penalty-away" className="text-sm font-semibold text-foreground">
                         Penaltis - {opponent || "Rival"}
                       </Label>
                       <Input
@@ -896,23 +980,38 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                         value={penaltyAwayScore ?? ""}
                         onChange={(e) => setPenaltyAwayScore(e.target.value ? Number(e.target.value) : null)}
                         placeholder="Goles en penaltis"
-                        className="mt-2"
+                        className="mt-2 bg-background"
                       />
                     </div>
                   </div>
 
+                  <div className="mb-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPenaltyShooterDialog(true)}
+                      className="w-full border-amber-400 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Seleccionar Lanzadores de Penaltis ({penaltyShooters.length})
+                    </Button>
+                  </div>
+
                   {penaltyHomeScore !== null && penaltyAwayScore !== null && (
-                    <div className="mt-4 p-3 rounded-md bg-white dark:bg-gray-900 border">
+                    <div className="p-4 rounded-md bg-background border border-border">
                       {penaltyHomeScore > penaltyAwayScore ? (
-                        <p className="text-green-600 dark:text-green-400 font-semibold text-center">
+                        <p className="text-green-600 dark:text-green-400 font-semibold text-center flex items-center justify-center gap-2">
+                          <Trophy className="h-5 w-5" />
                           Victoria por penaltis: {penaltyHomeScore}-{penaltyAwayScore}
                         </p>
                       ) : penaltyAwayScore > penaltyHomeScore ? (
-                        <p className="text-red-600 dark:text-red-400 font-semibold text-center">
+                        <p className="text-red-600 dark:text-red-400 font-semibold text-center flex items-center justify-center gap-2">
+                          <XCircle className="h-5 w-5" />
                           Derrota por penaltis: {penaltyHomeScore}-{penaltyAwayScore}
                         </p>
                       ) : (
-                        <p className="text-yellow-600 dark:text-yellow-400 font-semibold text-center">
+                        <p className="text-amber-600 dark:text-amber-400 font-semibold text-center flex items-center justify-center gap-2">
+                          <AlertCircle className="h-5 w-5" />
                           Los penaltis no pueden terminar en empate
                         </p>
                       )}
@@ -981,7 +1080,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                             [q]: prev[q] === 1 ? 0 : 1,
                           }))
                         }
-                        className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border 
+                        className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border
 														${
                               sprintWinners[q] === 1
                                 ? "bg-green-500 text-white border-green-600"
@@ -1245,6 +1344,147 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             )}
           </DialogContent>
         </Dialog>
+      )}
+
+      {showPenaltyShooterDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-border sticky top-0 bg-background">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">Lanzadores de Penaltis</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Selecciona los jugadores que lanzaron penaltis y marca si anotaron
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShowPenaltyShooterDialog(false)}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {selectedPlayers
+                .filter((sp) => sp.played)
+                .map((sp) => {
+                  const player = players.find((p) => p.id === sp.playerId)
+                  const shooterIndex = penaltyShooters.findIndex((ps) => ps.playerId === sp.playerId)
+                  const isSelected = shooterIndex !== -1
+                  const scored = isSelected ? penaltyShooters[shooterIndex].scored : false
+
+                  return (
+                    <div
+                      key={sp.playerId}
+                      className={cn(
+                        "flex items-center justify-between p-4 rounded-lg border-2 transition-colors",
+                        isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center font-bold",
+                            player?.is_goalkeeper
+                              ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                              : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+                          )}
+                        >
+                          {player?.number}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">{player?.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {player?.is_goalkeeper ? "Portero" : "Jugador"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isSelected && (
+                          <>
+                            <Button
+                              type="button"
+                              variant={scored ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                const newShooters = [...penaltyShooters]
+                                newShooters[shooterIndex].scored = true
+                                setPenaltyShooters(newShooters)
+                              }}
+                              className={cn(
+                                scored && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800",
+                              )}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Anotó
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={!scored ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                const newShooters = [...penaltyShooters]
+                                newShooters[shooterIndex].scored = false
+                                setPenaltyShooters(newShooters)
+                              }}
+                              className={cn(
+                                !scored && "bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800",
+                              )}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Falló
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          type="button"
+                          variant={isSelected ? "destructive" : "default"}
+                          size="sm"
+                          onClick={() => {
+                            if (isSelected) {
+                              setPenaltyShooters(penaltyShooters.filter((ps) => ps.playerId !== sp.playerId))
+                            } else {
+                              setPenaltyShooters([...penaltyShooters, { playerId: sp.playerId, scored: true }])
+                            }
+                          }}
+                        >
+                          {isSelected ? (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Quitar
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-1" />
+                              Añadir
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+
+              {selectedPlayers.filter((sp) => sp.played).length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No hay jugadores seleccionados para este partido</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-border bg-muted/30">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {penaltyShooters.length}{" "}
+                  {penaltyShooters.length === 1 ? "lanzador seleccionado" : "lanzadores seleccionados"}
+                </p>
+                <Button type="button" onClick={() => setShowPenaltyShooterDialog(false)}>
+                  Confirmar Selección
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex justify-end gap-4 mt-6">

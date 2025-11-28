@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield } from "lucide-react"
+import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield, CheckCircle, XCircle } from "lucide-react"
 import { notFound } from "next/navigation"
 import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
@@ -17,6 +17,15 @@ import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
   clubs: Club
+}
+
+interface PenaltyShootoutPlayer {
+  id: number
+  match_id: number
+  player_id: number
+  shot_order: number
+  scored: boolean
+  players: Player
 }
 
 export default async function MatchDetailPage({ params }: { params: { id: string } }) {
@@ -42,6 +51,12 @@ export default async function MatchDetailPage({ params }: { params: { id: string
   if (error || !match) {
     notFound()
   }
+
+  const { data: penaltyShooters } = await supabase
+    .from("penalty_shootout_players")
+    .select("*, players (*)")
+    .eq("match_id", id)
+    .order("shot_order")
 
   const matchDate = new Date(match.match_date)
 
@@ -135,11 +150,33 @@ export default async function MatchDetailPage({ params }: { params: { id: string
               </div>
             </div>
             {hasPenalties && (
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex items-center justify-center gap-4">
-                  <Badge variant="outline" className="text-sm font-semibold">
-                    Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
-                  </Badge>
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-center gap-4">
+                    <Badge variant="outline" className="text-sm font-semibold px-4 py-1.5">
+                      Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
+                    </Badge>
+                  </div>
+
+                  {penaltyShooters && penaltyShooters.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2 text-center">
+                        Lanzadores de {clubName}
+                      </p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {penaltyShooters.map((shooter: PenaltyShootoutPlayer) => (
+                          <Badge
+                            key={shooter.id}
+                            variant={shooter.scored ? "default" : "destructive"}
+                            className="text-xs flex items-center gap-1.5 px-3 py-1"
+                          >
+                            {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}#
+                            {shooter.players.number} {shooter.players.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
