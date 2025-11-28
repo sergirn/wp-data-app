@@ -152,7 +152,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden pb-8">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
 
         {currentClub?.logo_url && (
@@ -173,28 +173,15 @@ export default function HomePage() {
               className="mb-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
             >
               <Trophy className="w-3 h-3 mr-1" />
-              {currentClub?.short_name || "Sistema Multi-Club"}
-            </Badge>
-            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent text-balance">
               Sistema de Estadísticas
+            </Badge>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">
+              {currentClub?.name || "Mi Club"}
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground mb-4">Análisis profesional de waterpolo</p>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-primary font-semibold text-xs">
-                  {profile?.full_name?.charAt(0) || profile?.email?.charAt(0)}
-                </span>
-              </div>
-              <span>
-                Bienvenido,{" "}
-                <span className="font-semibold text-foreground">{profile?.full_name || profile?.email}</span>
-              </span>
-            </div>
+            <p className="text-lg text-muted-foreground max-w-2xl">Análisis profesional de waterpolo</p>
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-4 pb-12 max-w-7xl">
         {tablesNotFound && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
@@ -224,73 +211,75 @@ export default function HomePage() {
         )}
 
         {!tablesNotFound && !connectionError && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-            <Card className="border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+          <div className="container mx-auto px-4 relative">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+              <Card className="border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
                   </div>
-                </div>
-                <p className="text-2xl sm:text-3xl font-bold mb-1">{stats.totalMatches}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Partidos</p>
-              </CardContent>
-            </Card>
+                  <p className="text-2xl sm:text-3xl font-bold mb-1">{stats.totalMatches}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Partidos</p>
+                </CardContent>
+              </Card>
 
-            <Card className="border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="p-2 rounded-lg bg-green-500/10">
-                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+              <Card className="border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                    </div>
                   </div>
-                </div>
-                <p className="text-2xl sm:text-3xl font-bold mb-1">{winRate}%</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Victorias</p>
-              </CardContent>
-            </Card>
+                  <p className="text-2xl sm:text-3xl font-bold mb-1">{winRate}%</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Victorias</p>
+                </CardContent>
+              </Card>
 
-            <Card className="border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="p-2 rounded-lg bg-purple-500/10">
-                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+              <Card className="border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="p-2 rounded-lg bg-purple-500/10">
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
                   </div>
-                </div>
-                <p className="text-2xl sm:text-3xl font-bold mb-1">{stats.totalPlayers}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground">Jugadores</p>
-              </CardContent>
-            </Card>
+                  <p className="text-2xl sm:text-3xl font-bold mb-1">{stats.totalPlayers}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Jugadores</p>
+                </CardContent>
+              </Card>
 
-            <Card className="border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="p-2 rounded-lg bg-amber-500/10">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+              <Card className="border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="p-2 rounded-lg bg-amber-500/10">
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-1 mb-1">
-                  {stats.recentForm.length > 0 ? (
-                    stats.recentForm.map((result, i) => (
-                      <div
-                        key={i}
-                        className={`w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs font-bold ${
-                          result === "W"
-                            ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                            : result === "L"
-                              ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                              : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
-                        }`}
-                      >
-                        {result}
-                      </div>
-                    ))
-                  ) : (
-                    <span className="text-2xl sm:text-3xl font-bold">-</span>
-                  )}
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground">Forma reciente</p>
-              </CardContent>
-            </Card>
+                  <div className="flex gap-1 mb-1">
+                    {stats.recentForm.length > 0 ? (
+                      stats.recentForm.map((result, i) => (
+                        <div
+                          key={i}
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs font-bold ${
+                            result === "W"
+                              ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                              : result === "L"
+                                ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                                : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
+                          }`}
+                        >
+                          {result}
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-2xl sm:text-3xl font-bold">-</span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Forma reciente</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
