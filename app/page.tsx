@@ -155,63 +155,63 @@ export default function HomePage() {
       <div className="relative overflow-hidden pb-8">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
 
-        {currentClub?.logo_url && (
-          <div className="absolute right-0 top-8 w-[500px] h-[500px] opacity-[0.08] dark:opacity-[0.08] pointer-events-none overflow-hidden">
-            <img
-              src={currentClub.logo_url || "/placeholder.svg"}
-              alt=""
-              className="w-full h-full object-contain scale-150"
-              style={{ transform: "translateX(20%)" }}
-            />
+        <div className="container mx-auto px-4 relative">
+          {currentClub?.logo_url && (
+            <div className="absolute right-0 top-8 w-[500px] h-[500px] opacity-[0.08] dark:opacity-[0.08] pointer-events-none overflow-hidden">
+              <img
+                src={currentClub.logo_url || "/placeholder.svg"}
+                alt=""
+                className="w-full h-full object-contain scale-150"
+                style={{ transform: "translateX(20%)" }}
+              />
+            </div>
+          )}
+
+          <div className="py-8 sm:py-12 lg:py-16 relative">
+            <div className="max-w-4xl">
+              <Badge
+                variant="secondary"
+                className="mb-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+              >
+                <Trophy className="w-3 h-3 mr-1" />
+                Sistema de Estadísticas
+              </Badge>
+              <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold mb-4 text-white">
+                {currentClub?.name || "Mi Club"}
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl">Análisis profesional de waterpolo</p>
+            </div>
           </div>
-        )}
 
-        <div className="container mx-auto px-4 py-8 sm:py-12 lg:py-16 relative">
-          <div className="max-w-4xl">
-            <Badge
-              variant="secondary"
-              className="mb-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-            >
-              <Trophy className="w-3 h-3 mr-1" />
-              Sistema de Estadísticas
-            </Badge>
-            <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold mb-4 text-white">
-              {currentClub?.name || "Mi Club"}
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl">Análisis profesional de waterpolo</p>
-          </div>
-        </div>
+          {tablesNotFound && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Base de datos no inicializada</AlertTitle>
+              <AlertDescription className="space-y-3 mt-2">
+                <p>Las tablas de la base de datos aún no se han creado. Sigue estos pasos:</p>
+                <ol className="list-decimal list-inside space-y-2 ml-2">
+                  <li>Abre el panel lateral haciendo clic en el icono de menú</li>
+                  <li>
+                    Ve a la pestaña de <strong>Scripts</strong>
+                  </li>
+                  <li>Ejecuta los scripts SQL en orden</li>
+                  <li>Recarga la página después de ejecutar los scripts</li>
+                </ol>
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {tablesNotFound && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Base de datos no inicializada</AlertTitle>
-            <AlertDescription className="space-y-3 mt-2">
-              <p>Las tablas de la base de datos aún no se han creado. Sigue estos pasos:</p>
-              <ol className="list-decimal list-inside space-y-2 ml-2">
-                <li>Abre el panel lateral haciendo clic en el icono de menú</li>
-                <li>
-                  Ve a la pestaña de <strong>Scripts</strong>
-                </li>
-                <li>Ejecuta los scripts SQL en orden</li>
-                <li>Recarga la página después de ejecutar los scripts</li>
-              </ol>
-            </AlertDescription>
-          </Alert>
-        )}
+          {connectionError && !tablesNotFound && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error de Conexión</AlertTitle>
+              <AlertDescription>
+                No se pudo conectar a la base de datos. Verifica la configuración de Supabase en el panel lateral.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {connectionError && !tablesNotFound && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error de Conexión</AlertTitle>
-            <AlertDescription>
-              No se pudo conectar a la base de datos. Verifica la configuración de Supabase en el panel lateral.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {!tablesNotFound && !connectionError && (
-          <div className="container mx-auto px-4 relative">
+          {!tablesNotFound && !connectionError && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
               <Card className="border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
                 <CardContent className="p-4 sm:p-6">
@@ -280,201 +280,203 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             </div>
-          </div>
-        )}
-
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-          {canEdit && (
-            <Card className="group relative overflow-hidden border-2 hover:border-primary transition-all hover:shadow-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <CardHeader className="relative">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <PlusCircle className="w-6 h-6 text-primary" />
-                </div>
-                <CardTitle className="text-xl">Nuevo Partido</CardTitle>
-                <CardDescription>Registra las estadísticas de un nuevo partido</CardDescription>
-              </CardHeader>
-              <CardContent className="relative">
-                <Button asChild className="w-full" disabled={tablesNotFound || connectionError}>
-                  <Link href="/nuevo-partido">Crear Acta</Link>
-                </Button>
-              </CardContent>
-            </Card>
           )}
 
-          <Card className="group relative overflow-hidden border-2 hover:border-blue-500 transition-all hover:shadow-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="relative">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <CardTitle className="text-xl">Partidos</CardTitle>
-              <CardDescription>Ver historial y estadísticas de partidos</CardDescription>
-            </CardHeader>
-            <CardContent className="relative">
-              <Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
-                <Link href="/partidos">Ver Partidos</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="container mx-auto px-4 space-y-8 pb-8">
+            <div className="grid lg:grid-cols-3 gap-6">
+              {canEdit && (
+                <Card className="group relative overflow-hidden border-2 hover:border-primary transition-all hover:shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardHeader className="relative">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <PlusCircle className="w-6 h-6 text-primary" />
+                    </div>
+                    <CardTitle className="text-xl">Nuevo Partido</CardTitle>
+                    <CardDescription>Registra las estadísticas de un nuevo partido</CardDescription>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <Button asChild className="w-full" disabled={tablesNotFound || connectionError}>
+                      <Link href="/nuevo-partido">Crear Acta</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
-          <Card className="group relative overflow-hidden border-2 hover:border-purple-500 transition-all hover:shadow-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="relative">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-              </div>
-              <CardTitle className="text-xl">Analytics</CardTitle>
-              <CardDescription>Análisis detallado por temporada</CardDescription>
-            </CardHeader>
-            <CardContent className="relative">
-              <Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
-                <Link href="/analytics">Ver Analytics</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-          {/* Recent Matches */}
-          <Card className="border-2 bg-gradient-to-br from-background to-background">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <Card className="group relative overflow-hidden border-2 hover:border-blue-500 transition-all hover:shadow-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardHeader className="relative">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <CardTitle className="text-xl">Últimos Partidos</CardTitle>
-                </div>
-                {matches.length > 0 && (
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href="/partidos">Ver todos</Link>
+                  <CardTitle className="text-xl">Partidos</CardTitle>
+                  <CardDescription>Ver historial y estadísticas de partidos</CardDescription>
+                </CardHeader>
+                <CardContent className="relative">
+                  <Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
+                    <Link href="/partidos">Ver Partidos</Link>
                   </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {matches && matches.length > 0 ? (
-                <div className="space-y-3">
-                  {matches.map((match) => {
-                    const isWin = match.home_score > match.away_score
-                    const isDraw = match.home_score === match.away_score
+                </CardContent>
+              </Card>
 
-                    return (
-                      <Link
-                        key={match.id}
-                        href={`/partidos/${match.id}`}
-                        className="group block p-4 rounded-xl border-2 hover:bg-muted/50 hover:border-primary transition-all"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge
-                                variant={isWin ? "default" : isDraw ? "secondary" : "destructive"}
-                                className="text-xs"
-                              >
-                                {isWin ? "Victoria" : isDraw ? "Empate" : "Derrota"}
-                              </Badge>
+              <Card className="group relative overflow-hidden border-2 hover:border-purple-500 transition-all hover:shadow-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardHeader className="relative">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <CardTitle className="text-xl">Analytics</CardTitle>
+                  <CardDescription>Análisis detallado por temporada</CardDescription>
+                </CardHeader>
+                <CardContent className="relative">
+                  <Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
+                    <Link href="/analytics">Ver Analytics</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+              {/* Recent Matches */}
+              <Card className="border-2 bg-gradient-to-br from-background to-background">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-500/10">
+                        <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <CardTitle className="text-xl">Últimos Partidos</CardTitle>
+                    </div>
+                    {matches.length > 0 && (
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href="/partidos">Ver todos</Link>
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {matches && matches.length > 0 ? (
+                    <div className="space-y-3">
+                      {matches.map((match) => {
+                        const isWin = match.home_score > match.away_score
+                        const isDraw = match.home_score === match.away_score
+
+                        return (
+                          <Link
+                            key={match.id}
+                            href={`/partidos/${match.id}`}
+                            className="group block p-4 rounded-xl border-2 hover:bg-muted/50 hover:border-primary transition-all"
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge
+                                    variant={isWin ? "default" : isDraw ? "secondary" : "destructive"}
+                                    className="text-xs"
+                                  >
+                                    {isWin ? "Victoria" : isDraw ? "Empate" : "Derrota"}
+                                  </Badge>
+                                </div>
+                                <p className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+                                  {match.opponent}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(match.match_date).toLocaleDateString("es-ES", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="font-bold text-2xl">
+                                  {match.home_score} - {match.away_score}
+                                </p>
+                              </div>
                             </div>
-                            <p className="font-semibold text-base truncate group-hover:text-primary transition-colors">
-                              {match.opponent}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(match.match_date).toLocaleDateString("es-ES", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </p>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-bold text-2xl">
-                              {match.home_score} - {match.away_score}
-                            </p>
-                          </div>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-                    <Calendar className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    {connectionError || tablesNotFound
-                      ? "No se pueden cargar los partidos"
-                      : `No hay partidos registrados para ${currentClub?.short_name}`}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+                        <Calendar className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        {connectionError || tablesNotFound
+                          ? "No se pueden cargar los partidos"
+                          : `No hay partidos registrados para ${currentClub?.short_name}`}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Players Squad */}
-          <Card className="border-2 bg-gradient-to-br from-background to-background">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/10">
-                    <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <CardTitle className="text-xl">Plantilla</CardTitle>
-                </div>
-                {players.length > 0 && (
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href="/jugadores">Ver todos</Link>
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="max-h-[400px] overflow-y-auto">
-              {players && players.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {players.map((player) => (
-                    <Link
-                      key={player.id}
-                      href={`/jugadores/${player.id}`}
-                      className="group flex flex-col items-center gap-2 p-3 rounded-xl border-2 hover:bg-muted/50 hover:border-primary transition-all"
-                    >
-                      <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                        {player.photo_url ? (
-                          <img
-                            src={player.photo_url || "/placeholder.svg"}
-                            alt={player.name}
-                            className="w-full h-full object-cover object-top"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
-                        )}
+              {/* Players Squad */}
+              <Card className="border-2 bg-gradient-to-br from-background to-background">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-purple-500/10">
+                        <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                       </div>
-                      <div className="text-center w-full">
-                        <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
-                          {player.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          #{player.number} • {player.position || "N/A"}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-                    <Users className="w-8 h-8 text-muted-foreground" />
+                      <CardTitle className="text-xl">Plantilla</CardTitle>
+                    </div>
+                    {players.length > 0 && (
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href="/jugadores">Ver todos</Link>
+                      </Button>
+                    )}
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    {connectionError || tablesNotFound
-                      ? "No se pueden cargar los jugadores"
-                      : `No hay jugadores registrados para ${currentClub?.short_name}`}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardHeader>
+                <CardContent className="max-h-[400px] overflow-y-auto">
+                  {players && players.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {players.map((player) => (
+                        <Link
+                          key={player.id}
+                          href={`/jugadores/${player.id}`}
+                          className="group flex flex-col items-center gap-2 p-3 rounded-xl border-2 hover:bg-muted/50 hover:border-primary transition-all"
+                        >
+                          <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                            {player.photo_url ? (
+                              <img
+                                src={player.photo_url || "/placeholder.svg"}
+                                alt={player.name}
+                                className="w-full h-full object-cover object-top"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+                            )}
+                          </div>
+                          <div className="text-center w-full">
+                            <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
+                              {player.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              #{player.number} • {player.position || "N/A"}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
+                        <Users className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        {connectionError || tablesNotFound
+                          ? "No se pueden cargar los jugadores"
+                          : `No hay jugadores registrados para ${currentClub?.short_name}`}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </main>
