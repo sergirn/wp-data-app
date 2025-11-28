@@ -1951,17 +1951,7 @@ function FieldPlayerStatsDialog({
 
       <TabsContent value="acciones" className="space-y-4 mt-4">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <StatField label="Gol" value={safeNumber(stats.portero_gol)} onChange={(v) => onUpdate("portero_gol", v)} />
-          <StatField
-            label="Gol Superioridad"
-            value={safeNumber(stats.portero_gol_superioridad)}
-            onChange={(v) => onUpdate("portero_gol_superioridad", v)}
-          />
-          <StatField
-            label="Fallo Superioridad"
-            value={safeNumber(stats.portero_fallo_superioridad)}
-            onChange={(v) => onUpdate("portero_fallo_superioridad", v)}
-          />
+          
           <StatField
             label="Asistencias"
             value={safeNumber(stats.acciones_asistencias)}
@@ -2126,6 +2116,17 @@ function GoalkeeperStatsDialog({
             label="Expulsión Provocada"
             value={safeNumber(stats.acciones_exp_provocada)}
             onChange={(v) => onUpdate("acciones_exp_provocada", v)}
+          />
+          <StatField label="Gol" value={safeNumber(stats.portero_gol)} onChange={(v) => onUpdate("portero_gol", v)} />
+          <StatField
+            label="Gol Superioridad"
+            value={safeNumber(stats.portero_gol_superioridad)}
+            onChange={(v) => onUpdate("portero_gol_superioridad", v)}
+          />
+          <StatField
+            label="Fallo Superioridad"
+            value={safeNumber(stats.portero_fallo_superioridad)}
+            onChange={(v) => onUpdate("portero_fallo_superioridad", v)}
           />
         </div>
       </TabsContent>
