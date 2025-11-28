@@ -201,45 +201,54 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
       return
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-    if (!user) {
-      router.push("/auth/login")
-      return
-    }
+      if (!user) {
+        router.push("/auth/login")
+        return
+      }
 
-    const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
 
-    if (!profileData || (profileData.role !== "admin" && profileData.role !== "coach")) {
+      if (!profileData || (profileData.role !== "admin" && profileData.role !== "coach")) {
+        setPermissionError(true)
+        return
+      }
+
+      setProfile(profileData)
+    } catch (error) {
+      console.error("[v0] Auth error:", error)
       setPermissionError(true)
-      return
     }
-
-    setProfile(profileData)
   }
 
   const loadPreviousMatches = async () => {
     if (!supabase) return
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
 
-    const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
-    if (!profileData?.club_id) return
+      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+      if (!profileData?.club_id) return
 
-    const { data: matches } = await supabase
-      .from("matches")
-      .select("id, match_date, opponent, season")
-      .eq("club_id", profileData.club_id)
-      .order("match_date", { ascending: false })
-      .limit(10)
+      const { data: matches } = await supabase
+        .from("matches")
+        .select("id, match_date, opponent, season")
+        .eq("club_id", profileData.club_id)
+        .order("match_date", { ascending: false })
+        .limit(10)
 
-    if (matches) {
-      setPreviousMatches(matches)
+      if (matches) {
+        setPreviousMatches(matches)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading previous matches:", error)
     }
   }
 
@@ -273,41 +282,46 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   const loadPlayers = async () => {
     if (!supabase) return
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
 
-    const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
 
-    if (!profileData?.club_id) return
+      if (!profileData?.club_id) return
 
-    const { data, error } = await supabase
-      .from("players")
-      .select("*")
-      .eq("club_id", profileData.club_id)
-      .order("number")
+      const { data, error } = await supabase
+        .from("players")
+        .select("*")
+        .eq("club_id", profileData.club_id)
+        .order("number")
 
-    if (error || !data) {
+      if (error || !data) {
+        console.error("[v0] Error loading players:", error)
+        setAllPlayers([])
+        return
+      }
+
+      setAllPlayers(data)
+
+      // Solo inicializamos los 14 primeros jugadores si estamos creando un partido NUEVO
+      if (!editingMatchId) {
+        const initialActiveIds = data.slice(0, 14).map((p) => p.id)
+        setActivePlayerIds(initialActiveIds)
+
+        const initialStats: Record<number, Partial<MatchStats>> = {}
+        initialActiveIds.forEach((playerId) => {
+          initialStats[playerId] = createEmptyStats(playerId)
+        })
+        setStats(initialStats)
+      }
+      // Si estamos editando, la convocatoria se carga después en loadExistingMatch()
+    } catch (error) {
       console.error("[v0] Error loading players:", error)
-      setAllPlayers([])
-      return
+      setLoading(false)
     }
-
-    setAllPlayers(data)
-
-    // Solo inicializamos los 14 primeros jugadores si estamos creando un partido NUEVO
-    if (!editingMatchId) {
-      const initialActiveIds = data.slice(0, 14).map((p) => p.id)
-      setActivePlayerIds(initialActiveIds)
-
-      const initialStats: Record<number, Partial<MatchStats>> = {}
-      initialActiveIds.forEach((playerId) => {
-        initialStats[playerId] = createEmptyStats(playerId)
-      })
-      setStats(initialStats)
-    }
-    // Si estamos editando, la convocatoria se carga después en loadExistingMatch()
   }
 
   const createEmptyStats = (playerId: number): Partial<MatchStats> => ({
