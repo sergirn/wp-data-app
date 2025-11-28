@@ -156,12 +156,12 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
 
         {currentClub?.logo_url && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.03] dark:opacity-[0.05] pointer-events-none overflow-hidden">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] opacity-[0.1] dark:opacity-[0.1] pointer-events-none overflow-hidden">
             <img
               src={currentClub.logo_url || "/placeholder.svg"}
               alt=""
               className="w-full h-full object-contain scale-150"
-              style={{ transform: "translateX(35%)" }}
+              style={{ transform: "translateX(20%)" }}
             />
           </div>
         )}
