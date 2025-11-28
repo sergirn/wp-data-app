@@ -1348,55 +1348,55 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-  {availablePlayers.length > 0 ? (
-    availablePlayers.map((player) => (
-      <div
-        key={player.id}
-        className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
-      >
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-          {player.number}
-        </div>
+                            {availablePlayers.length > 0 ? (
+                              availablePlayers.map((player) => (
+                                <div
+                                  key={player.id}
+                                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent transition-colors"
+                                >
+                                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                                    {player.number}
+                                  </div>
 
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold truncate">{player.name}</p>
-        </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold truncate">{player.name}</p>
+                                  </div>
 
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="border-green-500 text-green-600 hover:bg-green-500/10 bg-transparent"
-            onClick={() => {
-              setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: true }]);
-              setShowPenaltyShooterDialog(false);
-            }}
-          >
-            ⚽ Gol
-          </Button>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-green-500 text-green-600 hover:bg-green-500/10 bg-transparent"
+                                      onClick={() => {
+                                        setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: true }]);
+                                        setShowPenaltyShooterDialog(false);
+                                      }}
+                                    >
+                                      ⚽ Gol
+                                    </Button>
 
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="border-red-500 text-red-600 hover:bg-red-500/10 bg-transparent"
-            onClick={() => {
-              setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: false }]);
-              setShowPenaltyShooterDialog(false);
-            }}
-          >
-            ✕ Falla
-          </Button>
-        </div>
-      </div>
-    ))
-  ) : (
-    <p className="text-center text-sm text-muted-foreground py-4">
-      Todos los jugadores han sido añadidos
-    </p>
-  )}
-</div>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="border-red-500 text-red-600 hover:bg-red-500/10 bg-transparent"
+                                      onClick={() => {
+                                        setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: false }]);
+                                        setShowPenaltyShooterDialog(false);
+                                      }}
+                                    >
+                                      ✕ Falla
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-center text-sm text-muted-foreground py-4">
+                                Todos los jugadores han sido añadidos
+                              </p>
+                            )}
+                          </div>
                         </DialogContent>
                       </Dialog>
 
