@@ -92,7 +92,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                 >
                   <Link href={link.href}>
                     <Icon className="h-4 w-4" />
-                    <span className="hidden xl:inline">{link.label}</span>
+                    <span>{link.label}</span>
                   </Link>
                 </Button>
               )
@@ -106,7 +106,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                     className="flex items-center gap-1.5 transition-all hover:scale-105"
                   >
                     <Shield className="h-4 w-4" />
-                    <span className="hidden xl:inline">Admin</span>
+                    <span>Admin</span>
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -155,7 +155,6 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                   <SheetTitle className="text-left">Menú</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-6">
-                  {/* User Info */}
                   {profile && (
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
                       <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold shadow-lg">
@@ -173,13 +172,11 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                     </div>
                   )}
 
-                  {/* Club Selector Mobile */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Club</p>
                     <ClubSelector />
                   </div>
 
-                  {/* Navigation Links */}
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Navegación</p>
                     <div className="flex flex-col gap-1">
@@ -205,7 +202,6 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                     </div>
                   </div>
 
-                  {/* Admin Section for Mobile */}
                   {profile?.is_super_admin && (
                     <div className="space-y-2">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -249,7 +245,6 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                     </div>
                   )}
 
-                  {/* User Actions */}
                   {profile && (
                     <div className="space-y-2 mt-auto pt-4 border-t">
                       <Button
