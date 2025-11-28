@@ -158,8 +158,7 @@ export default function HomePage() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent text-balance">
               Sistema de Estadísticas
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground mb-4">Análisis profesional de waterpolo</p> //
-            Reducir tamaño de texto de xl a lg
+            <p className="text-base sm:text-lg text-muted-foreground mb-4">Análisis profesional de waterpolo</p>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-primary font-semibold text-xs">
