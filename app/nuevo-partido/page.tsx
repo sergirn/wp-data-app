@@ -348,6 +348,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     portero_goles_dir_mas_5m: 0,
     portero_goles_contraataque: 0,
     portero_goles_penalti: 0,
+    portero_gol: 0,
+    portero_gol_superioridad: 0,
+    portero_fallo_superioridad: 0,
     portero_paradas_totales: 0,
     portero_tiros_parada_recup: 0,
     portero_paradas_fuera: 0,
@@ -538,11 +541,27 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
           "portero_tiros_parada_recup",
           "portero_paradas_fuera",
           "portero_paradas_penalti_parado",
-          "portero_paradas_hombre_menos",
+          "portero_paradas_hombre_menos", // This is likely a typo, should be portero_paradas_hombre_menos
         ]
 
         if (field.startsWith("portero_") && (field.includes("parada") || field.includes("paradas"))) {
           newStats.portero_paradas_totales = goalkeeperSaveCategories.reduce((sum, cat) => {
+            return sum + safeNumber(newStats[cat] as number)
+          }, 0) as any
+        }
+        // ADDED LOGIC FOR GOALKEEPER GOALS
+        const goalkeeperGoalCategories: (keyof MatchStats)[] = [
+          "portero_goles_boya_parada",
+          "portero_goles_hombre_menos",
+          "portero_goles_dir_mas_5m",
+          "portero_goles_contraataque",
+          "portero_goles_penalti",
+          "portero_gol", // Added
+          "portero_gol_superioridad", // Added
+        ]
+
+        if (field.startsWith("portero_gol") || field.startsWith("portero_goles_")) {
+          newStats.portero_goles_recibidos = goalkeeperGoalCategories.reduce((sum, cat) => {
             return sum + safeNumber(newStats[cat] as number)
           }, 0) as any
         }
@@ -1947,6 +1966,12 @@ function FieldPlayerStatsDialog({
             value={safeNumber(stats.acciones_fallo_superioridad)}
             onChange={(v) => onUpdate("acciones_fallo_superioridad", v)}
           />
+          <StatField
+            label="Boya/parada"
+            value={safeNumber(stats.portero_goles_boya_parada)}
+            onChange={(v) => onUpdate("portero_goles_boya_parada", v)}
+          />
+
           <StatField
             label="Asistencias"
             value={safeNumber(stats.acciones_asistencias)}

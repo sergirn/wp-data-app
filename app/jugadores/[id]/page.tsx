@@ -915,6 +915,9 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
         portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
         portero_goles_contraataque: acc.portero_goles_contraataque + (stat.portero_goles_contraataque || 0),
         portero_goles_penalti: acc.portero_goles_penalti + (stat.portero_goles_penalti || 0),
+        portero_gol: acc.portero_gol + (stat.portero_gol || 0),
+        portero_gol_superioridad: acc.portero_gol_superioridad + (stat.portero_gol_superioridad || 0),
+        portero_fallo_superioridad: acc.portero_fallo_superioridad + (stat.portero_fallo_superioridad || 0),
 
         // Paradas
         portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
@@ -939,6 +942,9 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
       portero_goles_dir_mas_5m: 0,
       portero_goles_contraataque: 0,
       portero_goles_penalti: 0,
+      portero_gol: 0,
+      portero_gol_superioridad: 0,
+      portero_fallo_superioridad: 0,
 
       portero_paradas_totales: 0,
       portero_tiros_parada_recup: 0,
@@ -1026,6 +1032,12 @@ function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <StatItem label="Gol" value={stats.portero_gol} color="bg-red-500/10 text-red-600 dark:text-red-400" />
+            <StatItem
+              label="Gol Superioridad"
+              value={stats.portero_gol_superioridad}
+              color="bg-red-500/10 text-red-600 dark:text-red-400"
+            />
             <StatItem
               label="Boya/Parada"
               value={stats.portero_goles_boya_parada}
@@ -1058,7 +1070,7 @@ function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
       {/* Paradas */}
       <Card>
         <CardHeader>
-          <CardTitle>Paradas</CardTitle>
+          <CardTitle>Paradas y Defensas</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1080,6 +1092,11 @@ function GoalkeeperCategoriesStats({ stats }: { stats: any }) {
             <StatItem
               label="Hombre -"
               value={stats.portero_paradas_hombre_menos}
+              color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            />
+            <StatItem
+              label="Fallo Superioridad"
+              value={stats.portero_fallo_superioridad}
               color="bg-blue-500/10 text-blue-600 dark:text-blue-400"
             />
           </div>
