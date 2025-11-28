@@ -582,7 +582,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             return sum + safeNumber(newStats[cat] as number)
           }, 0) as any
         }
-        // ADDED LOGIC FOR GOALKEEPER GOALS
         const goalkeeperGoalCategories: (keyof MatchStats)[] = [
           "portero_goles_boya_parada",
           "portero_goles_hombre_menos",
@@ -594,7 +593,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         ]
 
         if (field.startsWith("portero_gol") || field.startsWith("portero_goles_")) {
-          newStats.portero_goles_recibidos = goalkeeperGoalCategories.reduce((sum, cat) => {
+          newStats.portero_goles_totales = goalkeeperGoalCategories.reduce((sum, cat) => {
             return sum + safeNumber(newStats[cat] as number)
           }, 0) as any
         }
@@ -2079,41 +2078,49 @@ function FieldPlayerStatsDialog({
       </TabsContent>
 
       <TabsContent value="acciones" className="space-y-4 mt-4">
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-					<StatField label="Bloqueo" value={safeNumber(stats.acciones_bloqueo)} onChange={(v) => onUpdate("acciones_bloqueo", v)} />
-					<StatField
-						label="Asistencias"
-						value={safeNumber(stats.acciones_asistencias)}
-						onChange={(v) => onUpdate("acciones_asistencias", v)}
-					/>
-					<StatField
-						label="Recuperación"
-						value={safeNumber(stats.acciones_recuperacion)}
-						onChange={(v) => onUpdate("acciones_recuperacion", v)}
-					/>
-					<StatField label="Rebote" value={safeNumber(stats.acciones_rebote)} onChange={(v) => onUpdate("acciones_rebote", v)} />
-					<StatField
-						label="Exp Provocada"
-						value={safeNumber(stats.acciones_exp_provocada)}
-						onChange={(v) => onUpdate("acciones_exp_provocada", v)}
-					/>
-					<StatField
-						label="Penalti Provocado"
-						value={safeNumber(stats.acciones_penalti_provocado)}
-						onChange={(v) => onUpdate("acciones_penalti_provocado", v)}
-					/>
-					<StatField
-						label="Recibe Gol"
-						value={safeNumber(stats.acciones_recibir_gol)}
-						onChange={(v) => onUpdate("acciones_recibir_gol", v)}
-					/>
-					<StatField
-						label="Pérdida Posesión"
-						value={safeNumber(stats.acciones_perdida_poco)}
-						onChange={(v) => onUpdate("acciones_perdida_poco", v)}
-					/>
-				</div>
-			</TabsContent>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <StatField
+            label="Bloqueo"
+            value={safeNumber(stats.acciones_bloqueo)}
+            onChange={(v) => onUpdate("acciones_bloqueo", v)}
+          />
+          <StatField
+            label="Asistencias"
+            value={safeNumber(stats.acciones_asistencias)}
+            onChange={(v) => onUpdate("acciones_asistencias", v)}
+          />
+          <StatField
+            label="Recuperación"
+            value={safeNumber(stats.acciones_recuperacion)}
+            onChange={(v) => onUpdate("acciones_recuperacion", v)}
+          />
+          <StatField
+            label="Rebote"
+            value={safeNumber(stats.acciones_rebote)}
+            onChange={(v) => onUpdate("acciones_rebote", v)}
+          />
+          <StatField
+            label="Exp Provocada"
+            value={safeNumber(stats.acciones_exp_provocada)}
+            onChange={(v) => onUpdate("acciones_exp_provocada", v)}
+          />
+          <StatField
+            label="Penalti Provocado"
+            value={safeNumber(stats.acciones_penalti_provocado)}
+            onChange={(v) => onUpdate("acciones_penalti_provocado", v)}
+          />
+          <StatField
+            label="Recibe Gol"
+            value={safeNumber(stats.acciones_recibir_gol)}
+            onChange={(v) => onUpdate("acciones_recibir_gol", v)}
+          />
+          <StatField
+            label="Pérdida Posesión"
+            value={safeNumber(stats.acciones_perdida_poco)}
+            onChange={(v) => onUpdate("acciones_perdida_poco", v)}
+          />
+        </div>
+      </TabsContent>
     </Tabs>
   )
 }
