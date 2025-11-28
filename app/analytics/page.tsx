@@ -206,7 +206,6 @@ export default function AnalyticsPage() {
             <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{stats.wins}</div>
             <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
               {stats.totalMatches > 0 ? Math.round((stats.wins / stats.totalMatches) * 100) : 0}%
-              const winRate = stats.totalMatches > 0 ? Math.round((stats.wins / stats.totalMatches) * 100) : 0
             </p>
           </CardContent>
         </Card>
