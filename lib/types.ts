@@ -19,6 +19,8 @@ export interface Match {
   jornada: number | null
   notes: string | null
   club_id: number
+  penalty_home_score: number | null // Added penalty shootout fields
+  penalty_away_score: number | null
 }
 
 export interface MatchStats {
