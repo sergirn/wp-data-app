@@ -1951,27 +1951,17 @@ function FieldPlayerStatsDialog({
 
       <TabsContent value="acciones" className="space-y-4 mt-4">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <StatField label="Gol" value={safeNumber(stats.portero_gol)} onChange={(v) => onUpdate("portero_gol", v)} />
           <StatField
-            label="Gol"
-            value={safeNumber(stats.acciones_goles)}
-            onChange={(v) => onUpdate("acciones_goles", v)}
-          />
-          <StatField
-            label="Gol en Superioridad"
-            value={safeNumber(stats.acciones_gol_superioridad)}
-            onChange={(v) => onUpdate("acciones_gol_superioridad", v)}
+            label="Gol Superioridad"
+            value={safeNumber(stats.portero_gol_superioridad)}
+            onChange={(v) => onUpdate("portero_gol_superioridad", v)}
           />
           <StatField
             label="Fallo Superioridad"
-            value={safeNumber(stats.acciones_fallo_superioridad)}
-            onChange={(v) => onUpdate("acciones_fallo_superioridad", v)}
+            value={safeNumber(stats.portero_fallo_superioridad)}
+            onChange={(v) => onUpdate("portero_fallo_superioridad", v)}
           />
-          <StatField
-            label="Boya/parada"
-            value={safeNumber(stats.portero_goles_boya_parada)}
-            onChange={(v) => onUpdate("portero_goles_boya_parada", v)}
-          />
-
           <StatField
             label="Asistencias"
             value={safeNumber(stats.acciones_asistencias)}
