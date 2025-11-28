@@ -4,7 +4,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated color palette for more modern, professional look */
   --background: oklch(0.98 0.005 250);
   --foreground: oklch(0.15 0.02 240);
   --card: oklch(1 0 0);
@@ -41,7 +40,6 @@
 }
 
 .dark {
-  /* Enhanced dark mode with better contrast */
   --background: oklch(0.12 0.025 240);
   --foreground: oklch(0.96 0.008 240);
   --card: oklch(0.15 0.028 240);
@@ -77,6 +75,7 @@
 }
 
 @theme inline {
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -113,8 +112,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  /* Added custom breakpoint for extra small screens */
-  --breakpoint-xs: 375px;
 }
 
 @layer base {
@@ -123,11 +120,9 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Optimized for all devices */
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Enhanced touch targets for all touch devices */
   @media (hover: none) and (pointer: coarse) {
     button,
     a,
@@ -139,7 +134,6 @@
     }
   }
 
-  /* Improved scrollbar styling for better UX */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -164,5 +158,139 @@
 
   .dark ::-webkit-scrollbar-thumb:hover {
     background: oklch(0.8 0 0 / 0.3);
+  }
+}
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-to-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slide-in-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-to-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  .slide-in-from-right {
+    animation: slide-in-from-right 200ms ease-out;
+  }
+
+  .slide-out-to-right {
+    animation: slide-out-to-right 200ms ease-in;
+  }
+
+  .slide-out-to-right-full {
+    animation: slide-out-to-right 200ms ease-in;
+  }
+
+  .slide-in-from-left-52 {
+    animation: slide-in-from-left 200ms ease-out;
+  }
+
+  .slide-in-from-right-52 {
+    animation: slide-in-from-right 200ms ease-out;
+  }
+
+  .slide-out-to-left-52 {
+    animation: slide-out-to-left 200ms ease-in;
+  }
+
+  .slide-out-to-right-52 {
+    animation: slide-out-to-right 200ms ease-in;
+  }
+
+  .slide-in-from-top-full {
+    animation: slide-in-from-top 200ms ease-out;
+  }
+
+  .slide-in-from-bottom-full {
+    animation: slide-in-from-bottom 200ms ease-out;
+  }
+
+  .fade-in {
+    animation: fade-in 200ms ease-out;
+  }
+
+  .fade-out {
+    animation: fade-out 200ms ease-in;
+  }
+
+  .fade-in-80 {
+    animation: fade-in 200ms ease-out;
+  }
+
+  .fade-out-80 {
+    animation: fade-out 200ms ease-in;
+  }
+
+  .animate-in {
+    animation-fill-mode: backwards;
+  }
+
+  .animate-out {
+    animation-fill-mode: forwards;
   }
 }
