@@ -1335,7 +1335,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                           </DialogHeader>
                           <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                             {fieldPlayers
-                              .filter((p) => p.status === "played" && !penaltyShooters.find((s) => s.playerId === p.id))
+                              .filter((p) => !penaltyShooters.find((s) => s.playerId === p.id))
                               .map((player) => (
                                 <div
                                   key={player.id}
@@ -1375,9 +1375,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                                   </div>
                                 </div>
                               ))}
-                            {fieldPlayers.filter(
-                              (p) => p.status === "played" && !penaltyShooters.find((s) => s.playerId === p.id),
-                            ).length === 0 && (
+                            {fieldPlayers.filter((p) => !penaltyShooters.find((s) => s.playerId === p.id)).length ===
+                              0 && (
                               <p className="text-center text-sm text-muted-foreground py-4">
                                 Todos los jugadores han sido añadidos
                               </p>
