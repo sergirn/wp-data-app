@@ -118,6 +118,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
       const player = allPlayers.find((p) => p.id === Number(playerId))
 
       if (player?.is_goalkeeper) {
+        const goalkeeperScoredGoals = playerStat.portero_gol || 0
+        homeGoals += goalkeeperScoredGoals
+
+        // Goles que recibe el portero (suman al rival)
         const goalkeeperGoals =
           (playerStat.portero_goles_boya_parada || 0) +
           (playerStat.portero_goles_hombre_menos || 0) +
@@ -142,7 +146,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
       const player = allPlayers.find((p) => p.id === Number(playerId))
 
       if (player?.is_goalkeeper) {
-        // Goles que recibe el portero
+        const goalkeeperScoredGoals = playerStat.portero_gol || 0
+        homeGoals += goalkeeperScoredGoals
+
+        // Goles que recibe el portero (suman al rival)
         const goalkeeperGoals =
           (playerStat.portero_goles_boya_parada || 0) +
           (playerStat.portero_goles_hombre_menos || 0) +
@@ -1951,7 +1958,6 @@ function FieldPlayerStatsDialog({
 
       <TabsContent value="acciones" className="space-y-4 mt-4">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          
           <StatField
             label="Asistencias"
             value={safeNumber(stats.acciones_asistencias)}
