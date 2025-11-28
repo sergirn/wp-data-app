@@ -161,7 +161,7 @@ export default function HomePage() {
               src={currentClub.logo_url || "/placeholder.svg"}
               alt=""
               className="w-full h-full object-contain scale-150"
-              style={{ transform: "translateX(25%)" }}
+              style={{ transform: "translateX(35%)" }}
             />
           </div>
         )}
