@@ -157,7 +157,7 @@ export default function HomePage() {
 
         <div className="container mx-auto px-4 relative">
           {currentClub?.logo_url && (
-            <div className="absolute right-0 top-8 w-[600px] h-[600px] opacity-[0.08] dark:opacity-[0.08] pointer-events-none overflow-hidden">
+            <div className="absolute right-0 top-8 w-[500px] h-[500px] opacity-[0.08] dark:opacity-[0.08] pointer-events-none overflow-hidden">
               <img
                 src={currentClub.logo_url || "/placeholder.svg"}
                 alt=""
