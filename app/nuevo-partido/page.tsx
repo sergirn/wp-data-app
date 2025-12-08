@@ -112,6 +112,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     if (profile) fetchClub()
   }, [profile, supabase])
 
+  useEffect(() => {
+    const homeScore = penaltyShooters.filter((s) => s.scored).length
+    const awayScore = rivalPenalties.filter((p) => p.result === "scored").length
+
+    if (penaltyShooters.length > 0 || rivalPenalties.length > 0) {
+      setPenaltyHomeScore(homeScore)
+      setPenaltyAwayScore(awayScore)
+    }
+  }, [penaltyShooters, rivalPenalties])
+  // </CHANGE>
+
   const calculateQuarterScores = (playerStats: Record<number, Partial<MatchStats>>) => {
     let homeGoals = 0
     let awayGoals = 0
