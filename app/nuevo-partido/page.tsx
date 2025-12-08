@@ -65,7 +65,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   const [penaltyShooters, setPenaltyShooters] = useState<Array<{ playerId: number; scored: boolean }>>([])
   const [showPenaltyShooterDialog, setShowPenaltyShooterDialog] = useState(false)
 
-  const [rivalPenalties, setRivalPenalties] = useState<Array<{ id: number; result: "scored" | "missed" | "saved" }>>([])
+  const [rivalPenalties, setRivalPenalties] = useState<Array<{ id: number; result: "scored" | "saved" | "missed" }>>([])
 
   const [penaltyGoalkeeperMap, setPenaltyGoalkeeperMap] = useState<Record<number, number>>({}) // penalty.id -> goalkeeper player_id
 
@@ -550,7 +550,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
           .filter((p) => p.player_id === null)
           .map((p, index) => ({
             id: Date.now() + index, // Simple unique ID for UI
-            result: p.scored ? "scored" : "missed", // Assuming missed if not scored
+            result: p.result_type || (p.scored ? "scored" : "missed"), // Use result_type if available, fallback to scored/missed
             // Add logic to determine 'saved' if you have that distinction in your data
           }))
         setRivalPenalties(rivalPenaltiesData)
@@ -820,22 +820,24 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
               scored: shooter.scored,
               is_home_team: true,
               goalkeeper_id: penaltyGoalkeeperMap[shooter.playerId] || null, // Map goalkeeper if selected
+              result_type: shooter.scored ? "scored" : "missed",
             }))
+            if (rivalPenalties.length > 0) {
+              const { error: rivalError } = await supabase.from("penalty_shootout_players").insert(
+                rivalPenalties.map((penalty, index) => ({
+                  match_id: editingMatchId,
+                  player_id: null,
+                  scored: penalty.result === "scored",
+                  shot_order: index + 1,
+                  result_type: penalty.result, // Store "scored", "saved", or "missed"
+                  goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null,
+                })),
+              )
+              if (rivalError) throw rivalError
+            }
+            // </CHANGE>
             const { error: penaltyError } = await supabase.from("penalty_shootout_players").insert(penaltyPlayers)
             if (penaltyError) throw penaltyError
-          }
-          if (rivalPenalties.length > 0) {
-            const { error: rivalError } = await supabase.from("penalty_shootout_players").insert(
-              rivalPenalties.map((penalty, index) => ({
-                match_id: editingMatchId,
-                player_id: null, // No specific player ID for rival
-                scored: penalty.result === "scored",
-                is_home_team: false,
-                goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null, // Map goalkeeper if selected for rival save
-                // Store result type in a custom field if needed, e.g., 'result_type': penalty.result
-              })),
-            )
-            if (rivalError) throw rivalError
           }
         } else {
           await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId)
@@ -843,7 +845,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
         router.push(`/partidos/${editingMatchId}`)
       } else {
-        const { data: matchData, error: matchError } = await supabase
+        const { data: newMatch, error: matchError } = await supabase
           .from("matches")
           .insert({
             club_id: profile.club_id,
@@ -879,34 +881,42 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
         const statsToInsert = activePlayerIds.map((playerId) => ({
           ...stats[playerId],
-          match_id: matchData.id,
+          match_id: newMatch.id,
         }))
 
         const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert)
 
         if (statsError) throw statsError
 
-        if (matchData && (penaltyShooters.length > 0 || rivalPenalties.length > 0)) {
+        if (newMatch && (penaltyShooters.length > 0 || rivalPenalties.length > 0)) {
           const penaltyPlayersToInsert = penaltyShooters.map((shooter, index) => ({
-            match_id: matchData.id,
+            match_id: newMatch.id,
             player_id: shooter.playerId,
             shot_order: index + 1,
             scored: shooter.scored,
             is_home_team: true,
             goalkeeper_id: penaltyGoalkeeperMap[shooter.playerId] || null,
+            result_type: shooter.scored ? "scored" : "missed",
           }))
 
-          const rivalPenaltyPlayersToInsert = rivalPenalties.map((penalty, index) => ({
-            match_id: matchData.id,
-            player_id: null, // No specific player ID for rival
-            scored: penalty.result === "scored",
-            is_home_team: false,
-            goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null, // Map goalkeeper if selected for rival save
-          }))
+          if (rivalPenalties.length > 0) {
+            const { error: rivalPenaltyError } = await supabase.from("penalty_shootout_players").insert(
+              rivalPenalties.map((penalty, index) => ({
+                match_id: newMatch.id,
+                player_id: null,
+                scored: penalty.result === "scored",
+                shot_order: index + 1,
+                result_type: penalty.result, // Store "scored", "saved", or "missed"
+                goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null,
+              })),
+            )
+            if (rivalPenaltyError) throw rivalPenaltyError
+          }
+          // </CHANGE>
 
           const { error: penaltyError } = await supabase
             .from("penalty_shootout_players")
-            .insert([...penaltyPlayersToInsert, ...rivalPenaltyPlayersToInsert])
+            .insert([...penaltyPlayersToInsert])
 
           if (penaltyError) {
             console.error("[v0] Error saving penalty shooters:", penaltyError)
@@ -914,7 +924,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
           }
         }
 
-        router.push(`/partidos/${matchData.id}`)
+        router.push(`/partidos/${newMatch.id}`)
       }
     } catch (error) {
       console.error("Error saving match:", error)

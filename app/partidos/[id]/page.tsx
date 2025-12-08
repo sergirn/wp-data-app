@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield, CheckCircle, XCircle } from "lucide-react"
+import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield, CheckCircle, XCircle, User } from "lucide-react"
 import { notFound } from "next/navigation"
 import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
@@ -54,14 +54,37 @@ export default async function MatchDetailPage({ params }: { params: { id: string
 
   const { data: penaltyShooters } = await supabase
     .from("penalty_shootout_players")
-    .select("*, players (*)")
-    .eq("match_id", id)
+    .select(
+      `
+      id,
+      shot_order,
+      scored,
+      player_id,
+      goalkeeper_id,
+      players:player_id (
+        id,
+        name,
+        number
+      )
+    `,
+    )
+    .eq("match_id", params.id)
     .order("shot_order")
 
-  const matchDate = new Date(match.match_date)
+  // Fetch rival penalty shots (those without player_id)
+  const { data: rivalPenaltyShots } = await supabase
+    .from("penalty_shootout_players")
+    .select("*")
+    .eq("match_id", params.id)
+    .is("player_id", null)
+    .order("shot_order")
 
   const isTied = match.home_score === match.away_score
-  const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null
+  const hasPenalties = isTied && (match.penalty_home_score != null || match.penalty_away_score != null)
+
+  const homePenaltyShooters = penaltyShooters?.filter((s: any) => s.player_id !== null) || []
+  const rivalPenaltyCount = rivalPenaltyShots?.length || 0
+  // </CHANGE>
 
   let result: string
   let resultColor: string
@@ -102,6 +125,8 @@ export default async function MatchDetailPage({ params }: { params: { id: string
   const canEdit = profile?.role === "admin" || profile?.role === "coach"
 
   const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo"
+  // Define matchDate here
+  const matchDate = new Date(match.date)
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -240,50 +265,187 @@ export default async function MatchDetailPage({ params }: { params: { id: string
         </Card>
       </div>
 
-      {(match.q1_score || match.q2_score || match.q3_score || match.q4_score) && (
+      {(match.q1_score || match.q2_score || match.q3_score || match.q4_score || hasPenalties) && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Puntuación por Parciales</CardTitle>
+            <CardTitle>Detalles del Partido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner },
-                { q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner },
-                { q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner },
-                { q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner },
-              ].map(({ q, home, away, sprint }) => (
-                <div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+            <Tabs defaultValue="parciales" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="parciales">Parciales</TabsTrigger>
+                <TabsTrigger value="penaltis" disabled={!hasPenalties}>
+                  Tanda de Penaltis
+                </TabsTrigger>
+              </TabsList>
 
-                  <div className="flex justify-around items-center gap-2">
-                    <div>
-                      <p className="text-2xl font-bold">{home || 0}</p>
-                      <p className="text-xs text-muted-foreground">{clubName}</p>
+              <TabsContent value="parciales" className="mt-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner },
+                    { q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner },
+                    { q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner },
+                    { q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner },
+                  ].map(({ q, home, away, sprint }) => (
+                    <div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
+                      <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+
+                      <div className="flex justify-around items-center gap-2">
+                        <div>
+                          <p className="text-2xl font-bold">{home || 0}</p>
+                          <p className="text-xs text-muted-foreground">{clubName}</p>
+                        </div>
+
+                        <p className="text-muted-foreground font-bold">-</p>
+
+                        <div>
+                          <p className="text-2xl font-bold">{away || 0}</p>
+                          <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        {sprint === 1 ? (
+                          <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                            Sprint ganado
+                          </span>
+                        ) : (
+                          <span className="text-sm font-semibold text-red-500 dark:text-red-400">Sprint perdido</span>
+                        )}
+                      </div>
                     </div>
-
-                    <p className="text-muted-foreground font-bold">-</p>
-
-                    <div>
-                      <p className="text-2xl font-bold">{away || 0}</p>
-                      <p className="text-xs text-muted-foreground">{match.opponent}</p>
-                    </div>
-                  </div>
-
-                  {/* Sprint ganado/perdido */}
-                  <div className="mt-3">
-                    {sprint === 1 ? (
-                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">Sprint ganado</span>
-                    ) : (
-                      <span className="text-sm font-semibold text-red-500 dark:text-red-400">Sprint perdido</span>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </TabsContent>
+
+              <TabsContent value="penaltis" className="mt-6">
+                {hasPenalties ? (
+                  <div className="space-y-6">
+                    {/* Resultado Final de Penaltis */}
+                    <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-500/20 dark:to-cyan-500/20 rounded-lg p-6 border border-blue-500/20">
+                      <p className="text-center text-sm text-muted-foreground mb-2">Resultado de Penaltis</p>
+                      <div className="flex items-center justify-center gap-4">
+                        <div className="text-center">
+                          <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                            {match.penalty_home_score}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">{clubName}</p>
+                        </div>
+                        <p className="text-2xl font-bold text-muted-foreground">-</p>
+                        <div className="text-center">
+                          <p className="text-4xl font-bold text-cyan-600 dark:text-cyan-400">
+                            {match.penalty_away_score}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">{match.opponent}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lanzadores */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Equipo Local */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <h3 className="text-lg font-semibold">{clubName}</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {homePenaltyShooters.length > 0 ? (
+                            homePenaltyShooters.map((shooter: any, idx: number) => (
+                              <div
+                                key={shooter.id}
+                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                  shooter.scored
+                                    ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                                    {idx + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">
+                                      #{shooter.players?.number} {shooter.players?.name}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  {shooter.scored ? (
+                                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                  ) : (
+                                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No hay lanzadores registrados
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Equipo Rival */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <User className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                          <h3 className="text-lg font-semibold">{match.opponent}</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {rivalPenaltyShots && rivalPenaltyShots.length > 0 ? (
+                            rivalPenaltyShots.map((shot: any, idx: number) => (
+                              <div
+                                key={shot.id}
+                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                  shot.scored
+                                    ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                                    : shot.result_type === "saved"
+                                      ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"
+                                      : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                                    {idx + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">Lanzamiento {idx + 1}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {shot.scored ? "Gol" : shot.result_type === "saved" ? "Parada" : "Fallo"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  {shot.scored ? (
+                                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                  ) : shot.result_type === "saved" ? (
+                                    <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                  ) : (
+                                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No hay lanzamientos registrados
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">No hubo tanda de penaltis en este partido</p>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
+      {/* </CHANGE> */}
 
       {/* Field Players Stats */}
       <Card className="mb-6">
