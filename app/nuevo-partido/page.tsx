@@ -549,23 +549,22 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         const rivalPenaltiesData = penaltyPlayers
           .filter((p) => p.player_id === null)
           .map((p, index) => ({
-            id: Date.now() + index, // Simple unique ID for UI
-            result: p.result_type || (p.scored ? "scored" : "missed"), // Use result_type if available, fallback to scored/missed
-            // Add logic to determine 'saved' if you have that distinction in your data
+            id: p.id || Date.now() + index, // Use actual DB id if available
+            result: p.result_type || (p.scored ? "scored" : "missed"),
           }))
         setRivalPenalties(rivalPenaltiesData)
 
-        // Populate penaltyGoalkeeperMap if available (assuming a field like 'goalkeeper_id' exists)
+        // Populate penaltyGoalkeeperMap from penalty shootout data
         const goalkeeperMapData = penaltyPlayers
-          .filter((p) => p.player_id !== null && p.is_home_team === false && p.goalkeeper_id) // Assuming is_home_team for rivals and a goalkeeper_id field
+          .filter((p) => p.goalkeeper_id) // Only penalties with a goalkeeper assigned
           .reduce(
             (acc, p) => {
-              acc[p.match_id] = p.goalkeeper_id // This mapping might need adjustment based on your schema
+              acc[p.id] = p.goalkeeper_id // Map penalty id to goalkeeper player_id
               return acc
             },
             {} as Record<number, number>,
           )
-        // setPenaltyGoalkeeperMap(goalkeeperMapData); // This needs careful mapping to penalty.id, which is generated client-side
+        setPenaltyGoalkeeperMap(goalkeeperMapData)
       }
     } catch (error) {
       console.error("Error loading existing match:", error)
