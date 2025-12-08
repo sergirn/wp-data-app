@@ -194,8 +194,9 @@ export default async function MatchDetailPage({ params }: { params: { id: string
                       variant={shooter.scored ? "default" : "destructive"}
                       className="text-xs flex items-center gap-1.5 px-3 py-1"
                     >
-                      {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}#
-                      {shooter.players.number} {shooter.players.name}
+                      {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                      {shooter.players?.number && `#${shooter.players.number} `}
+                      {shooter.players?.name || "Jugador rival"}
                     </Badge>
                   ))}
                 </div>
@@ -634,7 +635,7 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-semibold text-lg truncate">{player.name}</h3>
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
-                Portero
+                Jugador
               </Badge>
             </div>
             <div className="flex flex-wrap gap-2">
