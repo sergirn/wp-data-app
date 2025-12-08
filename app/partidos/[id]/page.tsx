@@ -121,7 +121,6 @@ export default async function MatchDetailPage({ params }: { params: { id: string
                   <CardTitle className="text-2xl">
                     {clubName} vs {match.opponent}
                   </CardTitle>
-                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${resultColor}`}>{result}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   <span>
@@ -137,46 +136,43 @@ export default async function MatchDetailPage({ params }: { params: { id: string
                   {match.jornada && <span>• Jornada {match.jornada}</span>}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <p className="text-4xl font-bold">{match.home_score}</p>
-                  <p className="text-xs text-muted-foreground">{clubName}</p>
+              <div className="text-center">
+                <Badge className={`${resultColor} mb-4 text-sm font-semibold px-4 py-1.5`}>{result}</Badge>
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <p className="text-4xl font-bold">{match.home_score}</p>
+                    <p className="text-xs text-muted-foreground">{clubName}</p>
+                  </div>
+                  <div className="text-3xl font-bold text-muted-foreground">-</div>
+                  <div className="text-center">
+                    <p className="text-4xl font-bold">{match.away_score}</p>
+                    <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                  </div>
                 </div>
-                <div className="text-3xl font-bold text-muted-foreground">-</div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold">{match.away_score}</p>
-                  <p className="text-xs text-muted-foreground">{match.opponent}</p>
-                </div>
+                {hasPenalties && (
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <span className="text-sm text-muted-foreground">Penaltis:</span>
+                    <span className="text-lg font-bold">
+                      {match.penalty_home_score} - {match.penalty_away_score}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            {hasPenalties && (
+            {hasPenalties && penaltyShooters && penaltyShooters.length > 0 && (
               <div className="mt-4 pt-4 border-t border-border">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-center gap-4">
-                    <Badge variant="outline" className="text-sm font-semibold px-4 py-1.5">
-                      Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
+                <p className="text-xs font-semibold text-muted-foreground mb-3 text-center">Lanzadores de {clubName}</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {penaltyShooters.map((shooter: PenaltyShootoutPlayer) => (
+                    <Badge
+                      key={shooter.id}
+                      variant={shooter.scored ? "default" : "destructive"}
+                      className="text-xs flex items-center gap-1.5 px-3 py-1"
+                    >
+                      {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}#
+                      {shooter.players.number} {shooter.players.name}
                     </Badge>
-                  </div>
-
-                  {penaltyShooters && penaltyShooters.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2 text-center">
-                        Lanzadores de {clubName}
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {penaltyShooters.map((shooter: PenaltyShootoutPlayer) => (
-                          <Badge
-                            key={shooter.id}
-                            variant={shooter.scored ? "default" : "destructive"}
-                            className="text-xs flex items-center gap-1.5 px-3 py-1"
-                          >
-                            {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}#
-                            {shooter.players.number} {shooter.players.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
             )}
@@ -473,7 +469,12 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
             </div>
           )}
           <div className="flex-1 text-left min-w-0">
-            <h3 className="font-semibold text-lg mb-1 truncate">{player.name}</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-lg truncate">{player.name}</h3>
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                Portero
+              </Badge>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
                 <Target className="w-3 h-3 mr-1" />
