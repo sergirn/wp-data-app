@@ -134,15 +134,7 @@ export default function LoginPage() {
                   <Button type="submit" className="w-full h-11" disabled={isLoading}>
                     {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-11 bg-transparent"
-                    onClick={fillAdminCredentials}
-                    disabled={isLoading}
-                  >
-                    Rellenar credenciales de Admin (Demo)
-                  </Button>
+                  
                 </div>
                 <div className="mt-4 text-center text-sm">
                   ¿No tienes una cuenta?{" "}
