@@ -589,7 +589,10 @@ function calculateSuperioridadStats(stats: any[]) {
 }
 
 function calculateInferioridadStats(stats: any[]) {
-  const evitados = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const paradas = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const fuera = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_fuera || 0), 0)
+  const bloqueo = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_bloqueo || 0), 0)
+  const evitados = paradas + fuera + bloqueo
   const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos || 0), 0)
   const total = evitados + recibidos
   const eficiencia = total > 0 ? ((evitados / total) * 100).toFixed(1) : "0.0"
@@ -597,9 +600,13 @@ function calculateInferioridadStats(stats: any[]) {
   return {
     evitados,
     recibidos,
+    paradas,
+    fuera,
+    bloqueo,
     total,
     eficiencia: Number.parseFloat(eficiencia),
   }
+  // </CHANGE>
 }
 
 function calculateBlocksStats(stats: any[], golesRecibidos: number) {
