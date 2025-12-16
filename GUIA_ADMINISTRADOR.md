@@ -62,53 +62,53 @@ El formulario te permite crear usuarios con diferentes configuraciones:
 
 #### Ejemplo 1: Crear un entrenador para CN Sant Andreu
 
-\`\`\`
+```
 Email: entrenador@cnsantandreu.com
 Contraseña: Coach2024!
 Nombre Completo: Juan García
 Rol: Coach (Puede editar)
 Club: CN Sant Andreu
 Super Administrador: ❌ (no marcado)
-\`\`\`
+```
 
 **Resultado**: Juan podrá ver y editar partidos/jugadores solo del CN Sant Andreu.
 
 #### Ejemplo 2: Crear un administrador para CE Mediterrani
 
-\`\`\`
+```
 Email: admin@cemediterrani.com
 Contraseña: Admin2024!
 Nombre Completo: María López
 Rol: Admin (Control total del club)
 Club: CE Mediterrani
 Super Administrador: ❌ (no marcado)
-\`\`\`
+```
 
 **Resultado**: María tendrá control total sobre CE Mediterrani pero no verá datos de otros clubes.
 
 #### Ejemplo 3: Crear un viewer para CN Sant Andreu
 
-\`\`\`
+```
 Email: viewer@cnsantandreu.com
 Contraseña: View2024!
 Nombre Completo: Pedro Martínez
 Rol: Viewer (Solo lectura)
 Club: CN Sant Andreu
 Super Administrador: ❌ (no marcado)
-\`\`\`
+```
 
 **Resultado**: Pedro solo podrá ver estadísticas del CN Sant Andreu, sin poder editar nada.
 
 #### Ejemplo 4: Crear otro super administrador
 
-\`\`\`
+```
 Email: superadmin2@waterpolostats.com
 Contraseña: SuperAdmin2024!
 Nombre Completo: Ana Rodríguez
 Rol: Admin (Control total del club)
 Club: (no necesario)
 Super Administrador: ✅ (marcado)
-\`\`\`
+```
 
 **Resultado**: Ana tendrá acceso a todos los clubes y al panel de administración.
 

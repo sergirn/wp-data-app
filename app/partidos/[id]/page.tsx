@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield, CheckCircle, XCircle } from "lucide-react"
+import { ArrowLeft, Edit, TrendingUp, Target, Activity, Shield, CheckCircle, XCircle, User } from "lucide-react"
 import { notFound } from "next/navigation"
 import type { Match, MatchStats, Player, Club } from "@/lib/types"
 import { DeleteMatchButton } from "@/components/delete-match-button"
@@ -13,6 +13,7 @@ import { MatchExportButton } from "@/components/match-export-button"
 import { getCurrentProfile } from "@/lib/auth"
 import { MatchSuperiorityChart } from "@/components/match-superiority-chart"
 import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
+import { MatchBlocksChart } from "@/components/match-blocks-chart"
 
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
@@ -54,14 +55,37 @@ export default async function MatchDetailPage({ params }: { params: { id: string
 
   const { data: penaltyShooters } = await supabase
     .from("penalty_shootout_players")
-    .select("*, players (*)")
-    .eq("match_id", id)
+    .select(
+      `
+      id,
+      shot_order,
+      scored,
+      player_id,
+      goalkeeper_id,
+      players:player_id (
+        id,
+        name,
+        number
+      )
+    `,
+    )
+    .eq("match_id", params.id)
     .order("shot_order")
 
-  const matchDate = new Date(match.match_date)
+  // Fetch rival penalty shots (those without player_id)
+  const { data: rivalPenaltyShots } = await supabase
+    .from("penalty_shootout_players")
+    .select("*")
+    .eq("match_id", params.id)
+    .is("player_id", null)
+    .order("shot_order")
 
   const isTied = match.home_score === match.away_score
-  const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null
+  const hasPenalties = isTied && (match.penalty_home_score != null || match.penalty_away_score != null)
+
+  const homePenaltyShooters = penaltyShooters?.filter((s: any) => s.player_id !== null) || []
+  const rivalPenaltyCount = rivalPenaltyShots?.length || 0
+  // </CHANGE>
 
   let result: string
   let resultColor: string
@@ -95,13 +119,19 @@ export default async function MatchDetailPage({ params }: { params: { id: string
   const teamTotals = calculateTeamTotals(match.match_stats)
   const superioridadStats = calculateSuperioridadStats(match.match_stats)
   const inferioridadStats = calculateInferioridadStats(match.match_stats) // Added
+  const blocksStats = calculateBlocksStats(match.match_stats, match.away_score)
 
   const players = match.match_stats.map((s: any) => s.players)
-  const stats = match.match_stats
+  const stats = match.match_stats // Rename for clarity in the block section
 
   const canEdit = profile?.role === "admin" || profile?.role === "coach"
 
   const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo"
+  // Define matchDate here
+  const matchDate = new Date(match.date)
+
+  // Renamed from 'stats' to 'matchStats' for clarity in the new section
+  const matchStats = match.match_stats
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -121,7 +151,6 @@ export default async function MatchDetailPage({ params }: { params: { id: string
                   <CardTitle className="text-2xl">
                     {clubName} vs {match.opponent}
                   </CardTitle>
-                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${resultColor}`}>{result}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   <span>
@@ -137,49 +166,29 @@ export default async function MatchDetailPage({ params }: { params: { id: string
                   {match.jornada && <span>• Jornada {match.jornada}</span>}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <p className="text-4xl font-bold">{match.home_score}</p>
-                  <p className="text-xs text-muted-foreground">{clubName}</p>
+              <div className="text-center">
+                <Badge className={`${resultColor} mb-4 text-sm font-semibold px-4 py-1.5`}>{result}</Badge>
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <p className="text-4xl font-bold">{match.home_score}</p>
+                    <p className="text-xs text-muted-foreground">{clubName}</p>
+                  </div>
+                  <div className="text-3xl font-bold text-muted-foreground">-</div>
+                  <div className="text-center">
+                    <p className="text-4xl font-bold">{match.away_score}</p>
+                    <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                  </div>
                 </div>
-                <div className="text-3xl font-bold text-muted-foreground">-</div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold">{match.away_score}</p>
-                  <p className="text-xs text-muted-foreground">{match.opponent}</p>
-                </div>
+                {hasPenalties && (
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <span className="text-sm text-muted-foreground">Penaltis:</span>
+                    <span className="text-lg font-bold">
+                      {match.penalty_home_score} - {match.penalty_away_score}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            {hasPenalties && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-center gap-4">
-                    <Badge variant="outline" className="text-sm font-semibold px-4 py-1.5">
-                      Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
-                    </Badge>
-                  </div>
-
-                  {penaltyShooters && penaltyShooters.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2 text-center">
-                        Lanzadores de {clubName}
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {penaltyShooters.map((shooter: PenaltyShootoutPlayer) => (
-                          <Badge
-                            key={shooter.id}
-                            variant={shooter.scored ? "default" : "destructive"}
-                            className="text-xs flex items-center gap-1.5 px-3 py-1"
-                          >
-                            {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}#
-                            {shooter.players.number} {shooter.players.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </CardHeader>
           {match.notes && (
             <CardContent>
@@ -190,15 +199,197 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           )}
         </Card>
       </div>
+      
 
-      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Totales del Equipo - 2x2 Grid */}
+      {(match.q1_score || match.q2_score || match.q3_score || match.q4_score || hasPenalties) && (
+        <Card className="mb-6">
+          <CardContent>
+            <Tabs defaultValue="parciales" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="parciales">Parciales</TabsTrigger>
+                <TabsTrigger value="penaltis" disabled={!hasPenalties}>
+                  Tanda de Penaltis
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="parciales" className="mt-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner },
+                    { q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner },
+                    { q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner },
+                    { q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner },
+                  ].map(({ q, home, away, sprint }) => (
+                    <div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
+                      <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+
+                      <div className="flex justify-around items-center gap-2">
+                        <div>
+                          <p className="text-2xl font-bold">{home || 0}</p>
+                          <p className="text-xs text-muted-foreground">{clubName}</p>
+                        </div>
+
+                        <p className="text-muted-foreground font-bold">-</p>
+
+                        <div>
+                          <p className="text-2xl font-bold">{away || 0}</p>
+                          <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        {sprint === 1 ? (
+                          <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                            Sprint ganado
+                          </span>
+                        ) : (
+                          <span className="text-sm font-semibold text-red-500 dark:text-red-400">Sprint perdido</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="penaltis" className="mt-6">
+                {hasPenalties ? (
+                  <div className="space-y-6">
+                    {/* Resultado Final de Penaltis */}
+                    <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-500/20 dark:to-cyan-500/20 rounded-lg p-6 border border-blue-500/20">
+                      <p className="text-center text-sm text-muted-foreground mb-2">Resultado de Penaltis</p>
+                      <div className="flex items-center justify-center gap-4">
+                        <div className="text-center">
+                          <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+                            {match.penalty_home_score}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">{clubName}</p>
+                        </div>
+                        <p className="text-2xl font-bold text-muted-foreground">-</p>
+                        <div className="text-center">
+                          <p className="text-4xl font-bold text-cyan-600 dark:text-cyan-400">
+                            {match.penalty_away_score}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">{match.opponent}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lanzadores */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {/* Equipo Local */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <h3 className="text-lg font-semibold">{clubName}</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {homePenaltyShooters.length > 0 ? (
+                            homePenaltyShooters.map((shooter: any, idx: number) => (
+                              <div
+                                key={shooter.id}
+                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                  shooter.scored
+                                    ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                                    : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                                    {idx + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">
+                                      #{shooter.players?.number} {shooter.players?.name}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  {shooter.scored ? (
+                                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                  ) : (
+                                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No hay lanzadores registrados
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Equipo Rival */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <User className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                          <h3 className="text-lg font-semibold">{match.opponent}</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {rivalPenaltyShots && rivalPenaltyShots.length > 0 ? (
+                            rivalPenaltyShots.map((shot: any, idx: number) => (
+                              <div
+                                key={shot.id}
+                                className={`flex items-center justify-between p-3 rounded-lg border ${
+                                  shot.scored
+                                    ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                                    : shot.result_type === "saved"
+                                      ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"
+                                      : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                                    {idx + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">Lanzamiento {idx + 1}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {shot.scored ? "Gol" : shot.result_type === "saved" ? "Parada" : "Fallo"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div>
+                                  {shot.scored ? (
+                                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                  ) : shot.result_type === "saved" ? (
+                                    <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                  ) : (
+                                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No hay lanzamientos registrados
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">No hubo tanda de penaltis en este partido</p>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
+
+
+
+
+      <div className="grid gap-6 mb-6">
+        {/* Totales del Equipo - Full Width */}
         <Card>
           <CardHeader>
             <CardTitle>Totales del Equipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-blue-500/10 rounded-lg">
                 <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
                 <p className="text-sm text-muted-foreground">Goles</p>
@@ -219,75 +410,116 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           </CardContent>
         </Card>
 
-        {/* Análisis de Superioridad/Inferioridad con Tabs */}
-        <Card>
-          <CardContent>
-            <Tabs defaultValue="superioridad" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
-                  Superioridad
-                </TabsTrigger>
-                <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
-                  Inferioridad
-                </TabsTrigger>
-              </TabsList>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Análisis de Superioridad/Inferioridad con Tabs */}
+          <Card>
+            <CardContent>
+              <Tabs defaultValue="superioridad" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
+                    Superioridad
+                  </TabsTrigger>
+                  <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
+                    Inferioridad
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="superioridad" className="mt-4">
-                <MatchSuperiorityChart stats={superioridadStats} />
-              </TabsContent>
+                <TabsContent value="superioridad" className="mt-4">
+                  <MatchSuperiorityChart stats={superioridadStats} />
+                </TabsContent>
 
-              <TabsContent value="inferioridad" className="mt-4">
-                <MatchInferiorityChart stats={inferioridadStats} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                <TabsContent value="inferioridad" className="mt-4">
+                  <MatchInferiorityChart stats={inferioridadStats} />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bloqueos del Partido</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-3">
+              {/* Chart matching superiority/inferiority style */}
+              
+              <MatchBlocksChart stats={blocksStats} />
+
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem
+                  value="players"
+                  className="border rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5"
+                >
+                  <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-white-500" />
+                      <span>
+                        Jugadores con Bloqueos ({matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length})
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
+                      {matchStats
+                        .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
+                        .sort((a, b) => (b.acciones_bloqueo || 0) - (a.acciones_bloqueo || 0))
+                        .map((stat) => {
+                          const player = stat.players
+                          const blocks = stat.acciones_bloqueo || 0
+                          return (
+                            <div
+                              key={stat.id}
+                              className="p-3 bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 hover:border-blue-500/50 transition-colors"
+                            >
+                              <div className="flex flex-col items-center text-center gap-2">
+                                
+                                {/* Foto */}
+                                <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0">
+                                  {player.photo_url ? (
+                                    <img
+                                      src={player.photo_url || "/placeholder.svg"}
+                                      alt={player.name}
+                                      className="w-full h-full object-cover object-top"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <span className="text-primary-foreground font-bold text-lg">
+                                      {player.number}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Nombre */}
+                                <span className="text-sm font-medium">
+                                  {player?.name || "Desconocido"}
+                                </span>
+
+                                {/* Bloqueos */}
+                                <Badge
+                                  variant="outline"
+                                  className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold"
+                                >
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  {blocks} {blocks === 1 ? "bloqueo" : "bloqueos"}
+                                </Badge>
+
+                              </div>
+                            </div>
+                          )
+                        })}
+                      {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
+                        <div className="text-center py-8">
+                          <Shield className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">No hay bloqueos registrados en este partido</p>
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      {(match.q1_score || match.q2_score || match.q3_score || match.q4_score) && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Puntuación por Parciales</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner },
-                { q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner },
-                { q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner },
-                { q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner },
-              ].map(({ q, home, away, sprint }) => (
-                <div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
-                  <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
-
-                  <div className="flex justify-around items-center gap-2">
-                    <div>
-                      <p className="text-2xl font-bold">{home || 0}</p>
-                      <p className="text-xs text-muted-foreground">{clubName}</p>
-                    </div>
-
-                    <p className="text-muted-foreground font-bold">-</p>
-
-                    <div>
-                      <p className="text-2xl font-bold">{away || 0}</p>
-                      <p className="text-xs text-muted-foreground">{match.opponent}</p>
-                    </div>
-                  </div>
-
-                  {/* Sprint ganado/perdido */}
-                  <div className="mt-3">
-                    {sprint === 1 ? (
-                      <span className="text-sm font-semibold text-green-600 dark:text-green-400">Sprint ganado</span>
-                    ) : (
-                      <span className="text-sm font-semibold text-red-500 dark:text-red-400">Sprint perdido</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Field Players Stats */}
       <Card className="mb-6">
@@ -367,6 +599,8 @@ function calculateTeamTotals(stats: any[]) {
 function calculateSuperioridadStats(stats: any[]) {
   const anotadas = stats.reduce((acc, stat) => acc + (stat.goles_hombre_mas || 0), 0)
   const falladas = stats.reduce((acc, stat) => acc + (stat.tiros_hombre_mas || 0), 0)
+  const rebotesRecuperados = stats.reduce((acc, stat) => acc + (stat.rebote_recup_hombre_mas || 0), 0)
+  const rebotesPerdidos = stats.reduce((acc, stat) => acc + (stat.rebote_perd_hombre_mas || 0), 0)
   const total = anotadas + falladas
   const eficiencia = total > 0 ? ((anotadas / total) * 100).toFixed(1) : "0.0"
 
@@ -375,11 +609,17 @@ function calculateSuperioridadStats(stats: any[]) {
     falladas,
     total,
     eficiencia: Number.parseFloat(eficiencia),
+    rebotesRecuperados,
+    rebotesPerdidos,
   }
 }
+// </CHANGE>
 
 function calculateInferioridadStats(stats: any[]) {
-  const evitados = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const paradas = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const fuera = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_fuera || 0), 0)
+  const bloqueo = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_bloqueo || 0), 0)
+  const evitados = paradas + fuera + bloqueo
   const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos || 0), 0)
   const total = evitados + recibidos
   const eficiencia = total > 0 ? ((evitados / total) * 100).toFixed(1) : "0.0"
@@ -387,8 +627,24 @@ function calculateInferioridadStats(stats: any[]) {
   return {
     evitados,
     recibidos,
+    paradas,
+    fuera,
+    bloqueo,
     total,
     eficiencia: Number.parseFloat(eficiencia),
+  }
+  // </CHANGE>
+}
+
+function calculateBlocksStats(stats: any[], golesRecibidos: number) {
+  const bloqueos = stats.reduce((acc, stat) => acc + (stat.acciones_bloqueo || 0), 0)
+  const total = bloqueos + golesRecibidos
+  const eficacia = total > 0 ? ((bloqueos / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    bloqueos,
+    golesRecibidos,
+    eficacia: Number.parseFloat(eficacia),
   }
 }
 
@@ -464,7 +720,7 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
               <img
                 src={player.photo_url || "/placeholder.svg"}
                 alt={player.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
             </div>
           ) : (
@@ -473,7 +729,12 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
             </div>
           )}
           <div className="flex-1 text-left min-w-0">
-            <h3 className="font-semibold text-lg mb-1 truncate">{player.name}</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-lg truncate">{player.name}</h3>
+              <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                Jugador
+              </Badge>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-300">
                 <Target className="w-3 h-3 mr-1" />
@@ -706,7 +967,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
               <img
                 src={player.photo_url || "/placeholder.svg"}
                 alt={player.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
             </div>
           ) : (
@@ -907,14 +1168,6 @@ function StatRow({ label, value, highlight }: { label: string; value?: number; h
     <div className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
       <span className={`text-muted-foreground ${highlight ? "font-semibold" : ""}`}>{label}</span>
       <span className={`font-semibold ${highlight ? "text-primary" : ""}`}>{value}</span>
-    </div>
-  )
-}
-
-function StatBadge({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-muted px-3 py-1.5 rounded">
-      <span className="text-muted-foreground">{label}:</span> <span className="font-semibold ml-1">{value}</span>
     </div>
   )
 }
