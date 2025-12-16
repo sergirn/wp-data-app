@@ -189,24 +189,6 @@ export default async function MatchDetailPage({ params }: { params: { id: string
                 )}
               </div>
             </div>
-            {hasPenalties && penaltyShooters && penaltyShooters.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <p className="text-xs font-semibold text-muted-foreground mb-3 text-center">Lanzadores de {clubName}</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {penaltyShooters.map((shooter: PenaltyShootoutPlayer) => (
-                    <Badge
-                      key={shooter.id}
-                      variant={shooter.scored ? "default" : "destructive"}
-                      className="text-xs flex items-center gap-1.5 px-3 py-1"
-                    >
-                      {shooter.scored ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      {shooter.players?.number && `#${shooter.players.number} `}
-                      {shooter.players?.name || "Jugador rival"}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </CardHeader>
           {match.notes && (
             <CardContent>
@@ -217,135 +199,10 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           )}
         </Card>
       </div>
-
-      <div className="grid gap-6 mb-6">
-        {/* Totales del Equipo - Full Width */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Totales del Equipo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
-                <p className="text-sm text-muted-foreground">Goles</p>
-              </div>
-              <div className="text-center p-4 bg-green-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
-                <p className="text-sm text-muted-foreground">Tiros</p>
-              </div>
-              <div className="text-center p-4 bg-orange-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
-                <p className="text-sm text-muted-foreground">Faltas</p>
-              </div>
-              <div className="text-center p-4 bg-purple-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
-                <p className="text-sm text-muted-foreground">Asistencias</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Análisis de Superioridad/Inferioridad con Tabs */}
-          <Card>
-            <CardContent className="pt-6">
-              <Tabs defaultValue="superioridad" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
-                    Superioridad
-                  </TabsTrigger>
-                  <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
-                    Inferioridad
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="superioridad" className="mt-4">
-                  <MatchSuperiorityChart stats={superioridadStats} />
-                </TabsContent>
-
-                <TabsContent value="inferioridad" className="mt-4">
-                  <MatchInferiorityChart stats={inferioridadStats} />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Bloqueos del Partido</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Chart matching superiority/inferiority style */}
-              <MatchBlocksChart stats={blocksStats} />
-
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem
-                  value="players"
-                  className="border rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5"
-                >
-                  <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-blue-500" />
-                      <span>
-                        Jugadores con Bloqueos ({matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length})
-                      </span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="space-y-2 pt-2">
-                      {matchStats
-                        .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
-                        .sort((a, b) => (b.acciones_bloqueo || 0) - (a.acciones_bloqueo || 0))
-                        .map((stat) => {
-                          const player = stat.players
-                          const blocks = stat.acciones_bloqueo || 0
-                          return (
-                            <div
-                              key={stat.id}
-                              className="flex items-center justify-between p-3 bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 hover:border-blue-500/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                                  {player?.number || "?"}
-                                </div>
-                                <div>
-                                  <span className="text-sm font-medium block">{player?.name || "Desconocido"}</span>
-                                  <span className="text-xs text-muted-foreground">{player?.position || "N/A"}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge
-                                  variant="outline"
-                                  className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold"
-                                >
-                                  <Shield className="h-3 w-3 mr-1" />
-                                  {blocks} {blocks === 1 ? "bloqueo" : "bloqueos"}
-                                </Badge>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
-                        <div className="text-center py-8">
-                          <Shield className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
-                          <p className="text-sm text-muted-foreground">No hay bloqueos registrados en este partido</p>
-                        </div>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      
 
       {(match.q1_score || match.q2_score || match.q3_score || match.q4_score || hasPenalties) && (
         <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Detalles del Partido</CardTitle>
-          </CardHeader>
           <CardContent>
             <Tabs defaultValue="parciales" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
@@ -521,7 +378,148 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           </CardContent>
         </Card>
       )}
-      {/* </CHANGE> */}
+
+
+
+
+      <div className="grid gap-6 mb-6">
+        {/* Totales del Equipo - Full Width */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Totales del Equipo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
+                <p className="text-sm text-muted-foreground">Goles</p>
+              </div>
+              <div className="text-center p-4 bg-green-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
+                <p className="text-sm text-muted-foreground">Tiros</p>
+              </div>
+              <div className="text-center p-4 bg-orange-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
+                <p className="text-sm text-muted-foreground">Faltas</p>
+              </div>
+              <div className="text-center p-4 bg-purple-500/10 rounded-lg">
+                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
+                <p className="text-sm text-muted-foreground">Asistencias</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Análisis de Superioridad/Inferioridad con Tabs */}
+          <Card>
+            <CardContent>
+              <Tabs defaultValue="superioridad" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
+                    Superioridad
+                  </TabsTrigger>
+                  <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
+                    Inferioridad
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="superioridad" className="mt-4">
+                  <MatchSuperiorityChart stats={superioridadStats} />
+                </TabsContent>
+
+                <TabsContent value="inferioridad" className="mt-4">
+                  <MatchInferiorityChart stats={inferioridadStats} />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bloqueos del Partido</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-3">
+              {/* Chart matching superiority/inferiority style */}
+              
+              <MatchBlocksChart stats={blocksStats} />
+
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem
+                  value="players"
+                  className="border rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5"
+                >
+                  <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-white-500" />
+                      <span>
+                        Jugadores con Bloqueos ({matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length})
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
+                      {matchStats
+                        .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
+                        .sort((a, b) => (b.acciones_bloqueo || 0) - (a.acciones_bloqueo || 0))
+                        .map((stat) => {
+                          const player = stat.players
+                          const blocks = stat.acciones_bloqueo || 0
+                          return (
+                            <div
+                              key={stat.id}
+                              className="p-3 bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 hover:border-blue-500/50 transition-colors"
+                            >
+                              <div className="flex flex-col items-center text-center gap-2">
+                                
+                                {/* Foto */}
+                                <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0">
+                                  {player.photo_url ? (
+                                    <img
+                                      src={player.photo_url || "/placeholder.svg"}
+                                      alt={player.name}
+                                      className="w-full h-full object-cover object-top"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <span className="text-primary-foreground font-bold text-lg">
+                                      {player.number}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Nombre */}
+                                <span className="text-sm font-medium">
+                                  {player?.name || "Desconocido"}
+                                </span>
+
+                                {/* Bloqueos */}
+                                <Badge
+                                  variant="outline"
+                                  className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold"
+                                >
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  {blocks} {blocks === 1 ? "bloqueo" : "bloqueos"}
+                                </Badge>
+
+                              </div>
+                            </div>
+                          )
+                        })}
+                      {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
+                        <div className="text-center py-8">
+                          <Shield className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">No hay bloqueos registrados en este partido</p>
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Field Players Stats */}
       <Card className="mb-6">
@@ -722,7 +720,7 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
               <img
                 src={player.photo_url || "/placeholder.svg"}
                 alt={player.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
             </div>
           ) : (
@@ -969,7 +967,7 @@ function GoalkeeperStatsAccordion({ stat, player }: { stat: MatchStats; player: 
               <img
                 src={player.photo_url || "/placeholder.svg"}
                 alt={player.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-top"
               />
             </div>
           ) : (
@@ -1170,14 +1168,6 @@ function StatRow({ label, value, highlight }: { label: string; value?: number; h
     <div className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
       <span className={`text-muted-foreground ${highlight ? "font-semibold" : ""}`}>{label}</span>
       <span className={`font-semibold ${highlight ? "text-primary" : ""}`}>{value}</span>
-    </div>
-  )
-}
-
-function StatBadge({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="bg-muted px-3 py-1.5 rounded">
-      <span className="text-muted-foreground">{label}:</span> <span className="font-semibold ml-1">{value}</span>
     </div>
   )
 }

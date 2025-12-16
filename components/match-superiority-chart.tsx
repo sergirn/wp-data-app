@@ -2,7 +2,7 @@
 
 import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { TrendingUp, TrendingDown, Target } from "lucide-react"
+import { TrendingUp, TrendingDown, Target, Volleyball } from "lucide-react"
 
 interface SuperioridadStats {
   anotadas: number
@@ -60,16 +60,32 @@ export function MatchSuperiorityChart({ stats }: { stats: SuperioridadStats }) {
 
       {(stats.rebotesRecuperados !== undefined || stats.rebotesPerdidos !== undefined) && (
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="breakdown" className="border rounded-lg">
-            <AccordionTrigger className="px-4 hover:no-underline hover:bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 text-sm font-semibold">
+          <AccordionItem value="breakdown" className="border rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
+            <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
+              <div className="flex items-center gap-2">
                 <Target className="h-4 w-4" />
-                Ver Desglose Detallado
+                Ver superioridad
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
               <div className="space-y-3 pt-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+                  {/* Rebotes Recuperados */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-full bg-blue-500/20">
+                        <Volleyball className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        Goles anotados
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold text-blue-700 dark:text-emerald-300">
+                      {stats.anotadas || 0}
+                    </span>
+                  </div>
+
                   {/* Rebotes Recuperados */}
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-200 dark:border-emerald-800">
                     <div className="flex items-center gap-2">
@@ -98,6 +114,8 @@ export function MatchSuperiorityChart({ stats }: { stats: SuperioridadStats }) {
                     </span>
                   </div>
                 </div>
+
+                
 
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">

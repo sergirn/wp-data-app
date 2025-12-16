@@ -62,11 +62,11 @@ export function MatchInferiorityChart({ stats }: { stats: InferioridadStats }) {
 
       {/* Accordion with breakdown */}
       <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="breakdown" className="border rounded-lg">
-          <AccordionTrigger className="px-4 hover:no-underline hover:bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2 text-sm font-semibold">
+        <AccordionItem value="breakdown" className="border rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
+          <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
+            <div className="flex items-center gap-2">
               <Target className="h-4 w-4" />
-              Ver Desglose Detallado
+              Ver inferioridad
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4">
