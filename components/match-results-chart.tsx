@@ -11,73 +11,74 @@ interface MatchResultsChartProps {
 const COLORS = ["#22c55e", "#f59e0b", "#ef4444"] // Green, Orange, Red
 
 export function MatchResultsChart({ matches }: MatchResultsChartProps) {
-  const wins = matches.filter((m) => m.home_score > m.away_score).length
-  const draws = matches.filter((m) => m.home_score === m.away_score).length
-  const losses = matches.filter((m) => m.home_score < m.away_score).length
+  const wins = matches.filter(m => m.home_score > m.away_score).length
+  const draws = matches.filter(m => m.home_score === m.away_score).length
+  const losses = matches.filter(m => m.home_score < m.away_score).length
 
-  const data = [
-    { name: "Victorias", value: wins },
-    { name: "Empates", value: draws },
-    { name: "Derrotas", value: losses },
+  const total = matches.length || 1
+
+  const stats = [
+    { label: "Victorias", value: wins, color: "#22c55e" },
+    { label: "Empates", value: draws, color: "#f59e0b" },
+    { label: "Derrotas", value: losses, color: "#ef4444" },
   ]
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Resultados</CardTitle>
-        <CardDescription>Distribución de victorias, empates y derrotas</CardDescription>
+        <CardDescription>Balance de partidos</CardDescription>
       </CardHeader>
+
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={260}>
           <PieChart>
             <Pie
-              data={data}
+              data={stats}
               dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
+              innerRadius={70}
               outerRadius={100}
-              stroke="#ffffff"
-              strokeWidth={3}
-              label={({ name, value, percent }) =>
-                value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)` : null
-              }
-              labelLine={true}
+              stroke="none"
             >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index]} style={{ outline: "none" }} />
+              {stats.map((s, i) => (
+                <Cell key={i} fill={s.color} />
               ))}
             </Pie>
-            <Legend
-              verticalAlign="bottom"
-              height={36}
-              formatter={(value) => <span className="text-sm font-medium">{value}</span>}
-            />
+
+            <text
+              x="50%"
+              y="50%"
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              <tspan className="text-2xl font-bold fill-foreground">
+                {total}
+              </tspan>
+              <tspan
+                x="50%"
+                dy="2em"
+                className="text-xs fill-muted-foreground"
+              >
+                Partidos
+              </tspan>
+            </text>
           </PieChart>
         </ResponsiveContainer>
 
-        <div className="mt-4 grid grid-cols-3 gap-4">
-          <div className="rounded-lg border bg-card p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[0] }} />
-              <p className="text-xs font-medium text-muted-foreground">Victorias</p>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-lg border p-3 text-center"
+              style={{ backgroundColor: `${stat.color}10` }}
+            >
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-xl font-bold">{stat.value}</p>
+              <p className="text-xs text-muted-foreground">
+                {Math.round((stat.value / total) * 100)}%
+              </p>
             </div>
-            <p className="text-2xl font-bold">{wins}</p>
-          </div>
-          <div className="rounded-lg border bg-card p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[1] }} />
-              <p className="text-xs font-medium text-muted-foreground">Empates</p>
-            </div>
-            <p className="text-2xl font-bold">{draws}</p>
-          </div>
-          <div className="rounded-lg border bg-card p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[2] }} />
-              <p className="text-xs font-medium text-muted-foreground">Derrotas</p>
-            </div>
-            <p className="text-2xl font-bold">{losses}</p>
-          </div>
+          ))}
         </div>
       </CardContent>
     </Card>

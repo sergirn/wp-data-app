@@ -65,7 +65,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   const [penaltyShooters, setPenaltyShooters] = useState<Array<{ playerId: number; scored: boolean }>>([])
   const [showPenaltyShooterDialog, setShowPenaltyShooterDialog] = useState(false)
 
-  const [rivalPenalties, setRivalPenalties] = useState<Array<{ id: number; result: "scored" | "missed" | "saved" }>>([])
+  const [rivalPenalties, setRivalPenalties] = useState<Array<{ id: number; result: "scored" | "saved" | "missed" }>>([])
 
   const [penaltyGoalkeeperMap, setPenaltyGoalkeeperMap] = useState<Record<number, number>>({}) // penalty.id -> goalkeeper player_id
 
@@ -111,6 +111,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     }
     if (profile) fetchClub()
   }, [profile, supabase])
+
+  useEffect(() => {
+    const homeScore = penaltyShooters.filter((s) => s.scored).length
+    const awayScore = rivalPenalties.filter((p) => p.result === "scored").length
+
+    if (penaltyShooters.length > 0 || rivalPenalties.length > 0) {
+      setPenaltyHomeScore(homeScore)
+      setPenaltyAwayScore(awayScore)
+    }
+  }, [penaltyShooters, rivalPenalties])
+  // </CHANGE>
 
   const calculateQuarterScores = (playerStats: Record<number, Partial<MatchStats>>) => {
     let homeGoals = 0
@@ -392,6 +403,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     portero_exp_provocada: 0,
     portero_penalti_provocado: 0,
     portero_recibir_gol: 0,
+    // ADDED GOALKEEPER INFERIORITY FIELDS
+    portero_inferioridad_fuera: 0,
+    portero_inferioridad_bloqueo: 0,
+    // ADDED REBOUND FIELDS FOR SUPERIORITY SITUATIONS
+    rebote_recup_hombre_mas: 0,
+    rebote_perd_hombre_mas: 0,
   })
 
   const hasStats = (playerId: number): boolean => {
@@ -538,23 +555,22 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         const rivalPenaltiesData = penaltyPlayers
           .filter((p) => p.player_id === null)
           .map((p, index) => ({
-            id: Date.now() + index, // Simple unique ID for UI
-            result: p.scored ? "scored" : "missed", // Assuming missed if not scored
-            // Add logic to determine 'saved' if you have that distinction in your data
+            id: p.id || Date.now() + index, // Use actual DB id if available
+            result: p.result_type || (p.scored ? "scored" : "missed"),
           }))
         setRivalPenalties(rivalPenaltiesData)
 
-        // Populate penaltyGoalkeeperMap if available (assuming a field like 'goalkeeper_id' exists)
+        // Populate penaltyGoalkeeperMap from penalty shootout data
         const goalkeeperMapData = penaltyPlayers
-          .filter((p) => p.player_id !== null && p.is_home_team === false && p.goalkeeper_id) // Assuming is_home_team for rivals and a goalkeeper_id field
+          .filter((p) => p.goalkeeper_id) // Only penalties with a goalkeeper assigned
           .reduce(
             (acc, p) => {
-              acc[p.match_id] = p.goalkeeper_id // This mapping might need adjustment based on your schema
+              acc[p.id] = p.goalkeeper_id // Map penalty id to goalkeeper player_id
               return acc
             },
             {} as Record<number, number>,
           )
-        // setPenaltyGoalkeeperMap(goalkeeperMapData); // This needs careful mapping to penalty.id, which is generated client-side
+        setPenaltyGoalkeeperMap(goalkeeperMapData)
       }
     } catch (error) {
       console.error("Error loading existing match:", error)
@@ -597,6 +613,30 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             return sum + safeNumber(newStats[cat] as number)
           }, 0) as any
         }
+
+        // Update goalkeeper inferiority stats when relevant fields change
+        if (
+          field === "portero_goles_hombre_menos" ||
+          field === "portero_paradas_hombre_menos" ||
+          field === "portero_inferioridad_fuera" ||
+          field === "portero_inferioridad_bloqueo"
+        ) {
+          const currentStatsForPlayer = prev[playerId] || createEmptyStats(playerId)
+          const updatedGolesHombreMenos = safeNumber(
+            field === "portero_goles_hombre_menos" ? safeValue : currentStatsForPlayer.portero_goles_hombre_menos,
+          )
+          const updatedParadasHombreMenos = safeNumber(
+            field === "portero_paradas_hombre_menos" ? safeValue : currentStatsForPlayer.portero_paradas_hombre_menos,
+          )
+
+          newStats.portero_paradas_totales =
+            (safeNumber(newStats.portero_paradas_totales) || 0) +
+            (safeNumber(newStats.portero_inferioridad_fuera) || 0) +
+            (safeNumber(newStats.portero_inferioridad_bloqueo) || 0)
+
+          // The efficiency calculation below is for generic field players, we need to adjust for goalkeepers if needed.
+          // For now, let's ensure we're not overwriting existing correct calculations.
+        }
       } else {
         const goalCategories: (keyof MatchStats)[] = [
           "goles_boya_jugada",
@@ -637,6 +677,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             newStats.tiros_eficiencia = 0 as any
             newStats.goles_eficiencia = 0 as any
           }
+        }
+
+        // Update rebound stats when relevant fields change for field players
+        if (
+          field === "rebote_recup_hombre_mas" ||
+          field === "rebote_perd_hombre_mas" ||
+          field === "goles_hombre_mas" ||
+          field === "tiros_hombre_mas"
+        ) {
+          // These specific fields don't directly influence a single total,
+          // but are tracked independently. No recalculation needed here based on current logic.
         }
       }
 
@@ -809,22 +860,24 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
               scored: shooter.scored,
               is_home_team: true,
               goalkeeper_id: penaltyGoalkeeperMap[shooter.playerId] || null, // Map goalkeeper if selected
+              result_type: shooter.scored ? "scored" : "missed",
             }))
+            if (rivalPenalties.length > 0) {
+              const { error: rivalError } = await supabase.from("penalty_shootout_players").insert(
+                rivalPenalties.map((penalty, index) => ({
+                  match_id: editingMatchId,
+                  player_id: null,
+                  scored: penalty.result === "scored",
+                  shot_order: index + 1,
+                  result_type: penalty.result, // Store "scored", "saved", or "missed"
+                  goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null,
+                })),
+              )
+              if (rivalError) throw rivalError
+            }
+            // </CHANGE>
             const { error: penaltyError } = await supabase.from("penalty_shootout_players").insert(penaltyPlayers)
             if (penaltyError) throw penaltyError
-          }
-          if (rivalPenalties.length > 0) {
-            const { error: rivalError } = await supabase.from("penalty_shootout_players").insert(
-              rivalPenalties.map((penalty, index) => ({
-                match_id: editingMatchId,
-                player_id: null, // No specific player ID for rival
-                scored: penalty.result === "scored",
-                is_home_team: false,
-                goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null, // Map goalkeeper if selected for rival save
-                // Store result type in a custom field if needed, e.g., 'result_type': penalty.result
-              })),
-            )
-            if (rivalError) throw rivalError
           }
         } else {
           await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId)
@@ -832,7 +885,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
         router.push(`/partidos/${editingMatchId}`)
       } else {
-        const { data: matchData, error: matchError } = await supabase
+        const { data: newMatch, error: matchError } = await supabase
           .from("matches")
           .insert({
             club_id: profile.club_id,
@@ -868,34 +921,42 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
         const statsToInsert = activePlayerIds.map((playerId) => ({
           ...stats[playerId],
-          match_id: matchData.id,
+          match_id: newMatch.id,
         }))
 
         const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert)
 
         if (statsError) throw statsError
 
-        if (matchData && (penaltyShooters.length > 0 || rivalPenalties.length > 0)) {
+        if (newMatch && (penaltyShooters.length > 0 || rivalPenalties.length > 0)) {
           const penaltyPlayersToInsert = penaltyShooters.map((shooter, index) => ({
-            match_id: matchData.id,
+            match_id: newMatch.id,
             player_id: shooter.playerId,
             shot_order: index + 1,
             scored: shooter.scored,
             is_home_team: true,
             goalkeeper_id: penaltyGoalkeeperMap[shooter.playerId] || null,
+            result_type: shooter.scored ? "scored" : "missed",
           }))
 
-          const rivalPenaltyPlayersToInsert = rivalPenalties.map((penalty, index) => ({
-            match_id: matchData.id,
-            player_id: null, // No specific player ID for rival
-            scored: penalty.result === "scored",
-            is_home_team: false,
-            goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null, // Map goalkeeper if selected for rival save
-          }))
+          if (rivalPenalties.length > 0) {
+            const { error: rivalPenaltyError } = await supabase.from("penalty_shootout_players").insert(
+              rivalPenalties.map((penalty, index) => ({
+                match_id: newMatch.id,
+                player_id: null,
+                scored: penalty.result === "scored",
+                shot_order: index + 1,
+                result_type: penalty.result, // Store "scored", "saved", or "missed"
+                goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null,
+              })),
+            )
+            if (rivalPenaltyError) throw rivalPenaltyError
+          }
+          // </CHANGE>
 
           const { error: penaltyError } = await supabase
             .from("penalty_shootout_players")
-            .insert([...penaltyPlayersToInsert, ...rivalPenaltyPlayersToInsert])
+            .insert([...penaltyPlayersToInsert])
 
           if (penaltyError) {
             console.error("[v0] Error saving penalty shooters:", penaltyError)
@@ -903,7 +964,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
           }
         }
 
-        router.push(`/partidos/${matchData.id}`)
+        router.push(`/partidos/${newMatch.id}`)
       }
     } catch (error) {
       console.error("Error saving match:", error)
@@ -2033,7 +2094,7 @@ function FieldPlayerStatsDialog({
       <TabsContent value="superioridad" className="space-y-4 mt-4">
         <p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatField
             label="Goles Hombre +"
             value={safeNumber(stats.goles_hombre_mas)}
@@ -2044,6 +2105,18 @@ function FieldPlayerStatsDialog({
             label="Fallos Hombre +"
             value={safeNumber(stats.tiros_hombre_mas)}
             onChange={(v) => onUpdate("tiros_hombre_mas", v)}
+          />
+
+          <StatField
+            label="Rebote Recup."
+            value={safeNumber(stats.rebote_recup_hombre_mas)}
+            onChange={(v) => onUpdate("rebote_recup_hombre_mas", v)}
+          />
+
+          <StatField
+            label="Rebote Perd."
+            value={safeNumber(stats.rebote_perd_hombre_mas)}
+            onChange={(v) => onUpdate("rebote_perd_hombre_mas", v)}
           />
 
           <StatField
@@ -2230,9 +2303,21 @@ function GoalkeeperStatsDialog({
           />
 
           <StatField
-            label="Paradas/defensa Hombre -"
+            label="Paradas Hombre -"
             value={safeNumber(stats.portero_paradas_hombre_menos)}
             onChange={(v) => onUpdate("portero_paradas_hombre_menos", v)}
+          />
+
+          <StatField
+            label="Fuera"
+            value={safeNumber(stats.portero_inferioridad_fuera)}
+            onChange={(v) => onUpdate("portero_inferioridad_fuera", v)}
+          />
+
+          <StatField
+            label="Bloqueo"
+            value={safeNumber(stats.portero_inferioridad_bloqueo)}
+            onChange={(v) => onUpdate("portero_inferioridad_bloqueo", v)}
           />
 
           <StatField

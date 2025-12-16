@@ -1,159 +1,176 @@
 "use client"
 
 import type React from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { useState } from "react"
+import { AlertCircle, Eye, EyeOff, Trophy } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { AlertCircle } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [remember, setRemember] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-
-  const fillAdminCredentials = () => {
-    setEmail("admin@waterpolostats.com")
-    setPassword("Admin123!")
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
-
-    if (!supabase) {
-      setError("Error de configuración. Por favor, contacta al administrador.")
-      return
-    }
-
     setIsLoading(true)
     setError(null)
 
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      if (error) {
-        if (error.message.includes("Email not confirmed")) {
-          throw new Error(
-            "Tu email no ha sido confirmado. Por favor, revisa tu bandeja de entrada o contacta al administrador.",
-          )
-        }
-        if (error.message.includes("Invalid login credentials")) {
-          throw new Error("Email o contraseña incorrectos. Por favor, verifica tus datos.")
-        }
-        throw error
-      }
+
+      if (error) throw error
 
       if (data.session) {
-        document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=3600`
-
-        await new Promise((resolve) => setTimeout(resolve, 100))
-
+        document.cookie = `sb-access-token=${data.session.access_token}; path=/; ${
+          remember ? "max-age=2592000" : ""
+        }`
         window.location.href = "/"
       }
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Error al iniciar sesión")
+    } catch {
+      setError("Email o contraseña incorrectos")
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-muted/30 to-muted/50">
-      <div className="w-full max-w-md">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-2 shadow-lg">
-              <svg
-                className="w-12 h-12 text-primary-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold">WaterpoloStats</h1>
-            <p className="text-muted-foreground">Sistema de Gestión Deportiva</p>
+    <div
+      className="
+        min-h-screen flex items-center justify-center px-4
+        bg-dashboard-gradient
+        bg-gradient-to-br from-background via-background to-blue-500/10
+      "
+    >
+      <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 w-25 h-25 rounded-full bg-blue-500/10 flex items-center justify-center overflow-hidden">
+            <Image
+              src="/icons/icon-192.png"
+              alt="WaterpoloStats"
+              width={100}
+              height={100}
+              priority
+              className="object-cover"
+            />
           </div>
 
-          <Card className="border-2 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-              <CardDescription>Ingresa tus credenciales para acceder al sistema</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin}>
-                <div className="flex flex-col gap-6">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="tu@email.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Contraseña</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                  </div>
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                  <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                    {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-11 bg-transparent"
-                    onClick={fillAdminCredentials}
-                    disabled={isLoading}
-                  >
-                    Rellenar credenciales de Admin (Demo)
-                  </Button>
-                </div>
-                <div className="mt-4 text-center text-sm">
-                  ¿No tienes una cuenta?{" "}
-                  <Link href="/auth/signup" className="underline underline-offset-4 font-medium text-primary">
-                    Registrarse
-                  </Link>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <h1 className="text-2xl font-bold">
+            WaterpoloStats
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Sistema de Estadísticas Deportivas
+          </p>
         </div>
+
+        {/* Card */}
+        <Card className="border-2 bg-gradient-to-br from-background to-blue-500/5 shadow-lg">
+          <CardContent className="p-6 sm:p-8">
+            <div className="mb-6 text-center">
+              <h2 className="text-xl font-semibold">
+                Acceso al sistema
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gestiona el rendimiento de tu equipo
+              </p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-5">
+
+              {/* Email */}
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  className="h-11"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1.5">
+                <Label>Contraseña</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="h-11 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember */}
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={() => setRemember(!remember)}
+                    className="h-4 w-4 accent-blue-500"
+                  />
+                  <span className="text-muted-foreground">
+                    Recordar sesión
+                  </span>
+                </label>
+
+                <Link href="/auth/forgot-password" className="text-primary hover:underline">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11"
+                disabled={isLoading}
+              >
+                {isLoading ? "Entrando…" : "Entrar"}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center text-sm">
+              ¿No tienes cuenta?{" "}
+              <Link href="/auth/signup" className="font-medium text-primary underline underline-offset-4">
+                Registrarse
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
