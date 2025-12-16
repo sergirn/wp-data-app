@@ -14,6 +14,7 @@ import { GoalDifferenceEvolutionChart } from "@/components/goal-difference-evolu
 import { useClub } from "@/lib/club-context"
 import { useEffect, useState, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
+import { BlocksChart } from "@/components/blocks-chart"
 
 export default function AnalyticsPage() {
   const { currentClub } = useClub()
@@ -253,12 +254,15 @@ export default function AnalyticsPage() {
       </div>
 
       <Tabs defaultValue="man-advantage" className="mb-4 sm:mb-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="man-advantage" className="text-xs sm:text-sm">
             Superioridad
           </TabsTrigger>
           <TabsTrigger value="man-down" className="text-xs sm:text-sm">
             Inferioridad
+          </TabsTrigger>
+          <TabsTrigger value="blocks" className="text-xs sm:text-sm">
+            Bloqueos
           </TabsTrigger>
         </TabsList>
         <TabsContent value="man-advantage">
@@ -266,6 +270,9 @@ export default function AnalyticsPage() {
         </TabsContent>
         <TabsContent value="man-down">
           <ManDownGoalkeeperChart matches={matches || []} stats={allStats || []} players={players || []} />
+        </TabsContent>
+        <TabsContent value="blocks">
+          <BlocksChart matches={matches || []} stats={allStats || []} players={players || []} />
         </TabsContent>
       </Tabs>
 

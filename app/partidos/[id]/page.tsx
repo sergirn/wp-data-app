@@ -13,6 +13,7 @@ import { MatchExportButton } from "@/components/match-export-button"
 import { getCurrentProfile } from "@/lib/auth"
 import { MatchSuperiorityChart } from "@/components/match-superiority-chart"
 import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
+import { MatchBlocksChart } from "@/components/match-blocks-chart"
 
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
@@ -118,15 +119,19 @@ export default async function MatchDetailPage({ params }: { params: { id: string
   const teamTotals = calculateTeamTotals(match.match_stats)
   const superioridadStats = calculateSuperioridadStats(match.match_stats)
   const inferioridadStats = calculateInferioridadStats(match.match_stats) // Added
+  const blocksStats = calculateBlocksStats(match.match_stats, match.away_score)
 
   const players = match.match_stats.map((s: any) => s.players)
-  const stats = match.match_stats
+  const stats = match.match_stats // Rename for clarity in the block section
 
   const canEdit = profile?.role === "admin" || profile?.role === "coach"
 
   const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo"
   // Define matchDate here
   const matchDate = new Date(match.date)
+
+  // Renamed from 'stats' to 'matchStats' for clarity in the new section
+  const matchStats = match.match_stats
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -213,14 +218,14 @@ export default async function MatchDetailPage({ params }: { params: { id: string
         </Card>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Totales del Equipo - 2x2 Grid */}
+      <div className="grid gap-6 mb-6">
+        {/* Totales del Equipo - Full Width */}
         <Card>
           <CardHeader>
             <CardTitle>Totales del Equipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-blue-500/10 rounded-lg">
                 <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
                 <p className="text-sm text-muted-foreground">Goles</p>
@@ -241,29 +246,99 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           </CardContent>
         </Card>
 
-        {/* Análisis de Superioridad/Inferioridad con Tabs */}
-        <Card>
-          <CardContent>
-            <Tabs defaultValue="superioridad" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
-                  Superioridad
-                </TabsTrigger>
-                <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
-                  Inferioridad
-                </TabsTrigger>
-              </TabsList>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Análisis de Superioridad/Inferioridad con Tabs */}
+          <Card>
+            <CardContent className="pt-6">
+              <Tabs defaultValue="superioridad" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
+                    Superioridad
+                  </TabsTrigger>
+                  <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
+                    Inferioridad
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="superioridad" className="mt-4">
-                <MatchSuperiorityChart stats={superioridadStats} />
-              </TabsContent>
+                <TabsContent value="superioridad" className="mt-4">
+                  <MatchSuperiorityChart stats={superioridadStats} />
+                </TabsContent>
 
-              <TabsContent value="inferioridad" className="mt-4">
-                <MatchInferiorityChart stats={inferioridadStats} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                <TabsContent value="inferioridad" className="mt-4">
+                  <MatchInferiorityChart stats={inferioridadStats} />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bloqueos del Partido</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Chart matching superiority/inferiority style */}
+              <MatchBlocksChart stats={blocksStats} />
+
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem
+                  value="players"
+                  className="border rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5"
+                >
+                  <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-blue-500" />
+                      <span>
+                        Jugadores con Bloqueos ({matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length})
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="space-y-2 pt-2">
+                      {matchStats
+                        .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
+                        .sort((a, b) => (b.acciones_bloqueo || 0) - (a.acciones_bloqueo || 0))
+                        .map((stat) => {
+                          const player = stat.players
+                          const blocks = stat.acciones_bloqueo || 0
+                          return (
+                            <div
+                              key={stat.id}
+                              className="flex items-center justify-between p-3 bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 hover:border-blue-500/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                                  {player?.number || "?"}
+                                </div>
+                                <div>
+                                  <span className="text-sm font-medium block">{player?.name || "Desconocido"}</span>
+                                  <span className="text-xs text-muted-foreground">{player?.position || "N/A"}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold"
+                                >
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  {blocks} {blocks === 1 ? "bloqueo" : "bloqueos"}
+                                </Badge>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
+                        <div className="text-center py-8">
+                          <Shield className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">No hay bloqueos registrados en este partido</p>
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {(match.q1_score || match.q2_score || match.q3_score || match.q4_score || hasPenalties) && (
@@ -526,6 +601,8 @@ function calculateTeamTotals(stats: any[]) {
 function calculateSuperioridadStats(stats: any[]) {
   const anotadas = stats.reduce((acc, stat) => acc + (stat.goles_hombre_mas || 0), 0)
   const falladas = stats.reduce((acc, stat) => acc + (stat.tiros_hombre_mas || 0), 0)
+  const rebotesRecuperados = stats.reduce((acc, stat) => acc + (stat.rebote_recup_hombre_mas || 0), 0)
+  const rebotesPerdidos = stats.reduce((acc, stat) => acc + (stat.rebote_perd_hombre_mas || 0), 0)
   const total = anotadas + falladas
   const eficiencia = total > 0 ? ((anotadas / total) * 100).toFixed(1) : "0.0"
 
@@ -534,11 +611,17 @@ function calculateSuperioridadStats(stats: any[]) {
     falladas,
     total,
     eficiencia: Number.parseFloat(eficiencia),
+    rebotesRecuperados,
+    rebotesPerdidos,
   }
 }
+// </CHANGE>
 
 function calculateInferioridadStats(stats: any[]) {
-  const evitados = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const paradas = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)
+  const fuera = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_fuera || 0), 0)
+  const bloqueo = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_bloqueo || 0), 0)
+  const evitados = paradas + fuera + bloqueo
   const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos || 0), 0)
   const total = evitados + recibidos
   const eficiencia = total > 0 ? ((evitados / total) * 100).toFixed(1) : "0.0"
@@ -546,8 +629,24 @@ function calculateInferioridadStats(stats: any[]) {
   return {
     evitados,
     recibidos,
+    paradas,
+    fuera,
+    bloqueo,
     total,
     eficiencia: Number.parseFloat(eficiencia),
+  }
+  // </CHANGE>
+}
+
+function calculateBlocksStats(stats: any[], golesRecibidos: number) {
+  const bloqueos = stats.reduce((acc, stat) => acc + (stat.acciones_bloqueo || 0), 0)
+  const total = bloqueos + golesRecibidos
+  const eficacia = total > 0 ? ((bloqueos / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    bloqueos,
+    golesRecibidos,
+    eficacia: Number.parseFloat(eficacia),
   }
 }
 

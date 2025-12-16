@@ -403,6 +403,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     portero_exp_provocada: 0,
     portero_penalti_provocado: 0,
     portero_recibir_gol: 0,
+    // ADDED GOALKEEPER INFERIORITY FIELDS
+    portero_inferioridad_fuera: 0,
+    portero_inferioridad_bloqueo: 0,
+    // ADDED REBOUND FIELDS FOR SUPERIORITY SITUATIONS
+    rebote_recup_hombre_mas: 0,
+    rebote_perd_hombre_mas: 0,
   })
 
   const hasStats = (playerId: number): boolean => {
@@ -607,6 +613,30 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             return sum + safeNumber(newStats[cat] as number)
           }, 0) as any
         }
+
+        // Update goalkeeper inferiority stats when relevant fields change
+        if (
+          field === "portero_goles_hombre_menos" ||
+          field === "portero_paradas_hombre_menos" ||
+          field === "portero_inferioridad_fuera" ||
+          field === "portero_inferioridad_bloqueo"
+        ) {
+          const currentStatsForPlayer = prev[playerId] || createEmptyStats(playerId)
+          const updatedGolesHombreMenos = safeNumber(
+            field === "portero_goles_hombre_menos" ? safeValue : currentStatsForPlayer.portero_goles_hombre_menos,
+          )
+          const updatedParadasHombreMenos = safeNumber(
+            field === "portero_paradas_hombre_menos" ? safeValue : currentStatsForPlayer.portero_paradas_hombre_menos,
+          )
+
+          newStats.portero_paradas_totales =
+            (safeNumber(newStats.portero_paradas_totales) || 0) +
+            (safeNumber(newStats.portero_inferioridad_fuera) || 0) +
+            (safeNumber(newStats.portero_inferioridad_bloqueo) || 0)
+
+          // The efficiency calculation below is for generic field players, we need to adjust for goalkeepers if needed.
+          // For now, let's ensure we're not overwriting existing correct calculations.
+        }
       } else {
         const goalCategories: (keyof MatchStats)[] = [
           "goles_boya_jugada",
@@ -647,6 +677,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             newStats.tiros_eficiencia = 0 as any
             newStats.goles_eficiencia = 0 as any
           }
+        }
+
+        // Update rebound stats when relevant fields change for field players
+        if (
+          field === "rebote_recup_hombre_mas" ||
+          field === "rebote_perd_hombre_mas" ||
+          field === "goles_hombre_mas" ||
+          field === "tiros_hombre_mas"
+        ) {
+          // These specific fields don't directly influence a single total,
+          // but are tracked independently. No recalculation needed here based on current logic.
         }
       }
 
@@ -2053,7 +2094,7 @@ function FieldPlayerStatsDialog({
       <TabsContent value="superioridad" className="space-y-4 mt-4">
         <p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatField
             label="Goles Hombre +"
             value={safeNumber(stats.goles_hombre_mas)}
@@ -2064,6 +2105,18 @@ function FieldPlayerStatsDialog({
             label="Fallos Hombre +"
             value={safeNumber(stats.tiros_hombre_mas)}
             onChange={(v) => onUpdate("tiros_hombre_mas", v)}
+          />
+
+          <StatField
+            label="Rebote Recup."
+            value={safeNumber(stats.rebote_recup_hombre_mas)}
+            onChange={(v) => onUpdate("rebote_recup_hombre_mas", v)}
+          />
+
+          <StatField
+            label="Rebote Perd."
+            value={safeNumber(stats.rebote_perd_hombre_mas)}
+            onChange={(v) => onUpdate("rebote_perd_hombre_mas", v)}
           />
 
           <StatField
@@ -2250,9 +2303,21 @@ function GoalkeeperStatsDialog({
           />
 
           <StatField
-            label="Paradas/defensa Hombre -"
+            label="Paradas Hombre -"
             value={safeNumber(stats.portero_paradas_hombre_menos)}
             onChange={(v) => onUpdate("portero_paradas_hombre_menos", v)}
+          />
+
+          <StatField
+            label="Fuera"
+            value={safeNumber(stats.portero_inferioridad_fuera)}
+            onChange={(v) => onUpdate("portero_inferioridad_fuera", v)}
+          />
+
+          <StatField
+            label="Bloqueo"
+            value={safeNumber(stats.portero_inferioridad_bloqueo)}
+            onChange={(v) => onUpdate("portero_inferioridad_bloqueo", v)}
           />
 
           <StatField
