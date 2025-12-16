@@ -1,10 +1,8 @@
 "use client"
 
 import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown } from "lucide-react"
-import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { TrendingUp, TrendingDown, Target } from "lucide-react"
 
 interface SuperioridadStats {
   anotadas: number
@@ -15,8 +13,6 @@ interface SuperioridadStats {
 }
 
 export function MatchSuperiorityChart({ stats }: { stats: SuperioridadStats }) {
-  const [isOpen, setIsOpen] = useState(false)
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row items-center justify-around gap-4">
@@ -63,38 +59,58 @@ export function MatchSuperiorityChart({ stats }: { stats: SuperioridadStats }) {
       </div>
 
       {(stats.rebotesRecuperados !== undefined || stats.rebotesPerdidos !== undefined) && (
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20 hover:border-green-500/40 transition-colors">
-              <span className="text-sm font-medium">Desglose de Superioridad</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3">
-            <div className="space-y-2 p-4 bg-gradient-to-br from-green-500/5 to-emerald-500/5 rounded-lg border border-green-500/20">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Rebotes Recuperados</p>
-                  <Badge
-                    variant="outline"
-                    className="bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300"
-                  >
-                    {stats.rebotesRecuperados || 0}
-                  </Badge>
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="breakdown" className="border rounded-lg">
+            <AccordionTrigger className="px-4 hover:no-underline hover:bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Target className="h-4 w-4" />
+                Ver Desglose Detallado
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Rebotes Recuperados */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-full bg-emerald-500/20">
+                        <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
+                        Rebotes Recuperados
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                      {stats.rebotesRecuperados || 0}
+                    </span>
+                  </div>
+
+                  {/* Rebotes Perdidos */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-200 dark:border-orange-800">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-full bg-orange-500/20">
+                        <TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <span className="text-sm font-medium text-orange-900 dark:text-orange-100">Rebotes Perdidos</span>
+                    </div>
+                    <span className="text-lg font-bold text-orange-700 dark:text-orange-300">
+                      {stats.rebotesPerdidos || 0}
+                    </span>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Rebotes Perdidos</p>
-                  <Badge
-                    variant="outline"
-                    className="bg-orange-500/10 border-orange-500/20 text-orange-700 dark:text-orange-300"
-                  >
-                    {stats.rebotesPerdidos || 0}
-                  </Badge>
+
+                <div className="pt-2 border-t">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <span className="text-sm font-semibold text-muted-foreground">Total Rebotes</span>
+                    <span className="text-lg font-bold">
+                      {(stats.rebotesRecuperados || 0) + (stats.rebotesPerdidos || 0)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       )}
     </div>
   )
