@@ -601,6 +601,8 @@ function calculateTeamTotals(stats: any[]) {
 function calculateSuperioridadStats(stats: any[]) {
   const anotadas = stats.reduce((acc, stat) => acc + (stat.goles_hombre_mas || 0), 0)
   const falladas = stats.reduce((acc, stat) => acc + (stat.tiros_hombre_mas || 0), 0)
+  const rebotesRecuperados = stats.reduce((acc, stat) => acc + (stat.rebote_recup_hombre_mas || 0), 0)
+  const rebotesPerdidos = stats.reduce((acc, stat) => acc + (stat.rebote_perd_hombre_mas || 0), 0)
   const total = anotadas + falladas
   const eficiencia = total > 0 ? ((anotadas / total) * 100).toFixed(1) : "0.0"
 
@@ -609,8 +611,11 @@ function calculateSuperioridadStats(stats: any[]) {
     falladas,
     total,
     eficiencia: Number.parseFloat(eficiencia),
+    rebotesRecuperados,
+    rebotesPerdidos,
   }
 }
+// </CHANGE>
 
 function calculateInferioridadStats(stats: any[]) {
   const paradas = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0)

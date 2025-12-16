@@ -406,6 +406,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     // ADDED GOALKEEPER INFERIORITY FIELDS
     portero_inferioridad_fuera: 0,
     portero_inferioridad_bloqueo: 0,
+    // ADDED REBOUND FIELDS FOR SUPERIORITY SITUATIONS
+    rebote_recup_hombre_mas: 0,
+    rebote_perd_hombre_mas: 0,
   })
 
   const hasStats = (playerId: number): boolean => {
@@ -674,6 +677,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             newStats.tiros_eficiencia = 0 as any
             newStats.goles_eficiencia = 0 as any
           }
+        }
+
+        // Update rebound stats when relevant fields change for field players
+        if (
+          field === "rebote_recup_hombre_mas" ||
+          field === "rebote_perd_hombre_mas" ||
+          field === "goles_hombre_mas" ||
+          field === "tiros_hombre_mas"
+        ) {
+          // These specific fields don't directly influence a single total,
+          // but are tracked independently. No recalculation needed here based on current logic.
         }
       }
 
@@ -2080,7 +2094,7 @@ function FieldPlayerStatsDialog({
       <TabsContent value="superioridad" className="space-y-4 mt-4">
         <p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatField
             label="Goles Hombre +"
             value={safeNumber(stats.goles_hombre_mas)}
@@ -2091,6 +2105,18 @@ function FieldPlayerStatsDialog({
             label="Fallos Hombre +"
             value={safeNumber(stats.tiros_hombre_mas)}
             onChange={(v) => onUpdate("tiros_hombre_mas", v)}
+          />
+
+          <StatField
+            label="Rebote Recup."
+            value={safeNumber(stats.rebote_recup_hombre_mas)}
+            onChange={(v) => onUpdate("rebote_recup_hombre_mas", v)}
+          />
+
+          <StatField
+            label="Rebote Perd."
+            value={safeNumber(stats.rebote_perd_hombre_mas)}
+            onChange={(v) => onUpdate("rebote_perd_hombre_mas", v)}
           />
 
           <StatField
