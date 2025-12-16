@@ -120,13 +120,16 @@ export default async function MatchDetailPage({ params }: { params: { id: string
   const inferioridadStats = calculateInferioridadStats(match.match_stats) // Added
 
   const players = match.match_stats.map((s: any) => s.players)
-  const stats = match.match_stats
+  const stats = match.match_stats // Rename for clarity in the block section
 
   const canEdit = profile?.role === "admin" || profile?.role === "coach"
 
   const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo"
   // Define matchDate here
   const matchDate = new Date(match.date)
+
+  // Renamed from 'stats' to 'matchStats' for clarity in the new section
+  const matchStats = match.match_stats
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -213,8 +216,8 @@ export default async function MatchDetailPage({ params }: { params: { id: string
         </Card>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Totales del Equipo - 2x2 Grid */}
+      <div className="grid gap-6 mb-6">
+        {/* Totales del Equipo - Full Width */}
         <Card>
           <CardHeader>
             <CardTitle>Totales del Equipo</CardTitle>
@@ -241,29 +244,82 @@ export default async function MatchDetailPage({ params }: { params: { id: string
           </CardContent>
         </Card>
 
-        {/* Análisis de Superioridad/Inferioridad con Tabs */}
-        <Card>
-          <CardContent>
-            <Tabs defaultValue="superioridad" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
-                  Superioridad
-                </TabsTrigger>
-                <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
-                  Inferioridad
-                </TabsTrigger>
-              </TabsList>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Análisis de Superioridad/Inferioridad con Tabs */}
+          <Card>
+            <CardContent className="pt-6">
+              <Tabs defaultValue="superioridad" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="superioridad" className="text-xs sm:text-sm">
+                    Superioridad
+                  </TabsTrigger>
+                  <TabsTrigger value="inferioridad" className="text-xs sm:text-sm">
+                    Inferioridad
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="superioridad" className="mt-4">
-                <MatchSuperiorityChart stats={superioridadStats} />
-              </TabsContent>
+                <TabsContent value="superioridad" className="mt-4">
+                  <MatchSuperiorityChart stats={superioridadStats} />
+                </TabsContent>
 
-              <TabsContent value="inferioridad" className="mt-4">
-                <MatchInferiorityChart stats={inferioridadStats} />
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                <TabsContent value="inferioridad" className="mt-4">
+                  <MatchInferiorityChart stats={inferioridadStats} />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bloqueos del Partido</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Stats summary */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-blue-500/10 rounded-lg">
+                    <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+                      {matchStats.reduce((sum, s) => sum + (s.acciones_bloqueo || 0), 0)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Bloqueos</p>
+                  </div>
+                  <div className="text-center p-4 bg-red-500/10 rounded-lg">
+                    <p className="text-3xl font-bold text-red-700 dark:text-red-300">{match.away_score}</p>
+                    <p className="text-sm text-muted-foreground">Goles Recibidos</p>
+                  </div>
+                </div>
+
+                {/* Players who blocked */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Jugadores con Bloqueos</h4>
+                  <div className="space-y-2">
+                    {matchStats
+                      .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
+                      .map((stat) => {
+                        const player = stat.players
+                        return (
+                          <div key={stat.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                                {player?.number || "?"}
+                              </div>
+                              <span className="text-sm font-medium">{player?.name || "Desconocido"}</span>
+                            </div>
+                            <Badge variant="outline" className="bg-blue-500/10">
+                              {stat.acciones_bloqueo} bloqueos
+                            </Badge>
+                          </div>
+                        )
+                      })}
+                    {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No hay bloqueos registrados</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {(match.q1_score || match.q2_score || match.q3_score || match.q4_score || hasPenalties) && (

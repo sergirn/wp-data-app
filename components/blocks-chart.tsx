@@ -16,7 +16,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
   const matchData = matches.map((match, index) => {
     const matchStats = stats.filter((s) => s.match_id === match.id)
     const totalBlocks = matchStats.reduce((sum, s) => sum + (s.acciones_bloqueo || 0), 0)
-    const totalGoalsReceived = matchStats.reduce((sum, s) => sum + (s.portero_goles_totales || 0), 0)
+    const totalGoalsReceived = match.away_score
 
     return {
       index,
