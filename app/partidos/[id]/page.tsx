@@ -279,34 +279,58 @@ export default async function MatchDetailPage({ params }: { params: { id: string
               {/* Chart matching superiority/inferiority style */}
               <MatchBlocksChart stats={blocksStats} />
 
-              {/* Collapsible players list */}
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="players" className="border-none">
-                  <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-                    Jugadores con Bloqueos ({matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length})
+                <AccordionItem
+                  value="players"
+                  className="border rounded-lg bg-gradient-to-br from-blue-500/5 to-cyan-500/5"
+                >
+                  <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-blue-500" />
+                      <span>
+                        Jugadores con Bloqueos ({matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length})
+                      </span>
+                    </div>
                   </AccordionTrigger>
-                  <AccordionContent>
+                  <AccordionContent className="px-4 pb-4">
                     <div className="space-y-2 pt-2">
                       {matchStats
                         .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
+                        .sort((a, b) => (b.acciones_bloqueo || 0) - (a.acciones_bloqueo || 0))
                         .map((stat) => {
                           const player = stat.players
+                          const blocks = stat.acciones_bloqueo || 0
                           return (
-                            <div key={stat.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                            <div
+                              key={stat.id}
+                              className="flex items-center justify-between p-3 bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 hover:border-blue-500/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
                                   {player?.number || "?"}
                                 </div>
-                                <span className="text-sm font-medium">{player?.name || "Desconocido"}</span>
+                                <div>
+                                  <span className="text-sm font-medium block">{player?.name || "Desconocido"}</span>
+                                  <span className="text-xs text-muted-foreground">{player?.position || "N/A"}</span>
+                                </div>
                               </div>
-                              <Badge variant="outline" className="bg-blue-500/10">
-                                {stat.acciones_bloqueo} bloqueos
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold"
+                                >
+                                  <Shield className="h-3 w-3 mr-1" />
+                                  {blocks} {blocks === 1 ? "bloqueo" : "bloqueos"}
+                                </Badge>
+                              </div>
                             </div>
                           )
                         })}
                       {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">No hay bloqueos registrados</p>
+                        <div className="text-center py-8">
+                          <Shield className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">No hay bloqueos registrados en este partido</p>
+                        </div>
                       )}
                     </div>
                   </AccordionContent>
