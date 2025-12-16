@@ -2094,7 +2094,7 @@ function FieldPlayerStatsDialog({
       <TabsContent value="superioridad" className="space-y-4 mt-4">
         <p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <StatField
             label="Goles Hombre +"
             value={safeNumber(stats.goles_hombre_mas)}
