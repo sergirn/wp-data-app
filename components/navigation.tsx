@@ -1,261 +1,192 @@
 "use client"
 
+import { memo, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { UserMenu } from "@/components/user-menu"
-import { ClubSelector } from "@/components/club-selector"
-import { useClub } from "@/lib/club-context"
-import type { Profile } from "@/lib/types"
+import { usePathname, useRouter } from "next/navigation"
 import {
-  Shield,
-  Users,
-  Building2,
-  ChevronDown,
-  Menu,
   Home,
   PlusCircle,
   Calendar,
   UsersRound,
   BarChart3,
+  Shield,
+  Menu,
+  ChevronRight,
+  LogOut,
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { memo, useState } from "react"
+
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { UserMenu } from "@/components/user-menu"
+import { ClubSelector } from "@/components/club-selector"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useClub } from "@/lib/club-context"
+import type { Profile } from "@/lib/types"
 
 interface NavigationProps {
   profile?: Profile | null
 }
 
+const NAV_LINKS = [
+  { href: "/", label: "Inicio", icon: Home },
+  { href: "/nuevo-partido", label: "Nuevo Partido", icon: PlusCircle, requiresEdit: true },
+  { href: "/partidos", label: "Partidos", icon: Calendar },
+  { href: "/jugadores", label: "Jugadores", icon: UsersRound },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+]
+
 export const Navigation = memo(function Navigation({ profile }: NavigationProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const { currentClub } = useClub()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const links = [
-    { href: "/", label: "Inicio", icon: Home },
-    { href: "/nuevo-partido", label: "Nuevo Partido", icon: PlusCircle, requiresEdit: true },
-    { href: "/partidos", label: "Partidos", icon: Calendar },
-    { href: "/jugadores", label: "Jugadores", icon: UsersRound },
-    { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  ]
+  const [open, setOpen] = useState(false)
 
   const canEdit = profile?.role === "admin" || profile?.role === "coach"
-  const isAdminPath = pathname?.startsWith("/admin")
+  const isActive = (href: string) => pathname === href
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setOpen(false)
+    router.replace("/auth/login")
+  }
 
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b bg-background/70 backdrop-blur-xl">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-500 opacity-0 group-hover:opacity-100 blur transition-opacity duration-300" />
-              <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-border/50 group-hover:border-primary/50 transition-colors shadow-lg">
-                <Image
-                  src={currentClub?.logo_url || "/cn-sant-andreu.png"}
-                  alt={`${currentClub?.short_name || "Club"} Logo`}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
+        <div className="flex h-14 items-center justify-between">
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative h-9 w-9 rounded-full overflow-hidden border shadow-sm">
+              <Image
+                src={currentClub?.logo_url || "/none"}
+                alt="Club Logo"
+                fill
+                className="object-cover"
+                priority
+              />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="font-bold text-lg leading-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                {currentClub?.short_name || "WaterpoloStats"}
-              </h1>
-              <p className="text-xs text-muted-foreground">Estadísticas</p>
-            </div>
+            <span className="hidden sm:block font-semibold tracking-tight">
+              {currentClub?.short_name || "WaterpoloStats"}
+            </span>
           </Link>
 
-          <div className="hidden lg:flex gap-1 items-center">
-            {links.map((link) => {
-              if (link.requiresEdit && !canEdit) return null
-              const Icon = link.icon
-
-              return (
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) =>
+              requiresEdit && !canEdit ? null : (
                 <Button
-                  key={link.href}
+                  key={href}
                   asChild
-                  variant={pathname === link.href ? "default" : "ghost"}
                   size="sm"
-                  className="gap-2 transition-all hover:scale-105"
+                  variant={isActive(href) ? "secondary" : "ghost"}
+                  className="gap-2 rounded-full px-3"
                 >
-                  <Link href={link.href}>
+                  <Link href={href}>
                     <Icon className="h-4 w-4" />
-                    <span>{link.label}</span>
+                    <span className="hidden xl:inline">{label}</span>
                   </Link>
                 </Button>
               )
-            })}
-            {profile?.is_super_admin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant={isAdminPath ? "default" : "ghost"}
-                    size="sm"
-                    className="flex items-center gap-1.5 transition-all hover:scale-105"
-                  >
-                    <Shield className="h-4 w-4" />
-                    <span>Admin</span>
-                    <ChevronDown className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>Administración</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin" className="cursor-pointer">
-                      <Shield className="h-4 w-4 mr-2" />
-                      Panel General
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/users" className="cursor-pointer">
-                      <Users className="h-4 w-4 mr-2" />
-                      Gestión de Usuarios
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/clubs" className="cursor-pointer">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Gestión de Clubes
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             )}
-            <div className="ml-3 flex items-center gap-2 pl-3 border-l">
-              <ClubSelector />
-              <ThemeToggle />
-              {profile && <UserMenu profile={profile} />}
-            </div>
-          </div>
 
-          <div className="flex lg:hidden items-center gap-2">
+            {profile?.is_super_admin && (
+              <Button
+                asChild
+                size="sm"
+                variant={pathname.startsWith("/admin") ? "secondary" : "ghost"}
+                className="gap-2 rounded-full px-3"
+              >
+                <Link href="/admin">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden xl:inline">Admin</span>
+                </Link>
+              </Button>
+            )}
+          </nav>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <ClubSelector className="hidden md:flex" />
+            {profile && <UserMenu profile={profile} />}
+
+            {/* Mobile menu */}
+            <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden hover:scale-105 transition-transform">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Abrir menú</span>
+                <Button size="icon" variant="ghost" className="lg:hidden">
+                  <Menu />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[340px]">
-                <SheetHeader>
-                  <SheetTitle className="text-left">Menú</SheetTitle>
-                </SheetHeader>
-                <div className="flex flex-col gap-4 mt-6">
+
+              <SheetContent side="right" className="w-[320px]">
+                <div className="flex flex-col gap-6 mt-6">
+
+                  {/* User */}
                   {profile && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold shadow-lg">
-                        {profile.full_name
-                          ?.split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2) || "U"}
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
+                      <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                        {profile.full_name?.[0] ?? "U"}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{profile.full_name || "Usuario"}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{profile.full_name}</p>
                         <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
                       </div>
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Club</p>
-                    <ClubSelector />
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Navegación</p>
-                    <div className="flex flex-col gap-1">
-                      {links.map((link) => {
-                        if (link.requiresEdit && !canEdit) return null
-                        const Icon = link.icon
-
-                        return (
-                          <Button
-                            key={link.href}
-                            asChild
-                            variant={pathname === link.href ? "default" : "ghost"}
-                            className="justify-start gap-3"
-                            onClick={() => setMobileMenuOpen(false)}
-                          >
-                            <Link href={link.href}>
+                  {/* Navigation */}
+                  <div className="space-y-1">
+                    {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) =>
+                      requiresEdit && !canEdit ? null : (
+                        <Button
+                          key={href}
+                          asChild
+                          variant={isActive(href) ? "secondary" : "ghost"}
+                          className="w-full justify-between rounded-lg"
+                          onClick={() => setOpen(false)}
+                        >
+                          <Link href={href}>
+                            <span className="flex items-center gap-3">
                               <Icon className="h-4 w-4" />
-                              {link.label}
-                            </Link>
-                          </Button>
-                        )
-                      })}
-                    </div>
+                              {label}
+                            </span>
+                            <ChevronRight className="h-4 w-4 opacity-50" />
+                          </Link>
+                        </Button>
+                      )
+                    )}
                   </div>
 
+                  {/* Admin */}
                   {profile?.is_super_admin && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground px-1">
                         Administración
                       </p>
-                      <div className="flex flex-col gap-1">
-                        <Button
-                          asChild
-                          variant={pathname === "/admin" ? "default" : "ghost"}
-                          className="justify-start gap-3"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <Link href="/admin">
-                            <Shield className="h-4 w-4" />
-                            Panel General
-                          </Link>
-                        </Button>
-                        <Button
-                          asChild
-                          variant={pathname === "/admin/users" ? "default" : "ghost"}
-                          className="justify-start gap-3"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <Link href="/admin/users">
-                            <Users className="h-4 w-4" />
-                            Gestión de Usuarios
-                          </Link>
-                        </Button>
-                        <Button
-                          asChild
-                          variant={pathname === "/admin/clubs" ? "default" : "ghost"}
-                          className="justify-start gap-3"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <Link href="/admin/clubs">
-                            <Building2 className="h-4 w-4" />
-                            Gestión de Clubes
-                          </Link>
-                        </Button>
-                      </div>
+                      <Button asChild variant="ghost" className="w-full justify-start gap-3">
+                        <Link href="/admin">
+                          <Shield className="h-4 w-4" />
+                          Panel Admin
+                        </Link>
+                      </Button>
                     </div>
                   )}
 
+                  {/* Logout (MÓVIL) */}
                   {profile && (
-                    <div className="space-y-2 mt-auto pt-4 border-t">
+                    <div className="pt-4 border-t">
                       <Button
-                        asChild
-                        variant="ghost"
-                        className="justify-start w-full"
-                        onClick={() => setMobileMenuOpen(false)}
+                        variant="destructive"
+                        className="w-full gap-2"
+                        onClick={handleLogout}
                       >
-                        <Link href="/ajustes">PERFIL Y AJUSTES</Link>
+                        <LogOut className="h-4 w-4" />
+                        Cerrar sesión
                       </Button>
-                      <UserMenu profile={profile} />
                     </div>
                   )}
                 </div>
@@ -264,6 +195,6 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
           </div>
         </div>
       </div>
-    </nav>
+    </header>
   )
 })
