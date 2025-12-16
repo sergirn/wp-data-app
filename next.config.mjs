@@ -11,9 +11,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-
-  // 👇 CLAVE: desactivar Turbopack
-  turbopack: false,
+  turbopack: {},
 };
 
 export default withPWA({
