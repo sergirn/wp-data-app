@@ -193,12 +193,12 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
                       <span className="text-lg font-bold">{match.total}</span>
                     </div>
                     {/* Progress bar */}
-                    <div className="w-full bg-muted rounded-full h-2 mt-2">
-                      <div
-                        className="bg-green-600 dark:bg-green-400 h-2 rounded-full transition-all"
-                        style={{ width: `${match.eficiencia}%` }}
-                      />
-                    </div>
+                    <div className="w-full bg-red-500/30 dark:bg-red-500/30 rounded-full h-2 mt-2 overflow-hidden">
+                    <div
+                      className="bg-green-600 dark:bg-green-400 h-2 rounded-full transition-all"
+                      style={{ width: `${match.eficiencia}%` }}
+                    />
+                  </div>
                   </div>
                 </CardContent>
               </Card>

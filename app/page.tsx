@@ -68,7 +68,7 @@ export default function HomePage() {
           .select("*")
           .eq("club_id", currentClub.id)
           .order("match_date", { ascending: false })
-          .limit(3)
+          .limit(4)
 
         if (matchesError) {
           if (matchesError.message?.includes("Could not find the table")) {
@@ -277,7 +277,7 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="container mx-auto px-4 space-y-8 pb-8">
+          <div className="container mx-auto space-y-8 pb-8">
             <div className="grid lg:grid-cols-3 gap-6">
               {canEdit && (
                 <Card className="group relative overflow-hidden border-2 hover:border-primary transition-all hover:shadow-xl">
@@ -470,7 +470,7 @@ export default function HomePage() {
                               {player.name}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              #{player.number} • {player.position || "N/A"}
+                              #{player.number}
                             </p>
                           </div>
                         </Link>
