@@ -42,7 +42,7 @@ The FastAPI backend serves as the REST API layer for the WaterpoloStats applicat
 
 ### Installation Steps
 
-\`\`\`bash
+```bash
 # Create virtual environment
 python -m venv venv
 
@@ -57,14 +57,14 @@ pip install fastapi uvicorn psycopg2-binary python-dotenv pydantic pyjwt request
 
 # Create .env file with environment variables (see section below)
 touch .env
-\`\`\`
+```
 
 ### Running Locally
 
-\`\`\`bash
+```bash
 # Start the development server
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
-\`\`\`
+```
 
 Access the API at: `http://localhost:8000`
 
@@ -80,15 +80,15 @@ Access auto-generated docs at: `http://localhost:8000/docs`
 Login with email and password.
 
 **Request Body:**
-\`\`\`json
+```json
 {
   "email": "user@example.com",
   "password": "password123"
 }
-\`\`\`
+```
 
 **Response:**
-\`\`\`json
+```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
@@ -99,23 +99,23 @@ Login with email and password.
     "club_id": 1
   }
 }
-\`\`\`
+```
 
 #### POST `/api/auth/refresh`
 Refresh the authentication token.
 
 **Headers:**
-\`\`\`
+```
 Authorization: Bearer <access_token>
-\`\`\`
+```
 
 **Response:**
-\`\`\`json
+```json
 {
   "access_token": "new_token_here",
   "token_type": "bearer"
 }
-\`\`\`
+```
 
 ---
 
@@ -125,12 +125,12 @@ Authorization: Bearer <access_token>
 Get all clubs (super admins only) or user's club.
 
 **Headers:**
-\`\`\`
+```
 Authorization: Bearer <access_token>
-\`\`\`
+```
 
 **Response:**
-\`\`\`json
+```json
 [
   {
     "id": 1,
@@ -142,13 +142,13 @@ Authorization: Bearer <access_token>
     "created_at": "2025-01-01T00:00:00Z"
   }
 ]
-\`\`\`
+```
 
 #### POST `/api/clubs`
 Create a new club (super admins only).
 
 **Request Body:**
-\`\`\`json
+```json
 {
   "name": "New Club",
   "short_name": "NC",
@@ -156,18 +156,18 @@ Create a new club (super admins only).
   "primary_color": "#0066cc",
   "secondary_color": "#ff6600"
 }
-\`\`\`
+```
 
 #### PUT `/api/clubs/{club_id}`
 Update club information (admins only).
 
 **Request Body:**
-\`\`\`json
+```json
 {
   "name": "Updated Club Name",
   "logo_url": "https://example.com/new-logo.png"
 }
-\`\`\`
+```
 
 #### DELETE `/api/clubs/{club_id}`
 Delete a club (super admins only).
@@ -183,7 +183,7 @@ Get all players for the user's club.
 - `club_id` (optional): Filter by club ID (super admins only)
 
 **Response:**
-\`\`\`json
+```json
 [
   {
     "id": 1,
@@ -194,13 +194,13 @@ Get all players for the user's club.
     "created_at": "2025-01-01T00:00:00Z"
   }
 ]
-\`\`\`
+```
 
 #### GET `/api/players/{player_id}`
 Get detailed player information and statistics.
 
 **Response:**
-\`\`\`json
+```json
 {
   "id": 1,
   "name": "John Doe",
@@ -211,20 +211,20 @@ Get detailed player information and statistics.
   "total_assists": 12,
   "matches_played": 15
 }
-\`\`\`
+```
 
 #### POST `/api/players`
 Create a new player (admins and coaches only).
 
 **Request Body:**
-\`\`\`json
+```json
 {
   "name": "John Doe",
   "number": 7,
   "is_goalkeeper": false,
   "club_id": 1
 }
-\`\`\`
+```
 
 #### PUT `/api/players/{player_id}`
 Update player information (admins and coaches only).
@@ -245,7 +245,7 @@ Get all matches for the user's club.
 - `limit` (optional): Limit results (default: 50)
 
 **Response:**
-\`\`\`json
+```json
 [
   {
     "id": 1,
@@ -261,13 +261,13 @@ Get all matches for the user's club.
     "created_at": "2025-10-15T18:00:00Z"
   }
 ]
-\`\`\`
+```
 
 #### GET `/api/matches/{match_id}`
 Get detailed match information including player statistics.
 
 **Response:**
-\`\`\`json
+```json
 {
   "id": 1,
   "match_date": "2025-10-15",
@@ -285,13 +285,13 @@ Get detailed match information including player statistics.
     }
   ]
 }
-\`\`\`
+```
 
 #### POST `/api/matches`
 Create a new match (admins and coaches only).
 
 **Request Body:**
-\`\`\`json
+```json
 {
   "match_date": "2025-10-15",
   "opponent": "Rival Team",
@@ -304,7 +304,7 @@ Create a new match (admins and coaches only).
   "notes": "Great match!",
   "club_id": 1
 }
-\`\`\`
+```
 
 #### PUT `/api/matches/{match_id}`
 Update match information (admins and coaches only).
@@ -323,7 +323,7 @@ Get all player statistics for a specific match.
 Add player statistics for a match (admins and coaches only).
 
 **Request Body:**
-\`\`\`json
+```json
 {
   "player_id": 1,
   "goles_totales": 3,
@@ -332,7 +332,7 @@ Add player statistics for a match (admins and coaches only).
   "tiros_totales": 5,
   "tiros_eficiencia": 60
 }
-\`\`\`
+```
 
 #### PUT `/api/match-stats/{stat_id}`
 Update specific player statistics (admins and coaches only).
@@ -345,7 +345,7 @@ Update specific player statistics (admins and coaches only).
 Get aggregated statistics for a season.
 
 **Response:**
-\`\`\`json
+```json
 {
   "season": "2025-2026",
   "club_id": 1,
@@ -361,7 +361,7 @@ Get aggregated statistics for a season.
     }
   ]
 }
-\`\`\`
+```
 
 #### GET `/api/analytics/player/{player_id}`
 Get detailed analytics for a specific player.
@@ -377,7 +377,7 @@ Get all users (super admins only).
 Create a new user (admins only).
 
 **Request Body:**
-\`\`\`json
+```json
 {
   "email": "newuser@example.com",
   "password": "SecurePassword123!",
@@ -385,7 +385,7 @@ Create a new user (admins only).
   "role": "coach",
   "club_id": 1
 }
-\`\`\`
+```
 
 #### PUT `/api/users/{user_id}`
 Update user information (admins only).
@@ -405,7 +405,7 @@ Delete a user (super admins only).
    - Configure security group to allow ports 80, 443, and 8000
 
 2. **Setup Server**
-\`\`\`bash
+```bash
 # SSH into the instance
 ssh -i your-key.pem ubuntu@your-ec2-ip
 
@@ -423,11 +423,11 @@ cd /var/www/waterpolostats-api
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-\`\`\`
+```
 
 3. **Configure Systemd Service**
 Create `/etc/systemd/system/waterpolostats.service`:
-\`\`\`ini
+```ini
 [Unit]
 Description=WaterpoloStats FastAPI
 After=network.target
@@ -442,11 +442,11 @@ ExecStart=/var/www/waterpolostats-api/venv/bin/uvicorn main:app --host 0.0.0.0 -
 
 [Install]
 WantedBy=multi-user.target
-\`\`\`
+```
 
 4. **Configure Nginx**
 Create `/etc/nginx/sites-available/waterpolostats`:
-\`\`\`nginx
+```nginx
 server {
     listen 80;
     server_name your-domain.com;
@@ -458,20 +458,20 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
-\`\`\`
+```
 
 5. **Start Services**
-\`\`\`bash
+```bash
 sudo systemctl enable waterpolostats
 sudo systemctl start waterpolostats
 sudo systemctl enable nginx
 sudo systemctl restart nginx
-\`\`\`
+```
 
 ### Option 2: AWS ECS (Docker)
 
 1. **Create Dockerfile**
-\`\`\`dockerfile
+```dockerfile
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -484,10 +484,10 @@ COPY . .
 EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-\`\`\`
+```
 
 2. **Build and Push to ECR**
-\`\`\`bash
+```bash
 # Build Docker image
 docker build -t waterpolostats-api .
 
@@ -496,7 +496,7 @@ docker tag waterpolostats-api:latest <account-id>.dkr.ecr.<region>.amazonaws.com
 
 # Push to ECR
 docker push <account-id>.dkr.ecr.<region>.amazonaws.com/waterpolostats-api:latest
-\`\`\`
+```
 
 3. **Create ECS Task Definition and Service**
 Use AWS Console or CLI to create ECS cluster, task definition, and service.
@@ -504,12 +504,12 @@ Use AWS Console or CLI to create ECS cluster, task definition, and service.
 ### Option 3: AWS Lambda + API Gateway
 
 Use **Mangum** to adapt FastAPI for Lambda:
-\`\`\`python
+```python
 from mangum import Mangum
 from main import app
 
 handler = Mangum(app)
-\`\`\`
+```
 
 Deploy using AWS SAM or Serverless Framework.
 
@@ -519,7 +519,7 @@ Deploy using AWS SAM or Serverless Framework.
 
 Create a `.env` file with the following variables:
 
-\`\`\`env
+```env
 # Database
 DATABASE_URL=postgresql://user:password@host:5432/database
 SUPABASE_URL=https://your-project.supabase.co
@@ -540,7 +540,7 @@ ALLOWED_ORIGINS=https://your-frontend.vercel.app,http://localhost:3000
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
-\`\`\`
+```
 
 ---
 
@@ -550,7 +550,7 @@ The FastAPI backend connects to the same Supabase PostgreSQL database used by th
 
 ### Connection Example
 
-\`\`\`python
+```python
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -566,7 +566,7 @@ def get_db():
         yield db
     finally:
         db.close()
-\`\`\`
+```
 
 ---
 
