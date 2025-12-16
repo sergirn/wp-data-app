@@ -49,6 +49,7 @@
     "geist": "latest",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
+
     "next": "^16.0.10",
     "next-pwa": "latest",
     "next-themes": "latest",
