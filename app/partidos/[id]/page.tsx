@@ -13,6 +13,7 @@ import { MatchExportButton } from "@/components/match-export-button"
 import { getCurrentProfile } from "@/lib/auth"
 import { MatchSuperiorityChart } from "@/components/match-superiority-chart"
 import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
+import { MatchBlocksChart } from "@/components/match-blocks-chart"
 
 interface MatchWithStats extends Match {
   match_stats: (MatchStats & { players: Player })[]
@@ -118,6 +119,7 @@ export default async function MatchDetailPage({ params }: { params: { id: string
   const teamTotals = calculateTeamTotals(match.match_stats)
   const superioridadStats = calculateSuperioridadStats(match.match_stats)
   const inferioridadStats = calculateInferioridadStats(match.match_stats) // Added
+  const blocksStats = calculateBlocksStats(match.match_stats, match.away_score)
 
   const players = match.match_stats.map((s: any) => s.players)
   const stats = match.match_stats // Rename for clarity in the block section
@@ -223,7 +225,7 @@ export default async function MatchDetailPage({ params }: { params: { id: string
             <CardTitle>Totales del Equipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-blue-500/10 rounded-lg">
                 <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
                 <p className="text-sm text-muted-foreground">Goles</p>
@@ -273,50 +275,43 @@ export default async function MatchDetailPage({ params }: { params: { id: string
             <CardHeader>
               <CardTitle>Bloqueos del Partido</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Stats summary */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-                    <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
-                      {matchStats.reduce((sum, s) => sum + (s.acciones_bloqueo || 0), 0)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Bloqueos</p>
-                  </div>
-                  <div className="text-center p-4 bg-red-500/10 rounded-lg">
-                    <p className="text-3xl font-bold text-red-700 dark:text-red-300">{match.away_score}</p>
-                    <p className="text-sm text-muted-foreground">Goles Recibidos</p>
-                  </div>
-                </div>
+            <CardContent className="space-y-4">
+              {/* Chart matching superiority/inferiority style */}
+              <MatchBlocksChart stats={blocksStats} />
 
-                {/* Players who blocked */}
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">Jugadores con Bloqueos</h4>
-                  <div className="space-y-2">
-                    {matchStats
-                      .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
-                      .map((stat) => {
-                        const player = stat.players
-                        return (
-                          <div key={stat.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                                {player?.number || "?"}
+              {/* Collapsible players list */}
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="players" className="border-none">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+                    Jugadores con Bloqueos ({matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length})
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2 pt-2">
+                      {matchStats
+                        .filter((stat) => (stat.acciones_bloqueo || 0) > 0)
+                        .map((stat) => {
+                          const player = stat.players
+                          return (
+                            <div key={stat.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                                  {player?.number || "?"}
+                                </div>
+                                <span className="text-sm font-medium">{player?.name || "Desconocido"}</span>
                               </div>
-                              <span className="text-sm font-medium">{player?.name || "Desconocido"}</span>
+                              <Badge variant="outline" className="bg-blue-500/10">
+                                {stat.acciones_bloqueo} bloqueos
+                              </Badge>
                             </div>
-                            <Badge variant="outline" className="bg-blue-500/10">
-                              {stat.acciones_bloqueo} bloqueos
-                            </Badge>
-                          </div>
-                        )
-                      })}
-                    {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No hay bloqueos registrados</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                          )
+                        })}
+                      {matchStats.filter((stat) => (stat.acciones_bloqueo || 0) > 0).length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">No hay bloqueos registrados</p>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </CardContent>
           </Card>
         </div>
@@ -604,6 +599,18 @@ function calculateInferioridadStats(stats: any[]) {
     recibidos,
     total,
     eficiencia: Number.parseFloat(eficiencia),
+  }
+}
+
+function calculateBlocksStats(stats: any[], golesRecibidos: number) {
+  const bloqueos = stats.reduce((acc, stat) => acc + (stat.acciones_bloqueo || 0), 0)
+  const total = bloqueos + golesRecibidos
+  const eficacia = total > 0 ? ((bloqueos / total) * 100).toFixed(1) : "0.0"
+
+  return {
+    bloqueos,
+    golesRecibidos,
+    eficacia: Number.parseFloat(eficacia),
   }
 }
 
