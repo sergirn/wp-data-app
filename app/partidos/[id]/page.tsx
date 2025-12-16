@@ -29,8 +29,13 @@ interface PenaltyShootoutPlayer {
   players: Player
 }
 
-export default async function MatchDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params
+export default async function MatchDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
   const profile = await getCurrentProfile()
   const supabase = await createClient()
 
