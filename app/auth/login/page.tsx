@@ -130,17 +130,6 @@ export default function LoginPage() {
 
               {/* Remember */}
               <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={() => setRemember(!remember)}
-                    className="h-4 w-4 accent-blue-500"
-                  />
-                  <span className="text-muted-foreground">
-                    Recordar sesión
-                  </span>
-                </label>
 
                 <Link href="/auth/forgot-password" className="text-primary hover:underline">
                   ¿Olvidaste tu contraseña?

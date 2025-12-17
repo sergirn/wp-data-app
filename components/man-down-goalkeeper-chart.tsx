@@ -116,7 +116,7 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="jornada" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="jornada" reversed stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis
                   yAxisId="left"
                   stroke="#888888"
