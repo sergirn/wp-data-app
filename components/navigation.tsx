@@ -13,7 +13,6 @@ import {
   Shield,
   Menu,
   ChevronRight,
-  LogOut,
 } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/client"
@@ -24,6 +23,7 @@ import { ClubSelector } from "@/components/club-selector"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useClub } from "@/lib/club-context"
 import type { Profile } from "@/lib/types"
+import { BottomNavigation } from "@/components/BottomNavigation"
 
 interface NavigationProps {
   profile?: Profile | null
@@ -54,147 +54,122 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/70 backdrop-blur-xl">
-      <div className="container mx-auto px-4">
-        <div className="flex h-14 items-center justify-between">
+    <>
+      {/* ===== TOP NAVBAR (desktop + mobile header) ===== */}
+      <header className="sticky top-0 z-50 border-b bg-background/70 backdrop-blur-xl">
+        <div className="container mx-auto px-4">
+          <div className="flex h-14 items-center justify-between">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-9 w-9 rounded-full overflow-hidden border shadow-sm">
-              <Image
-                src={currentClub?.logo_url || "/none"}
-                alt="Club Logo"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            <span className="hidden sm:block font-semibold tracking-tight">
-              {currentClub?.short_name || "WaterpoloStats"}
-            </span>
-          </Link>
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3">
+              <div className="relative h-9 w-9 rounded-full overflow-hidden border shadow-sm">
+                <Image
+                  src={currentClub?.logo_url || "/none"}
+                  alt="Club Logo"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+              <span className="hidden sm:block font-semibold tracking-tight">
+                {currentClub?.short_name || "WaterpoloStats"}
+              </span>
+            </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) =>
-              requiresEdit && !canEdit ? null : (
+            {/* Desktop nav */}
+            <nav className="hidden lg:flex items-center gap-1">
+              {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) =>
+                requiresEdit && !canEdit ? null : (
+                  <Button
+                    key={href}
+                    asChild
+                    size="sm"
+                    variant={isActive(href) ? "secondary" : "ghost"}
+                    className="gap-2 rounded-full px-3"
+                  >
+                    <Link href={href}>
+                      <Icon className="h-4 w-4" />
+                      <span className="hidden xl:inline">{label}</span>
+                    </Link>
+                  </Button>
+                )
+              )}
+
+              {profile?.is_super_admin && (
                 <Button
-                  key={href}
                   asChild
                   size="sm"
-                  variant={isActive(href) ? "secondary" : "ghost"}
+                  variant={pathname.startsWith("/admin") ? "secondary" : "ghost"}
                   className="gap-2 rounded-full px-3"
                 >
-                  <Link href={href}>
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden xl:inline">{label}</span>
+                  <Link href="/admin">
+                    <Shield className="h-4 w-4" />
+                    <span className="hidden xl:inline">Admin</span>
                   </Link>
                 </Button>
-              )
-            )}
+              )}
+            </nav>
 
-            {profile?.is_super_admin && (
-              <Button
-                asChild
-                size="sm"
-                variant={pathname.startsWith("/admin") ? "secondary" : "ghost"}
-                className="gap-2 rounded-full px-3"
-              >
-                <Link href="/admin">
-                  <Shield className="h-4 w-4" />
-                  <span className="hidden xl:inline">Admin</span>
-                </Link>
-              </Button>
-            )}
-          </nav>
+            {/* Right actions */}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <ClubSelector className="hidden md:flex" />
+              {profile && <UserMenu profile={profile} />}
 
-          {/* Right actions */}
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <ClubSelector className="hidden md:flex" />
-            {profile && <UserMenu profile={profile} />}
+              {/* Sheet SOLO tablet / desktop pequeño (no móvil) */}
+              <Sheet open={open} onOpenChange={setOpen}>
+                <SheetTrigger asChild>
+                  <Button size="icon" variant="ghost" className="hidden md:inline-flex lg:hidden">
+                    <Menu />
+                  </Button>
+                </SheetTrigger>
 
-            {/* Mobile menu */}
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button size="icon" variant="ghost" className="lg:hidden">
-                  <Menu />
-                </Button>
-              </SheetTrigger>
+                <SheetContent side="right" className="w-[320px]">
+                  <div className="flex flex-col gap-6 mt-6">
 
-              <SheetContent side="right" className="w-[320px]">
-                <div className="flex flex-col gap-6 mt-6">
-
-                  {/* User */}
-                  {profile && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
-                      <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                        {profile.full_name?.[0] ?? "U"}
+                    {profile && (
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
+                        <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                          {profile.full_name?.[0] ?? "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{profile.full_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{profile.full_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Navigation */}
-                  <div className="space-y-1">
-                    {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) =>
-                      requiresEdit && !canEdit ? null : (
-                        <Button
-                          key={href}
-                          asChild
-                          variant={isActive(href) ? "secondary" : "ghost"}
-                          className="w-full justify-between rounded-lg"
-                          onClick={() => setOpen(false)}
-                        >
-                          <Link href={href}>
-                            <span className="flex items-center gap-3">
-                              <Icon className="h-4 w-4" />
-                              {label}
-                            </span>
-                            <ChevronRight className="h-4 w-4 opacity-50" />
-                          </Link>
-                        </Button>
-                      )
                     )}
-                  </div>
 
-                  {/* Admin */}
-                  {profile?.is_super_admin && (
                     <div className="space-y-1">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground px-1">
-                        Administración
-                      </p>
-                      <Button asChild variant="ghost" className="w-full justify-start gap-3">
-                        <Link href="/admin">
-                          <Shield className="h-4 w-4" />
-                          Panel Admin
-                        </Link>
-                      </Button>
+                      {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) =>
+                        requiresEdit && !canEdit ? null : (
+                          <Button
+                            key={href}
+                            asChild
+                            variant={isActive(href) ? "secondary" : "ghost"}
+                            className="w-full justify-between rounded-lg"
+                            onClick={() => setOpen(false)}
+                          >
+                            <Link href={href}>
+                              <span className="flex items-center gap-3">
+                                <Icon className="h-4 w-4" />
+                                {label}
+                              </span>
+                              <ChevronRight className="h-4 w-4 opacity-50" />
+                            </Link>
+                          </Button>
+                        )
+                      )}
                     </div>
-                  )}
-
-                  {/* Logout (MÓVIL) */}
-                  {profile && (
-                    <div className="pt-4 border-t">
-                      <Button
-                        variant="destructive"
-                        className="w-full gap-2"
-                        onClick={handleLogout}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Cerrar sesión
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* ===== MOBILE BOTTOM NAV (Instagram style) ===== */}
+      <BottomNavigation canEdit={canEdit} />
+    </>
   )
 })
