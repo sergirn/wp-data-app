@@ -21,15 +21,15 @@ export function MatchBlocksChart({ stats }: { stats: BlocksStats }) {
                 { name: "Goles", value: stats.golesRecibidos },
               ]}
               cx="50%"
-              cy="50%"
+              cy="45%"
               labelLine={false}
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              outerRadius={60}
+              // label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              outerRadius={80}
               fill="#8884d8"
               dataKey="value"
             >
-              <Cell fill="#3b82f6" />
-              <Cell fill="#ef4444" />
+              <Cell fill="#3a6cbbff" />
+              <Cell fill="#ac2020ff" />
             </Pie>
             <Tooltip />
           </PieChart>
@@ -46,9 +46,9 @@ export function MatchBlocksChart({ stats }: { stats: BlocksStats }) {
           <span className="text-xs font-medium text-muted-foreground">Goles Recibidos</span>
           <span className="text-xl font-bold text-red-700 dark:text-red-300">{stats.golesRecibidos}</span>
         </div>
-        <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
+        <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
           <span className="text-xs font-medium text-muted-foreground">Eficacia</span>
-          <span className="text-xl font-bold text-green-700 dark:text-green-300">{stats.eficacia}%</span>
+          <span className="text-xl font-bold text-blue-700 dark:text-blue-300">{stats.eficacia}%</span>
         </div>
       </div>
     </div>

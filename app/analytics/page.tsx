@@ -190,63 +190,88 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 mb-4 sm:mb-6">
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Partidos</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-2xl sm:text-3xl font-bold">{stats.totalMatches}</div>
-          </CardContent>
+      <div className="grid grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {/* Partidos */}
+        <Card className="p-1 sm:p-1.5 text-center">
+          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+            Partidos
+          </p>
+          <p className="text-lg sm:text-2xl font-bold leading-none">
+            {stats.totalMatches}
+          </p>
         </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Victorias</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{stats.wins}</div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-              {stats.totalMatches > 0 ? Math.round((stats.wins / stats.totalMatches) * 100) : 0}%
-            </p>
-          </CardContent>
+
+        {/* Victorias */}
+        <Card className="p-1 sm:p-1.5 text-center">
+          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+            Victorias
+          </p>
+          <p className="text-lg sm:text-2xl font-bold leading-none text-green-600 dark:text-green-400">
+            {stats.wins}
+          </p>
+          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
+            {stats.totalMatches > 0
+              ? Math.round((stats.wins / stats.totalMatches) * 100)
+              : 0}
+            %
+          </p>
         </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Empates</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-2xl sm:text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.draws}</div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-              {stats.totalMatches > 0 ? Math.round((stats.draws / stats.totalMatches) * 100) : 0}%
-            </p>
-          </CardContent>
+
+        {/* Empates */}
+        <Card className="p-1 sm:p-1.5 text-center">
+          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+            Empates
+          </p>
+          <p className="text-lg sm:text-2xl font-bold leading-none text-yellow-600 dark:text-yellow-400">
+            {stats.draws}
+          </p>
+          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
+            {stats.totalMatches > 0
+              ? Math.round((stats.draws / stats.totalMatches) * 100)
+              : 0}
+            %
+          </p>
         </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Derrotas</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-2xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{stats.losses}</div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-              {stats.totalMatches > 0 ? Math.round((stats.losses / stats.totalMatches) * 100) : 0}%
-            </p>
-          </CardContent>
+
+        {/* Derrotas */}
+        <Card className="p-1 sm:p-1.5 text-center">
+          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+            Derrotas
+          </p>
+          <p className="text-lg sm:text-2xl font-bold leading-none text-red-600 dark:text-red-400">
+            {stats.losses}
+          </p>
+          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
+            {stats.totalMatches > 0
+              ? Math.round((stats.losses / stats.totalMatches) * 100)
+              : 0}
+            %
+          </p>
         </Card>
-        <Card className="col-span-2 sm:col-span-1">
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Diferencia</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3 sm:pb-4">
-            <div className="text-2xl sm:text-3xl font-bold">
-              {stats.totalGoalsFor > stats.totalGoalsAgainst ? "+" : ""}
-              {stats.totalGoalsFor - stats.totalGoalsAgainst}
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-              {stats.totalGoalsFor} - {stats.totalGoalsAgainst}
-            </p>
-          </CardContent>
+
+        {/* Diferencia */}
+        <Card className="p-1 sm:p-1.5 text-center">
+          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+            Diferencia
+          </p>
+          <p
+            className={`text-lg sm:text-2xl font-bold leading-none ${
+              stats.totalGoalsFor - stats.totalGoalsAgainst >= 0
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {stats.totalGoalsFor > stats.totalGoalsAgainst ? "+" : ""}
+            {stats.totalGoalsFor - stats.totalGoalsAgainst}
+          </p>
+          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
+            {stats.totalGoalsFor} - {stats.totalGoalsAgainst}
+          </p>
         </Card>
       </div>
+
+
+
 
       <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 mb-4 sm:mb-6">
         <MatchResultsChart matches={matches || []} />

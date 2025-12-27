@@ -5,6 +5,9 @@ import { Bar, Line, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, Ca
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
 import { Badge } from "@/components/ui/badge"
 import type { Match, MatchStats, Player } from "@/lib/types"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } 
+from "@/components/ui/accordion"
+import { ShieldCheck } from "lucide-react"
 
 interface ManDownGoalkeeperChartProps {
   matches: Match[]
@@ -69,30 +72,56 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
         <CardDescription>Análisis de rendimiento del portero en situaciones de inferioridad numérica</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Total Evitados</div>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{totalSaves}</div>
-            <div className="text-xs text-muted-foreground mt-1">Media: {avgSavesPerMatch}/partido</div>
+        <div className="grid grid-cols-4 gap-2 md:gap-4 mb-6">
+          <div className="rounded-lg border bg-card p-2 md:p-4 text-center">
+            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">
+              Evitados
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-green-600 dark:text-green-400">
+              {totalSaves}
+            </div>
+            <div className="hidden md:block text-xs text-muted-foreground mt-1">
+              Media: {avgSavesPerMatch}/partido
+            </div>
           </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Total Recibidos</div>
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{totalGoalsConced}</div>
-            <div className="text-xs text-muted-foreground mt-1">Media: {avgGoalsConcedPerMatch}/partido</div>
+
+          <div className="rounded-lg border bg-card p-2 md:p-4 text-center">
+            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">
+              Recibidos
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">
+              {totalGoalsConced}
+            </div>
+            <div className="hidden md:block text-xs text-muted-foreground mt-1">
+              Media: {avgGoalsConcedPerMatch}/partido
+            </div>
           </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Eficiencia Global</div>
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{overallEfficiency}%</div>
-            <div className="text-xs text-muted-foreground mt-1">
+
+          <div className="rounded-lg border bg-card p-2 md:p-4 text-center">
+            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">
+              Eficiencia
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {overallEfficiency}%
+            </div>
+            <div className="hidden md:block text-xs text-muted-foreground mt-1">
               {totalSaves}/{totalShots} tiros
             </div>
           </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Partidos</div>
-            <div className="text-3xl font-bold">{matchData.length}</div>
-            <div className="text-xs text-muted-foreground mt-1">Total registrados</div>
+
+          <div className="rounded-lg border bg-card p-2 md:p-4 text-center">
+            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">
+              Partidos
+            </div>
+            <div className="text-lg md:text-2xl font-bold">
+              {matchData.length}
+            </div>
+            <div className="hidden md:block text-xs text-muted-foreground mt-1">
+              Total registrados
+            </div>
           </div>
         </div>
+
 
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-3">Evolución por Partido</h3>
@@ -165,48 +194,85 @@ export function ManDownGoalkeeperChart({ matches, stats, players }: ManDownGoalk
         </div>
 
         <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-3">Detalle por Partido</h3>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {matchData.map((match) => (
-              <Card key={match.matchId} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-xs font-semibold text-muted-foreground mb-1">{match.jornada}</div>
-                      <CardTitle className="text-base">{match.fullOpponent}</CardTitle>
-                      <CardDescription className="text-xs">{match.fullDate}</CardDescription>
-                    </div>
-                    <Badge className={`${getEfficiencyColor(match.eficiencia)} text-white`}>{match.eficiencia}%</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="pb-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Evitados</span>
-                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                        {match.golesEvitados}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Recibidos</span>
-                      <span className="text-lg font-bold text-red-600 dark:text-red-400">{match.golesRecibidos}</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-1 border-t">
-                      <span className="text-sm font-medium">Total</span>
-                      <span className="text-lg font-bold">{match.total}</span>
-                    </div>
-                    {/* Progress bar */}
-                   <div className="w-full bg-red-500/30 dark:bg-red-500/30 rounded-full h-2 mt-2 overflow-hidden">
-                    <div
-                      className="bg-green-600 dark:bg-green-400 h-2 rounded-full transition-all"
-                      style={{ width: `${match.eficiencia}%` }}
-                    />
-                  </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Accordion type="single" collapsible>
+            <AccordionItem
+              value="detalle-partidos-portero"
+              className="rounded-lg"
+            >
+              <AccordionTrigger
+                className="px-4 py-3 rounded-lg bg-blue-500/10 dark:bg-blue-400/10 hover:bg-blue-500/20 dark:hover:bg-blue-400/20 transition-colors hover:no-underline">
+                <span className="flex w-full items-center justify-center gap-2 text-lg font-semibold">
+                  <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                  <span>Estadistica por Partido</span>
+                </span>
+              </AccordionTrigger>
+
+              <AccordionContent className="px-2 sm:px-4 pb-4 mt-2">
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {matchData.map((match) => (
+                    <Card key={match.matchId} className="overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground mb-1">
+                              {match.jornada}
+                            </div>
+                            <CardTitle className="text-base">
+                              {match.fullOpponent}
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                              {match.fullDate}
+                            </CardDescription>
+                          </div>
+
+                          <Badge
+                            className={`${getEfficiencyColor(match.eficiencia)} text-white`}
+                          >
+                            {match.eficiencia}%
+                          </Badge>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="pb-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">
+                              Evitados
+                            </span>
+                            <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                              {match.golesEvitados}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">
+                              Recibidos
+                            </span>
+                            <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                              {match.golesRecibidos}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t">
+                            <span className="text-sm font-medium">Total</span>
+                            <span className="text-lg font-bold">{match.total}</span>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="w-full bg-red-500/30 dark:bg-red-500/30 rounded-full h-2 mt-2 overflow-hidden">
+                            <div
+                              className="bg-green-600 dark:bg-green-400 h-2 rounded-full transition-all"
+                              style={{ width: `${match.eficiencia}%` }}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
       </CardContent>
     </Card>

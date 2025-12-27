@@ -30,13 +30,13 @@ export function MatchInferiorityChart({ stats }: { stats: InferioridadStats }) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={60}
+                // label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
               >
-                <Cell fill="#10b981" />
-                <Cell fill="#ef4444" />
+                <Cell fill="#3a6cbbff" />
+                <Cell fill="#ac2020ff" />
               </Pie>
               <Tooltip />
             </PieChart>
@@ -45,9 +45,9 @@ export function MatchInferiorityChart({ stats }: { stats: InferioridadStats }) {
 
         {/* Stats Summary */}
         <div className="w-full md:w-1/2 space-y-2">
-          <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-lg">
+          <div className="flex items-center justify-between p-2 bg-blue-500/10 rounded-lg">
             <span className="text-xs font-medium text-muted-foreground">Evitados</span>
-            <span className="text-xl font-bold text-green-700 dark:text-green-300">{stats.evitados}</span>
+            <span className="text-xl font-bold text-blue-700 dark:text-blue-300">{stats.evitados}</span>
           </div>
           <div className="flex items-center justify-between p-2 bg-red-500/10 rounded-lg">
             <span className="text-xs font-medium text-muted-foreground">Recibidos</span>

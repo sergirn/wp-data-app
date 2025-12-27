@@ -15,19 +15,6 @@ import { MatchSuperiorityChart } from "@/components/match-superiority-chart"
 import { MatchInferiorityChart } from "@/components/match-inferiority-chart"
 import { MatchBlocksChart } from "@/components/match-blocks-chart"
 
-interface MatchWithStats extends Match {
-  match_stats: (MatchStats & { players: Player })[]
-  clubs: Club
-}
-
-interface PenaltyShootoutPlayer {
-  id: number
-  match_id: number
-  player_id: number
-  shot_order: number
-  scored: boolean
-  players: Player
-}
 
 export default async function MatchDetailPage({
   params,
@@ -395,21 +382,34 @@ export default async function MatchDetailPage({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-blue-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{teamTotals.goles}</p>
-                <p className="text-sm text-muted-foreground">Goles</p>
+              <div className="text-center p-4 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+                  {teamTotals.goles}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Goles</p>
               </div>
-              <div className="text-center p-4 bg-green-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{teamTotals.tiros}</p>
-                <p className="text-sm text-muted-foreground">Tiros</p>
+
+              <div className="text-center p-4 rounded-lg bg-blue-500/5 dark:bg-blue-500/5">
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-200">
+                  {teamTotals.tiros}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Tiros</p>
               </div>
-              <div className="text-center p-4 bg-orange-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{teamTotals.faltas}</p>
-                <p className="text-sm text-muted-foreground">Faltas</p>
+
+              <div className="text-center p-4 rounded-lg bg-blue-500/10 dark:bg-blue-400/10">
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-200">
+                  {teamTotals.faltas}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Faltas</p>
               </div>
-              <div className="text-center p-4 bg-purple-500/10 rounded-lg">
-                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{teamTotals.asistencias}</p>
-                <p className="text-sm text-muted-foreground">Asistencias</p>
+
+              <div className="text-center p-4 rounded-lg bg-blue-500/5 dark:bg-blue-500/5">
+                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+                  {teamTotals.asistencias}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Asistencias
+                </p>
               </div>
             </div>
           </CardContent>
@@ -786,19 +786,19 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
                 label="Superioridad"
                 value={`${superiorityEfficiency}%`}
                 subtitle={`${superiorityGoals} goles en sup.`}
-                color="green"
+                color="blue"
               />
               <MetricCard
                 label="Total Acciones"
                 value={totalActions.toString()}
                 subtitle="Acciones positivas"
-                color="purple"
+                color="blue"
               />
               <MetricCard
                 label="Faltas Cometidas"
                 value={totalFouls.toString()}
                 subtitle="Faltas totales"
-                color="orange"
+                color="red"
               />
             </div>
 

@@ -9,6 +9,7 @@ import { AlertCircle } from 'lucide-react'
 import { useClub } from "@/lib/club-context"
 import { useEffect, useState, memo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
 export default function PlayersPage() {
   const { currentClub } = useClub()
@@ -250,18 +251,40 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
                 {(player.totalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-2 sm:p-3 bg-green-500/10 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">{player.totalTiros}</p>
+            <div className="text-center p-2 sm:p-3 bg-blue-500/5 dark:bg-blue-500/5 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalTiros}</p>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Tiros</p>
               <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
                 {(player.totalTiros / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-2 sm:p-3 bg-purple-500/10 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">{eficiencia}%</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Eficiencia</p>
-              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">Goles / Tiros</p>
-            </div>
+              <div
+                className={cn(
+                  "text-center p-2 sm:p-3 rounded-lg transition-colors",
+                  eficiencia < 30
+                    ? "bg-red-500/10 dark:bg-red-400/10"
+                    : "bg-green-500/10 dark:bg-green-400/10"
+                )}
+              >
+                <p
+                  className={cn(
+                    "text-xl sm:text-2xl font-bold",
+                    eficiencia < 30
+                      ? "text-red-700 dark:text-red-300"
+                      : "text-green-700 dark:text-green-300"
+                  )}
+                >
+                  {eficiencia}%
+                </p>
+
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Eficiencia
+                </p>
+
+                <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
+                  Goles / Tiros
+                </p>
+              </div>
           </div>
         </CardContent>
       </Card>
@@ -314,8 +337,8 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
                 {(player.totalParadas / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-2 sm:p-3 bg-green-500/10 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">
+            <div className="text-center p-2 sm:p-3 bg-blue-500/5 dark:bg-blue-500/5 rounded-lg">
+              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">
                 {player.totalRivalGoles}
               </p>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Goles</p>
@@ -323,11 +346,33 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
                 {(player.totalRivalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
               </p>
             </div>
-            <div className="text-center p-2 sm:p-3 bg-purple-500/10 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-purple-700 dark:text-purple-300">{eficiencia}%</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Eficiencia</p>
-              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">Paradas / Total</p>
-            </div>
+              <div
+                className={cn(
+                  "text-center p-2 sm:p-3 rounded-lg transition-colors",
+                  eficiencia < 30
+                    ? "bg-red-500/10 dark:bg-red-400/10"
+                    : "bg-green-500/10 dark:bg-green-400/10"
+                )}
+              >
+                <p
+                  className={cn(
+                    "text-xl sm:text-2xl font-bold",
+                    eficiencia < 30
+                      ? "text-red-700 dark:text-red-300"
+                      : "text-green-700 dark:text-green-300"
+                  )}
+                >
+                  {eficiencia}%
+                </p>
+
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Eficiencia
+                </p>
+
+                <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
+                  Paradas / Total
+                </p>
+              </div>
           </div>
         </CardContent>
       </Card>
