@@ -15,13 +15,23 @@ interface ClientLayoutProps {
   allClubs: Club[]
 }
 
-export default function ClientLayout({ children, profile, currentClub, allClubs }: ClientLayoutProps) {
+export default function ClientLayout({
+  children,
+  profile,
+  currentClub,
+  allClubs,
+}: ClientLayoutProps) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <ProfileProvider initialProfile={profile}>
         <ClubProvider initialClub={currentClub} initialClubs={allClubs}>
+          {/* Top + Bottom navigation */}
           {profile && <Navigation profile={profile} />}
-          <Suspense fallback={null}>{children}</Suspense>
+
+          {/* 👇 AQUÍ ESTÁ LA CLAVE */}
+          <main className="pb-[80px] lg:pb-0">
+            <Suspense fallback={null}>{children}</Suspense>
+          </main>
         </ClubProvider>
       </ProfileProvider>
     </ThemeProvider>

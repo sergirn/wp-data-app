@@ -120,50 +120,51 @@ export function GoalDifferenceEvolutionChart({
 
       <CardContent>
         {/* RESUMEN */}
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
-          <div className="rounded-lg border bg-card p-3">
-            <p className="text-xs text-muted-foreground mb-1">
-              Goles Anotados
-            </p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {totalFor}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {(totalFor / matches.length || 0).toFixed(1)} / partido
-            </p>
-          </div>
+<div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+  <div className="rounded-lg border bg-card p-1 sm:p-1.5 text-center">
+    <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+      Goles Anotados
+    </p>
+    <p className="text-lg sm:text-2xl font-bold leading-none text-green-600 dark:text-green-400">
+      {totalFor}
+    </p>
+    <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
+      {(totalFor / matches.length || 0).toFixed(1)} / partido
+    </p>
+  </div>
 
-          <div className="rounded-lg border bg-card p-3">
-            <p className="text-xs text-muted-foreground mb-1">
-              Goles Recibidos
-            </p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {totalAgainst}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {(totalAgainst / matches.length || 0).toFixed(1)} / partido
-            </p>
-          </div>
+  <div className="rounded-lg border bg-card p-1 sm:p-1.5 text-center">
+    <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+      Goles Recibidos
+    </p>
+    <p className="text-lg sm:text-2xl font-bold leading-none text-red-600 dark:text-red-400">
+      {totalAgainst}
+    </p>
+    <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
+      {(totalAgainst / matches.length || 0).toFixed(1)} / partido
+    </p>
+  </div>
 
-          <div className="rounded-lg border bg-card p-3">
-            <p className="text-xs text-muted-foreground mb-1">
-              Diferencia Total
-            </p>
-            <p
-              className={`text-2xl font-bold ${
-                totalDiff >= 0
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-red-600 dark:text-red-400"
-              }`}
-            >
-              {totalDiff > 0 ? "+" : ""}
-              {totalDiff}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {(totalDiff / matches.length || 0).toFixed(1)} / partido
-            </p>
-          </div>
-        </div>
+  <div className="rounded-lg border bg-card p-1 sm:p-1.5 text-center">
+    <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
+      Diferencia
+    </p>
+    <p
+      className={`text-lg sm:text-2xl font-bold leading-none ${
+        totalDiff >= 0
+          ? "text-blue-600 dark:text-blue-400"
+          : "text-red-600 dark:text-red-400"
+      }`}
+    >
+      {totalDiff > 0 ? "+" : ""}
+      {totalDiff}
+    </p>
+    <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
+      {(totalDiff / matches.length || 0).toFixed(1)} / partido
+    </p>
+  </div>
+</div>
+
 
         {/* GRÁFICO */}
         <ResponsiveContainer width="100%" height={200}>

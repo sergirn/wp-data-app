@@ -239,7 +239,7 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="grid lg:grid-cols-2 md:grid-cols-2 grid-cols-4 gap-2 sm:gap-3">
             <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
               <p className="text-xl sm:text-2xl font-bold">{player.matchesPlayed}</p>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Partidos</p>
@@ -325,7 +325,7 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="grid lg:grid-cols-2 md:grid-cols-2 grid-cols-4 gap-2 sm:gap-3">
             <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
               <p className="text-xl sm:text-2xl font-bold">{player.matchesPlayed}</p>
               <p className="text-[10px] sm:text-xs text-muted-foreground">Partidos</p>

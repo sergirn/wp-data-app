@@ -207,78 +207,106 @@ export default function HomePage() {
           )}
 
           {!tablesNotFound && !connectionError && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-              <Card className="border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-blue-500/10">
-                      <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                    </div>
+            <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
+              {/* Partidos */}
+              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
+                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                  <div className="p-2 rounded-lg bg-blue-500/10 mb-1 sm:mb-2">
+                    <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold mb-1">{stats.totalMatches}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Partidos</p>
+                  <p className="text-lg sm:text-3xl font-bold leading-none">
+                    {stats.totalMatches}
+                  </p>
+                  <p className="text-[10px] sm:text-sm text-muted-foreground">
+                    Partidos
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-green-500/10">
-                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                    </div>
+              {/* Victorias */}
+              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
+                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                  <div className="p-2 rounded-lg bg-green-500/10 mb-1 sm:mb-2">
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold mb-1">{winRate}%</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Victorias</p>
+                  <p className="text-lg sm:text-3xl font-bold leading-none">
+                    {winRate}%
+                  </p>
+                  <p className="text-[10px] sm:text-sm text-muted-foreground">
+                    Victorias
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-purple-500/10">
-                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                    </div>
+              {/* Jugadores */}
+              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
+                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                  <div className="p-2 rounded-lg bg-purple-500/10 mb-1 sm:mb-2">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <p className="text-2xl sm:text-3xl font-bold mb-1">{stats.totalPlayers}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Jugadores</p>
+                  <p className="text-lg sm:text-3xl font-bold leading-none">
+                    {stats.totalPlayers}
+                  </p>
+                  <p className="text-[10px] sm:text-sm text-muted-foreground">
+                    Jugadores
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-amber-500/10">
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                    </div>
+              {/* Forma reciente */}
+              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
+                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                  <div className="p-2 rounded-lg bg-amber-500/10 mb-1 sm:mb-2">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <div className="flex gap-1 mb-1">
-                    {stats.recentForm.length > 0 ? (
-                      stats.recentForm.map((result, i) => (
-                        <div
-                          key={i}
-                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs font-bold ${
-                            result === "W"
-                              ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                              : result === "L"
-                                ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                                : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
-                          }`}
-                        >
-                          {result}
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-2xl sm:text-3xl font-bold">-</span>
-                    )}
+
+                  {/* MOBILE: últimos 3 */}
+                  <div className="flex gap-1 sm:hidden">
+                    {stats.recentForm.slice(-3).map((result, i) => (
+                      <div
+                        key={i}
+                        className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
+                          result === "W"
+                            ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                            : result === "L"
+                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                            : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
+                        }`}
+                      >
+                        {result}
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Forma reciente</p>
+
+                  {/* DESKTOP: todos */}
+                  <div className="hidden sm:flex gap-1">
+                    {stats.recentForm.map((result, i) => (
+                      <div
+                        key={i}
+                        className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${
+                          result === "W"
+                            ? "bg-green-500/20 text-green-600 dark:text-green-400"
+                            : result === "L"
+                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                            : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
+                        }`}
+                      >
+                        {result}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] sm:text-sm text-muted-foreground mt-1">
+                    Forma
+                  </p>
                 </CardContent>
               </Card>
             </div>
+
           )}
 
           <div className="container mx-auto space-y-8 pb-8">
-            <div className="grid lg:grid-cols-3 gap-6">
+            <div className="hidden lg:grid lg:grid-cols-3 gap-6">
               {canEdit && (
                 <Card className="group relative overflow-hidden border-2 hover:border-primary transition-all hover:shadow-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

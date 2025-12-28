@@ -138,7 +138,7 @@ export function ManAdvantageChart({ matches, stats, players }: ManAdvantageChart
                 color: "hsl(217, 91%, 60%)",
               },
             }}
-            className="h-[400px] w-full"
+            className="h-[300px] w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>

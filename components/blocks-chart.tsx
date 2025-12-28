@@ -138,7 +138,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
                 color: "hsl(142, 71%, 45%)",
               },
             }}
-            className="h-[400px] w-full"
+            className="h-[300px] w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
