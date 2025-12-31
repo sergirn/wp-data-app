@@ -15,6 +15,9 @@ import { useClub } from "@/lib/club-context"
 import { useEffect, useState, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import { BlocksChart } from "@/components/blocks-chart"
+import { TurnoversRecoveriesChart } from "@/components/perd_rec_pos_chart"
+import { MatchComparison } from "@/components/match-comparer"
+import { PlayerComparison } from "@/components/playerComparison"
 
 export default function AnalyticsPage() {
   const { currentClub } = useClub()
@@ -191,83 +194,7 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
-        {/* Partidos */}
-        <Card className="p-1 sm:p-1.5 text-center">
-          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
-            Partidos
-          </p>
-          <p className="text-lg sm:text-2xl font-bold leading-none">
-            {stats.totalMatches}
-          </p>
-        </Card>
 
-        {/* Victorias */}
-        <Card className="p-1 sm:p-1.5 text-center">
-          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
-            Victorias
-          </p>
-          <p className="text-lg sm:text-2xl font-bold leading-none text-green-600 dark:text-green-400">
-            {stats.wins}
-          </p>
-          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
-            {stats.totalMatches > 0
-              ? Math.round((stats.wins / stats.totalMatches) * 100)
-              : 0}
-            %
-          </p>
-        </Card>
-
-        {/* Empates */}
-        <Card className="p-1 sm:p-1.5 text-center">
-          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
-            Empates
-          </p>
-          <p className="text-lg sm:text-2xl font-bold leading-none text-yellow-600 dark:text-yellow-400">
-            {stats.draws}
-          </p>
-          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
-            {stats.totalMatches > 0
-              ? Math.round((stats.draws / stats.totalMatches) * 100)
-              : 0}
-            %
-          </p>
-        </Card>
-
-        {/* Derrotas */}
-        <Card className="p-1 sm:p-1.5 text-center">
-          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
-            Derrotas
-          </p>
-          <p className="text-lg sm:text-2xl font-bold leading-none text-red-600 dark:text-red-400">
-            {stats.losses}
-          </p>
-          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
-            {stats.totalMatches > 0
-              ? Math.round((stats.losses / stats.totalMatches) * 100)
-              : 0}
-            %
-          </p>
-        </Card>
-
-        {/* Diferencia */}
-        <Card className="p-1 sm:p-1.5 text-center">
-          <p className="text-[11px] sm:text-sm text-muted-foreground leading-none">
-            Diferencia
-          </p>
-          <p
-            className={`text-lg sm:text-2xl font-bold leading-none ${
-              stats.totalGoalsFor - stats.totalGoalsAgainst >= 0
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {stats.totalGoalsFor > stats.totalGoalsAgainst ? "+" : ""}
-            {stats.totalGoalsFor - stats.totalGoalsAgainst}
-          </p>
-          <p className="hidden sm:block text-[11px] text-muted-foreground leading-none">
-            {stats.totalGoalsFor} - {stats.totalGoalsAgainst}
-          </p>
-        </Card>
       </div>
 
 
@@ -278,8 +205,28 @@ export default function AnalyticsPage() {
         <GoalDifferenceEvolutionChart matches={matches || []} />
       </div>
 
+      <Tabs defaultValue="compare" className="mb-4 sm:mb-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="compare" className="text-xs sm:text-sm">Comparador de partidos</TabsTrigger>
+          <TabsTrigger value="players-compare" className="text-xs sm:text-sm">Comparador de jugadores</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="compare">
+          <MatchComparison
+            matches={matches || []}
+            stats={allStats || []}
+          />
+        </TabsContent>
+        <TabsContent value="players-compare">
+          <PlayerComparison
+            players={players || []}
+            stats={allStats || []}
+          />
+        </TabsContent>
+      </Tabs>
+
       <Tabs defaultValue="man-advantage" className="mb-4 sm:mb-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="man-advantage" className="text-xs sm:text-sm">
             Superioridad
           </TabsTrigger>
@@ -288,6 +235,14 @@ export default function AnalyticsPage() {
           </TabsTrigger>
           <TabsTrigger value="blocks" className="text-xs sm:text-sm">
             Bloqueos
+          </TabsTrigger>
+          <TabsTrigger value="turnovers" className="text-xs sm:text-sm">
+            <span className="block sm:hidden">
+              Rec. y perd. p.p.
+            </span>
+            <span className="hidden sm:block">
+              Recuperación y pérdidas
+            </span>
           </TabsTrigger>
         </TabsList>
         <TabsContent value="man-advantage">
@@ -298,6 +253,9 @@ export default function AnalyticsPage() {
         </TabsContent>
         <TabsContent value="blocks">
           <BlocksChart matches={matches || []} stats={allStats || []} players={players || []} />
+        </TabsContent>
+        <TabsContent value="turnovers">
+          <TurnoversRecoveriesChart matches={matches || []} stats={allStats || []} />
         </TabsContent>
       </Tabs>
 

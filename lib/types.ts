@@ -154,3 +154,37 @@ export interface Club {
   created_at: string
   updated_at: string
 }
+
+interface MatchComparisonTotals {
+  matchId: number
+  jornada: string
+  opponent: string
+  result: string
+
+  // ATAQUE
+  goles: number
+  tiros: number
+  eficienciaTiro: number
+  asistencias: number
+
+  golesHombreMas: number
+  fallosHombreMas: number
+  eficienciaHombreMas: number
+
+  // DEFENSA
+  bloqueos: number
+  recuperaciones: number
+  perdidas: number
+  balancePosesion: number
+
+  golesRecibidos: number
+
+  golesRecibidosHombreMenos: number
+  paradasHombreMenos: number
+  eficienciaDefensivaHombreMenos: number
+
+  // PORTERO
+  paradasPortero: number
+  paradasConRecuperacion: number
+  porcentajeParadas: number
+}

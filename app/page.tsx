@@ -208,100 +208,101 @@ export default function HomePage() {
 
           {!tablesNotFound && !connectionError && (
             <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
-              {/* Partidos */}
-              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
-                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
-                  <div className="p-2 rounded-lg bg-blue-500/10 mb-1 sm:mb-2">
-                    <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <p className="text-lg sm:text-3xl font-bold leading-none">
-                    {stats.totalMatches}
-                  </p>
-                  <p className="text-[10px] sm:text-sm text-muted-foreground">
-                    Partidos
-                  </p>
-                </CardContent>
-              </Card>
+  {/* Partidos */}
+  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
+    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+      <div className="p-2 rounded-lg bg-blue-500/10 mb-1">
+        <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+      </div>
+      <p className="text-lg sm:text-xl font-bold leading-none">
+        {stats.totalMatches}
+      </p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground">
+        Partidos
+      </p>
+    </CardContent>
+  </Card>
 
-              {/* Victorias */}
-              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
-                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
-                  <div className="p-2 rounded-lg bg-green-500/10 mb-1 sm:mb-2">
-                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <p className="text-lg sm:text-3xl font-bold leading-none">
-                    {winRate}%
-                  </p>
-                  <p className="text-[10px] sm:text-sm text-muted-foreground">
-                    Victorias
-                  </p>
-                </CardContent>
-              </Card>
+  {/* Victorias */}
+  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
+    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+      <div className="p-2 rounded-lg bg-green-500/10 mb-1">
+        <Target className="w-4 h-4 sm:w-5 sm:h-5" />
+      </div>
+      <p className="text-lg sm:text-xl font-bold leading-none">
+        {winRate}%
+      </p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground">
+        Victorias
+      </p>
+    </CardContent>
+  </Card>
 
-              {/* Jugadores */}
-              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
-                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
-                  <div className="p-2 rounded-lg bg-purple-500/10 mb-1 sm:mb-2">
-                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <p className="text-lg sm:text-3xl font-bold leading-none">
-                    {stats.totalPlayers}
-                  </p>
-                  <p className="text-[10px] sm:text-sm text-muted-foreground">
-                    Jugadores
-                  </p>
-                </CardContent>
-              </Card>
+  {/* Jugadores */}
+  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
+    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+      <div className="p-2 rounded-lg bg-purple-500/10 mb-1">
+        <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+      </div>
+      <p className="text-lg sm:text-xl font-bold leading-none">
+        {stats.totalPlayers}
+      </p>
+      <p className="text-[10px] sm:text-xs text-muted-foreground">
+        Jugadores
+      </p>
+    </CardContent>
+  </Card>
 
-              {/* Forma reciente */}
-              <Card className="aspect-square border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
-                <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-4 text-center">
-                  <div className="p-2 rounded-lg bg-amber-500/10 mb-1 sm:mb-2">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                  </div>
+  {/* Forma reciente */}
+  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
+    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+      <div className="p-2 rounded-lg bg-amber-500/10 mb-1">
+        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+      </div>
 
-                  {/* MOBILE: últimos 3 */}
-                  <div className="flex gap-1 sm:hidden">
-                    {stats.recentForm.slice(-3).map((result, i) => (
-                      <div
-                        key={i}
-                        className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-                          result === "W"
-                            ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                            : result === "L"
-                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                            : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
-                        }`}
-                      >
-                        {result}
-                      </div>
-                    ))}
-                  </div>
+      {/* Mobile: últimos 3 */}
+      <div className="flex gap-1 sm:hidden">
+        {stats.recentForm.slice(-3).map((result, i) => (
+          <div
+            key={i}
+            className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
+              result === "W"
+                ? "bg-green-500/20 text-green-600"
+                : result === "L"
+                ? "bg-red-500/20 text-red-600"
+                : "bg-gray-500/20 text-gray-600"
+            }`}
+          >
+            {result}
+          </div>
+        ))}
+      </div>
 
-                  {/* DESKTOP: todos */}
-                  <div className="hidden sm:flex gap-1">
-                    {stats.recentForm.map((result, i) => (
-                      <div
-                        key={i}
-                        className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${
-                          result === "W"
-                            ? "bg-green-500/20 text-green-600 dark:text-green-400"
-                            : result === "L"
-                            ? "bg-red-500/20 text-red-600 dark:text-red-400"
-                            : "bg-gray-500/20 text-gray-600 dark:text-gray-400"
-                        }`}
-                      >
-                        {result}
-                      </div>
-                    ))}
-                  </div>
+      {/* Desktop: todos */}
+      <div className="hidden sm:flex gap-1">
+        {stats.recentForm.map((result, i) => (
+          <div
+            key={i}
+            className={`w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold ${
+              result === "W"
+                ? "bg-green-500/20 text-green-600"
+                : result === "L"
+                ? "bg-red-500/20 text-red-600"
+                : "bg-gray-500/20 text-gray-600"
+            }`}
+          >
+            {result}
+          </div>
+        ))}
+      </div>
 
-                  <p className="text-[10px] sm:text-sm text-muted-foreground mt-1">
-                    Forma
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+        Forma
+      </p>
+    </CardContent>
+  </Card>
+</div>
+
 
           )}
 
@@ -376,13 +377,14 @@ export default function HomePage() {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  {matches && matches.length > 0 ? (
-                    <div className="space-y-3">
-                      {matches.map((match) => {
+                 <CardContent className="space-y-2">
+                    {matches && matches.length > 0 ? (
+                      matches.map((match) => {
                         const isTied = match.home_score === match.away_score
                         const hasPenalties =
-                          isTied && match.penalty_home_score !== null && match.penalty_away_score !== null
+                          isTied &&
+                          match.penalty_home_score !== null &&
+                          match.penalty_away_score !== null
 
                         let isWin: boolean
                         let isDraw: boolean
@@ -391,68 +393,109 @@ export default function HomePage() {
                         if (hasPenalties) {
                           isWin = match.penalty_home_score! > match.penalty_away_score!
                           isDraw = false
-                          resultLabel = isWin ? "Victoria (Penaltis)" : "Derrota (Penaltis)"
+                          resultLabel = isWin ? "Victoria (Pen.)" : "Derrota (Pen.)"
                         } else {
                           isWin = match.home_score > match.away_score
                           isDraw = match.home_score === match.away_score
-                          resultLabel = isWin ? "Victoria" : isDraw ? "Empate" : "Derrota"
+                          resultLabel = isWin
+                            ? "Victoria"
+                            : isDraw
+                            ? "Empate"
+                            : "Derrota"
                         }
+
+                        const accentColor = isWin
+                          ? "bg-green-500"
+                          : isDraw
+                          ? "bg-gray-400"
+                          : "bg-red-500"
 
                         return (
                           <Link
                             key={match.id}
                             href={`/partidos/${match.id}`}
-                            className="group block p-4 rounded-xl border-2 hover:bg-muted/50 hover:border-primary transition-all"
+                            className="
+                              group flex items-center gap-4
+                              rounded-lg border
+                              px-3 py-3
+                              transition-all
+                              hover:bg-muted/40
+                              hover:border-primary
+                            "
                           >
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge
-                                    variant={isWin ? "default" : isDraw ? "secondary" : "destructive"}
-                                    className="text-xs"
-                                  >
-                                    {resultLabel}
-                                  </Badge>
-                                </div>
-                                <p className="font-semibold text-base truncate group-hover:text-primary transition-colors">
-                                  {match.opponent}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {new Date(match.match_date).toLocaleDateString("es-ES", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })}
-                                </p>
+                            {/* ACCENT BAR */}
+                            <div className={`w-1.5 self-stretch rounded-full ${accentColor}`} />
+
+                            {/* INFO */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge
+                                  variant={
+                                    isWin
+                                      ? "default"
+                                      : isDraw
+                                      ? "secondary"
+                                      : "destructive"
+                                  }
+                                  className="text-[11px]"
+                                >
+                                  {resultLabel}
+                                </Badge>
                               </div>
-                              <div className="text-right flex-shrink-0">
-                                <p className="font-bold text-2xl">
-                                  {match.home_score} - {match.away_score}
-                                </p>
-                                {hasPenalties && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Pen: {match.penalty_home_score} - {match.penalty_away_score}
-                                  </p>
-                                )}
+
+                              <p className="truncate font-semibold group-hover:text-primary transition-colors">
+                                {match.opponent}
+                              </p>
+
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(match.match_date).toLocaleDateString("es-ES", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            </div>
+
+                            {/* SCORE */}
+                            <div className="flex flex-col items-end gap-0.5">
+                              <div
+                                className="
+                                  px-3 py-1
+                                  rounded-md
+                                  bg-muted
+                                  text-lg font-bold
+                                  tracking-tight
+                                "
+                              >
+                                {match.home_score}
+                                <span className="mx-1 text-muted-foreground">–</span>
+                                {match.away_score}
                               </div>
+
+                              {hasPenalties && (
+                                <span className="text-[11px] text-muted-foreground">
+                                  Pen. {match.penalty_home_score}–
+                                  {match.penalty_away_score}
+                                </span>
+                              )}
                             </div>
                           </Link>
                         )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-                        <Calendar className="w-8 h-8 text-muted-foreground" />
+                      })
+                    ) : (
+                      /* EMPTY STATE */
+                      <div className="py-14 text-center">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                          <Calendar className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                          {connectionError || tablesNotFound
+                            ? "No se pueden cargar los partidos en este momento"
+                            : `No hay partidos registrados para ${currentClub?.short_name}`}
+                        </p>
                       </div>
-                      <p className="text-muted-foreground text-sm">
-                        {connectionError || tablesNotFound
-                          ? "No se pueden cargar los partidos"
-                          : `No hay partidos registrados para ${currentClub?.short_name}`}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
+                    )}
+                  </CardContent>
               </Card>
 
               {/* Players Squad */}

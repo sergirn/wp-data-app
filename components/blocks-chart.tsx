@@ -66,7 +66,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Análisis de Bloqueos</CardTitle>
+        <CardTitle>Eficiencia de Bloqueos</CardTitle>
         <CardDescription>Rendimiento defensivo mediante bloqueos por partido</CardDescription>
       </CardHeader>
       <CardContent>
@@ -75,7 +75,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
           <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">
             Bloqueos
           </div>
-          <div className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="text-lg md:text-2xl font-bold text-blue-600 dark:text-green-400">
             {totalBlocks}
           </div>
           <div className="hidden md:block text-xs text-muted-foreground mt-1">
@@ -99,7 +99,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
           <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">
             Victorias
           </div>
-          <div className="text-lg md:text-2xl font-bold text-green-600 dark:text-green-400">
+          <div className="text-lg md:text-2xl font-bold text-blue-400 dark:text-blue-400">
             {victoriesCount}
           </div>
           <div className="hidden md:block text-xs text-muted-foreground mt-1">
@@ -127,7 +127,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
             config={{
               bloqueos: {
                 label: "Bloqueos",
-                color: "hsl(217, 91%, 60%)",
+                color: "hsl(142, 71%, 45%)",
               },
               golesRecibidos: {
                 label: "Goles Recibidos",
@@ -135,7 +135,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
               },
               promedioBloqueos: {
                 label: "Promedio Bloqueos",
-                color: "hsl(142, 71%, 45%)",
+                color: "hsl(217, 91%, 60%)",
               },
             }}
             className="h-[300px] w-full"
