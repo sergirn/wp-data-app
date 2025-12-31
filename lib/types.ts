@@ -155,7 +155,7 @@ export interface Club {
   updated_at: string
 }
 
-interface MatchComparisonTotals {
+export interface MatchComparisonTotals {
   matchId: number
   jornada: string
   opponent: string

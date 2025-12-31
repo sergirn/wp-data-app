@@ -58,88 +58,125 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
         const sum = (key: keyof MatchStats) =>
           s.reduce((acc, x) => acc + (x[key] || 0), 0)
 
+        const isGoalkeeper = player.is_goalkeeper === true
+
+        /* ===== JUGADOR DE CAMPO ===== */
         const goles = sum("goles_totales")
         const tiros = sum("tiros_totales")
 
+        const golesHombreMas = sum("goles_hombre_mas")
+        const fallosHombreMas =
+          sum("tiros_hombre_mas") + sum("tiros_penalti_fallado")
+
+        const eficienciaTiro =
+          tiros > 0 ? Math.round((goles / tiros) * 100) : 0
+
+        const eficienciaHombreMas =
+          golesHombreMas + fallosHombreMas > 0
+            ? Math.round(
+                (golesHombreMas /
+                  (golesHombreMas + fallosHombreMas)) *
+                  100,
+              )
+            : 0
+
+        const asistencias = sum("acciones_asistencias")
+        const bloqueos = sum("acciones_bloqueo")
+        const recuperaciones = sum("acciones_recuperacion")
+        const perdidas = sum("acciones_perdida_poco")
+        const balancePosesion = recuperaciones - perdidas
+
+        /* ===== PORTERO ===== */
         const paradas = sum("portero_paradas_totales")
+        const paradasHombreMenos = sum("portero_paradas_hombre_menos")
+        const paradasRecuperacion = sum("portero_paradas_parada_recup")
+
         const golesRecibidos = sum("portero_goles_totales")
+        const golesHombreMenos = sum("portero_goles_hombre_menos")
+
+        const porcentajeParadas =
+          paradas + golesRecibidos > 0
+            ? Math.round((paradas / (paradas + golesRecibidos)) * 100)
+            : 0
+
+        const eficienciaInferioridad =
+          paradasHombreMenos + golesHombreMenos > 0
+            ? Math.round(
+                (paradasHombreMenos /
+                  (paradasHombreMenos + golesHombreMenos)) *
+                  100,
+              )
+            : 0
 
         return {
           playerId: player.id,
           name: player.name,
           number: player.number,
+          isGoalkeeper,
 
+          /* Campo */
           goles,
           tiros,
-          eficienciaTiro: tiros > 0 ? Math.round((goles / tiros) * 100) : 0,
+          eficienciaTiro,
+          golesHombreMas,
+          fallosHombreMas,
+          eficienciaHombreMas,
+          asistencias,
+          bloqueos,
+          recuperaciones,
+          perdidas,
+          balancePosesion,
 
-          asistencias: sum("acciones_asistencias"),
-          bloqueos: sum("acciones_bloqueo"),
-          recuperaciones: sum("acciones_recuperacion"),
-          perdidas: sum("acciones_perdida_poco"),
-
+          /* Portero */
           paradas,
-          porcentajeParadas:
-            paradas + golesRecibidos > 0
-              ? Math.round((paradas / (paradas + golesRecibidos)) * 100)
-              : 0,
+          golesRecibidos,
+          porcentajeParadas,
+          paradasHombreMenos,
+          eficienciaInferioridad,
+          paradasRecuperacion,
         }
       })
   }, [players, stats, selectedIds])
 
+  const hasPlayers = comparisonData.length > 0
+  const allGoalkeepers = hasPlayers && comparisonData.every((p) => p.isGoalkeeper)
+  const allFieldPlayers = hasPlayers && comparisonData.every((p) => !p.isGoalkeeper)
+  const mixed = hasPlayers && !allGoalkeepers && !allFieldPlayers
+
   return (
     <div className="space-y-6">
       {/* EMPTY */}
-      {comparisonData.length === 0 && (
+      {!hasPlayers && (
         <Card
           onClick={() => setOpen(true)}
-          className="
-            border-dashed cursor-pointer
-            hover:border-primary hover:bg-muted/40
-            transition-all group
-          "
+          className="border-dashed cursor-pointer hover:border-primary hover:bg-muted/40 transition"
         >
           <CardContent className="py-20 text-center space-y-4">
-            <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl group-hover:scale-105 transition">
+            <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl">
               ＋
             </div>
-
             <h3 className="text-lg font-semibold">
               Añadir jugadores para comparar
             </h3>
-
-            <p className="text-muted-foreground max-w-md mx-auto text-sm">
-              Pulsa aquí para comparar rendimiento individual.
+            <p className="text-muted-foreground text-sm">
+              Comparación avanzada de rendimiento individual
             </p>
           </CardContent>
         </Card>
       )}
 
       {/* TAGS */}
-      {comparisonData.length > 0 && (
+      {hasPlayers && (
         <div className="flex flex-wrap gap-2">
           {comparisonData.map((p) => (
             <div
               key={p.playerId}
-              className="
-                flex items-center gap-2 rounded-full
-                bg-muted px-3 py-1 text-sm
-                hover:bg-muted/70 transition
-              "
+              className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm"
             >
-              <span className="font-medium">
-                #{p.number} · {p.name}
-              </span>
-
+              #{p.number} · {p.name}
               <button
                 onClick={() => removePlayer(p.playerId)}
-                className="
-                  ml-1 h-4 w-4 rounded-full
-                  flex items-center justify-center
-                  text-xs font-bold
-                  hover:bg-destructive hover:text-white
-                  transition
-                "
+                className="ml-1 h-4 w-4 rounded-full text-xs hover:bg-destructive hover:text-white"
               >
                 ×
               </button>
@@ -148,11 +185,22 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
         </div>
       )}
 
+      {/* MIXED WARNING */}
+      {mixed && (
+        <Card className="border-destructive">
+          <CardContent className="py-6 text-center text-sm text-destructive">
+            No se pueden comparar porteros con jugadores de campo.
+          </CardContent>
+        </Card>
+      )}
+
       {/* TABLE */}
-      {comparisonData.length > 0 && (
+      {(allFieldPlayers || allGoalkeepers) && (
         <Card>
           <CardHeader>
-            <CardTitle>Comparación de Jugadores</CardTitle>
+            <CardTitle>
+              Comparación de {allGoalkeepers ? "Porteros" : "Jugadores"}
+            </CardTitle>
             <CardDescription>
               Verde indica el mejor valor en cada estadística
             </CardDescription>
@@ -175,14 +223,30 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
               </TableHeader>
 
               <TableBody>
-                <ComparisonRow label="Goles" field="goles" data={comparisonData} />
-                <ComparisonRow label="Eficiencia tiro %" field="eficienciaTiro" data={comparisonData} />
-                <ComparisonRow label="Asistencias" field="asistencias" data={comparisonData} />
-                <ComparisonRow label="Bloqueos" field="bloqueos" data={comparisonData} />
-                <ComparisonRow label="Recuperaciones" field="recuperaciones" data={comparisonData} />
-                <ComparisonRow label="Pérdidas" field="perdidas" inverse data={comparisonData} />
-                <ComparisonRow label="Paradas" field="paradas" data={comparisonData} />
-                <ComparisonRow label="% Paradas" field="porcentajeParadas" data={comparisonData} />
+                {allFieldPlayers && (
+                  <>
+                    <ComparisonRow key="goles" label="Goles" field="goles" data={comparisonData} />
+                    <ComparisonRow key="efTiro" label="Eficiencia tiro %" field="eficienciaTiro" data={comparisonData} />
+                    <ComparisonRow key="hmas" label="Goles en H+" field="golesHombreMas" data={comparisonData} />
+                    <ComparisonRow key="efHmas" label="Eficiencia H+ %" field="eficienciaHombreMas" data={comparisonData} />
+                    <ComparisonRow key="asist" label="Asistencias" field="asistencias" data={comparisonData} />
+                    <ComparisonRow key="bloq" label="Bloqueos" field="bloqueos" data={comparisonData} />
+                    <ComparisonRow key="rec" label="Recuperaciones" field="recuperaciones" data={comparisonData} />
+                    <ComparisonRow key="bal" label="Balance posesión" field="balancePosesion" data={comparisonData} />
+                    <ComparisonRow key="perd" label="Pérdidas" field="perdidas" inverse data={comparisonData} />
+                  </>
+                )}
+
+                {allGoalkeepers && (
+                  <>
+                    <ComparisonRow key="par" label="Paradas" field="paradas" data={comparisonData} />
+                    <ComparisonRow key="porc" label="% Paradas" field="porcentajeParadas" data={comparisonData} />
+                    <ComparisonRow key="rec" label="Goles recibidos" field="golesRecibidos" inverse data={comparisonData} />
+                    <ComparisonRow key="hm" label="Paradas en inferioridad" field="paradasHombreMenos" data={comparisonData} />
+                    <ComparisonRow key="efhm" label="Eficiencia inferioridad %" field="eficienciaInferioridad" data={comparisonData} />
+                    <ComparisonRow key="prec" label="Paradas + recuperación" field="paradasRecuperacion" data={comparisonData} />
+                  </>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -208,21 +272,24 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
                   key={p.id}
                   onClick={() => togglePlayer(p.id)}
                   className={cn(
-                    "flex items-center justify-between gap-3 rounded-lg border p-3 cursor-pointer transition",
+                    "flex items-center justify-between rounded-lg border p-3 cursor-pointer transition",
                     checked
                       ? "border-primary bg-primary/10"
                       : "hover:bg-muted/40",
                   )}
                 >
-                  <div>
-                    <p className="font-medium">
-                      #{p.number} · {p.name}
-                    </p>
-                  </div>
+                  <p className="font-medium">
+                    #{p.number} · {p.name}
+                    {p.is_goalkeeper && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (Portero)
+                      </span>
+                    )}
+                  </p>
 
                   <div
                     className={cn(
-                      "h-6 w-6 rounded-full border flex items-center justify-center text-xs font-bold transition",
+                      "h-6 w-6 rounded-full border flex items-center justify-center text-xs font-bold",
                       checked
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-muted-foreground/40",
