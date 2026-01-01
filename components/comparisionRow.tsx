@@ -6,6 +6,7 @@ interface ComparisonRowProps {
   field: string
   extraField?: string
   inverse?: boolean
+  isPercentage?: boolean
   data: any[]
 }
 
@@ -14,12 +15,18 @@ export function ComparisonRow({
   field,
   extraField,
   inverse = false,
+  isPercentage = false,
   data,
 }: ComparisonRowProps) {
   const values = data.map((d) => d[field])
+
   const bestValue = inverse
     ? Math.min(...values)
     : Math.max(...values)
+
+  const worstValue = inverse
+    ? Math.max(...values)
+    : Math.min(...values)
 
   return (
     <TableRow>
@@ -32,21 +39,25 @@ export function ComparisonRow({
       {data.map((item) => {
         const value = item[field]
         const isBest = value === bestValue
+        const isWorst = value === worstValue
 
         return (
           <TableCell
             key={`${label}-${item.matchId ?? item.playerId}`}
             className={cn(
               "text-center font-semibold transition-colors",
-              isBest &&
-                (inverse
-                  ? "bg-red-500/10 text-red-600"
-                  : "bg-green-500/10 text-green-600"),
+              isBest && "bg-green-500/10 text-green-600",
+              isWorst && "bg-red-500/10 text-red-600",
             )}
           >
-            {extraField
-              ? `${item[field]}/${item[extraField]}`
-              : item[field]}
+            {extraField ? (
+              `${item[field]}/${item[extraField]}`
+            ) : (
+              <>
+                {value}
+                {isPercentage && <span className="ml-0.5">%</span>}
+              </>
+            )}
           </TableCell>
         )
       })}

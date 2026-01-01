@@ -27,6 +27,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import {
+  Swords,
+  PlusCircle,
+  Shield,
+  RefreshCcw,
+} from "lucide-react"
 
 interface MatchComparisonProps {
   matches: Match[]
@@ -62,22 +68,18 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
           className="
             border-dashed cursor-pointer
             hover:border-primary hover:bg-muted/40
-            transition-all
-            group
+            transition-all group
           "
         >
           <CardContent className="py-20 text-center space-y-4">
             <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl group-hover:scale-105 transition">
               ＋
             </div>
-
             <h3 className="text-lg font-semibold">
               Añadir partidos para comparar
             </h3>
-
             <p className="text-muted-foreground max-w-md mx-auto text-sm">
-              Pulsa aquí para seleccionar partidos y comparar ataque,
-              defensa y portería.
+              Comparación avanzada por fases del juego
             </p>
           </CardContent>
         </Card>
@@ -89,25 +91,12 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
           {comparisonData.map((m) => (
             <div
               key={m.matchId}
-              className="
-                flex items-center gap-2 rounded-full
-                bg-muted px-3 py-1 text-sm
-                hover:bg-muted/70 transition
-              "
+              className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm"
             >
-              <span className="font-medium">
-                {m.jornada} · {m.opponent}
-              </span>
-
+              {m.jornada} · {m.opponent}
               <button
                 onClick={() => removeMatch(m.matchId)}
-                className="
-                  ml-1 h-4 w-4 rounded-full
-                  flex items-center justify-center
-                  text-xs font-bold
-                  hover:bg-destructive hover:text-white
-                  transition
-                "
+                className="ml-1 h-4 w-4 rounded-full text-xs hover:bg-destructive hover:text-white"
               >
                 ×
               </button>
@@ -120,9 +109,9 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
       {comparisonData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Comparación Detallada</CardTitle>
+            <CardTitle>Comparación Detallada de Partidos</CardTitle>
             <CardDescription>
-              Verde indica el mejor valor en cada estadística
+              Verde = mejor · Rojo = peor
             </CardDescription>
           </CardHeader>
 
@@ -143,19 +132,100 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
               </TableHeader>
 
               <TableBody>
-                <ComparisonRow label="Goles" field="goles" data={comparisonData} />
-                <ComparisonRow label="Eficiencia tiro %" field="eficienciaTiro" data={comparisonData} />
-                <ComparisonRow
-                  label="Hombre de más"
-                  field="golesHombreMas"
-                  extraField="fallosHombreMas"
-                  data={comparisonData}
-                />
-                <ComparisonRow label="Bloqueos" field="bloqueos" data={comparisonData} />
-                <ComparisonRow label="Recuperaciones" field="recuperaciones" data={comparisonData} />
-                <ComparisonRow label="Pérdidas" field="perdidas" inverse data={comparisonData} />
-                <ComparisonRow label="Paradas portero" field="paradasPortero" data={comparisonData} />
-                <ComparisonRow label="% Paradas" field="porcentajeParadas" data={comparisonData} />
+                {/* ATAQUE */}
+                <Section title="Ataque" icon={<Swords className="h-4 w-4" />}>
+                  <ComparisonRow label="Goles" field="goles" data={comparisonData} />
+                  <ComparisonRow label="Tiros" field="tiros" data={comparisonData} />
+                  <ComparisonRow
+                    label="Eficiencia de tiro"
+                    field="eficienciaTiro"
+                    isPercentage
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="Asistencias"
+                    field="asistencias"
+                    data={comparisonData}
+                  />
+                </Section>
+
+                {/* SUPERIORIDAD */}
+                <Section
+                  title="Superioridad numérica (H+)"
+                  icon={<PlusCircle className="h-4 w-4" />}
+                >
+                  <ComparisonRow
+                    label="H+ (goles / fallos)"
+                    field="golesHombreMas"
+                    extraField="fallosHombreMas"
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="Eficiencia H+"
+                    field="eficienciaHombreMas"
+                    isPercentage
+                    data={comparisonData}
+                  />
+                </Section>
+
+                {/* DEFENSA / PORTERÍA */}
+                <Section
+                  title="Defensa y portería"
+                  icon={<Shield className="h-4 w-4" />}
+                >
+                  <ComparisonRow label="Bloqueos" field="bloqueos" data={comparisonData} />
+                  <ComparisonRow
+                    label="Goles recibidos"
+                    field="golesRecibidos"
+                    inverse
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="Paradas del portero"
+                    field="paradasPortero"
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="% Paradas"
+                    field="porcentajeParadas"
+                    isPercentage
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="Paradas en inferioridad"
+                    field="paradasHombreMenos"
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="Eficiencia defensiva en inferioridad"
+                    field="eficienciaDefensivaHombreMenos"
+                    isPercentage
+                    data={comparisonData}
+                  />
+                </Section>
+
+                {/* POSESIÓN */}
+                <Section
+                  title="Posesión y acciones"
+                  icon={<RefreshCcw className="h-4 w-4" />}
+                >
+                  <ComparisonRow
+                    label="Recuperaciones"
+                    field="recuperaciones"
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="Pérdidas"
+                    field="perdidas"
+                    inverse
+                    data={comparisonData}
+                  />
+                  <ComparisonRow
+                    label="Balance de posesión"
+                    field="balancePosesion"
+                    data={comparisonData}
+                  />
+                </Section>
               </TableBody>
             </Table>
           </CardContent>
@@ -198,7 +268,7 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
 
                   <div
                     className={cn(
-                      "h-6 w-6 rounded-full border flex items-center justify-center text-xs font-bold transition",
+                      "h-6 w-6 rounded-full border flex items-center justify-center text-xs font-bold",
                       checked
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-muted-foreground/40",
@@ -219,5 +289,31 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+/* ---------------- SECTION COMPONENT ---------------- */
+
+function Section({
+  title,
+  icon,
+  children,
+}: {
+  title: string
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <>
+      <TableRow>
+        <TableHead colSpan={100} className="bg-muted/40">
+          <div className="flex items-center gap-2 font-semibold">
+            {icon}
+            {title}
+          </div>
+        </TableHead>
+      </TableRow>
+      {children}
+    </>
   )
 }
