@@ -208,102 +208,100 @@ export default function HomePage() {
 
           {!tablesNotFound && !connectionError && (
             <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
-  {/* Partidos */}
-  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
-    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-      <div className="p-2 rounded-lg bg-blue-500/10 mb-1">
-        <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
-      </div>
-      <p className="text-lg sm:text-xl font-bold leading-none">
-        {stats.totalMatches}
-      </p>
-      <p className="text-[10px] sm:text-xs text-muted-foreground">
-        Partidos
-      </p>
-    </CardContent>
-  </Card>
+            {/* Partidos */}
+            <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
+              <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+                <div className="p-2 rounded-lg bg-blue-500/10 mb-1">
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <p className="text-lg sm:text-xl font-bold leading-none">
+                  {stats.totalMatches}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Partidos
+                </p>
+              </CardContent>
+            </Card>
 
-  {/* Victorias */}
-  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
-    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-      <div className="p-2 rounded-lg bg-green-500/10 mb-1">
-        <Target className="w-4 h-4 sm:w-5 sm:h-5" />
-      </div>
-      <p className="text-lg sm:text-xl font-bold leading-none">
-        {winRate}%
-      </p>
-      <p className="text-[10px] sm:text-xs text-muted-foreground">
-        Victorias
-      </p>
-    </CardContent>
-  </Card>
+            {/* Victorias */}
+            <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
+              <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+                <div className="p-2 rounded-lg bg-green-500/10 mb-1">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <p className="text-lg sm:text-xl font-bold leading-none">
+                  {winRate}%
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Victorias
+                </p>
+              </CardContent>
+            </Card>
 
-  {/* Jugadores */}
-  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
-    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-      <div className="p-2 rounded-lg bg-purple-500/10 mb-1">
-        <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-      </div>
-      <p className="text-lg sm:text-xl font-bold leading-none">
-        {stats.totalPlayers}
-      </p>
-      <p className="text-[10px] sm:text-xs text-muted-foreground">
-        Jugadores
-      </p>
-    </CardContent>
-  </Card>
+            {/* Jugadores */}
+            <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
+              <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+                <div className="p-2 rounded-lg bg-purple-500/10 mb-1">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <p className="text-lg sm:text-xl font-bold leading-none">
+                  {stats.totalPlayers}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Jugadores
+                </p>
+              </CardContent>
+            </Card>
 
-  {/* Forma reciente */}
-  <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
-    <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-      <div className="p-2 rounded-lg bg-amber-500/10 mb-1">
-        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-      </div>
+            {/* Forma reciente */}
+            <Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
+              <CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
+                <div className="p-2 rounded-lg bg-amber-500/10 mb-1">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
 
-      {/* Mobile: últimos 3 */}
-      <div className="flex gap-1 sm:hidden">
-        {stats.recentForm.slice(-3).map((result, i) => (
-          <div
-            key={i}
-            className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-              result === "W"
-                ? "bg-green-500/20 text-green-600"
-                : result === "L"
-                ? "bg-red-500/20 text-red-600"
-                : "bg-gray-500/20 text-gray-600"
-            }`}
-          >
-            {result}
+                {/* Mobile: últimos 3 */}
+                <div className="flex gap-1 sm:hidden">
+                  {stats.recentForm.slice(-3).map((result, i) => (
+                    <div
+                      key={i}
+                      className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
+                        result === "W"
+                          ? "bg-green-500/20 text-green-600"
+                          : result === "L"
+                          ? "bg-red-500/20 text-red-600"
+                          : "bg-gray-500/20 text-gray-600"
+                      }`}
+                    >
+                      {result}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: todos */}
+                <div className="hidden sm:flex gap-1">
+                  {stats.recentForm.map((result, i) => (
+                    <div
+                      key={i}
+                      className={`w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold ${
+                        result === "W"
+                          ? "bg-green-500/20 text-green-600"
+                          : result === "L"
+                          ? "bg-red-500/20 text-red-600"
+                          : "bg-gray-500/20 text-gray-600"
+                      }`}
+                    >
+                      {result}
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                  Forma
+                </p>
+              </CardContent>
+            </Card>
           </div>
-        ))}
-      </div>
-
-      {/* Desktop: todos */}
-      <div className="hidden sm:flex gap-1">
-        {stats.recentForm.map((result, i) => (
-          <div
-            key={i}
-            className={`w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold ${
-              result === "W"
-                ? "bg-green-500/20 text-green-600"
-                : result === "L"
-                ? "bg-red-500/20 text-red-600"
-                : "bg-gray-500/20 text-gray-600"
-            }`}
-          >
-            {result}
-          </div>
-        ))}
-      </div>
-
-      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-        Forma
-      </p>
-    </CardContent>
-  </Card>
-</div>
-
-
           )}
 
           <div className="container mx-auto space-y-8 pb-8">
@@ -500,43 +498,99 @@ export default function HomePage() {
 
               {/* Players Squad */}
               <Card className="border-2 bg-gradient-to-br from-background to-background">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-purple-500/10">
-                        <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Escudo */}
+                      <div className="h-10 w-10 rounded-xl bg-white/0 overflow-hidden flex items-center justify-center shrink-0">
+                        {currentClub?.logo_url ? (
+                          <img
+                            src={currentClub.logo_url}
+                            alt={currentClub.short_name ?? "Escudo del club"}
+                            className="h-full w-full object-contain p-1"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="p-2 rounded-lg bg-purple-500/10">
+                            <Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                          </div>
+                        )}
                       </div>
-                      <CardTitle className="text-xl">Plantilla</CardTitle>
+
+                      {/* Título */}
+                      <div className="min-w-0">
+                        <CardTitle className="text-lg sm:text-xl leading-tight truncate">
+                          Plantilla{" "}
+                          <span className="text-muted-foreground font-medium">
+                            · {currentClub?.short_name ?? "Equipo"}
+                          </span>
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {players.length} jugador{players.length === 1 ? "" : "es"}
+                        </p>
+                      </div>
                     </div>
+
                     {players.length > 0 && (
-                      <Button asChild variant="ghost" size="sm">
+                      <Button asChild variant="ghost" size="sm" className="shrink-0">
                         <Link href="/jugadores">Ver todos</Link>
                       </Button>
                     )}
                   </div>
                 </CardHeader>
+
+
                 <CardContent className="max-h-[400px] overflow-y-auto">
                   {players && players.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {players.map((player) => (
                         <Link
                           key={player.id}
                           href={`/jugadores/${player.id}`}
-                          className="group flex flex-col items-center gap-2 p-3 rounded-xl border-2 hover:bg-muted/50 hover:border-primary transition-all"
+                          className="
+                            group relative overflow-hidden rounded-xl border
+                            bg-background/60
+                            hover:bg-muted/40 hover:border-primary/40
+                            hover:-translate-y-0.5 hover:shadow-md
+                            transition-all
+                          "
                         >
-                          <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                          {/* TOP IMAGE */}
+                          <div className="relative h-20 sm:h-24 overflow-hidden">
                             {player.photo_url ? (
                               <img
-                                src={player.photo_url || "/placeholder.svg"}
+                                src={player.photo_url}
                                 alt={player.name}
-                                className="w-full h-full object-cover object-top"
+                                className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
                                 loading="lazy"
                               />
                             ) : (
-                              <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+                              <div className="h-full w-full grid place-items-center bg-muted">
+                                <span className="text-lg sm:text-xl font-extrabold text-muted-foreground">
+                                  #{player.number}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Gradient adaptativo al theme */}
+                            <div
+                              className="
+                                absolute inset-0 bg-gradient-to-t
+                                from-white/80 via-white/10 to-transparent
+                                dark:from-black/60 dark:via-black/15 dark:to-transparent
+                              "
+                            />
+
+                            {/* número en esquina (solo si hay foto, queda pro) */}
+                            {player.photo_url && (
+                              <div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                                #{player.number}
+                              </div>
                             )}
                           </div>
-                          <div className="text-center w-full">
+
+                          {/* CONTENT */}
+                          <div className="p-2.5 sm:p-3">
                             <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
                               {player.name}
                             </p>

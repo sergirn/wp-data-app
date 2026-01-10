@@ -18,6 +18,9 @@ import { BlocksChart } from "@/components/blocks-chart"
 import { TurnoversRecoveriesChart } from "@/components/perd_rec_pos_chart"
 import { MatchComparison } from "@/components/match-comparer"
 import { PlayerComparison } from "@/components/playerComparison"
+import { QuarterGoalsChart } from "@/components/QuarterGoalsChart"
+import { MatchWithQuarterScores } from "@/lib/types"
+import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard"
 
 export default function AnalyticsPage() {
   const { currentClub } = useClub()
@@ -31,6 +34,7 @@ export default function AnalyticsPage() {
   const [allStats, setAllStats] = useState<any[]>([])
   const [playerStats, setPlayerStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const quarterMatches = matches as MatchWithQuarterScores[]
 
   useEffect(() => {
     const abortController = new AbortController()
@@ -171,130 +175,169 @@ export default function AnalyticsPage() {
 
   return (
     <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
-      <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Analytics</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Análisis detallado de {currentClub?.short_name || ""} - Temporada {selectedSeason}
-          </p>
+  <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">
+        Analytics
+      </h1>
+      <p className="text-sm sm:text-base text-muted-foreground">
+        Análisis detallado de {currentClub?.short_name || ""} – Temporada{" "}
+        {selectedSeason}
+      </p>
+    </div>
+
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <ExportButtons
+        data={prepareMatchesForExport(matches || [])}
+        filename={`partidos_${selectedSeason}`}
+        label="Exportar Partidos"
+      />
+      <ExportButtons
+        data={preparePlayersForExport(playerStats || [])}
+        filename={`jugadores_${selectedSeason}`}
+        label="Exportar Jugadores"
+      />
+      <SeasonSelector
+        seasons={seasons}
+        selectedSeason={selectedSeason}
+      />
+    </div>
+  </div>
+
+
+<section className="mb-8">
+  <Tabs defaultValue="overview">
+    <TabsList className="grid w-full grid-cols-2">
+      <TabsTrigger value="overview" className="text-xs sm:text-sm">
+        General
+      </TabsTrigger>
+      <TabsTrigger value="quarters" className="text-xs sm:text-sm">
+        Detalles 
+      </TabsTrigger>
+    </TabsList>
+
+    {/* ===== TAB 1: VISIÓN GLOBAL ===== */}
+    <TabsContent value="overview" className="mt-4 space-y-10">
+
+      {/* ===== BLOQUE 1: VISIÓN GLOBAL ===== */}
+      <section>
+
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-1">
+          <MatchResultsChart matches={matches || []} />
+          {/* Aquí puedes añadir otra gráfica macro si quieres */}
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <ExportButtons
-            data={prepareMatchesForExport(matches || [])}
-            filename={`partidos_${selectedSeason}`}
-            label="Exportar Partidos"
-          />
-          <ExportButtons
-            data={preparePlayersForExport(playerStats || [])}
-            filename={`jugadores_${selectedSeason}`}
-            label="Exportar Jugadores"
-          />
-          <SeasonSelector seasons={seasons} selectedSeason={selectedSeason} />
-        </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
+      {/* ===== BLOQUE 2: COMPARADORES ===== */}
+      <section>
 
-      </div>
-
-
-
-
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 mb-4 sm:mb-6">
-        <MatchResultsChart matches={matches || []} />
-        <GoalDifferenceEvolutionChart matches={matches || []} />
-      </div>
-
-      <Tabs defaultValue="compare" className="mb-4 sm:mb-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="compare" className="text-xs sm:text-sm">Comparador de partidos</TabsTrigger>
-          <TabsTrigger value="players-compare" className="text-xs sm:text-sm">Comparador de jugadores</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="compare">
-          <MatchComparison
-            matches={matches || []}
-            stats={allStats || []}
-          />
-        </TabsContent>
-        <TabsContent value="players-compare">
-          <PlayerComparison
-            players={players || []}
-            stats={allStats || []}
-          />
-        </TabsContent>
-      </Tabs>
-
-      <Tabs defaultValue="man-advantage" className="mb-4 sm:mb-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="man-advantage" className="text-xs sm:text-sm">
-            Superioridad
-          </TabsTrigger>
-          <TabsTrigger value="man-down" className="text-xs sm:text-sm">
-            Inferioridad
-          </TabsTrigger>
-          <TabsTrigger value="blocks" className="text-xs sm:text-sm">
-            Bloqueos
-          </TabsTrigger>
-          <TabsTrigger value="turnovers" className="text-xs sm:text-sm">
-            <span className="block sm:hidden">
-              Rec. y perd. p.p.
-            </span>
-            <span className="hidden sm:block">
-              Recuperación y pérdidas
-            </span>
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="man-advantage">
-          <ManAdvantageChart matches={matches || []} stats={allStats || []} players={players || []} />
-        </TabsContent>
-        <TabsContent value="man-down">
-          <ManDownGoalkeeperChart matches={matches || []} stats={allStats || []} players={players || []} />
-        </TabsContent>
-        <TabsContent value="blocks">
-          <BlocksChart matches={matches || []} stats={allStats || []} players={players || []} />
-        </TabsContent>
-        <TabsContent value="turnovers">
-          <TurnoversRecoveriesChart matches={matches || []} stats={allStats || []} />
-        </TabsContent>
-      </Tabs>
-
-      <Tabs defaultValue="scorers" className="mt-4 sm:mt-6">
-        <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-          <TabsList className="grid w-full min-w-[500px] sm:min-w-0 grid-cols-5">
-            <TabsTrigger value="scorers" className="text-xs sm:text-sm">
-              Goleadores
+        <Tabs defaultValue="compare">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="compare" className="text-xs sm:text-sm">
+              Comparador de partidos
             </TabsTrigger>
-            <TabsTrigger value="assists" className="text-xs sm:text-sm">
-              Asistencias
-            </TabsTrigger>
-            <TabsTrigger value="efficiency" className="text-xs sm:text-sm">
-              Eficiencia
-            </TabsTrigger>
-            <TabsTrigger value="blocks" className="text-xs sm:text-sm">
-              Bloqueos
-            </TabsTrigger>
-            <TabsTrigger value="turnovers" className="text-xs sm:text-sm">
-              Pérdidas
+            <TabsTrigger value="players-compare" className="text-xs sm:text-sm">
+              Comparador de jugadores
             </TabsTrigger>
           </TabsList>
-        </div>
-        <TabsContent value="scorers">
-          <TopPlayersTable players={topPlayers.topScorers} statType="goals" />
-        </TabsContent>
-        <TabsContent value="assists">
-          <TopPlayersTable players={topPlayers.topAssists} statType="assists" />
-        </TabsContent>
-        <TabsContent value="efficiency">
-          <TopPlayersTable players={topPlayers.bestEfficiency} statType="efficiency" />
-        </TabsContent>
-        <TabsContent value="blocks">
-          <TopPlayersTable players={topPlayers.topBlocks} statType="blocks" />
-        </TabsContent>
-        <TabsContent value="turnovers">
-          <TopPlayersTable players={topPlayers.mostTurnovers} statType="turnovers" />
-        </TabsContent>
-      </Tabs>
-    </main>
+
+          <TabsContent value="compare">
+            <MatchComparison
+              matches={matches || []}
+              stats={allStats || []}
+            />
+          </TabsContent>
+
+          <TabsContent value="players-compare">
+            <PlayerComparison
+              players={players || []}
+              stats={allStats || []}
+            />
+          </TabsContent>
+        </Tabs>
+      </section>
+
+    </TabsContent>
+
+
+
+
+    {/* ===== TAB 2: CUARTOS ===== */}
+  
+  <TabsContent value="quarters" className="mt-4 space-y-10">
+
+  {/* ===== BLOQUE 1: DINÁMICA DEL PARTIDO ===== */}
+  <section>
+
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+      <QuarterGoalsChart matches={quarterMatches || []} />
+      <GoalDifferenceEvolutionChart matches={matches || []} />
+    </div>
+  </section>
+
+  {/* ===== BLOQUE 2: SITUACIONES DE JUEGO ===== */}
+  <section>
+
+    <Tabs defaultValue="man-advantage">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="man-advantage" className="text-xs sm:text-sm">
+          Superioridad
+        </TabsTrigger>
+        <TabsTrigger value="man-down" className="text-xs sm:text-sm">
+          Inferioridad
+        </TabsTrigger>
+        <TabsTrigger value="blocks" className="text-xs sm:text-sm">
+          Bloqueos
+        </TabsTrigger>
+        <TabsTrigger value="turnovers" className="text-xs sm:text-sm">
+          <span className="block sm:hidden">Rec. y perd.</span>
+          <span className="hidden sm:block">
+            Recuperación y pérdidas
+          </span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="man-advantage">
+        <ManAdvantageChart
+          matches={matches || []}
+          stats={allStats || []}
+          players={players || []}
+        />
+      </TabsContent>
+
+      <TabsContent value="man-down">
+        <ManDownGoalkeeperChart
+          matches={matches || []}
+          stats={allStats || []}
+          players={players || []}
+        />
+      </TabsContent>
+
+      <TabsContent value="blocks">
+        <BlocksChart
+          matches={matches || []}
+          stats={allStats || []}
+          players={players || []}
+        />
+      </TabsContent>
+
+      <TabsContent value="turnovers">
+        <TurnoversRecoveriesChart
+          matches={matches || []}
+          stats={allStats || []}
+        />
+      </TabsContent>
+    </Tabs>
+  </section>
+
+</TabsContent>
+  </Tabs>
+</section>
+
+<section className="mt-10">
+  <TeamDashboard teamStats={playerStats} />
+</section>
+
+</main>
   )
 }

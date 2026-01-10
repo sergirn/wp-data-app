@@ -15,7 +15,7 @@ export function MatchResultsChart({ matches }: MatchResultsChartProps) {
   const draws = matches.filter(m => m.home_score === m.away_score).length
   const losses = matches.filter(m => m.home_score < m.away_score).length
 
-  const total = matches.length || 1
+  const total = matches.length || 0
 
   const stats = [
     { label: "Victorias", value: wins, color: "#22c55e" },

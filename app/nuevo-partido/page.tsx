@@ -974,6 +974,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     }
   }
 
+  const totalExpulsiones = (s: any) =>
+  safeNumber(s?.faltas_exp_20_1c1) +
+  safeNumber(s?.faltas_exp_20_boya) +
+  safeNumber(s?.faltas_penalti)
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -1263,55 +1269,136 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
               <CardTitle>Jugadores de Campo</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
                 {fieldPlayers.map((player) => (
                   <div key={player.id} className="relative">
                     <Button
                       variant="outline"
-                      className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-primary/10 bg-transparent w-full border-2 hover:border-primary transition-all"
+                      className="
+                        group w-full p-0 h-auto overflow-hidden
+                        aspect-square
+                        rounded-xl border-2 bg-transparent
+                        hover:bg-muted/40 hover:border-primary/40
+                        hover:-translate-y-0.5 hover:shadow-md
+                        transition-all
+                        flex flex-col
+                      "
                       onClick={() => setSelectedPlayer(player)}
                     >
-                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {/* TOP: FOTO */}
+                      <div className="relative w-full h-[62%] overflow-hidden">
                         {player.photo_url ? (
                           <img
-                            src={player.photo_url || "/placeholder.svg"}
+                            src={player.photo_url}
                             alt={player.name}
-                            className="w-full h-full object-cover object-top"
+                            className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
+                            loading="lazy"
                           />
                         ) : (
-                          <span className="text-primary-foreground font-bold text-lg">{player.number}</span>
+                          <div className="h-full w-full grid place-items-center bg-muted">
+                            <span className="text-2xl font-extrabold text-muted-foreground">
+                              #{player.number}
+                            </span>
+                          </div>
+                        )}
+
+                        <div
+                          className="
+                            absolute inset-0 bg-gradient-to-t
+                            from-white/80 via-white/10 to-transparent
+                            dark:from-black/60 dark:via-black/15 dark:to-transparent
+                          "
+                        />
+
+                        {player.photo_url && (
+                          <div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                            #{player.number}
+                          </div>
                         )}
                       </div>
-                      <span className="font-medium text-sm text-center w-full truncate px-1">{player.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {safeNumber(stats[player.id]?.goles_totales)} goles
-                      </span>
+
+                      {/* MIDDLE: NOMBRE + GOLES */}
+                      <div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
+                        <p className="font-semibold text-sm w-full truncate group-hover:text-primary transition-colors">
+                          {player.name}
+                        </p>
+
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {safeNumber(stats[player.id]?.goles_totales)} goles
+                          <span> | </span>
+                          {totalExpulsiones(stats[player.id])} expulsiones
+                        </p>
+                      </div>
+
+
+                      {/* BOTTOM: SUSTITUIR */}
+                      <div className="w-full px-2 pb-2">
+                        {!hasStats(player.id) && getAvailablePlayers(false).length > 0 ? (
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            title="Sustituir jugador"
+                            className="
+                              h-8 w-full rounded-md
+                              bg-muted/70 hover:bg-muted
+                              border border-border/70
+                              inline-flex items-center justify-center gap-2
+                              text-xs font-medium
+                              transition-colors
+                            "
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSubstitutionPlayer(player)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setSubstitutionPlayer(player)
+                              }
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Sustituir
+                          </div>
+                        ) : (
+                          // Mantiene altura constante para que todas las cards queden iguales
+                          <div className="h-8" />
+                        )}
+                      </div>
                     </Button>
-                    {!hasStats(player.id) && getAvailablePlayers(false).length > 0 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="absolute top-1 right-1 h-7 w-7 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSubstitutionPlayer(player)
-                        }}
-                        title="Sustituir jugador"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    )}
                   </div>
                 ))}
-                {/* ADD "CONVOCAR" BUTTON TO ADD NEW FIELD PLAYERS */}
+
+                {/* CONVOCAR */}
                 {getAvailablePlayers(false).length > 0 && fieldPlayers.length < 12 && (
                   <Button
                     variant="outline"
-                    className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-green-500/10 bg-transparent w-full border-2 border-dashed hover:border-green-500 transition-all"
+                    className="
+                      group w-full p-0 h-auto overflow-hidden
+                      aspect-square
+                      rounded-xl border-2 border-dashed bg-transparent
+                      hover:bg-green-500/10 hover:border-green-500/60
+                      hover:-translate-y-0.5 hover:shadow-md
+                      transition-all
+                      flex flex-col
+                    "
                     onClick={() => setShowAddPlayerDialog(true)}
                   >
-                    <Plus className="h-8 w-8 text-green-500" />
-                    <span className="font-medium text-sm text-center">Convocar Jugador</span>
+                    <div className="w-full h-[52%] grid place-items-center bg-muted/40">
+                      <Plus className="h-10 w-10 text-green-600" />
+                    </div>
+
+                    <div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
+                      <p className="font-semibold text-sm">Convocar jugador</p>
+                      <p className="text-xs text-muted-foreground mt-1">Añadir a la lista</p>
+                    </div>
+
+                    <div className="w-full px-2 pb-2">
+                      <div className="h-8 w-full rounded-md border border-green-500/40 bg-green-500/10 grid place-items-center text-xs font-medium text-green-700 dark:text-green-400">
+                        Añadir
+                      </div>
+                    </div>
                   </Button>
                 )}
               </div>
@@ -1324,45 +1411,103 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             <CardHeader>
               <CardTitle>Porteros</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+           <CardContent>
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                 {goalkeepers.map((player) => (
                   <div key={player.id} className="relative">
                     <Button
                       variant="outline"
-                      className="h-auto py-6 flex flex-col items-center gap-2 hover:bg-primary/10 bg-transparent w-full border-2 hover:border-primary transition-all"
+                      className="
+                        group w-full p-0 h-auto overflow-hidden
+                        aspect-square
+                        rounded-xl border-2 bg-transparent
+                        hover:bg-muted/40 hover:border-primary/40
+                        hover:-translate-y-0.5 hover:shadow-md
+                        transition-all
+                        flex flex-col
+                      "
                       onClick={() => setSelectedPlayer(player)}
                     >
-                      <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {/* TOP: FOTO (más alta en móvil) */}
+                      <div className="relative w-full h-[62%] overflow-hidden">
                         {player.photo_url ? (
                           <img
-                            src={player.photo_url || "/placeholder.svg"}
+                            src={player.photo_url}
                             alt={player.name}
-                            className="w-full h-full object-cover object-top"
+                            className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
+                            loading="lazy"
                           />
                         ) : (
-                          <span className="text-primary-foreground font-bold">{player.number}</span>
+                          <div className="h-full w-full grid place-items-center bg-muted">
+                            <span className="text-2xl font-extrabold text-muted-foreground">
+                              #{player.number}
+                            </span>
+                          </div>
+                        )}
+
+                        <div
+                          className="
+                            absolute inset-0 bg-gradient-to-t
+                            from-white/80 via-white/10 to-transparent
+                            dark:from-black/60 dark:via-black/15 dark:to-transparent
+                          "
+                        />
+
+                        {player.photo_url && (
+                          <div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                            #{player.number}
+                          </div>
                         )}
                       </div>
-                      <span className="font-medium text-sm text-center w-full truncate px-1">{player.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {safeNumber(stats[player.id]?.portero_paradas_totales)} paradas
-                      </span>
+
+                      {/* MIDDLE: NOMBRE + STATS */}
+                      <div className="w-full flex-1 flex flex-col items-center justify-center px-1.5 sm:px-2 text-center">
+                        <p className="font-semibold text-[11px] sm:text-sm w-full truncate group-hover:text-primary transition-colors">
+                          {player.name}
+                        </p>
+
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+                          {safeNumber(stats[player.id]?.portero_goles_totales)} goles
+                          <span className="mx-1">|</span>
+                          {safeNumber(stats[player.id]?.portero_paradas_totales)} paradas
+                        </p>
+                      </div>
+
+                      {/* BOTTOM: SUSTITUIR (sin button dentro de button) */}
+                      <div className="w-full px-1.5 sm:px-2 pb-1.5 sm:pb-2">
+                        {!hasStats(player.id) && getAvailablePlayers(true).length > 0 ? (
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            title="Sustituir jugador"
+                            className="
+                              h-7 sm:h-8 w-full rounded-md
+                              bg-muted/70 hover:bg-muted
+                              border border-border/70
+                              inline-flex items-center justify-center gap-2
+                              text-[10px] sm:text-xs font-medium
+                              transition-colors
+                            "
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSubstitutionPlayer(player)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setSubstitutionPlayer(player)
+                              }
+                            }}
+                          >
+                            <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            Sustituir
+                          </div>
+                        ) : (
+                          <div className="h-7 sm:h-8" />
+                        )}
+                      </div>
                     </Button>
-                    {!hasStats(player.id) && getAvailablePlayers(true).length > 0 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="absolute top-1 right-1 h-7 w-7 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSubstitutionPlayer(player)
-                        }}
-                        title="Sustituir jugador"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>

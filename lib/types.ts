@@ -23,6 +23,17 @@ export interface Match {
   penalty_away_score: number | null
 }
 
+export type MatchWithQuarterScores = Match & {
+  q1_score?: number
+  q1_score_rival?: number
+  q2_score?: number
+  q2_score_rival?: number
+  q3_score?: number
+  q3_score_rival?: number
+  q4_score?: number
+  q4_score_rival?: number
+}
+
 export interface MatchStats {
   id?: number
   match_id: number

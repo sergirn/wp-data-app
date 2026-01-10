@@ -306,7 +306,7 @@ function Section({
   return (
     <>
       <TableRow>
-        <TableHead colSpan={100} className="bg-muted/40">
+        <TableHead colSpan={100} className="bg-muted/100">
           <div className="flex items-center gap-2 font-semibold">
             {icon}
             {title}

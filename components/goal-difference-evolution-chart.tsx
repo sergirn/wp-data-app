@@ -167,7 +167,7 @@ export function GoalDifferenceEvolutionChart({
 
 
         {/* GRÁFICO */}
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={350}>
           <ComposedChart data={displayData}>
             <CartesianGrid
               strokeDasharray="3 3"

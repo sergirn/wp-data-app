@@ -215,80 +215,133 @@ export default function PlayersPage() {
 const FieldPlayerCard = memo(function FieldPlayerCard({
   player,
 }: {
-  player: Player & { totalGoles: number; totalTiros: number; totalAsistencias: number; matchesPlayed: number }
+  player: Player & {
+    totalGoles: number
+    totalTiros: number
+    totalAsistencias: number
+    matchesPlayed: number
+  }
 }) {
-  const eficiencia = player.totalTiros > 0 ? ((player.totalGoles / player.totalTiros) * 100).toFixed(1) : "0.0"
+  const eficiencia =
+    player.totalTiros > 0
+      ? ((player.totalGoles / player.totalTiros) * 100).toFixed(1)
+      : "0.0"
+
+  const eficienciaNum = Number(eficiencia)
 
   return (
-    <Link href={`/jugadores/${player.id}`}>
-      <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2 sm:gap-3 mb-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {player.photo_url ? (
-                <img 
-                  src={player.photo_url || "/placeholder.svg"} 
-                  alt={player.name}
-                  className="w-full h-full object-cover object-top"
-                />
-              ) : (
-                <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
-              )}
-            </div>
-            <CardTitle className="text-base sm:text-xl truncate">{player.name}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid lg:grid-cols-2 md:grid-cols-2 grid-cols-4 gap-2 sm:gap-3">
-            <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold">{player.matchesPlayed}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Partidos</p>
-            </div>
-            <div className="text-center p-2 sm:p-3 bg-blue-500/10 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalGoles}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Goles</p>
-              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
-                {(player.totalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
-              </p>
-            </div>
-            <div className="text-center p-2 sm:p-3 bg-blue-500/5 dark:bg-blue-500/5 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalTiros}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Tiros</p>
-              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
-                {(player.totalTiros / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
-              </p>
-            </div>
-              <div
-                className={cn(
-                  "text-center p-2 sm:p-3 rounded-lg transition-colors",
-                  eficiencia < 30
-                    ? "bg-red-500/10 dark:bg-red-400/10"
-                    : "bg-green-500/10 dark:bg-green-400/10"
-                )}
-              >
-                <p
-                  className={cn(
-                    "text-xl sm:text-2xl font-bold",
-                    eficiencia < 30
-                      ? "text-red-700 dark:text-red-300"
-                      : "text-green-700 dark:text-green-300"
-                  )}
-                >
-                  {eficiencia}%
-                </p>
+    <Link href={`/jugadores/${player.id}`} className="block h-full">
+  <Card
+    className="
+      h-full overflow-hidden p-0 cursor-pointer
+      transition-all duration-200
+      hover:-translate-y-1 hover:shadow-lg
+      flex flex-col
+    "
+  >
+    {/* TOP IMAGE (~30–40%) */}
+    <div className="relative h-50 sm:h-40 md:h-65 overflow-hidden">
+      {player.photo_url ? (
+        <img
+      src={player.photo_url}
+      alt={player.name}
+      loading="lazy"
+      className="
+        h-full w-full
+        object-contain sm:object-cover
+        object-center sm:object-top
+        bg-muted
+      "
+    />
+  ) : (
+    <div className="h-full w-full grid place-items-center bg-muted">
+      <div className="text-center">
+        <div className="text-3xl font-extrabold text-muted-foreground">
+          #{player.number}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
+      </div>
+    </div>
+  )}
 
-                <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Eficiencia
-                </p>
+  {/* Gradient adaptativo al theme */}
+  <div
+    className="
+      absolute inset-0 bg-gradient-to-t
+      from-white/75 via-white/10 to-transparent
+      dark:from-black/60 dark:via-black/20 dark:to-transparent
+    "
+  />
 
-                <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
-                  Goles / Tiros
-                </p>
-              </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+  <div className="absolute inset-x-0 bottom-0 px-4 pb-3">
+    <h3 className="text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">
+      {player.name}
+    </h3>
+    <p className="text-xs text-zinc-700/80 dark:text-white/80">
+      #{player.number} · Jugador de campo
+    </p>
+  </div>
+</div>
+
+
+    {/* CONTENT (no se estira, sin margen extra abajo) */}
+    
+    <CardContent className="p-4 space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <StatBox label="Partidos" value={player.matchesPlayed} />
+
+        <StatBox
+          label="Goles"
+          value={player.totalGoles}
+          sub={`${(player.totalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} / partido`}
+          accent="green"
+        />
+
+        <StatBox
+          label="Tiros"
+          value={player.totalTiros}
+          sub={`${(player.totalTiros / Math.max(player.matchesPlayed, 1)).toFixed(1)} / partido`}
+          accent="blue"
+        />
+
+        <StatBox
+          label="Asistencias"
+          value={player.totalAsistencias}
+          accent="teal"
+        />
+      </div>
+
+      {/* EFICIENCIA */}
+      <div
+        className={cn(
+          "rounded-lg border p-3 text-center",
+          eficienciaNum < 30
+            ? "bg-red-500/5 border-red-500/20"
+            : eficienciaNum < 50
+            ? "bg-yellow-500/5 border-yellow-500/20"
+            : "bg-green-500/5 border-green-500/20",
+        )}
+      >
+        <p
+          className={cn(
+            "text-2xl font-bold",
+            eficienciaNum < 30
+              ? "text-red-600"
+              : eficienciaNum < 50
+              ? "text-yellow-600"
+              : "text-green-600",
+          )}
+        >
+          {eficiencia}%
+        </p>
+        <p className="text-xs text-muted-foreground">Eficiencia de tiro</p>
+      </div>
+    </CardContent>
+  </Card>
+</Link>
+
+
+
   )
 })
 
@@ -303,79 +356,153 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
   }
 }) {
   const totalShots = player.totalParadas + player.totalRivalGoles
-  const eficiencia = totalShots > 0 ? ((player.totalParadas / totalShots) * 100).toFixed(1) : "0.0"
+  const eficiencia =
+    totalShots > 0
+      ? ((player.totalParadas / totalShots) * 100).toFixed(1)
+      : "0.0"
+
+  const eficienciaNum = Number(eficiencia)
 
   return (
-    <Link href={`/jugadores/${player.id}`}>
-      <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2 sm:gap-3 mb-2">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {player.photo_url ? (
-                <img 
-                  src={player.photo_url || "/placeholder.svg"} 
-                  alt={player.name}
-                  className="w-full h-full object-cover object-top"
-                />
-              ) : (
-                <span className="text-primary-foreground font-bold text-base sm:text-lg">{player.number}</span>
-              )}
-            </div>
-            <CardTitle className="text-base sm:text-xl truncate">{player.name}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid lg:grid-cols-2 md:grid-cols-2 grid-cols-4 gap-2 sm:gap-3">
-            <div className="text-center p-2 sm:p-3 bg-muted rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold">{player.matchesPlayed}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Partidos</p>
-            </div>
-            <div className="text-center p-2 sm:p-3 bg-blue-500/10 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">{player.totalParadas}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Paradas</p>
-              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
-                {(player.totalParadas / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
-              </p>
-            </div>
-            <div className="text-center p-2 sm:p-3 bg-blue-500/5 dark:bg-blue-500/5 rounded-lg">
-              <p className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">
-                {player.totalRivalGoles}
-              </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Goles</p>
-              <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
-                {(player.totalRivalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} x partido
-              </p>
-            </div>
-              <div
-                className={cn(
-                  "text-center p-2 sm:p-3 rounded-lg transition-colors",
-                  eficiencia < 30
-                    ? "bg-red-500/10 dark:bg-red-400/10"
-                    : "bg-green-500/10 dark:bg-green-400/10"
-                )}
-              >
-                <p
-                  className={cn(
-                    "text-xl sm:text-2xl font-bold",
-                    eficiencia < 30
-                      ? "text-red-700 dark:text-red-300"
-                      : "text-green-700 dark:text-green-300"
-                  )}
-                >
-                  {eficiencia}%
-                </p>
+    <Link href={`/jugadores/${player.id}`} className="block h-full">
+  <Card
+    className="
+      h-full overflow-hidden p-0 cursor-pointer
+      transition-all duration-200
+      hover:-translate-y-1 hover:shadow-lg
+      flex flex-col
+    "
+  >
+    {/* TOP IMAGE */}
+     <div className="relative h-50 sm:h-40 md:h-65 overflow-hidden">
+      {player.photo_url ? (
+        <img
+      src={player.photo_url}
+      alt={player.name}
+      loading="lazy"
+      className="
+        h-full w-full
+        object-contain sm:object-cover
+        object-center sm:object-top
+        bg-muted
+      "
+    />
+  ) : (
+    <div className="h-full w-full grid place-items-center bg-muted">
+      <div className="text-center">
+        <div className="text-3xl font-extrabold text-muted-foreground">
+          #{player.number}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
+      </div>
+    </div>
+  )}
 
-                <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  Eficiencia
-                </p>
 
-                <p className="text-[9px] sm:text-xs text-muted-foreground mt-0.5">
-                  Paradas / Total
-                </p>
-              </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+      {/* Gradient adaptativo al theme */}
+      <div
+        className="
+          absolute inset-0 bg-gradient-to-t
+          from-white/75 via-white/10 to-transparent
+          dark:from-black/60 dark:via-black/10 dark:to-transparent
+        "
+      />
+
+      <div className="absolute inset-x-0 bottom-0 px-4 pb-3">
+        <h3 className="text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">
+          {player.name}
+        </h3>
+        <p className="text-xs text-zinc-700/80 dark:text-white/80">
+          #{player.number} · Portero
+        </p>
+      </div>
+    </div>
+
+    {/* CONTENT */}
+    <CardContent className="p-4 space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <StatBox label="Partidos" value={player.matchesPlayed} />
+
+        <StatBox
+          label="Paradas"
+          value={player.totalParadas}
+          sub={`${(player.totalParadas / Math.max(player.matchesPlayed, 1)).toFixed(1)} / partido`}
+          accent="blue"
+        />
+
+        <StatBox
+          label="Goles recibidos"
+          value={player.totalRivalGoles}
+          sub={`${(player.totalRivalGoles / Math.max(player.matchesPlayed, 1)).toFixed(1)} / partido`}
+        />
+
+        <StatBox
+          label="Asistencias"
+          value={player.totalAsistencias}
+          accent="teal"
+        />
+      </div>
+
+      <div
+        className={cn(
+          "rounded-lg border p-3 text-center",
+          eficienciaNum < 30
+            ? "bg-red-500/5 border-red-500/20"
+            : eficienciaNum < 50
+            ? "bg-yellow-500/5 border-yellow-500/20"
+            : "bg-green-500/5 border-green-500/20",
+        )}
+      >
+        <p
+          className={cn(
+            "text-2xl font-bold",
+            eficienciaNum < 30
+              ? "text-red-600"
+              : eficienciaNum < 50
+              ? "text-yellow-600"
+              : "text-green-600",
+          )}
+        >
+          {eficiencia}%
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Eficiencia del portero
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+</Link>
   )
 })
+
+function StatBox({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string
+  value: number | string
+  sub?: string
+  accent?: "green" | "blue" | "teal"
+}) {
+  const colors = {
+    green: "text-green-600",
+    blue: "text-blue-600",
+    teal: "text-teal-600",
+  }
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 text-center">
+      <p className={cn("text-xl font-semibold", accent && colors[accent])}>
+        {value}
+      </p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      {sub && (
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          {sub}
+        </p>
+      )}
+    </div>
+  )
+}
