@@ -1,28 +1,11 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Bar,
-  Line,
-  ComposedChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Bar, Line, ComposedChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts"
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
 import { Badge } from "@/components/ui/badge"
-import type { Match, MatchStats, Player } from "@/lib/types"
-import { TrendingUp, BarChart3, Table2 } from "lucide-react"
+import { BarChart3, Table2 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Table,
@@ -33,13 +16,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-interface BlocksChartProps {
+import type { Match, MatchStats } from "@/lib/types"
+
+interface TurnoversRecoveriesChartProps {
   matches: Match[]
   stats: MatchStats[]
-  players: Player[]
 }
 
-export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
+export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveriesChartProps) {
   const [view, setView] = useState<"chart" | "table">("chart")
 
   // ✅ ordenar de jornada 1 a la actual (fallback a fecha)
@@ -56,16 +40,11 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
     return sortedMatches.map((match: any, index: number) => {
       const matchStats = (stats ?? []).filter((s: any) => s.match_id === match.id)
 
-      const totalBlocks = matchStats.reduce(
-        (sum: number, s: any) => sum + (s.acciones_bloqueo || 0),
-        0
-      )
-
-      // ⚠️ mantengo tu lógica original. Si "away_score" no es goles recibidos para ti, cámbialo aquí.
-      const totalGoalsReceived = match.away_score ?? 0
+      const perdidas = matchStats.reduce((sum: number, s: any) => sum + (s.acciones_perdida_poco || 0), 0)
+      const recuperaciones = matchStats.reduce((sum: number, s: any) => sum + (s.acciones_recuperacion || 0), 0)
 
       const jornadaNumber = match.jornada ?? index + 1
-      const balance = totalBlocks - totalGoalsReceived
+      const balance = recuperaciones - perdidas
 
       return {
         index,
@@ -75,43 +54,37 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
         fullOpponent: match.opponent,
         fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
         date: new Date(match.match_date).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" }),
-        bloqueos: totalBlocks,
-        golesRecibidos: totalGoalsReceived,
+        perdidas,
+        recuperaciones,
         balance,
       }
     })
   }, [sortedMatches, stats])
 
   const chartData = useMemo(() => {
-    return matchData.map((m, index) => {
-      const previousMatches = matchData.slice(0, index + 1)
-      const avgBlocks = previousMatches.reduce((sum, x) => sum + x.bloqueos, 0) / (index + 1)
-
+    let balanceAcumulado = 0
+    return matchData.map((m) => {
+      balanceAcumulado += m.balance
       return {
         jornada: m.jornada,
-        bloqueos: m.bloqueos,
-        golesRecibidos: m.golesRecibidos,
-        promedioBloqueos: Number(avgBlocks.toFixed(1)),
+        perdidas: m.perdidas,
+        recuperaciones: m.recuperaciones,
+        balance: balanceAcumulado,
       }
     })
   }, [matchData])
 
-  // ===== Totales / medias =====
+  // ===== TOTALES / MEDIAS =====
   const partidos = matchData.length
-  const totalBlocks = matchData.reduce((sum, m) => sum + m.bloqueos, 0)
-  const totalGoalsReceived = matchData.reduce((sum, m) => sum + m.golesRecibidos, 0)
-  const avgBlocksPerMatch = partidos > 0 ? (totalBlocks / partidos).toFixed(1) : "0.0"
-  const avgGoalsReceivedPerMatch = partidos > 0 ? (totalGoalsReceived / partidos).toFixed(1) : "0.0"
-  const balanceTotal = totalBlocks - totalGoalsReceived
+  const totalPerdidas = matchData.reduce((s, m) => s + m.perdidas, 0)
+  const totalRecuperaciones = matchData.reduce((s, m) => s + m.recuperaciones, 0)
+  const balanceTotal = totalRecuperaciones - totalPerdidas
 
-  const maxBlocks = Math.max(...matchData.map((m) => m.bloqueos), 1)
+  const avgPerdidas = partidos > 0 ? (totalPerdidas / partidos).toFixed(1) : "0.0"
+  const avgRecuperaciones = partidos > 0 ? (totalRecuperaciones / partidos).toFixed(1) : "0.0"
+  const avgBalance = partidos > 0 ? (balanceTotal / partidos).toFixed(1) : "0.0"
+
   const maxAbsBalance = Math.max(...matchData.map((m) => Math.abs(m.balance)), 1)
-
-  const getBlocksColor = (blocks: number) => {
-    if (blocks >= 5) return "bg-green-500"
-    if (blocks >= 3) return "bg-yellow-500"
-    return "bg-orange-500"
-  }
 
   const getBalanceColor = (v: number) => (v >= 0 ? "bg-green-500" : "bg-red-500")
 
@@ -120,13 +93,13 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
       <CardHeader className="space-y-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle>Eficiencia de Bloqueos</CardTitle>
+            <CardTitle>Control de Posesión</CardTitle>
             <CardDescription className="truncate">
-              Rendimiento defensivo mediante bloqueos por partido (jornada 1 → actual)
+              Pérdidas y recuperaciones por partido (jornada 1 → actual)
             </CardDescription>
           </div>
 
-          {/* ✅ Switch Chart/Table (misma UI) */}
+          {/* ✅ Switch Chart/Table (igual que el otro) */}
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
             <BarChart3 className={`h-4 w-4 ${view === "chart" ? "text-foreground" : "text-muted-foreground"}`} />
             <Switch
@@ -140,34 +113,28 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
       </CardHeader>
 
       <CardContent>
-        {/* ===== RESUMEN (igual que lo tenías) ===== */}
+        {/* ===== RESUMEN (igual UI que disciplina) ===== */}
         <div className="grid grid-cols-4 gap-2 md:gap-4 mb-6">
           <div className="rounded-lg border bg-card p-2 md:p-4 text-center">
-            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">Bloqueos</div>
-            <div className="text-lg md:text-2xl font-bold text-blue-600 dark:text-blue-400">{totalBlocks}</div>
-            <div className="hidden md:block text-xs text-muted-foreground mt-1">Media: {avgBlocksPerMatch}/partido</div>
+            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">Pérdidas</div>
+            <div className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">{totalPerdidas}</div>
+            <div className="hidden md:block text-xs text-muted-foreground mt-1">Media: {avgPerdidas}/partido</div>
           </div>
 
           <div className="rounded-lg border bg-card p-2 md:p-4 text-center">
-            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">Recibidos</div>
-            <div className="text-lg md:text-2xl font-bold text-red-600 dark:text-red-400">{totalGoalsReceived}</div>
-            <div className="hidden md:block text-xs text-muted-foreground mt-1">
-              Media: {avgGoalsReceivedPerMatch}/partido
-            </div>
+            <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">Recuperaciones</div>
+            <div className="text-lg md:text-2xl font-bold text-green-600 dark:text-green-400">{totalRecuperaciones}</div>
+            <div className="hidden md:block text-xs text-muted-foreground mt-1">Media: {avgRecuperaciones}/partido</div>
           </div>
 
           <div className="rounded-lg border bg-card p-2 md:p-4 text-center col-span-2">
             <div className="text-[10px] md:text-sm font-medium text-muted-foreground mb-0.5">Balance Total</div>
-            <div
-              className={`text-lg md:text-2xl font-bold ${
-                balanceTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-              }`}
-            >
+            <div className={`text-lg md:text-2xl font-bold ${balanceTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
               {balanceTotal >= 0 ? "+" : ""}
               {balanceTotal}
             </div>
             <div className="hidden md:block text-xs text-muted-foreground mt-1">
-              Bloqueos − Goles recibidos
+              Media: {avgBalance}/partido · (Recuperaciones − Pérdidas)
             </div>
           </div>
         </div>
@@ -179,9 +146,9 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
 
             <ChartContainer
               config={{
-                bloqueos: { label: "Bloqueos", color: "hsl(142, 71%, 45%)" },
-                golesRecibidos: { label: "Goles Recibidos", color: "hsl(0, 84%, 60%)" },
-                promedioBloqueos: { label: "Promedio Bloqueos", color: "hsl(217, 91%, 60%)" },
+                perdidas: { label: "Pérdidas", color: "hsl(0, 84%, 60%)" },
+                recuperaciones: { label: "Recuperaciones", color: "hsl(142, 71%, 45%)" },
+                balance: { label: "Balance (acum.)", color: "hsl(217, 91%, 60%)" },
               }}
               className="h-[300px] w-full"
             >
@@ -200,48 +167,26 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
                   />
 
                   <YAxis
-                    yAxisId="left"
                     stroke="#888888"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                     label={{ value: "Cantidad", angle: -90, position: "insideLeft", style: { fontSize: 12 } }}
                   />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    label={{ value: "Promedio", angle: 90, position: "insideRight", style: { fontSize: 12 } }}
-                  />
 
                   <Tooltip content={<ChartTooltipContent />} />
                   <Legend />
 
-                  <Bar
-                    yAxisId="left"
-                    dataKey="bloqueos"
-                    fill="var(--color-bloqueos)"
-                    name="Bloqueos"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="golesRecibidos"
-                    fill="var(--color-golesRecibidos)"
-                    name="Goles Recibidos"
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <Bar dataKey="perdidas" fill="var(--color-perdidas)" name="Pérdidas" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="recuperaciones" fill="var(--color-recuperaciones)" name="Recuperaciones" radius={[4, 4, 0, 0]} />
+
                   <Line
-                    yAxisId="right"
                     type="monotone"
-                    dataKey="promedioBloqueos"
-                    stroke="var(--color-promedioBloqueos)"
-                    name="Promedio Bloqueos"
+                    dataKey="balance"
+                    stroke="var(--color-balance)"
+                    name="Balance (acumulado)"
                     strokeWidth={3}
-                    dot={{ r: 5, fill: "var(--color-promedioBloqueos)" }}
+                    dot={{ r: 5, fill: "var(--color-balance)" }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -252,9 +197,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="min-w-0">
                 <h3 className="text-lg font-semibold">Tabla por Jornada</h3>
-                <p className="text-xs text-muted-foreground truncate">
-                  Resumen por partido (jornada 1 → actual)
-                </p>
+                <p className="text-xs text-muted-foreground truncate">Resumen por partido (jornada 1 → actual)</p>
               </div>
 
               <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground shrink-0">
@@ -267,7 +210,7 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
               </div>
             </div>
 
-            {/* ✅ TABLA (misma estructura pro) */}
+            {/* ✅ tabla pro (igual patrón que disciplina) */}
             <div className="rounded-xl border overflow-hidden bg-card">
               <div className="w-full overflow-x-auto">
                 <div className="max-h-[420px] overflow-y-auto">
@@ -276,17 +219,16 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="w-[90px]">Jornada</TableHead>
                         <TableHead>Rival</TableHead>
-                        <TableHead className="text-center">Bloqueos</TableHead>
-                        <TableHead className="text-center">Recibidos</TableHead>
+                        <TableHead className="text-right">Pérdidas</TableHead>
+                        <TableHead className="text-right">Recup.</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
-                        <TableHead className="text-center hidden lg:table-cell">Fecha</TableHead>
+                        <TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
                       </TableRow>
                     </UITableHeader>
 
                     <TableBody>
                       {matchData.map((m, idx) => {
-                        const pctBlocks = Math.round((m.bloqueos / maxBlocks) * 100)
-                        const pctBalance = Math.round((Math.abs(m.balance) / maxAbsBalance) * 100)
+                        const pct = Math.round((Math.abs(m.balance) / maxAbsBalance) * 100)
                         const dot = m.balance >= 0 ? "bg-green-500" : "bg-red-500"
 
                         return (
@@ -312,19 +254,19 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
                               </div>
                             </TableCell>
 
-                            <TableCell className="text-center">
-                                <Badge className={`${getBlocksColor(m.bloqueos)} text-white tabular-nums`}>
-                                  {m.bloqueos}
-                                </Badge>
-                            </TableCell>
-
-                            <TableCell className="text-center tabular-nums">
+                            <TableCell className="text-right tabular-nums">
                               <Badge variant="destructive" className="tabular-nums">
-                                {m.golesRecibidos}
+                                −{m.perdidas}
                               </Badge>
                             </TableCell>
 
-                            <TableCell className="text-center">
+                            <TableCell className="text-right tabular-nums">
+                              <Badge className="bg-green-500 text-white hover:bg-green-500 tabular-nums">
+                                +{m.recuperaciones}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="text-right">
                               <div className="flex items-end justify-end gap-3">
                                 <Badge className={`${getBalanceColor(m.balance)} text-white tabular-nums`}>
                                   {m.balance >= 0 ? "+" : ""}
@@ -335,16 +277,14 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
                                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                                     <div
                                       className="h-2 rounded-full bg-blue-600 dark:bg-blue-400 transition-all"
-                                      style={{ width: `${pctBalance}%` }}
+                                      style={{ width: `${pct}%` }}
                                     />
                                   </div>
                                 </div>
                               </div>
                             </TableCell>
 
-                            <TableCell className="text-center text-muted-foreground hidden lg:table-cell">
-                              {m.fullDate}
-                            </TableCell>
+                            <TableCell className="text-right text-muted-foreground hidden lg:table-cell">{m.fullDate}</TableCell>
                           </TableRow>
                         )
                       })}
@@ -362,18 +302,14 @@ export function BlocksChart({ matches, stats, players }: BlocksChartProps) {
 
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-md border bg-card px-2 py-1">
-                      Bloqueos: <span className="font-semibold text-foreground">{totalBlocks}</span>
+                      Pérdidas: <span className="font-semibold text-foreground">{totalPerdidas}</span>
                     </span>
                     <span className="rounded-md border bg-card px-2 py-1">
-                      Recibidos: <span className="font-semibold text-foreground">{totalGoalsReceived}</span>
+                      Recuperaciones: <span className="font-semibold text-foreground">{totalRecuperaciones}</span>
                     </span>
                     <span className="rounded-md border bg-card px-2 py-1">
                       Balance:{" "}
-                      <span
-                        className={`font-semibold ${
-                          balanceTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                        }`}
-                      >
+                      <span className={`font-semibold ${balanceTotal >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                         {balanceTotal >= 0 ? "+" : ""}
                         {balanceTotal}
                       </span>
