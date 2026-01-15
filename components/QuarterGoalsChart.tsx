@@ -4,37 +4,21 @@ import { useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { BarChart3, Table2, Eye } from "lucide-react"
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import {
   BarChart,
   Bar,
-  Cell,
   ResponsiveContainer,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ReferenceLine,
 } from "recharts"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { MatchWithQuarterScores } from "@/lib/types"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader as UITableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table"
 
-/* =============================
-   Tipos
-============================= */
+
 type QuarterKey = "q1" | "q2" | "q3" | "q4"
 
 const QUARTERS = [
@@ -49,39 +33,39 @@ interface Props {
   chartHeightClassName?: string
 }
 
-export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[260px] sm:h-[320px] lg:h-[330px]" }: Props) {
+export function QuarterGoalsChart({
+  matches,
+  chartHeightClassName = "h-[260px] sm:h-[320px] lg:h-[330px]",
+}: Props) {
   const [view, setView] = useState<"chart" | "table">("chart")
   const [openQuarter, setOpenQuarter] = useState<QuarterKey | null>(null)
 
   const games = Math.max(matches?.length ?? 0, 1)
 
   const data = useMemo(() => {
-  return QUARTERS.map((q) => {
-    const goalsFor =
-      matches.reduce((sum, m) => sum + (Number((m as any)[q.for]) || 0), 0) / games
+    return QUARTERS.map((q) => {
+      const goalsFor = matches.reduce((sum, m) => sum + (Number((m as any)[q.for]) || 0), 0) / games
+      const goalsAgainst = matches.reduce((sum, m) => sum + (Number((m as any)[q.against]) || 0), 0) / games
 
-    const goalsAgainst =
-      matches.reduce((sum, m) => sum + (Number((m as any)[q.against]) || 0), 0) / games
+      const differential = Number((goalsFor - goalsAgainst).toFixed(2))
 
-    const differential = Number((goalsFor - goalsAgainst).toFixed(2))
+      return {
+        key: q.key as QuarterKey,
+        quarter: q.label,
+        goalsFor: Number(goalsFor.toFixed(2)),
+        goalsAgainst: Number(goalsAgainst.toFixed(2)),
+        differential,
+        pos: differential > 0 ? differential : 0,
+        neg: differential < 0 ? differential : 0, // (negativo)
+      }
+    })
+  }, [matches, games])
 
-    return {
-      key: q.key as QuarterKey,
-      quarter: q.label,
-      goalsFor: Number(goalsFor.toFixed(2)),
-      goalsAgainst: Number(goalsAgainst.toFixed(2)),
-      differential,
-      pos: differential > 0 ? differential : 0, // ✅
-      neg: differential < 0 ? differential : 0, // ✅ (negativo)
-    }
-  })
-}, [matches, games])
-
-const maxAbs = useMemo(() => {
-  const v = Math.max(...data.map((d) => Math.abs(d.differential)), 0.1)
-  const pad = Math.max(0.25, v * 0.15) // ✅ poco margen = “picos”
-  return Number((v + pad).toFixed(2))
-}, [data])
+  const maxAbs = useMemo(() => {
+    const v = Math.max(...data.map((d) => Math.abs(d.differential)), 0.1)
+    const pad = Math.max(0.25, v * 0.15)
+    return Number((v + pad).toFixed(2))
+  }, [data])
 
   const bestQuarter = useMemo(() => [...data].sort((a, b) => b.differential - a.differential)[0], [data])
   const worstQuarter = useMemo(() => [...data].sort((a, b) => a.differential - b.differential)[0], [data])
@@ -113,7 +97,7 @@ const maxAbs = useMemo(() => {
             </CardDescription>
           </div>
 
-          {/* ✅ Switch Chart/Table (igual que el resto) */}
+          {/* Switch Chart/Table */}
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
             <BarChart3 className={`h-4 w-4 ${view === "chart" ? "text-foreground" : "text-muted-foreground"}`} />
             <Switch
@@ -127,80 +111,101 @@ const maxAbs = useMemo(() => {
       </CardHeader>
 
       <CardContent className="min-w-0 w-full overflow-hidden">
-        {/* ===== KPIs ===== */}
+        {/* KPIs */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="rounded-lg border p-3 text-center">
             <p className="text-xs text-muted-foreground">Mejor cuarto</p>
             <p className="text-lg font-bold text-green-600 dark:text-green-400">
-              {bestQuarter?.quarter} ({bestQuarter?.differential > 0 ? "+" : ""}{bestQuarter?.differential})
+              {bestQuarter?.quarter} ({bestQuarter?.differential > 0 ? "+" : ""}
+              {bestQuarter?.differential})
             </p>
           </div>
 
           <div className="rounded-lg border p-3 text-center">
             <p className="text-xs text-muted-foreground">Peor cuarto</p>
             <p className="text-lg font-bold text-red-600 dark:text-red-400">
-              {worstQuarter?.quarter} ({worstQuarter?.differential > 0 ? "+" : ""}{worstQuarter?.differential})
+              {worstQuarter?.quarter} ({worstQuarter?.differential > 0 ? "+" : ""}
+              {worstQuarter?.differential})
             </p>
           </div>
         </div>
 
-        {/* ===== VISTA ===== */}
+        {/* VISTA */}
         {view === "chart" ? (
           <ChartContainer
             config={{
-              differential: { label: "Diferencial medio", color: "hsl(217, 91%, 60%)" },
+              pos: { label: "DIF +", color: "hsl(142, 71%, 45%)" },
+              neg: { label: "DIF −", color: "hsl(0, 84%, 60%)" },
             }}
             className={`w-full ${chartHeightClassName}`}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <BarChart
+                data={data}
+                layout="vertical"
+                // ✅ márgenes simétricos → centro real
+                margin={{ top: 8, right: 18, left: 18, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
-                {/* ✅ ticks blancos (como tus ejemplos) */}
                 <XAxis
-                  dataKey="quarter"
+                  type="number"
+                  domain={[-maxAbs, maxAbs]} // ✅ simétrico
+                  allowDataOverflow
                   fontSize={12}
                   tickMargin={8}
-                  stroke="#888888"
-                  tick={{ fill: "#fff" }}
                   axisLine={false}
                   tickLine={false}
+                  tickFormatter={(v) => Math.abs(Number(v)).toFixed(1)}
                 />
 
                 <YAxis
+                  type="category"
+                  dataKey="quarter"
                   fontSize={12}
-                  width={30}
-                  tickMargin={6}
-                  stroke="#888888"
-                  tick={{ fill: "#fff" }}
+                  width={42}
+                  tickMargin={8}
                   axisLine={false}
                   tickLine={false}
                 />
 
+                {/* ✅ línea exactamente en el medio */}
                 <ReferenceLine
-                  y={0}
-                  stroke="#8a8a8aff"
+                  x={0}
+                  stroke="hsl(var(--border))"
                   strokeWidth={3}
-                  strokeDasharray="0"
                   ifOverflow="extendDomain"
                 />
 
-                <Tooltip content={<ChartTooltipContent />} />
-
-                <Bar dataKey="differential" maxBarSize={52} radius={[8, 8, 8, 8]}>
-                  {data.map((d, i) => (
-                    <Cell
-                      key={i}
-                      fill={
-                        d.differential > 0
-                          ? "hsl(142, 71%, 45%)"
-                          : d.differential < 0
-                          ? "hsl(0, 84%, 60%)"
-                          : "hsl(217, 91%, 60%)"
-                      }
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(label, payload) => {
+                        const p = payload?.[0]?.payload
+                        if (!p) return String(label)
+                        const dif = p.differential
+                        return `${label} · DIF: ${dif > 0 ? "+" : ""}${dif} · GF: ${p.goalsFor} · GC: ${p.goalsAgainst}`
+                      }}
                     />
-                  ))}
-                </Bar>
+                  }
+                />
+
+                <Bar
+                  dataKey="neg"
+                  name="DIF −"
+                  fill="var(--color-neg)"
+                  stackId="dif"
+                  radius={[8, 0, 0, 8]}
+                  barSize={26}
+                />
+                <Bar
+                  dataKey="pos"
+                  name="DIF +"
+                  fill="var(--color-pos)"
+                  stackId="dif"
+                  radius={[0, 8, 8, 0]}
+                  barSize={26}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
@@ -259,10 +264,10 @@ const maxAbs = useMemo(() => {
                   <span className="font-medium text-foreground">{matches?.length ?? 0}</span> partidos
                 </span>
                 <span className="rounded-md border bg-card px-2 py-1">
-                  Mejor:{" "}
-                  <span className="font-semibold text-foreground">{bestQuarter?.quarter}</span>{" "}
+                  Mejor: <span className="font-semibold text-foreground">{bestQuarter?.quarter}</span>{" "}
                   <span className="font-semibold text-white">
-                    ({bestQuarter?.differential > 0 ? "+" : ""}{bestQuarter?.differential})
+                    ({bestQuarter?.differential > 0 ? "+" : ""}
+                    {bestQuarter?.differential})
                   </span>
                 </span>
               </div>
@@ -270,7 +275,7 @@ const maxAbs = useMemo(() => {
           </div>
         )}
 
-        {/* ===== POPUP detalle por partido ===== */}
+        {/* POPUP detalle por partido */}
         <Dialog open={!!openQuarter} onOpenChange={() => setOpenQuarter(null)}>
           <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>

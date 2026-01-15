@@ -10,7 +10,7 @@ type ViewMode = "chart" | "table"
 
 interface ExpandableChartCardProps {
   title: string
-  description?: string
+  description?: React.ReactNode
   icon?: React.ReactNode
   className?: string
 

@@ -14,6 +14,8 @@ import {
   Legend,
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
+import type { Match, MatchStats, Player } from "@/lib/types"
+import { Shield } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -22,15 +24,14 @@ import {
   TableHeader as UITableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Repeat2 } from "lucide-react"
-import type { Match, MatchStats } from "@/lib/types"
 
-interface TurnoversRecoveriesChartProps {
+interface BlocksChartProps {
   matches: Match[]
   stats: MatchStats[]
+  players: Player[]
 }
 
-export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveriesChartProps) {
+export function BlocksChart({ matches, stats }: BlocksChartProps) {
   const sortedMatches = useMemo(() => {
     return [...(matches ?? [])].sort((a: any, b: any) => {
       const aj = a?.jornada ?? 9999
@@ -46,11 +47,13 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
     return sortedMatches.map((match: any, index: number) => {
       const matchStats = statsArr.filter((s: any) => String(s.match_id) === String(match.id))
 
-      const perdidas = matchStats.reduce((sum: number, s: any) => sum + (s.acciones_perdida_poco || 0), 0)
-      const recuperaciones = matchStats.reduce((sum: number, s: any) => sum + (s.acciones_recuperacion || 0), 0)
+      const totalBlocks = matchStats.reduce((sum: number, s: any) => sum + (s.acciones_bloqueo || 0), 0)
+
+      // ⚠️ Mantengo tu lógica original
+      const totalGoalsReceived = match.away_score ?? 0
 
       const jornadaNumber = match.jornada ?? index + 1
-      const balance = recuperaciones - perdidas
+      const balance = totalBlocks - totalGoalsReceived
 
       return {
         matchId: match.id,
@@ -59,41 +62,45 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
         rival: match.opponent,
         fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
 
-        perdidas,
-        recuperaciones,
+        bloqueos: totalBlocks,
+        golesRecibidos: totalGoalsReceived,
         balance,
       }
     })
   }, [sortedMatches, stats])
 
   const chartData = useMemo(() => {
-    let balanceAcumulado = 0
-    return matchData.map((m) => {
-      balanceAcumulado += m.balance
+    return matchData.map((m, index) => {
+      const prev = matchData.slice(0, index + 1)
+      const avgBlocks = prev.reduce((sum, x) => sum + x.bloqueos, 0) / (index + 1)
+
       return {
         matchId: m.matchId,
         jornada: m.jornada,
         rival: m.rival,
         fullDate: m.fullDate,
-
-        perdidas: m.perdidas,
-        recuperaciones: m.recuperaciones,
-        balance: balanceAcumulado,
-        balancePartido: m.balance,
+        bloqueos: m.bloqueos,
+        golesRecibidos: m.golesRecibidos,
+        promedioBloqueos: Number(avgBlocks.toFixed(1)),
+        balance: m.balance,
       }
     })
   }, [matchData])
 
   const partidos = matchData.length
-  const totalPerdidas = matchData.reduce((s, m) => s + m.perdidas, 0)
-  const totalRecuperaciones = matchData.reduce((s, m) => s + m.recuperaciones, 0)
-  const balanceTotal = totalRecuperaciones - totalPerdidas
-
-  const avgPerdidas = partidos > 0 ? (totalPerdidas / partidos).toFixed(1) : "0.0"
-  const avgRecuperaciones = partidos > 0 ? (totalRecuperaciones / partidos).toFixed(1) : "0.0"
-  const avgBalance = partidos > 0 ? (balanceTotal / partidos).toFixed(1) : "0.0"
+  const totalBlocks = matchData.reduce((sum, m) => sum + m.bloqueos, 0)
+  const totalGoalsReceived = matchData.reduce((sum, m) => sum + m.golesRecibidos, 0)
+  const avgBlocksPerMatch = partidos > 0 ? (totalBlocks / partidos).toFixed(1) : "0.0"
+  const avgGoalsReceivedPerMatch = partidos > 0 ? (totalGoalsReceived / partidos).toFixed(1) : "0.0"
+  const balanceTotal = totalBlocks - totalGoalsReceived
 
   const maxAbsBalance = Math.max(...matchData.map((m) => Math.abs(m.balance)), 1)
+
+  const getBlocksColor = (blocks: number) => {
+    if (blocks >= 5) return "bg-green-500"
+    if (blocks >= 3) return "bg-yellow-500"
+    return "bg-orange-500"
+  }
 
   const getBalanceColor = (v: number) => (v >= 0 ? "bg-green-500" : "bg-red-500")
 
@@ -101,9 +108,9 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
 
   return (
     <ExpandableChartCard
-      title="Control de Posesión"
-      description={`Últimos ${partidos} · Bal: ${avgBalance}/p · Rec: ${avgRecuperaciones}/p · Pérd: ${avgPerdidas}/p`}
-      icon={<Repeat2 className="w-5 h-5" />}
+      title="Eficiencia de Bloqueos"
+      description={`Últimos ${partidos} · Media: ${avgBlocksPerMatch} bloq/p · Recibidos: ${avgGoalsReceivedPerMatch}/p`}
+      icon={<Shield className="w-5 h-5" />}
       className="bg-gradient-to-br from-blue-500/5 to-white-500/5"
       rightHeader={
         <span className="text-xs text-muted-foreground">
@@ -113,18 +120,18 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
       }
       renderChart={({ compact }) => (
         <div className="space-y-3">
-          {/* Resumen */}
+          {/* ✅ resumen (compacto / grande) */}
           <div className={`grid gap-2 ${compact ? "grid-cols-3" : "grid-cols-3 md:gap-4"}`}>
             <div className="rounded-lg border bg-card p-2 text-center">
-              <div className="text-[10px] font-medium text-muted-foreground">Pérdidas</div>
-              <div className="text-lg font-bold text-red-600 dark:text-red-400">{totalPerdidas}</div>
-              {!compact ? <div className="text-xs text-muted-foreground">Media: {avgPerdidas}/p</div> : null}
+              <div className="text-[10px] font-medium text-muted-foreground">Bloqueos</div>
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalBlocks}</div>
+              {!compact ? <div className="text-xs text-muted-foreground">Media: {avgBlocksPerMatch}/p</div> : null}
             </div>
 
             <div className="rounded-lg border bg-card p-2 text-center">
-              <div className="text-[10px] font-medium text-muted-foreground">Recuperaciones</div>
-              <div className="text-lg font-bold text-green-600 dark:text-green-400">{totalRecuperaciones}</div>
-              {!compact ? <div className="text-xs text-muted-foreground">Media: {avgRecuperaciones}/p</div> : null}
+              <div className="text-[10px] font-medium text-muted-foreground">Recibidos</div>
+              <div className="text-lg font-bold text-red-600 dark:text-red-400">{totalGoalsReceived}</div>
+              {!compact ? <div className="text-xs text-muted-foreground">Media: {avgGoalsReceivedPerMatch}/p</div> : null}
             </div>
 
             <div className="rounded-lg border bg-card p-2 text-center">
@@ -137,15 +144,15 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                 {balanceTotal >= 0 ? "+" : ""}
                 {balanceTotal}
               </div>
-              {!compact ? <div className="text-xs text-muted-foreground">Media: {avgBalance}/p</div> : null}
+              {!compact ? <div className="text-xs text-muted-foreground">Bloq − Rec.</div> : null}
             </div>
           </div>
 
           <ChartContainer
             config={{
-              perdidas: { label: "Pérdidas", color: "hsl(0, 84%, 60%)" },
-              recuperaciones: { label: "Recuperaciones", color: "hsl(142, 71%, 45%)" },
-              balance: { label: "Balance (acum.)", color: "hsl(217, 91%, 60%)" },
+              bloqueos: { label: "Bloqueos", color: "hsl(142, 71%, 45%)" },
+              golesRecibidos: { label: "Goles Recibidos", color: "hsl(0, 84%, 60%)" },
+              promedioBloqueos: { label: "Promedio Bloqueos", color: "hsl(217, 91%, 60%)" },
             }}
             className={`w-full ${compact ? "h-[190px]" : "h-[420px]"}`}
           >
@@ -164,8 +171,19 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                 />
 
                 <YAxis
+                  yAxisId="left"
                   fontSize={12}
                   width={34}
+                  tickMargin={6}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  fontSize={12}
+                  width={40}
                   tickMargin={6}
                   axisLine={false}
                   tickLine={false}
@@ -177,7 +195,7 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                       labelFormatter={(label, payload) => {
                         const p = payload?.[0]?.payload
                         if (!p) return String(label)
-                        return `${label} · vs ${p.rival} · ${p.fullDate} · Bal(p): ${p.balancePartido >= 0 ? "+" : ""}${p.balancePartido}`
+                        return `${label} · vs ${p.rival} · ${p.fullDate} · Bal: ${p.balance >= 0 ? "+" : ""}${p.balance}`
                       }}
                     />
                   }
@@ -185,19 +203,27 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
 
                 <Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
 
-                <Bar dataKey="perdidas" fill="var(--color-perdidas)" name="Pérdidas" radius={[4, 4, 0, 0]} />
                 <Bar
-                  dataKey="recuperaciones"
-                  fill="var(--color-recuperaciones)"
-                  name="Recuperaciones"
+                  yAxisId="left"
+                  dataKey="bloqueos"
+                  name="Bloqueos"
+                  fill="var(--color-bloqueos)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="golesRecibidos"
+                  name="Goles Recibidos"
+                  fill="var(--color-golesRecibidos)"
                   radius={[4, 4, 0, 0]}
                 />
 
                 <Line
+                  yAxisId="right"
                   type="monotone"
-                  dataKey="balance"
-                  stroke="var(--color-balance)"
-                  name="Balance (acumulado)"
+                  dataKey="promedioBloqueos"
+                  name="Promedio Bloqueos"
+                  stroke="var(--color-promedioBloqueos)"
                   strokeWidth={5}
                   dot={false}
                   activeDot={{ r: 4 }}
@@ -216,8 +242,8 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="w-[90px]">Jornada</TableHead>
                     <TableHead>Rival</TableHead>
-                    <TableHead className="text-right">Pérdidas</TableHead>
-                    <TableHead className="text-right">Recup.</TableHead>
+                    <TableHead className="text-center">Bloqueos</TableHead>
+                    <TableHead className="text-center">Recibidos</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
                   </TableRow>
@@ -225,8 +251,8 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
 
                 <TableBody>
                   {matchData.map((m, idx) => {
-                    const pct = Math.round((Math.abs(m.balance) / maxAbsBalance) * 100)
                     const dot = m.balance >= 0 ? "bg-green-500" : "bg-red-500"
+                    const pctBalance = Math.round((Math.abs(m.balance) / maxAbsBalance) * 100)
 
                     return (
                       <TableRow
@@ -247,15 +273,13 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                           </div>
                         </TableCell>
 
-                        <TableCell className="text-right tabular-nums">
-                          <Badge variant="destructive" className="tabular-nums">
-                            −{m.perdidas}
-                          </Badge>
+                        <TableCell className="text-center">
+                          <Badge className={`${getBlocksColor(m.bloqueos)} text-white tabular-nums`}>{m.bloqueos}</Badge>
                         </TableCell>
 
-                        <TableCell className="text-right tabular-nums">
-                          <Badge className="bg-green-500 text-white hover:bg-green-500 tabular-nums">
-                            +{m.recuperaciones}
+                        <TableCell className="text-center tabular-nums">
+                          <Badge variant="destructive" className="tabular-nums">
+                            {m.golesRecibidos}
                           </Badge>
                         </TableCell>
 
@@ -270,7 +294,7 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                               <div className="h-2 rounded-full bg-muted overflow-hidden">
                                 <div
                                   className="h-2 rounded-full bg-blue-600 dark:bg-blue-400 transition-all"
-                                  style={{ width: `${pct}%` }}
+                                  style={{ width: `${pctBalance}%` }}
                                 />
                               </div>
                             </div>
@@ -294,12 +318,12 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
 
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-md border bg-card px-2 py-1">
-                  Pérdidas: <span className="font-semibold text-foreground">{totalPerdidas}</span>{" "}
-                  <span className="text-muted-foreground">({avgPerdidas}/p)</span>
+                  Bloqueos: <span className="font-semibold text-foreground">{totalBlocks}</span>{" "}
+                  <span className="text-muted-foreground">({avgBlocksPerMatch}/p)</span>
                 </span>
                 <span className="rounded-md border bg-card px-2 py-1">
-                  Recuperaciones: <span className="font-semibold text-foreground">{totalRecuperaciones}</span>{" "}
-                  <span className="text-muted-foreground">({avgRecuperaciones}/p)</span>
+                  Recibidos: <span className="font-semibold text-foreground">{totalGoalsReceived}</span>{" "}
+                  <span className="text-muted-foreground">({avgGoalsReceivedPerMatch}/p)</span>
                 </span>
                 <span className="rounded-md border bg-card px-2 py-1">
                   Balance:{" "}
