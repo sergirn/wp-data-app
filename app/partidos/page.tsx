@@ -120,7 +120,6 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 
 	const isTied = match.home_score === match.away_score;
 	const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null;
-	const { currentClub } = useClub();
 	let result: string;
 	let resultColor: string;
 
@@ -167,116 +166,103 @@ function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: strin
 	};
 
 	return (
-		<Card className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={handleCardClick}>
-			<CardContent className="p-0">
-				{/* ===== HEADER estilo PlayerHeroHeader ===== */}
-				<div className="relative overflow-hidden rounded-xl border-2">
-					{/* Fondo logo difuminado */}
-					<div className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[420px]">
-						<div className="relative h-full w-full">
-							{/* Halo / gradiente detrás */}
-							<div className={`absolute inset-10 rounded-full bg-gradient-to-br ${logoGlow} blur-3xl`} />
+		<CardContent className="p-0 hover:bg-muted/100 transition-colors cursor-pointer" onClick={handleCardClick}>
+			<div className="relative overflow-hidden rounded-xl border-2">
+				<div className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[420px]">
+					<div className="relative h-full w-full">
+						<div className={`absolute inset-10 rounded-full bg-gradient-to-br ${logoGlow} blur-3xl`} />
+						<Image
+							src={logo}
+							alt="LEWaterpolo"
+							fill
+							className="object-contain opacity-25 hover:opacity-50 transition-opacity duration-2"
+						/>
+					</div>
+				</div>
 
-							{/* Logo SIN fondo */}
-							<Image
-								src={logo}
-								alt="LEWaterpolo"
-								fill
-								className="object-contain opacity-25 hover:opacity-50 transition-opacity duration-2"
-							/>
+				<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/30" />
+
+				<div className="relative p-4 sm:p-6">
+					<div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+						<div className="flex-1 min-w-0">
+							<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+								<h3 className="text-lg sm:text-xl font-bold truncate">
+									{clubName} vs {match.opponent}
+								</h3>
+								<span className={`text-xs sm:text-sm font-semibold ${resultColor}`}>{result}</span>
+							</div>
+
+							<div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+								<span>
+									{matchDate.toLocaleDateString("es-ES", {
+										weekday: "long",
+										year: "numeric",
+										month: "long",
+										day: "numeric"
+									})}
+								</span>
+
+								{match.location && <span>• {match.location}</span>}
+								{match.season && <span>• {match.season}</span>}
+								{match.jornada && <span>• Jornada {match.jornada}</span>}
+							</div>
+						</div>
+
+						{/* MARCADOR */}
+						<div className="flex flex-col items-center justify-center gap-2 w-full sm:w-auto">
+							<div className="flex items-center gap-4 sm:gap-6">
+								<div className="text-center">
+									<p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
+									<p className="text-xs text-muted-foreground truncate max-w-[120px]">{clubName}</p>
+								</div>
+
+								<div className="text-xl sm:text-2xl font-bold text-muted-foreground">-</div>
+
+								<div className="text-center">
+									<p className="text-2xl sm:text-3xl font-bold">{match.away_score}</p>
+									<p className="text-xs text-muted-foreground truncate max-w-[120px]">{match.opponent}</p>
+								</div>
+							</div>
+
+							{hasPenalties && (
+								<div className="text-xs text-muted-foreground font-medium">
+									Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
+								</div>
+							)}
 						</div>
 					</div>
 
-					{/* Overlay legibilidad */}
-					<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/30" />
-
-					{/* Contenido */}
-					<div className="relative p-4 sm:p-6">
-						{/* ===================== */}
-						{/* FILA: INFO + MARCADOR */}
-						{/* ===================== */}
-						<div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-							{/* INFO DEL PARTIDO */}
-							<div className="flex-1 min-w-0">
-								<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-									<h3 className="text-lg sm:text-xl font-bold truncate">
-										{clubName} vs {match.opponent}
-									</h3>
-									<span className={`text-xs sm:text-sm font-semibold ${resultColor}`}>{result}</span>
-								</div>
-
-								<div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
-									<span>
-										{matchDate.toLocaleDateString("es-ES", {
-											weekday: "long",
-											year: "numeric",
-											month: "long",
-											day: "numeric"
-										})}
-									</span>
-
-									{match.location && <span>• {match.location}</span>}
-									{match.season && <span>• {match.season}</span>}
-									{match.jornada && <span>• Jornada {match.jornada}</span>}
-								</div>
-							</div>
-
-							{/* MARCADOR */}
-							<div className="flex flex-col items-center justify-center gap-2 w-full sm:w-auto">
-								<div className="flex items-center gap-4 sm:gap-6">
-									<div className="text-center">
-										<p className="text-2xl sm:text-3xl font-bold">{match.home_score}</p>
-										<p className="text-xs text-muted-foreground truncate max-w-[120px]">{clubName}</p>
-									</div>
-
-									<div className="text-xl sm:text-2xl font-bold text-muted-foreground">-</div>
-
-									<div className="text-center">
-										<p className="text-2xl sm:text-3xl font-bold">{match.away_score}</p>
-										<p className="text-xs text-muted-foreground truncate max-w-[120px]">{match.opponent}</p>
-									</div>
-								</div>
-
-								{hasPenalties && (
-									<div className="text-xs text-muted-foreground font-medium">
-										Penaltis: {match.penalty_home_score} - {match.penalty_away_score}
-									</div>
-								)}
-							</div>
-						</div>
-
-						{/* ===================== */}
-						{/* BOTONES: 50% - 50% */}
-						{/* ===================== */}
-						{canEdit && (
-							<div className="flex gap-3 mt-4 action-buttons">
-								{/* EDITAR */}
-								<Link
-									href={`/nuevo-partido?matchId=${match.id}`}
-									className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
+					{/* ===================== */}
+					{/* BOTONES: 50% - 50% */}
+					{/* ===================== */}
+					{canEdit && (
+						<div className="flex gap-3 mt-4 action-buttons">
+							{/* EDITAR */}
+							<Link
+								href={`/nuevo-partido?matchId=${match.id}`}
+								className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
                   text-blue-700 dark:text-blue-400 
                   bg-blue-500/5 hover:bg-blue-500/20 
                   transition-all duration-200 font-medium"
-								>
-									<Edit className="h-4 w-4" />
-									<span className="hidden sm:inline text-sm">Editar</span>
-								</Link>
+							>
+								<Edit className="h-4 w-4" />
+								<span className="hidden sm:inline text-sm">Editar</span>
+							</Link>
 
-								{/* ELIMINAR */}
-								<div
-									className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
+							{/* ELIMINAR */}
+							<div
+								className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
                   text-red-700 dark:text-red-400 
                   bg-red-500/5 hover:bg-red-500/20 
                   transition-all duration-200 font-medium"
-								>
-									<DeleteMatchButton matchId={match.id} />
-									<span className="hidden sm:inline text-sm">Eliminar</span>
-								</div>
+							>
+								<DeleteMatchButton matchId={match.id} />
+								<span className="hidden sm:inline text-sm">Eliminar</span>
 							</div>
-						)}
-					</div>
+						</div>
+					)}
 				</div>
-			</CardContent>
-		</Card>
+			</div>
+		</CardContent>
 	);
 }
