@@ -5,7 +5,8 @@ import { ExpandableChartCard } from "@/components/analytics-player/ExpandableCha
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import {
   Bar,
-  BarChart,
+  Line,
+  ComposedChart,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -13,14 +14,7 @@ import {
   CartesianGrid,
 } from "recharts"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader as UITableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table"
 import { AlertTriangle } from "lucide-react"
 
 interface DisciplineChartProps {
@@ -29,7 +23,6 @@ interface DisciplineChartProps {
 }
 
 export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
-  // ✅ ordenar de jornada 1 a la actual
   const sortedMatches = useMemo(() => {
     return [...(matches ?? [])].sort((a, b) => {
       const aj = a?.jornada ?? 9999
@@ -43,19 +36,16 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
     return sortedMatches.map((match, index) => {
       const matchStats = (stats ?? []).filter((s) => String(s.match_id) === String(match.id))
 
-      const exp3 = matchStats.reduce(
-        (sum, s) => sum + (s.faltas_exp_3_bruta || 0) + (s.faltas_exp_3_int || 0),
-        0,
-      )
-      const exp20 = matchStats.reduce(
-        (sum, s) => sum + (s.faltas_exp_20_1c1 || 0) + (s.faltas_exp_20_boya || 0),
-        0,
-      )
+      // ✅ SOLO estos campos
+      const exp20_1c1 = matchStats.reduce((sum, s) => sum + (s.faltas_exp_20_1c1 || 0), 0)
+      const exp20_boya = matchStats.reduce((sum, s) => sum + (s.faltas_exp_20_boya || 0), 0)
       const penaltis = matchStats.reduce((sum, s) => sum + (s.faltas_penalti || 0), 0)
-      const contrafaltas = matchStats.reduce((sum, s) => sum + (s.faltas_contrafaltas || 0), 0)
+      const expSimple = matchStats.reduce((sum, s) => sum + (s.faltas_exp_simple || 0), 0)
 
       const jornadaNumber = match.jornada ?? index + 1
-      const total = exp3 + exp20 + penaltis + contrafaltas
+
+      const totalExclusiones = exp20_1c1 + exp20_boya + expSimple
+      const total = totalExclusiones + penaltis
 
       return {
         matchId: match.id,
@@ -64,46 +54,57 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
         fullOpponent: match.opponent,
         fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
 
-        exp3,
-        exp20,
+        exp20_1c1,
+        exp20_boya,
+        expSimple,
         penaltis,
-        contrafaltas,
+
+        totalExclusiones,
         total,
-        totalExclusiones: exp3 + exp20,
       }
     })
   }, [sortedMatches, stats])
 
+  // ✅ ChartData con promedio acumulado (como en BlocksChart)
   const chartData = useMemo(() => {
-    return matchData.map((m) => ({
-      matchId: m.matchId,
-      jornada: m.jornada,
-      rival: m.fullOpponent,
-      fullDate: m.fullDate,
+    return matchData.map((m, index) => {
+      const prev = matchData.slice(0, index + 1)
+      const avgTotal = prev.reduce((sum, x) => sum + x.total, 0) / (index + 1)
 
-      exp3: m.exp3,
-      exp20: m.exp20,
-      penaltis: m.penaltis,
-      contrafaltas: m.contrafaltas,
-      total: m.total,
-      totalExclusiones: m.totalExclusiones,
-    }))
+      return {
+        matchId: m.matchId,
+        jornada: m.jornada,
+        rival: m.fullOpponent,
+        fullDate: m.fullDate,
+
+        exp20_1c1: m.exp20_1c1,
+        exp20_boya: m.exp20_boya,
+        expSimple: m.expSimple,
+        penaltis: m.penaltis,
+
+        totalExclusiones: m.totalExclusiones,
+        total: m.total,
+
+        // ✅ línea
+        promedioTotal: Number(avgTotal.toFixed(1)),
+      }
+    })
   }, [matchData])
 
-  // ===== RESUMEN =====
+  // ===== RESUMEN (KPIs con medias, como antes) =====
   const partidos = matchData.length
-  const totalExp3 = matchData.reduce((sum, m) => sum + m.exp3, 0)
-  const totalExp20 = matchData.reduce((sum, m) => sum + m.exp20, 0)
+  const total20_1c1 = matchData.reduce((sum, m) => sum + m.exp20_1c1, 0)
+  const total20_boya = matchData.reduce((sum, m) => sum + m.exp20_boya, 0)
+  const totalExpSimple = matchData.reduce((sum, m) => sum + m.expSimple, 0)
   const totalPenaltis = matchData.reduce((sum, m) => sum + m.penaltis, 0)
-  const totalContrafaltas = matchData.reduce((sum, m) => sum + m.contrafaltas, 0)
 
-  const totalExclusiones = totalExp3 + totalExp20
-  const totalAcciones = totalExclusiones + totalPenaltis + totalContrafaltas
+  const totalExclusiones = total20_1c1 + total20_boya + totalExpSimple
+  const totalAcciones = totalExclusiones + totalPenaltis
 
   const avgAcciones = partidos > 0 ? (totalAcciones / partidos).toFixed(1) : "0.0"
   const avgExclusiones = partidos > 0 ? (totalExclusiones / partidos).toFixed(1) : "0.0"
   const avgPenaltis = partidos > 0 ? (totalPenaltis / partidos).toFixed(1) : "0.0"
-  const avgContrafaltas = partidos > 0 ? (totalContrafaltas / partidos).toFixed(1) : "0.0"
+  const avgExpSimple = partidos > 0 ? (totalExpSimple / partidos).toFixed(1) : "0.0"
 
   const maxTotal = Math.max(...matchData.map((m) => m.total), 1)
 
@@ -118,13 +119,13 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
   return (
     <ExpandableChartCard
       title="Disciplina por Partido"
-      description={`P. ${partidos} · Bal: ${avgAcciones}/p · Exp.: ${avgExclusiones}/p · Pen: ${avgPenaltis}/p · Cont: ${avgContrafaltas}/p`}
+      description={`P. ${partidos} · Bal: ${avgAcciones}/p · Excl.: ${avgExclusiones}/p · Pen: ${avgPenaltis}/p`}
       icon={<AlertTriangle className="h-5 w-5" />}
       className="bg-gradient-to-br from-blue-500/5 to-white-500/5"
       rightHeader={<span className="text-xs text-muted-foreground">{totalAcciones}</span>}
       renderChart={({ compact }) => (
         <div className="space-y-3">
-          {/* Resumen compacto */}
+          {/* ✅ KPIs ARRIBA (se mantienen) */}
           <div className={`grid gap-2 ${compact ? "grid-cols-4" : "grid-cols-4 md:gap-4"}`}>
             <div className="rounded-lg border bg-card p-2 text-center">
               <div className="text-[10px] font-medium text-muted-foreground">Total</div>
@@ -145,23 +146,24 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
             </div>
 
             <div className="rounded-lg border bg-card p-2 text-center">
-              <div className="text-[10px] font-medium text-muted-foreground">Contrafaltas</div>
-              <div className="text-lg font-bold text-red-600 dark:text-red-400">{totalContrafaltas}</div>
-              {!compact ? <div className="text-xs text-muted-foreground">Media: {avgContrafaltas}/p</div> : null}
+              <div className="text-[10px] font-medium text-muted-foreground">Exp. simple</div>
+              <div className="text-lg font-bold text-red-600 dark:text-red-400">{totalExpSimple}</div>
+              {!compact ? <div className="text-xs text-muted-foreground">Media: {avgExpSimple}/p</div> : null}
             </div>
           </div>
 
           <ChartContainer
             config={{
-              exp3: { label: "Exclusiones 3m", color: "hsl(0, 84%, 60%)" },
-              exp20: { label: "Exclusiones 20s", color: "hsl(38, 92%, 55%)" },
+              exp20_1c1: { label: "Exp. 20s (1c1)", color: "hsl(38, 92%, 55%)" },
+              exp20_boya: { label: "Exp. 20s (Boya)", color: "hsl(28, 90%, 55%)" },
+              expSimple: { label: "Exp. simple", color: "hsl(217, 91%, 60%)" },
               penaltis: { label: "Penaltis", color: "hsl(262, 85%, 65%)" },
-              contrafaltas: { label: "Contrafaltas", color: "hsl(217, 91%, 60%)" },
+              promedioTotal: { label: "Media (acum.)", color: "hsl(142, 71%, 45%)" },
             }}
             className={`w-full ${compact ? "h-[190px]" : "h-[420px]"}`}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
+              <ComposedChart data={chartData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
                 <XAxis
@@ -174,9 +176,15 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
                   minTickGap={18}
                 />
 
+                {/* barras */}
+                <YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+
+                {/* línea media */}
                 <YAxis
+                  yAxisId="right"
+                  orientation="right"
                   fontSize={12}
-                  width={34}
+                  width={40}
                   tickMargin={6}
                   axisLine={false}
                   tickLine={false}
@@ -188,7 +196,7 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
                       labelFormatter={(label, payload) => {
                         const p = payload?.[0]?.payload
                         if (!p) return String(label)
-                        return `${label} · vs ${p.rival} · ${p.fullDate} · Total: ${p.total}`
+                        return `${label} · vs ${p.rival} · ${p.fullDate} · Total: ${p.total} · Media: ${p.promedioTotal}`
                       }}
                     />
                   }
@@ -196,11 +204,47 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
 
                 <Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
 
-                <Bar dataKey="exp3" fill="var(--color-exp3)" name="Exclusiones 3m" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="exp20" fill="var(--color-exp20)" name="Exclusiones 20s" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="penaltis" fill="var(--color-penaltis)" name="Penaltis" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="contrafaltas" fill="var(--color-contrafaltas)" name="Contrafaltas" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Bar
+                  yAxisId="left"
+                  dataKey="exp20_1c1"
+                  fill="var(--color-exp20_1c1)"
+                  name="Exp. 20s (1c1)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="exp20_boya"
+                  fill="var(--color-exp20_boya)"
+                  name="Exp. 20s (Boya)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="expSimple"
+                  fill="var(--color-expSimple)"
+                  name="Exp. simple"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="penaltis"
+                  fill="var(--color-penaltis)"
+                  name="Penaltis"
+                  radius={[4, 4, 0, 0]}
+                />
+
+                {/* ✅ Media acumulada estilo BlocksChart */}
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="promedioTotal"
+                  name="Media (acum.)"
+                  stroke="var(--color-promedioTotal)"
+                  strokeWidth={5}
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
@@ -209,18 +253,18 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
         <div className="rounded-xl border overflow-hidden bg-card w-full">
           <div className="w-full overflow-x-auto">
             <div className="max-h-[520px] overflow-y-auto">
-              <Table className="min-w-[860px]">
+              <Table className="min-w-[920px]">
                 <UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="w-[90px]">Jornada</TableHead>
                     <TableHead>Rival</TableHead>
 
                     <TableHead className="text-right">Excl.</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Exp. 3m</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Exp. 20s</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">20s 1c1</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">20s Boya</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Exp S</TableHead>
 
                     <TableHead className="text-right hidden sm:table-cell">Pen.</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">Contraf.</TableHead>
 
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
@@ -232,9 +276,7 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
                     const total = m.total
                     const excl = m.totalExclusiones
                     const percent = Math.round((total / maxTotal) * 100)
-
-                    const levelDot =
-                      total <= 4 ? "bg-green-500" : total <= 8 ? "bg-yellow-500" : "bg-red-500"
+                    const levelDot = total <= 4 ? "bg-green-500" : total <= 8 ? "bg-yellow-500" : "bg-red-500"
 
                     return (
                       <TableRow
@@ -261,11 +303,11 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
                           </Badge>
                         </TableCell>
 
-                        <TableCell className="text-right hidden md:table-cell tabular-nums">{m.exp3}</TableCell>
-                        <TableCell className="text-right hidden md:table-cell tabular-nums">{m.exp20}</TableCell>
+                        <TableCell className="text-right hidden md:table-cell tabular-nums">{m.exp20_1c1}</TableCell>
+                        <TableCell className="text-right hidden md:table-cell tabular-nums">{m.exp20_boya}</TableCell>
+                        <TableCell className="text-right hidden md:table-cell tabular-nums">{m.expSimple}</TableCell>
 
                         <TableCell className="text-right hidden sm:table-cell tabular-nums">{m.penaltis}</TableCell>
-                        <TableCell className="text-right hidden sm:table-cell tabular-nums">{m.contrafaltas}</TableCell>
 
                         <TableCell className="text-right">
                           <div className="flex items-end justify-end gap-3">
@@ -302,14 +344,17 @@ export function DisciplineChart({ matches, stats }: DisciplineChartProps) {
                   Exclusiones: <span className="font-semibold text-foreground">{totalExclusiones}</span>{" "}
                   <span className="text-muted-foreground">({avgExclusiones}/p)</span>
                 </span>
+
                 <span className="rounded-md border bg-card px-2 py-1">
                   Penaltis: <span className="font-semibold text-foreground">{totalPenaltis}</span>{" "}
                   <span className="text-muted-foreground">({avgPenaltis}/p)</span>
                 </span>
+
                 <span className="rounded-md border bg-card px-2 py-1">
-                  Contrafaltas: <span className="font-semibold text-foreground">{totalContrafaltas}</span>{" "}
-                  <span className="text-muted-foreground">({avgContrafaltas}/p)</span>
+                  Exp. simple: <span className="font-semibold text-foreground">{totalExpSimple}</span>{" "}
+                  <span className="text-muted-foreground">({avgExpSimple}/p)</span>
                 </span>
+
                 <span className="rounded-md border bg-card px-2 py-1">
                   Total: <span className="font-semibold text-foreground">{totalAcciones}</span>{" "}
                   <span className="text-muted-foreground">({avgAcciones}/p)</span>

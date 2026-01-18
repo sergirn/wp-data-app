@@ -31,6 +31,8 @@ import { PlayerSubstitutionDialog } from "@/components/player-substitution-dialo
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { SprintWinnerModal } from "@/components/nuevo-partido/modals/SprintWinnerPlayerModal"
+import { GoalkeeperShotDraft, GoalkeeperShotsRecorder } from "@/components/nuevo-partido/modal-stats/GoalkeeperShotsRecorder"
 
 interface MatchEditParams {
   matchId?: number
@@ -52,12 +54,21 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     4: { home: 0, away: 0 },
   })
 
-  const [sprintWinners, setSprintWinners] = useState({
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
+  type Quarter = 1 | 2 | 3 | 4
+
+  const [sprintModalOpen, setSprintModalOpen] = useState(false)
+  const [activeSprintQuarter, setActiveSprintQuarter] = useState<Quarter | null>(null)
+
+  const [sprintWinners, setSprintWinners] = useState<Record<Quarter, number | null>>({
+    1: null, 2: null, 3: null, 4: null,
   })
+
+  const getWinnerLabel = (playerId: number | null) => {
+    if (!playerId) return null
+    const p = allPlayers.find((x) => x.id === playerId)
+    if (!p) return "Jugador no encontrado"
+    return `#${p.number} · ${p.name}`
+  }
 
   // ADD STATE FOR PENALTY SHOOTOUT
   const [penaltyHomeScore, setPenaltyHomeScore] = useState<number | null>(null)
@@ -83,11 +94,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   const [loadingLineup, setLoadingLineup] = useState(false)
   const [editingMatchId, setEditingMatchId] = useState<number | null>(null)
   const [existingMatch, setExistingMatch] = useState<Match | null>(null)
-
-  // ADD STATE FOR THE ADDPLAYER DIALOG
   const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false)
   const [selectedAddPlayer, setSelectedAddPlayer] = useState<Player | null>(null)
-
   const [matchDate, setMatchDate] = useState(new Date().toISOString().split("T")[0])
   const [opponent, setOpponent] = useState("")
   const [location, setLocation] = useState("")
@@ -95,10 +103,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   const [season, setSeason] = useState(getCurrentSeason())
   const [jornada, setJornada] = useState(1)
   const [notes, setNotes] = useState("")
-
   const [stats, setStats] = useState<Record<number, Partial<MatchStats>>>({})
-
   const { toast } = useToast()
+  const [goalkeeperShots, setGoalkeeperShots] = useState<GoalkeeperShotDraft[]>([])
+
 
   // Fetch club name for display
   const [myClub, setMyClub] = useState<{ id: string; name: string } | null>(null)
@@ -121,35 +129,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
       setPenaltyAwayScore(awayScore)
     }
   }, [penaltyShooters, rivalPenalties])
-  // </CHANGE>
-
-  const calculateQuarterScores = (playerStats: Record<number, Partial<MatchStats>>) => {
-    let homeGoals = 0
-    let awayGoals = 0
-
-    Object.entries(playerStats).forEach(([playerId, playerStat]) => {
-      const player = allPlayers.find((p) => p.id === Number(playerId))
-
-      if (player?.is_goalkeeper) {
-        const goalkeeperScoredGoals = playerStat.portero_gol || 0
-        homeGoals += goalkeeperScoredGoals
-
-        // Goles que recibe el portero (suman al rival)
-        const goalkeeperGoals =
-          (playerStat.portero_goles_boya_parada || 0) +
-          (playerStat.portero_goles_hombre_menos || 0) +
-          (playerStat.portero_goles_dir_mas_5m || 0) +
-          (playerStat.portero_goles_contraataque || 0) +
-          (playerStat.portero_goles_penalti || 0)
-
-        awayGoals += goalkeeperGoals
-      } else {
-        homeGoals += playerStat.goles_totales || 0
-      }
-    })
-
-    return { homeGoals, awayGoals }
-  }
 
   const calculateScores = (playerStats: Record<number, Partial<MatchStats>>) => {
     let homeGoals = 0
@@ -392,7 +371,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     tiros_penalti_juego: 0,
     faltas_exp_3_int: 0,
     faltas_exp_3_bruta: 0,
-    acciones_perdida_poco: 0, // AÑADIDO ESTO
+    faltas_exp_simple: 0,
+    pase_boya: 0,
+    pase_boya_fallado: 0,
+    acciones_perdida_poco: 0,
     portero_goles_lanzamiento: 0,
     portero_goles_penalti_encajado: 0,
     portero_tiros_parado: 0,
@@ -403,10 +385,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
     portero_exp_provocada: 0,
     portero_penalti_provocado: 0,
     portero_recibir_gol: 0,
-    // ADDED GOALKEEPER INFERIORITY FIELDS
     portero_inferioridad_fuera: 0,
     portero_inferioridad_bloqueo: 0,
-    // ADDED REBOUND FIELDS FOR SUPERIORITY SITUATIONS
     rebote_recup_hombre_mas: 0,
     rebote_perd_hombre_mas: 0,
   })
@@ -419,6 +399,18 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
       if (key === "player_id" || key === "match_id") return false
       return typeof value === "number" && value > 0
     })
+  }
+
+  const calcParadasTotales = (s?: Partial<MatchStats> | null) => {
+    if (!s) return 0
+
+    return (
+      safeNumber(s.portero_tiros_parada_recup) +
+      safeNumber(s.portero_tiros_parado) +
+      safeNumber(s.portero_paradas_fuera) +
+      safeNumber(s.portero_paradas_penalti_parado) +
+      safeNumber(s.portero_paradas_hombre_menos)
+    )
   }
 
   const getAvailablePlayers = (isGoalkeeper: boolean): Player[] => {
@@ -509,6 +501,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         2: match.q2_score !== undefined && match.q2_score_rival !== undefined,
         3: match.q3_score !== undefined && match.q3_score_rival !== undefined,
         4: match.q4_score !== undefined && match.q4_score_rival !== undefined,
+      })
+
+      setSprintWinners({
+        1: match.sprint1_winner_player_id ?? null,
+        2: match.sprint2_winner_player_id ?? null,
+        3: match.sprint3_winner_player_id ?? null,
+        4: match.sprint4_winner_player_id ?? null,
       })
 
       const { data: matchStats, error: statsError } = await supabase
@@ -829,8 +828,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             sprint2_winner: sprint2Winner === 1 ? 1 : sprint2Winner === 2 ? 2 : null,
             sprint3_winner: sprint3Winner === 1 ? 1 : sprint3Winner === 2 ? 2 : null,
             sprint4_winner: sprint4Winner === 1 ? 1 : sprint4Winner === 2 ? 2 : null,
+            sprint1_winner_player_id: sprintWinners[1],
+            sprint2_winner_player_id: sprintWinners[2],
+            sprint3_winner_player_id: sprintWinners[3],
+            sprint4_winner_player_id: sprintWinners[4],
             max_players_on_field: maxPlayers,
-            // ADD PENALTY SHOOTOUT SCORES
             penalty_home_score: homeGoals === awayGoals ? penaltyHomeScore : null,
             penalty_away_score: homeGoals === awayGoals ? penaltyAwayScore : null,
           })
@@ -849,7 +851,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
         if (statsError) throw statsError
 
-        // Update penalty shootout players if applicable
         if (homeGoals === awayGoals) {
           await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId)
           if (penaltyShooters.length > 0) {
@@ -859,7 +860,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
               shot_order: index + 1,
               scored: shooter.scored,
               is_home_team: true,
-              goalkeeper_id: penaltyGoalkeeperMap[shooter.playerId] || null, // Map goalkeeper if selected
+              goalkeeper_id: penaltyGoalkeeperMap[shooter.playerId] || null,
               result_type: shooter.scored ? "scored" : "missed",
             }))
             if (rivalPenalties.length > 0) {
@@ -869,7 +870,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                   player_id: null,
                   scored: penalty.result === "scored",
                   shot_order: index + 1,
-                  result_type: penalty.result, // Store "scored", "saved", or "missed"
+                  result_type: penalty.result,
                   goalkeeper_id: penaltyGoalkeeperMap[penalty.id] || null,
                 })),
               )
@@ -882,6 +883,23 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
         } else {
           await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId)
         }
+
+
+      await supabase.from("goalkeeper_shots").delete().eq("match_id", editingMatchId)
+
+      if (goalkeeperShots.length > 0) {
+        const rows = goalkeeperShots.map((s) => ({
+          match_id: editingMatchId,
+          goalkeeper_player_id: s.goalkeeper_player_id,
+          quarter: null,
+          shot_index: s.shot_index,
+          result: s.result,
+          x: s.x,
+          y: s.y,
+        }))
+        const { error: gkShotsError } = await supabase.from("goalkeeper_shots").insert(rows)
+        if (gkShotsError) throw gkShotsError
+      }
 
         router.push(`/partidos/${editingMatchId}`)
       } else {
@@ -909,6 +927,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
             sprint2_winner: sprint2Winner === 1 ? 1 : sprint2Winner === 2 ? 2 : null,
             sprint3_winner: sprint3Winner === 1 ? 1 : sprint3Winner === 2 ? 2 : null,
             sprint4_winner: sprint4Winner === 1 ? 1 : sprint4Winner === 2 ? 2 : null,
+            sprint1_winner_player_id: sprintWinners[1],
+            sprint2_winner_player_id: sprintWinners[2],
+            sprint3_winner_player_id: sprintWinners[3],
+            sprint4_winner_player_id: sprintWinners[4],
             max_players_on_field: maxPlayers,
             notes: notes || null,
             penalty_home_score: homeGoals === awayGoals ? penaltyHomeScore : null,
@@ -964,6 +986,21 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
           }
         }
 
+
+       if (goalkeeperShots.length > 0) {
+        const rows = goalkeeperShots.map((s) => ({
+          match_id: newMatch.id,
+          goalkeeper_player_id: s.goalkeeper_player_id,
+          quarter: null,    
+          shot_index: s.shot_index,
+          result: s.result,
+          x: s.x,
+          y: s.y,
+        }))
+        const { error: gkShotsError } = await supabase.from("goalkeeper_shots").insert(rows)
+        if (gkShotsError) throw gkShotsError
+      }
+
         router.push(`/partidos/${newMatch.id}`)
       }
     } catch (error) {
@@ -977,7 +1014,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
   const totalExpulsiones = (s: any) =>
   safeNumber(s?.faltas_exp_20_1c1) +
   safeNumber(s?.faltas_exp_20_boya) +
-  safeNumber(s?.faltas_penalti)
+  safeNumber(s?.faltas_penalti) +
+  safeNumber(s?.faltas_exp_3_int) +
+  safeNumber(s?.faltas_exp_3_bruta) +
+  safeNumber(s?.faltas_exp_simple)
+
+
+
 
 
   if (loading) {
@@ -1170,84 +1213,127 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
               <div className="space-y-2 md:col-span-3 border-t pt-4 mt-4">
                 <h3 className="font-semibold text-sm mb-3">Puntuación por Parciales</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[1, 2, 3, 4].map((q) => (
-                    <div
-                      key={q}
-                      className={`space-y-2 p-3 border rounded ${
-                        closedQuarters[q] ? "bg-gray-200/50 opacity-60 dark:bg-gray-800/50" : "bg-muted/30"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-sm font-medium">Parcial {q}</Label>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs">Propios</Label>
-                          <Input
-                            type="number"
-                            value={quarterScores[q].home}
-                            onChange={(e) => {
-                              if (!closedQuarters[q]) {
-                                setQuarterScores((prev) => ({
-                                  ...prev,
-                                  [q]: { ...prev[q], home: Number.parseInt(e.target.value) || 0 },
-                                }))
-                              }
-                            }}
-                            disabled={closedQuarters[q]}
-                            min={0}
-                            className="text-center font-bold text-lg"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Rival</Label>
-                          <Input
-                            type="number"
-                            value={quarterScores[q].away}
-                            onChange={(e) => {
-                              if (!closedQuarters[q]) {
-                                setQuarterScores((prev) => ({
-                                  ...prev,
-                                  [q]: { ...prev[q], away: Number.parseInt(e.target.value) || 0 },
-                                }))
-                              }
-                            }}
-                            disabled={closedQuarters[q]}
-                            min={0}
-                            className="text-center font-bold text-lg"
-                          />
-                        </div>
-                      </div>
-                      {/* SPRINT WINNER CHECKBOX */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSprintWinners((prev) => ({
-                            ...prev,
-                            [q]: prev[q] === 1 ? 0 : 1,
-                          }))
-                        }
-                        className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border
-														${
-                              sprintWinners[q] === 1
-                                ? "bg-green-500 text-white border-green-600"
-                                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
-                            }`}
+                  {[1, 2, 3, 4].map((q) => {
+                    const quarter = q as Quarter
+                    const winnerId = sprintWinners[quarter]
+                    const hasWinner = winnerId != null
+                    const winnerLabel = getWinnerLabel(winnerId)
+
+                    return (
+                      <div
+                        key={q}
+                        className={`space-y-2 p-3 border rounded ${
+                          closedQuarters[q] ? "bg-gray-200/50 opacity-60 dark:bg-gray-800/50" : "bg-muted/30"
+                        }`}
                       >
-                        {sprintWinners[q] === 1 ? "Sprint ganado" : "Sprint NO ganado"}
-                      </button>
-                      <Button
-                        size="sm"
-                        variant={closedQuarters[q] ? "default" : "destructive"}
-                        onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
-                        className="w-full mt-2 text-xs"
-                      >
-                        {closedQuarters[q] ? "Abrir Parcial" : "Cerrar Parcial"}
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm font-medium">Parcial {q}</Label>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Propios</Label>
+                            <Input
+                              type="number"
+                              value={quarterScores[q].home}
+                              onChange={(e) => {
+                                if (!closedQuarters[q]) {
+                                  setQuarterScores((prev) => ({
+                                    ...prev,
+                                    [q]: { ...prev[q], home: Number.parseInt(e.target.value) || 0 },
+                                  }))
+                                }
+                              }}
+                              disabled={closedQuarters[q]}
+                              min={0}
+                              className="text-center font-bold text-lg"
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="text-xs">Rival</Label>
+                            <Input
+                              type="number"
+                              value={quarterScores[q].away}
+                              onChange={(e) => {
+                                if (!closedQuarters[q]) {
+                                  setQuarterScores((prev) => ({
+                                    ...prev,
+                                    [q]: { ...prev[q], away: Number.parseInt(e.target.value) || 0 },
+                                  }))
+                                }
+                              }}
+                              disabled={closedQuarters[q]}
+                              min={0}
+                              className="text-center font-bold text-lg"
+                            />
+                          </div>
+                        </div>
+
+                        {/* SPRINT WINNER */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (closedQuarters[q]) return
+
+                            if (hasWinner) {
+                              setSprintWinners((prev) => ({ ...prev, [quarter]: null }))
+                              return
+                            }
+
+                            setActiveSprintQuarter(quarter)
+                            setSprintModalOpen(true)
+                          }}
+                          className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border ${
+                            hasWinner
+                              ? "bg-green-500 text-white border-green-600"
+                              : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
+                          }`}
+                        >
+                          {hasWinner ? "Sprint ganado" : "Sprint NO ganado"}
+                        </button>
+
+                        {hasWinner ? (
+                          <div className="rounded-md border bg-card/60 px-2 py-1 text-[11px] text-muted-foreground">
+                            Ganador: <span className="font-medium text-foreground">{winnerLabel}</span>
+                          </div>
+                        ) : null}
+
+                        <Button
+                          size="sm"
+                          variant={closedQuarters[q] ? "default" : "destructive"}
+                          onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
+                          className="w-full mt-2 text-xs"
+                        >
+                          {closedQuarters[q] ? "Abrir Parcial" : "Cerrar Parcial"}
+                        </Button>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
+
+              <SprintWinnerModal
+                open={sprintModalOpen}
+                quarter={activeSprintQuarter}
+                players={allPlayers}
+                activePlayerIds={activePlayerIds}
+                onClose={() => {
+                  setSprintModalOpen(false)
+                  setActiveSprintQuarter(null)
+                }}
+                onConfirm={(playerId) => {
+                  if (!activeSprintQuarter) return
+
+                  setSprintWinners((prev) => ({
+                    ...prev,
+                    [activeSprintQuarter]: playerId,
+                  }))
+
+                  setSprintModalOpen(false)
+                  setActiveSprintQuarter(null)
+                }}
+              />
 
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="notes">Notas</Label>
@@ -1332,7 +1418,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 
                       {/* BOTTOM: SUSTITUIR */}
-                      <div className="w-full px-2 pb-2">
+                      <div className="w-full px-2 pb-2 cursor-pointer">
                         {!hasStats(player.id) && getAvailablePlayers(false).length > 0 ? (
                           <div
                             role="button"
@@ -1340,7 +1426,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                             title="Sustituir jugador"
                             className="
                               h-8 w-full rounded-md
-                              bg-muted/70 hover:bg-muted
+                              bg-muted/70 hover:bg-blue-500/40
                               border border-border/70
                               inline-flex items-center justify-center gap-2
                               text-xs font-medium
@@ -1469,7 +1555,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                         <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
                           {safeNumber(stats[player.id]?.portero_goles_totales)} goles
                           <span className="mx-1">|</span>
-                          {safeNumber(stats[player.id]?.portero_paradas_totales)} paradas
+                          {calcParadasTotales(stats[player.id])} paradas
                         </p>
                       </div>
 
@@ -1978,6 +2064,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                 player={selectedPlayer}
                 stats={stats[selectedPlayer.id] || createEmptyStats(selectedPlayer.id)}
                 onUpdate={(field, value) => updateStat(selectedPlayer.id, field, value)}
+                goalkeeperShots={goalkeeperShots}
+                setGoalkeeperShots={setGoalkeeperShots}
+                match={existingMatch as any} 
               />
             ) : (
               <FieldPlayerStatsDialog
@@ -2296,9 +2385,9 @@ function FieldPlayerStatsDialog({
             onChange={(v) => onUpdate("faltas_penalti", v)}
           />
           <StatField
-            label="Contrafaltas"
-            value={safeNumber(stats.faltas_contrafaltas)}
-            onChange={(v) => onUpdate("faltas_contrafaltas", v)}
+            label="Exp (Simple)"
+            value={safeNumber(stats.faltas_exp_simple)}
+            onChange={(v) => onUpdate("faltas_exp_simple", v)}
           />
         </div>
       </TabsContent>
@@ -2345,7 +2434,22 @@ function FieldPlayerStatsDialog({
             value={safeNumber(stats.acciones_perdida_poco)}
             onChange={(v) => onUpdate("acciones_perdida_poco", v)}
           />
-        </div>
+          <StatField
+            label="Contrafaltas"
+            value={safeNumber(stats.faltas_contrafaltas)}
+            onChange={(v) => onUpdate("faltas_contrafaltas", v)}
+          />
+          <StatField
+            label="Pase boya"
+            value={safeNumber(stats.pase_boya)}
+            onChange={(v) => onUpdate("pase_boya", v)}
+          />
+          <StatField
+            label="Pase boya fallado"
+            value={safeNumber(stats.pase_boya_fallado)}
+            onChange={(v) => onUpdate("pase_boya_fallado", v)}
+          />
+          </div>
       </TabsContent>
     </Tabs>
   )
@@ -2355,10 +2459,15 @@ function GoalkeeperStatsDialog({
   player,
   stats,
   onUpdate,
+  goalkeeperShots,
+  setGoalkeeperShots,
 }: {
   player: Player
   stats: Partial<MatchStats>
   onUpdate: (field: keyof MatchStats, value: number) => void
+  match: Match
+  goalkeeperShots: GoalkeeperShotDraft[]
+  setGoalkeeperShots: (next: GoalkeeperShotDraft[]) => void
 }) {
   const totalGoalsConceded =
     safeNumber(stats.portero_goles_boya_parada) +
@@ -2369,7 +2478,7 @@ function GoalkeeperStatsDialog({
 
   return (
     <Tabs defaultValue="goles" className="w-full">
-      <TabsList className="grid w-full grid-cols-4 h-auto">
+      <TabsList className="grid w-full grid-cols-5 h-auto">
         <TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
           Goles
         </TabsTrigger>
@@ -2382,6 +2491,9 @@ function GoalkeeperStatsDialog({
         </TabsTrigger>
         <TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
           Acciones
+        </TabsTrigger>
+        <TabsTrigger value="tiro-parada" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+          Dir. Tiro
         </TabsTrigger>
       </TabsList>
 
@@ -2515,7 +2627,18 @@ function GoalkeeperStatsDialog({
           />
         </div>
       </TabsContent>
+
+      <TabsContent value="tiro-parada" className="space-y-4 mt-4">
+        <GoalkeeperShotsRecorder
+          goalkeeperPlayerId={player.id}
+          shots={goalkeeperShots}             
+          onChangeShots={setGoalkeeperShots} 
+        />
+      </TabsContent>
+            
+      
     </Tabs>
+    
   )
 }
 
@@ -2556,9 +2679,8 @@ const safeNumber = (value: number | undefined | null): number => {
 const getCurrentSeason = (): string => {
   const now = new Date()
   const year = now.getFullYear()
-  const month = now.getMonth() + 1 // JavaScript months are 0-indexed
+  const month = now.getMonth() + 1 
 
-  // If it's September (9) or later, we're in the new season
   if (month >= 9) {
     return `${year}-${year + 1}`
   } else {

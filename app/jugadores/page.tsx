@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Player } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Edit } from "lucide-react";
 import { useClub } from "@/lib/club-context";
 import { useEffect, useState, memo, useMemo, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { PlayerRadarChart } from "@/components/analytics-player/RadarChartPlayers";
 import { GoalkeeperRadarChart } from "@/components/analytics-goalkeeper/GoalkeeperRadarChart";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { EditPlayersModal } from "@/components/players-components/EditPlayersModal";
 
 export default function PlayersPage() {
 	const { currentClub } = useClub();
@@ -19,6 +21,7 @@ export default function PlayersPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [matchStats, setMatchStats] = useState<any[]>([]);
+	const [editOpen, setEditOpen] = useState(false);
 
 	useEffect(() => {
 		const abortController = new AbortController();
@@ -149,6 +152,7 @@ export default function PlayersPage() {
 				<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Jugadores</h1>
 				<p className="text-sm sm:text-base text-muted-foreground">Estadísticas individuales de {currentClub?.short_name || "la plantilla"}</p>
 			</div>
+			  
 
 			{players.length === 0 ? (
 				<Alert>
@@ -163,18 +167,33 @@ export default function PlayersPage() {
 				</Alert>
 			) : (
 				<Tabs defaultValue="field-players" className="w-full">
-					<TabsList className="grid w-full max-w-md grid-cols-2 mb-4 sm:mb-6">
-						<TabsTrigger value="field-players" className="text-xs sm:text-sm">
+					<div className="mb-4 sm:mb-6 flex items-center gap-3">
+						<TabsList className="grid w-1/2 grid-cols-2">
+							<TabsTrigger value="field-players" className="text-xs sm:text-sm">
 							Jugadores ({fieldPlayers.length})
-						</TabsTrigger>
-						<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm">
+							</TabsTrigger>
+							<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm">
 							Porteros ({goalkeepers.length})
-						</TabsTrigger>
-					</TabsList>
+							</TabsTrigger>
+						</TabsList>
+
+						<Button
+							type="button"
+							variant="default"
+							className="group flex-1 rounded-md flex items-center justify-center gap-2 
+								text-black-700 dark:text-white-400 
+								bg-blue-500/15 hover:bg-blue-500/20 
+								transition-all duration-200 font-medium border border-white-500/30"
+							onClick={() => setEditOpen(true)}
+						>
+							<Edit className="h-4 w-4" />
+							Editar jugadores
+						</Button>
+						</div>
 
 					<TabsContent value="field-players">
 						{fieldPlayers.length > 0 ? (
-							<div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+							<div className="grid gap-3 sm:gap-4 grid-cols-3 md:grid-cols-3 lg:grid-cols-3">
 								{fieldPlayers.map((player) => (
 									<FieldPlayerCard key={player.id} player={player} matchStats={matchStats} />
 								))}
@@ -204,8 +223,16 @@ export default function PlayersPage() {
 						)}
 					</TabsContent>
 				</Tabs>
+				
 			)}
+			<EditPlayersModal
+				open={editOpen}
+				players={players}
+				onClose={() => setEditOpen(false)}
+				onSaved={(updated) => setPlayers(updated)}
+				/>
 		</main>
+		
 	);
 }
 

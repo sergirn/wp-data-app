@@ -23,6 +23,9 @@ import { GoalkeeperPerformanceChart } from "@/components/analytics/goalkeeper-pe
 import { ManAdvantageChartExpandable } from "@/components/analytics/man-advantage-chart"
 import { ManDownGoalkeeperChart } from "@/components/analytics/man-down-goalkeeper-chart"
 import { TurnoversRecoveriesChart } from "@/components/analytics/perd_rec_pos_chart"
+import { PlayerMatchCompare } from "@/components/analytics/PlayerMatchCompare"
+import { SprintEfficiencyChart } from "@/components/analytics/SprintEfficiencyChart"
+import { GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/GoalkeeperShotsGoalChart"
 
 export default function AnalyticsPage() {
   const { currentClub } = useClub()
@@ -37,6 +40,7 @@ export default function AnalyticsPage() {
   const [playerStats, setPlayerStats] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const quarterMatches = matches as MatchWithQuarterScores[]
+  const [goalkeeperShotsRows, setGoalkeeperShotsRows] = useState<any[]>([])
 
   useEffect(() => {
     const abortController = new AbortController()
@@ -91,9 +95,22 @@ export default function AnalyticsPage() {
 
         if (abortController.signal.aborted || !isMounted) return
 
+        const matchIds = (matchesResult.data || []).map((m) => m.id)
+
+        const { data: gkShotsData, error: gkShotsError } = await supabase
+          .from("goalkeeper_shots")
+          .select("id, match_id, goalkeeper_player_id, result, x, y, created_at")
+          .in("match_id", matchIds)
+          .order("created_at", { ascending: true })
+
+        if (gkShotsError) {
+          console.error("Error fetching goalkeeper_shots:", gkShotsError)
+        }
+
         setMatches(matchesResult.data || [])
         setPlayers(playersResult.data || [])
         setAllStats(statsResult.data || [])
+        setGoalkeeperShotsRows(gkShotsData || [])
 
         const calculatedPlayerStats = playersResult.data?.map((player) => {
           const stats = statsResult.data?.filter((s) => s.player_id === player.id) || []
@@ -132,6 +149,8 @@ export default function AnalyticsPage() {
           const portero_goles_hombre_menos = stats.reduce((sum, s) => sum + (s.portero_goles_hombre_menos || 0), 0)
           const portero_inferioridad_fuera = stats.reduce((sum, s) => sum + (s.portero_inferioridad_fuera || 0), 0)
           const portero_inferioridad_bloqueo = stats.reduce((sum, s) => sum + (s.portero_inferioridad_bloqueo || 0), 0)
+
+          
 
           return {
             ...player,
@@ -214,6 +233,28 @@ export default function AnalyticsPage() {
     }
   }, [playerStats])
 
+  const matchesById = useMemo(() => {
+  const m = new Map<number, any>()
+  ;(matches || []).forEach((x) => m.set(x.id, x))
+  return m
+  }, [matches])
+
+  const shots = useMemo(() => {
+    return (goalkeeperShotsRows || []).map((s) => {
+      const match = matchesById.get(s.match_id)
+      return {
+        id: s.id,
+        match_id: s.match_id,
+        goalkeeper_player_id: s.goalkeeper_player_id,
+        jornada: match?.jornada ?? null,
+        match_date: match?.match_date ?? null,
+        x: s.x,
+        y: s.y,
+        result: s.result as "goal" | "save",
+      }
+    })
+  }, [goalkeeperShotsRows, matchesById])
+
   if (loading) {
     return (
       <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
@@ -282,12 +323,15 @@ export default function AnalyticsPage() {
             {/* ===== BLOQUE 2: COMPARADORES ===== */}
             <section>
               <Tabs defaultValue="compare">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="compare" className="text-xs sm:text-sm">
                     Comparador de partidos
                   </TabsTrigger>
                   <TabsTrigger value="players-compare" className="text-xs sm:text-sm">
                     Comparador de jugadores
+                  </TabsTrigger>
+                  <TabsTrigger value="players-jornada-compare" className="text-xs sm:text-sm">
+                    Comparador de jornadas por jugador
                   </TabsTrigger>
                 </TabsList>
 
@@ -297,6 +341,10 @@ export default function AnalyticsPage() {
 
                 <TabsContent value="players-compare">
                   <PlayerComparison players={players || []} stats={allStats || []} />
+                </TabsContent>
+
+                <TabsContent value="players-jornada-compare">
+                  <PlayerMatchCompare players={players || []} matches={matches || []} stats={allStats || []} maxSelections={12} />
                 </TabsContent>
               </Tabs>
             </section>
@@ -309,14 +357,17 @@ export default function AnalyticsPage() {
               <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
                 <QuarterGoalsChart matches={quarterMatches || []} />
                 <GoalDifferenceEvolutionChart matches={matches || []} />
+              </div><br></br>
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-1">
+                <SprintEfficiencyChart matches={matches || []} players={players || []} />
               </div>
             </section>
 
             <section>
-              <h2 className="text-xl font-bold mb-4">Estadistica general</h2>
-                <div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 auto-rows-fr items-stretch">
+              <h2 className="text-xl font-bold mb-4">Rendimiento en tiros</h2>
+                <div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-1 auto-rows-fr items-stretch">
                     <ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
-                    <GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
+                    
                 </div>
             </section>
 
@@ -336,6 +387,14 @@ export default function AnalyticsPage() {
                   <BlocksChart matches={matches || []} stats={allStats || []} players={players || []} />
                   <TurnoversRecoveriesChart matches={matches || []} stats={allStats || []} />
                   <DisciplineChart matches={matches || []} stats={allStats || []} />
+                </div>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-bold mb-4">Rendimiento del portero</h2>
+                <div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 auto-rows-fr items-stretch">
+                  <GoalkeeperShotsGoalChart shots={shots} />
+                  <GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
                 </div>
             </section>
           </TabsContent>

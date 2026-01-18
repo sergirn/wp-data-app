@@ -114,6 +114,21 @@ export default async function MatchDetailPage({
   const blocksStats = calculateBlocksStats(match.match_stats, match.away_score)
 
   const players = match.match_stats.map((s: any) => s.players)
+
+  type PlayerMini = { id: number; name: string; number: number; photo_url?: string | null }
+
+  const playersById = new Map<number, PlayerMini>(
+    (match.match_stats ?? []).map((s: any) => {
+      const p = s.players
+      return [p.id, { id: p.id, name: p.name, number: p.number, photo_url: p.photo_url }]
+    })
+  )
+
+  const getSprintWinnerPlayer = (playerId: number | null | undefined): PlayerMini | null => {
+    if (!playerId) return null
+    return playersById.get(playerId) ?? null
+  }
+
   const stats = match.match_stats // Rename for clarity in the block section
 
   const canEdit = profile?.role === "admin" || profile?.role === "coach"
@@ -124,6 +139,7 @@ export default async function MatchDetailPage({
 
   // Renamed from 'stats' to 'matchStats' for clarity in the new section
   const matchStats = match.match_stats
+  
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -199,7 +215,7 @@ export default async function MatchDetailPage({
             <Tabs defaultValue="parciales" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="parciales">Parciales</TabsTrigger>
-                <TabsTrigger value="penaltis" disabled={!hasPenalties}>
+                <TabsTrigger value="penaltis" hidden={!hasPenalties}>
                   Tanda de Penaltis
                 </TabsTrigger>
               </TabsList>
@@ -207,41 +223,73 @@ export default async function MatchDetailPage({
               <TabsContent value="parciales" className="mt-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner },
-                    { q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner },
-                    { q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner },
-                    { q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner },
-                  ].map(({ q, home, away, sprint }) => (
-                    <div key={q} className="p-4 bg-muted/30 rounded-lg text-center border">
-                      <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+                    { q: 1, home: match.q1_score, away: match.q1_score_rival, sprint: match.sprint1_winner, winnerPlayerId: match.sprint1_winner_player_id },
+                    { q: 2, home: match.q2_score, away: match.q2_score_rival, sprint: match.sprint2_winner, winnerPlayerId: match.sprint2_winner_player_id },
+                    { q: 3, home: match.q3_score, away: match.q3_score_rival, sprint: match.sprint3_winner, winnerPlayerId: match.sprint3_winner_player_id },
+                    { q: 4, home: match.q4_score, away: match.q4_score_rival, sprint: match.sprint4_winner, winnerPlayerId: match.sprint4_winner_player_id },
+                  ].map(({ q, home, away, sprint, winnerPlayerId }) => {
+                    const player = getSprintWinnerPlayer(winnerPlayerId)
 
-                      <div className="flex justify-around items-center gap-2">
-                        <div>
-                          <p className="text-2xl font-bold">{home || 0}</p>
-                          <p className="text-xs text-muted-foreground">{clubName}</p>
+                    return (
+                        <div key={q} className="space-y-3">
+                          <div className="p-4 bg-muted/30 rounded-lg text-center border">
+                            <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+
+                            <div className="flex justify-around items-center gap-2">
+                              <div>
+                                <p className="text-2xl font-bold">{home || 0}</p>
+                                <p className="text-xs text-muted-foreground">{clubName}</p>
+                              </div>
+
+                              <p className="text-muted-foreground font-bold">-</p>
+
+                              <div>
+                                <p className="text-2xl font-bold">{away || 0}</p>
+                                <p className="text-xs text-muted-foreground">{match.opponent}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-lg border bg-card/60">
+                            {player ? (
+                              <div className="mx-auto w-[250px] flex items-center gap-3">
+                                <div className="w-14 h-14 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                  {player.photo_url ? (
+                                    <img
+                                      src={player.photo_url || "/placeholder.svg"}
+                                      alt={player.name}
+                                      className="w-full h-full object-cover object-top"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <span className="font-bold text-lg tabular-nums">{player.number}</span>
+                                  )}
+                                </div>
+
+                                <div className="min-w-0 flex-1 text-left">
+                                  <span className="block text-xs font-semibold text-green-600 dark:text-green-400">
+                                    Sprint ganado
+                                  </span>
+
+                                  <span className="block text-sm font-medium truncate">
+                                    #{player.number} · {player.name}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center">
+                                <span className="text-sm font-semibold text-red-500 dark:text-red-400">
+                                  Sprint perdido
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-
-                        <p className="text-muted-foreground font-bold">-</p>
-
-                        <div>
-                          <p className="text-2xl font-bold">{away || 0}</p>
-                          <p className="text-xs text-muted-foreground">{match.opponent}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        {sprint === 1 ? (
-                          <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            Sprint ganado
-                          </span>
-                        ) : (
-                          <span className="text-sm font-semibold text-red-500 dark:text-red-400">Sprint perdido</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      )
+                  })}
                 </div>
               </TabsContent>
+
 
               <TabsContent value="penaltis" className="mt-6">
                 {hasPenalties ? (
@@ -593,6 +641,7 @@ function calculateTeamTotals(stats: any[]) {
         acc.faltas +
         (stat.faltas_exp_20_1c1 || 0) +
         (stat.faltas_exp_20_boya || 0) +
+        (stat.faltas_exp_simple || 0) +
         (stat.faltas_penalti || 0) +
         (stat.faltas_contrafaltas || 0),
       asistencias: acc.asistencias + (stat.acciones_asistencias || 0),
@@ -660,6 +709,7 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
     stat.faltas_exp_20_1c1 > 0 ||
     stat.faltas_exp_20_boya > 0 ||
     stat.faltas_penalti > 0 ||
+    stat.faltas_exp_simple > 0 ||
     stat.faltas_contrafaltas > 0 ||
     stat.acciones_asistencias > 0 ||
     stat.acciones_bloqueo > 0 ||
@@ -668,9 +718,11 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
     stat.acciones_exp_provocada > 0 ||
     stat.acciones_penalti_provocado > 0 ||
     stat.acciones_recibir_gol > 0 ||
-    stat.acciones_perdida_poco > 0
+    stat.acciones_perdida_poco > 0 ||
+    stat.pase_boya > 0 ||
+    stat.pase_boya_fallado > 0 
 
-  // Calculated metrics
+
   const totalShots = stat.goles_totales + stat.tiros_totales
   const shootingEfficiency = totalShots > 0 ? ((stat.goles_totales / totalShots) * 100).toFixed(1) : "0.0"
   const superiorityGoals = stat.goles_hombre_mas || 0
@@ -685,6 +737,7 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
   const totalFouls =
     (stat.faltas_exp_20_1c1 || 0) +
     (stat.faltas_exp_20_boya || 0) +
+    (stat.faltas_exp_simple || 0) +
     (stat.faltas_penalti || 0) +
     (stat.faltas_contrafaltas || 0)
 
@@ -890,8 +943,17 @@ function PlayerStatsAccordion({ stat, player }: { stat: MatchStats; player: Play
               {stat.portero_acciones_perdida_pos > 0 && (
                 <StatCard label="Pérdida de Pos" value={stat.portero_acciones_perdida_pos} color="orange" />
               )}
+              {stat.pase_boya > 0 && (
+                <StatCard label="Pase al boya" value={stat.pase_boya} color="orange" />
+              )}
+              {stat.pase_boya_fallado > 0 && (
+                <StatCard label="Pase al boya fallado" value={stat.pase_boya_fallado} color="orange" />
+              )}
               {stat.acciones_exp_provocada > 0 && (
                 <StatCard label="Exp Provocada" value={stat.acciones_exp_provocada} color="green" />
+              )}
+              {stat.faltas_exp_simple > 0 && (
+                <StatCard label="Exp Provocada" value={stat.faltas_exp_simple} color="green" />
               )}
             </div>
           </TabsContent>

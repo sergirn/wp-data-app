@@ -21,8 +21,13 @@ export function NegativeActionsChart({ matches, stats }: Props) {
       const ms = statsArr.filter((s) => s.match_id === match.id)
 
       const golRecibido = sumField(ms, "acciones_recibir_gol")
-      const perdidaPos = sumField(ms, "acciones_perdida_poco")
-      const rebotesPerd = sumField(ms, "rebote_perd_hombre_mas") // lo usabas en negativas
+
+      const perdidaPosBase = sumField(ms, "acciones_perdida_poco")
+      const paseBoyaFallado = sumField(ms, "pase_boya_fallado")
+      const perdidaPos = perdidaPosBase + paseBoyaFallado
+
+      const rebotesPerd = sumField(ms, "rebote_perd_hombre_mas")
+
       const exp20_1c1 = sumField(ms, "faltas_exp_20_1c1")
       const exp20_boya = sumField(ms, "faltas_exp_20_boya")
       const exp3_bruta = sumField(ms, "faltas_exp_3_bruta")
@@ -34,6 +39,10 @@ export function NegativeActionsChart({ matches, stats }: Props) {
       return {
         ...formatMatchRow(match, idx),
         golRecibido,
+
+        perdidaPosBase,
+        paseBoyaFallado,
+
         perdidaPos,
         rebotesPerd,
         totalExclusiones,
@@ -68,16 +77,31 @@ export function NegativeActionsChart({ matches, stats }: Props) {
                     labelFormatter={(label, payload) => {
                       const p = payload?.[0]?.payload
                       if (!p) return label
-                      return `${label} · vs ${p.rival} · ${p.fullDate}`
+                      return `${label} · vs ${p.rival} · ${p.fullDate} · PérdidaPos: ${p.perdidaPos} (perd:${p.perdidaPosBase}, boya:${p.paseBoyaFallado})`
                     }}
                   />
                 }
               />
               <Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
 
-              <Bar dataKey="golRecibido" name="Goles recibidos" fill="var(--color-golRecibido)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="perdidaPos" name="Pérdida posición" fill="var(--color-perdidaPos)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="totalExclusiones" name="Exclusiones" fill="var(--color-totalExclusiones)" radius={[6, 6, 0, 0]} />
+              <Bar
+                dataKey="golRecibido"
+                name="Goles recibidos"
+                fill="var(--color-golRecibido)"
+                radius={[6, 6, 0, 0]}
+              />
+              <Bar
+                dataKey="perdidaPos"
+                name="Pérdida posición"
+                fill="var(--color-perdidaPos)"
+                radius={[6, 6, 0, 0]}
+              />
+              <Bar
+                dataKey="totalExclusiones"
+                name="Exclusiones"
+                fill="var(--color-totalExclusiones)"
+                radius={[6, 6, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -86,13 +110,15 @@ export function NegativeActionsChart({ matches, stats }: Props) {
         <div className="rounded-xl border overflow-hidden bg-card w-full">
           <div className="w-full overflow-x-auto">
             <div className="max-h-[520px] overflow-y-auto">
-              <Table className="min-w-[980px]">
+              <Table className="min-w-[1040px]">
                 <UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="w-[90px]">Jornada</TableHead>
                     <TableHead>Rival</TableHead>
                     <TableHead className="text-right">Gol Rec.</TableHead>
                     <TableHead className="text-right">Pérdida Pos.</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Perd. base</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Pase boya ✕</TableHead>
                     <TableHead className="text-right">Rebotes Perd.</TableHead>
                     <TableHead className="text-right">Exclusiones</TableHead>
                     <TableHead className="text-right">Total</TableHead>
@@ -109,8 +135,14 @@ export function NegativeActionsChart({ matches, stats }: Props) {
                           <p className="text-xs text-muted-foreground sm:hidden">{m.fullDate}</p>
                         </div>
                       </TableCell>
+
                       <TableCell className="text-right tabular-nums">{m.golRecibido}</TableCell>
+
                       <TableCell className="text-right tabular-nums">{m.perdidaPos}</TableCell>
+
+                      <TableCell className="text-right tabular-nums hidden md:table-cell">{m.perdidaPosBase}</TableCell>
+                      <TableCell className="text-right tabular-nums hidden md:table-cell">{m.paseBoyaFallado}</TableCell>
+
                       <TableCell className="text-right tabular-nums">{m.rebotesPerd}</TableCell>
                       <TableCell className="text-right tabular-nums">{m.totalExclusiones}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">{m.total}</TableCell>

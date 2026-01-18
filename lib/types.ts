@@ -79,6 +79,7 @@ export interface MatchStats {
   faltas_exp_20_1c1: number // 20" exclusion 1-on-1
   faltas_exp_20_boya: number // 20" exclusion boya
   faltas_penalti: number // Penalty fouls
+  faltas_exp_simple: number // Simple exclusions
   faltas_contrafaltas: number // Counter fouls
 
   // Legacy foul fields (keeping for backward compatibility)
@@ -93,6 +94,8 @@ export interface MatchStats {
   acciones_exp_provocada: number // Exclusions drawn
   acciones_penalti_provocado: number // Penalties drawn
   acciones_recibir_gol: number // Goals received
+  pase_boya: number 
+  pase_boya_fallado: number 
 
   // Legacy action fields (keeping for backward compatibility)
   acciones_perdida_poco: number
@@ -131,6 +134,10 @@ export interface MatchStats {
   portero_exp_provocada: number
   portero_penalti_provocado: number
   portero_recibir_gol: number
+  portero_inferioridad_fuera: number
+  portero_inferioridad_bloqueo: number
+  rebote_recup_hombre_mas: number
+  rebote_perd_hombre_mas: number
 }
 
 export interface Profile {

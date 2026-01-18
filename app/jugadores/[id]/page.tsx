@@ -162,6 +162,7 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
       tiros_bloqueado: 0,
       faltas_exp_20_1c1: 0,
       faltas_exp_20_boya: 0,
+      faltas_exp_simple: 0,
       faltas_penalti: 0,
       faltas_contrafaltas: 0,
       acciones_bloqueo: 0,
@@ -188,7 +189,7 @@ function FieldPlayerSummary({ stats, matchCount, matchStats }: { stats: any; mat
   const asistPerMatch = matchCount > 0 ? (stats.acciones_asistencias / matchCount).toFixed(1) : "0.0"
 
   const totalExclusiones =
-    stats.faltas_exp_20_1c1 + stats.faltas_exp_20_boya + (stats.faltas_exp_3_bruta || 0) + (stats.faltas_exp_3_int || 0)
+    stats.faltas_exp_20_1c1 + stats.faltas_exp_20_boya + (stats.faltas_exp_3_bruta || 0) + (stats.faltas_exp_3_int || 0) + (stats.faltas_exp_simple || 0)
   const totalRebotes = (stats.rebote_recup_hombre_mas || 0) + (stats.rebote_perd_hombre_mas || 0)
   const totalPenaltis = stats.goles_penalti_anotado + stats.tiros_penalti_fallado
   const eficienciaPenaltis =
@@ -288,6 +289,7 @@ function FieldPlayerMatchStats({ matchStats }: { matchStats: MatchStatsWithMatch
   const foulsItems = [
     { label: 'Exp 20" 1c1', key: "faltas_exp_20_1c1" as const },
     { label: 'Exp 20" Boya', key: "faltas_exp_20_boya" as const },
+    { label: "Exp Simple", key: "faltas_exp_simple" as const },
     { label: "Penalti", key: "faltas_penalti" as const },
     { label: "Contrafaltas", key: "faltas_contrafaltas" as const },
   ]
@@ -299,6 +301,8 @@ function FieldPlayerMatchStats({ matchStats }: { matchStats: MatchStatsWithMatch
     { label: "Exp. Prov.", key: "acciones_exp_provocada" as const },
     { label: "Pen. Prov.", key: "acciones_penalti_provocado" as const },
     { label: "Gol recibido", key: "acciones_recibir_gol" as const },
+    { label: "Pase al boya", key: "pase_boya" as const },
+    { label: "Pase al boya fallado", key: "pase_boya_fallado" as const }
   ]
 
   return (

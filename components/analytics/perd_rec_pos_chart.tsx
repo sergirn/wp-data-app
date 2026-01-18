@@ -46,8 +46,15 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
     return sortedMatches.map((match: any, index: number) => {
       const matchStats = statsArr.filter((s: any) => String(s.match_id) === String(match.id))
 
-      const perdidas = matchStats.reduce((sum: number, s: any) => sum + (s.acciones_perdida_poco || 0), 0)
-      const recuperaciones = matchStats.reduce((sum: number, s: any) => sum + (s.acciones_recuperacion || 0), 0)
+      const recuperaciones = matchStats.reduce(
+        (sum: number, s: any) => sum + (s.acciones_recuperacion || 0) + (s.acciones_rebote || 0),
+        0,
+      )
+
+      const perdidas = matchStats.reduce(
+        (sum: number, s: any) => sum + (s.acciones_perdida_poco || 0) + (s.pase_boya_fallado || 0),
+        0,
+      )
 
       const jornadaNumber = match.jornada ?? index + 1
       const balance = recuperaciones - perdidas
@@ -67,9 +74,10 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
   }, [sortedMatches, stats])
 
   const chartData = useMemo(() => {
-    let balanceAcumulado = 0
-    return matchData.map((m) => {
-      balanceAcumulado += m.balance
+    return matchData.map((m, index) => {
+      const prev = matchData.slice(0, index + 1)
+      const avgBalanceSoFar = prev.reduce((sum, x) => sum + x.balance, 0) / (index + 1)
+
       return {
         matchId: m.matchId,
         jornada: m.jornada,
@@ -78,8 +86,9 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
 
         perdidas: m.perdidas,
         recuperaciones: m.recuperaciones,
-        balance: balanceAcumulado,
-        balancePartido: m.balance,
+
+        balancePartido: m.balance, // balance de ESA jornada
+        promedioBalance: Number(avgBalanceSoFar.toFixed(1)), // ✅ media por jornada (hasta aquí)
       }
     })
   }, [matchData])
@@ -142,11 +151,11 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
           </div>
 
           <ChartContainer
-            config={{
-              perdidas: { label: "Pérdidas", color: "hsl(0, 84%, 60%)" },
-              recuperaciones: { label: "Recuperaciones", color: "hsl(142, 71%, 45%)" },
-              balance: { label: "Balance (acum.)", color: "hsl(217, 91%, 60%)" },
-            }}
+              config={{
+                perdidas: { label: "Pérdidas", color: "hsl(0, 84%, 60%)" },
+                recuperaciones: { label: "Recuperaciones", color: "hsl(142, 71%, 45%)" },
+                promedioBalance: { label: "Media Balance", color: "hsl(217, 91%, 60%)" },
+              }}
             className={`w-full ${compact ? "h-[190px]" : "h-[420px]"}`}
           >
             <ResponsiveContainer width="100%" height="100%">
@@ -163,13 +172,7 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                   minTickGap={18}
                 />
 
-                <YAxis
-                  fontSize={12}
-                  width={34}
-                  tickMargin={6}
-                  axisLine={false}
-                  tickLine={false}
-                />
+                <YAxis fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
 
                 <ChartTooltip
                   content={
@@ -177,7 +180,9 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
                       labelFormatter={(label, payload) => {
                         const p = payload?.[0]?.payload
                         if (!p) return String(label)
-                        return `${label} · vs ${p.rival} · ${p.fullDate} · Bal(p): ${p.balancePartido >= 0 ? "+" : ""}${p.balancePartido}`
+                        return `${label} · vs ${p.rival} · ${p.fullDate} · Bal(p): ${
+                          p.balancePartido >= 0 ? "+" : ""
+                        }${p.balancePartido}`
                       }}
                     />
                   }
@@ -195,9 +200,9 @@ export function TurnoversRecoveriesChart({ matches, stats }: TurnoversRecoveries
 
                 <Line
                   type="monotone"
-                  dataKey="balance"
-                  stroke="var(--color-balance)"
-                  name="Balance (acumulado)"
+                  dataKey="promedioBalance"
+                  stroke="var(--color-promedioBalance)"
+                  name="Media Balance"
                   strokeWidth={5}
                   dot={false}
                   activeDot={{ r: 4 }}
