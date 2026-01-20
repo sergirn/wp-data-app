@@ -500,7 +500,7 @@ export function GoalkeeperShotsGoalChart({
 			<div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]">
 				{/* Left: Chart */}
 				<div className="p-3">
-					<div className={cn("relative w-full select-none", "aspect-[4/3]", "max-h-[600px] sm:max-h-[600px]")}>
+					<div className={cn("relative w-full select-none", "aspect-[4/3]", "max-h-[500px] sm:max-h-[500px]")}>
 						{/* Marco */}
 						<div className="pointer-events-none absolute left-[10%] right-[10%] top-[12%] h-[10px] rounded bg-foreground/80 shadow-md" />
 						<div className="pointer-events-none absolute left-[10%] top-[12%] bottom-[28%] w-[10px] rounded bg-foreground/80 shadow-md" />
@@ -710,7 +710,6 @@ export function GoalkeeperShotsGoalChart({
 														>
 															<span className="min-w-0">
 																<span className="text-sm font-medium truncate block">{gk.name}</span>
-																<span className="text-xs text-muted-foreground">ID: {gk.id}</span>
 															</span>
 
 															<span
@@ -728,10 +727,6 @@ export function GoalkeeperShotsGoalChart({
 												);
 											})}
 										</ul>
-									</div>
-
-									<div className="text-xs text-muted-foreground">
-										Ahora mismo evitamos quedarnos con 0 porteros seleccionados. Si quieres permitirlo, te lo cambio.
 									</div>
 								</div>
 							)}
