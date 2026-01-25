@@ -28,7 +28,7 @@ export function SprintWinnerModal({
 
   const available = useMemo(
     () => players.filter((p) => activePlayerIds.includes(p.id)),
-    [players, activePlayerIds]
+    [players, activePlayerIds],
   )
 
   return (
@@ -47,48 +47,49 @@ export function SprintWinnerModal({
         </DialogHeader>
 
         <div className="mt-3 max-h-[520px] overflow-auto rounded-md p-3">
-            <div className="grid grid-cols-4 gap-2">
-                {available.map((p) => {
-                const selected = selectedId === p.id
+          <div className="grid grid-cols-4 gap-2">
+            {available.map((p) => {
+              const selected = selectedId === p.id
 
-                return (
-                    <button
-                        type="button"
-                        onClick={() => setSelectedId(p.id)}
-                        className={`group flex flex-col items-center rounded-lg border p-2 transition
-                            ${selectedId === p.id ? "bg-muted ring-2 ring-primary/40" : "hover:bg-muted/60"}
-                        `}
-                        >
-                        {/* FOTO */}
-                        <div className="relative w-full aspect-square overflow-hidden rounded-md">
-                            {p.photo_url ? (
-                            <img
-                                src={p.photo_url || "/placeholder.svg"}
-                                alt={p.name}
-                                className="h-full w-full object-cover object-top"
-                                loading="lazy"
-                            />
-                            ) : (
-                            <div className="h-full w-full flex items-center justify-center">
-                                <span className="font-bold tabular-nums text-base">#{p.number}</span>
-                            </div>
-                            )}
-                        </div>
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedId(p.id)}
+                  className={`group flex flex-col items-center rounded-lg border p-2 transition
+                    ${selected ? "bg-muted ring-2 ring-primary/40" : "hover:bg-muted/60"}
+                  `}
+                >
+                  {/* FOTO */}
+                  <div className="relative w-full aspect-square overflow-hidden rounded-md">
+                    {p.photo_url ? (
+                      <img
+                        src={p.photo_url || "/placeholder.svg"}
+                        alt={p.name}
+                        className="h-full w-full object-cover object-top"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center">
+                        <span className="font-bold tabular-nums text-base">#{p.number}</span>
+                      </div>
+                    )}
+                  </div>
 
-                        {/* LINEA pegada */}
-                        <div className="-mx-2 h-px w-[calc(100%+16px)] bg-border/70" />
+                  {/* LINEA pegada */}
+                  <div className="-mx-2 h-px w-[calc(100%+16px)] bg-border/70" />
 
-                        {/* TEXTO */}
-                        <div className="w-full min-w-0 pt-2">
-                            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground truncate text-center">
-                            #{p.number}
-                            </p>
-                            <p className="text-[12px] font-medium truncate text-center">{p.name}</p>
-                        </div>
-                        </button>
-                )
-                })}
-            </div>
+                  {/* TEXTO */}
+                  <div className="w-full min-w-0 pt-2">
+                    <p className="text-[11px] font-semibold tabular-nums text-muted-foreground truncate text-center">
+                      #{p.number}
+                    </p>
+                    <p className="text-[12px] font-medium truncate text-center">{p.name}</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
