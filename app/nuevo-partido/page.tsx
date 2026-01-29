@@ -343,6 +343,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const createEmptyStats = (playerId: number): Partial<MatchStats> => ({
 		player_id: playerId,
 		match_id: 0,
+
 		goles_totales: 0,
 		goles_boya_jugada: 0,
 		goles_hombre_mas: 0,
@@ -350,6 +351,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		goles_dir_mas_5m: 0,
 		goles_contraataque: 0,
 		goles_penalti_anotado: 0,
+		gol_del_palo_sup: 0,
+
 		tiros_totales: 0,
 		tiros_penalti_fallado: 0,
 		tiros_corner: 0,
@@ -357,10 +360,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		tiros_parados: 0,
 		tiros_bloqueado: 0,
 		tiros_eficiencia: 0,
+		tiro_palo: 0,
+
 		faltas_exp_20_1c1: 0,
 		faltas_exp_20_boya: 0,
 		faltas_penalti: 0,
 		faltas_contrafaltas: 0,
+
 		acciones_bloqueo: 0,
 		acciones_asistencias: 0,
 		acciones_recuperacion: 0,
@@ -368,6 +374,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		acciones_exp_provocada: 0,
 		acciones_penalti_provocado: 0,
 		acciones_recibir_gol: 0,
+
 		portero_goles_boya_parada: 0,
 		portero_goles_hombre_menos: 0,
 		portero_goles_dir_mas_5m: 0,
@@ -381,6 +388,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		portero_paradas_fuera: 0,
 		portero_paradas_penalti_parado: 0,
 		portero_acciones_perdida_pos: 0,
+
 		goles_boya_cada: 0,
 		goles_penalti_juego: 0,
 		goles_penalti_fallo: 0,
@@ -389,18 +397,23 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		goles_parados: 0,
 		goles_bloqueado: 0,
 		goles_eficiencia: 0,
+
 		tiros_boya_cada: 0,
 		tiros_hombre_mas: 0,
 		tiros_lanzamiento: 0,
 		tiros_dir_mas_5m: 0,
 		tiros_contraataque: 0,
 		tiros_penalti_juego: 0,
+
 		faltas_exp_3_int: 0,
 		faltas_exp_3_bruta: 0,
 		faltas_exp_simple: 0,
+
 		pase_boya: 0,
 		pase_boya_fallado: 0,
+
 		acciones_perdida_poco: 0,
+
 		portero_goles_lanzamiento: 0,
 		portero_goles_penalti_encajado: 0,
 		portero_tiros_parado: 0,
@@ -413,6 +426,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		portero_recibir_gol: 0,
 		portero_inferioridad_fuera: 0,
 		portero_inferioridad_bloqueo: 0,
+
 		rebote_recup_hombre_mas: 0,
 		rebote_perd_hombre_mas: 0
 	});
@@ -688,7 +702,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					"goles_lanzamiento",
 					"goles_dir_mas_5m",
 					"goles_contraataque",
-					"goles_penalti_anotado"
+					"goles_penalti_anotado",
+					"gol_del_palo_sup"
 				];
 
 				const shotCategories: (keyof MatchStats)[] = [
@@ -697,10 +712,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					"tiros_corner",
 					"tiros_fuera",
 					"tiros_parados",
-					"tiros_bloqueado"
+					"tiros_bloqueado",
+					"tiro_palo"
 				];
 
-				if (field.startsWith("goles_") || field.startsWith("tiros_")) {
+				if (field.startsWith("goles_") || field.startsWith("tiros_") || field.startsWith("tiro_") || field.startsWith("gol")) {
 					newStats.goles_totales = goalCategories.reduce((sum, cat) => {
 						return sum + safeNumber(newStats[cat] as number);
 					}, 0) as any;
@@ -2011,7 +2027,33 @@ function FieldPlayerStatsDialog({
 					<StatField label="Fuera" value={safeNumber(stats.tiros_fuera)} onChange={(v) => onUpdate("tiros_fuera", v)} />
 					<StatField label="Parados" value={safeNumber(stats.tiros_parados)} onChange={(v) => onUpdate("tiros_parados", v)} />
 					<StatField label="Bloqueado" value={safeNumber(stats.tiros_bloqueado)} onChange={(v) => onUpdate("tiros_bloqueado", v)} />
-					<StatField label="Eficiencia %" value={safeNumber(stats.tiros_eficiencia)} onChange={() => {}} readOnly suffix="%" />
+					<StatField label="Palo" value={safeNumber(stats.tiro_palo)} onChange={(v) => onUpdate("tiro_palo", v)} />
+					<StatField
+						label="Eficiencia (general) %"
+						value={(() => {
+							const golesGenerales =
+								safeNumber(stats.goles_boya_jugada) +
+								safeNumber(stats.goles_lanzamiento) +
+								safeNumber(stats.goles_dir_mas_5m) +
+								safeNumber(stats.goles_contraataque) +
+								safeNumber(stats.goles_penalti_anotado);
+
+							const fallosGenerales =
+								safeNumber(stats.tiros_penalti_fallado) +
+								safeNumber(stats.tiros_corner) +
+								safeNumber(stats.tiros_fuera) +
+								safeNumber(stats.tiros_parados) +
+								safeNumber(stats.tiros_bloqueado) +
+								safeNumber(stats.tiro_palo);
+
+							const intentos = golesGenerales + fallosGenerales;
+
+							return intentos > 0 ? Math.round((golesGenerales / intentos) * 100) : 0;
+						})()}
+						onChange={() => {}}
+						readOnly
+						suffix="%"
+					/>
 				</div>
 			</TabsContent>
 
@@ -2019,9 +2061,9 @@ function FieldPlayerStatsDialog({
 				<p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
 
 				<div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-					<StatField label="Goles Hombre +" value={safeNumber(stats.goles_hombre_mas)} onChange={(v) => onUpdate("goles_hombre_mas", v)} />
-
-					<StatField label="Fallos Hombre +" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
+					<StatField label="Goles H+" value={safeNumber(stats.goles_hombre_mas)} onChange={(v) => onUpdate("goles_hombre_mas", v)} />
+					<StatField label="Gol del palo H+" value={safeNumber(stats.gol_del_palo_sup)} onChange={(v) => onUpdate("gol_del_palo_sup", v)} />
+					<StatField label="Fallos H+" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
 
 					<StatField
 						label="Rebote Recup."
@@ -2039,8 +2081,13 @@ function FieldPlayerStatsDialog({
 						label="Eficiencia %"
 						value={(() => {
 							const g = safeNumber(stats.goles_hombre_mas);
+							const gp = safeNumber(stats.gol_del_palo_sup);
 							const t = safeNumber(stats.tiros_hombre_mas);
-							return g + t > 0 ? Math.round((g / (g + t)) * 100) : 0;
+
+							const goals = g + gp;
+							const attempts = goals + t;
+
+							return attempts > 0 ? Math.round((goals / attempts) * 100) : 0;
 						})()}
 						onChange={() => {}}
 						readOnly

@@ -346,7 +346,7 @@ export default function AnalyticsPage() {
 						</section>
 
 						<section>
-							<h2 className="text-xl font-bold mb-4">Rendimiento en tiros</h2>
+							<h2 className="text-xl font-bold mb-4">Rendimiento</h2>
 							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 auto-rows-fr items-stretch">
 								<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
 								<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />

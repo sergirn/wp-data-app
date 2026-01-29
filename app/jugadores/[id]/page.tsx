@@ -22,7 +22,6 @@ import { BlocksVsGoalsChart } from "@/components/analytics-player/evolution-comp
 import { PerformanceEvolutionChart } from "@/components/analytics-player/evolution-component/PerformanceEvolutionChart";
 import { GoalkeeperShotForChart, GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/evolution-component/GoalkeepersShotsEvolutions";
 
-
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
 }
@@ -115,6 +114,7 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 				goles_dir_mas_5m: acc.goles_dir_mas_5m + (stat.goles_dir_mas_5m || 0),
 				goles_contraataque: acc.goles_contraataque + (stat.goles_contraataque || 0),
 				goles_penalti_anotado: acc.goles_penalti_anotado + (stat.goles_penalti_anotado || 0),
+				gol_del_palo_sup: acc.gol_del_palo_sup + (stat.gol_del_palo_sup || 0),
 
 				// Tiros
 				tiros_totales: acc.tiros_totales + (stat.tiros_totales || 0),
@@ -124,6 +124,7 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 				tiros_fuera: acc.tiros_fuera + (stat.tiros_fuera || 0),
 				tiros_parados: acc.tiros_parados + (stat.tiros_parados || 0),
 				tiros_bloqueado: acc.tiros_bloqueado + (stat.tiros_bloqueado || 0),
+				tiro_palo: acc.tiro_palo + (stat.tiro_palo || 0),
 
 				// Faltas
 				faltas_exp_20_1c1: acc.faltas_exp_20_1c1 + (stat.faltas_exp_20_1c1 || 0),
@@ -156,6 +157,8 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 			goles_dir_mas_5m: 0,
 			goles_contraataque: 0,
 			goles_penalti_anotado: 0,
+			gol_del_palo_sup: 0,
+			tiro_palo: 0,
 			tiros_totales: 0,
 			tiros_hombre_mas: 0,
 			tiros_penalti_fallado: 0,
@@ -266,7 +269,8 @@ function FieldPlayerMatchStats({ matchStats }: { matchStats: MatchStatsWithMatch
 		{ label: "Lanzamiento", key: "goles_lanzamiento" as const },
 		{ label: "+6m", key: "goles_dir_mas_5m" as const },
 		{ label: "Contraataque", key: "goles_contraataque" as const },
-		{ label: "Penalti", key: "goles_penalti_anotado" as const }
+		{ label: "Penalti", key: "goles_penalti_anotado" as const },
+		{ label: "Gol del palo (H+)", key: "gol_del_palo_sup" as const }
 	];
 
 	const missesItems = [
@@ -275,7 +279,8 @@ function FieldPlayerMatchStats({ matchStats }: { matchStats: MatchStatsWithMatch
 		{ label: "Corner", key: "tiros_corner" as const },
 		{ label: "Fuera", key: "tiros_fuera" as const },
 		{ label: "Parados", key: "tiros_parados" as const },
-		{ label: "Bloqueados", key: "tiros_bloqueado" as const }
+		{ label: "Bloqueados", key: "tiros_bloqueado" as const },
+		{ label: "Tiro al palo", key: "tiro_palo" as const }
 	];
 
 	const foulsItems = [
