@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -60,10 +60,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 	const getWinnerLabel = (playerId: number | null) => {
 		if (!playerId) return null;
-		const p = allPlayers.find((x) => x.id === playerId);
+		const p = playersById.get(playerId);
 		if (!p) return "Jugador no encontrado";
 		return `#${p.number} · ${p.name}`;
 	};
+
 	const [competitions, setCompetitions] = useState<Competition[]>([]);
 	const [competitionId, setCompetitionId] = useState<string>("");
 
@@ -101,6 +102,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const [goalkeeperShots, setGoalkeeperShots] = useState<GoalkeeperShotDraft[]>([]);
 	const [myClub, setMyClub] = useState<{ id: string; name: string } | null>(null);
 
+	const playersById = useMemo(() => {
+		const m = new Map<number, Player>();
+		for (const p of allPlayers) m.set(p.id, p);
+		return m;
+	}, [allPlayers]);
+
 	// FUNCIONES USE EFFECT INICIALES
 	useEffect(() => {
 		const fetchClub = async () => {
@@ -116,8 +123,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			if (!profile?.club_id) return;
 
 			const { data: cc, error: ccError } = await supabase.from("club_competitions").select("competition_id").eq("club_id", profile.club_id);
-
-			console.log("club_id:", profile.club_id, "club_competitions:", cc, "err:", ccError);
 
 			if (ccError) {
 				setCompetitions([]);
@@ -135,8 +140,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				.select("id, name, slug, image_url")
 				.in("id", ids)
 				.order("name");
-
-			console.log("competitions:", comps, "err:", compsError);
 
 			if (compsError) {
 				setCompetitions([]);
@@ -160,18 +163,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}
 	}, [penaltyShooters, rivalPenalties]);
 
-	const calculateScores = (playerStats: Record<number, Partial<MatchStats>>) => {
+	const calculateScores = (playerStats: Record<number, Partial<MatchStats>>, playersById: Map<number, Player>) => {
 		let homeGoals = 0;
 		let awayGoals = 0;
 
-		Object.entries(playerStats).forEach(([playerId, playerStat]) => {
-			const player = allPlayers.find((p) => p.id === Number(playerId));
+		for (const [playerIdStr, playerStat] of Object.entries(playerStats)) {
+			const playerId = Number(playerIdStr);
+			const player = playersById.get(playerId);
 
 			if (player?.is_goalkeeper) {
-				const goalkeeperScoredGoals = playerStat.portero_gol || 0;
-				homeGoals += goalkeeperScoredGoals;
+				homeGoals += playerStat.portero_gol || 0;
 
-				// Goles que recibe el portero (suman al rival)
 				const goalkeeperGoals =
 					(playerStat.portero_goles_boya_parada || 0) +
 					(playerStat.portero_goles_hombre_menos || 0) +
@@ -181,10 +183,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 				awayGoals += goalkeeperGoals;
 			} else {
-				// Goles que marca el jugador de campo
 				homeGoals += playerStat.goles_totales || 0;
 			}
-		});
+		}
 
 		return { homeGoals, awayGoals };
 	};
@@ -453,21 +454,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		);
 	};
 
-	const getAvailablePlayers = (isGoalkeeper: boolean): Player[] => {
-		return allPlayers.filter((player) => player.is_goalkeeper === isGoalkeeper && !activePlayerIds.includes(player.id));
-	};
-
 	// ADD FUNCTION TO ADD PLAYER TO THE FIELD (MAX 12 FIELD PLAYERS)
 	const handleAddPlayer = (playerId: number) => {
-		const player = allPlayers.find((p) => p.id === playerId);
-
+		const player = playersById.get(playerId);
 		if (!player) return;
 
-		// Check if adding would exceed 12 field players
-		const currentFieldPlayers = activePlayerIds.filter((id) => {
-			const p = allPlayers.find((pl) => pl.id === id);
-			return p && !p.is_goalkeeper;
-		}).length;
+		const currentFieldPlayers = activePlayerIds.reduce((acc, id) => {
+			const p = playersById.get(id);
+			return acc + (p && !p.is_goalkeeper ? 1 : 0);
+		}, 0);
 
 		if (!player.is_goalkeeper && currentFieldPlayers >= 12) {
 			alert("No se pueden añadir más de 12 jugadores de campo");
@@ -567,11 +562,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					const emptyTemplate = createEmptyStats(stat.player_id);
 					// Merge: keep loaded values, fill missing fields with template
 					statsMap[stat.player_id] = { ...emptyTemplate, ...stat };
-					console.log(`[v0] Loaded stats for player ${stat.player_id}:`, statsMap[stat.player_id]);
 				});
 
 				setStats(statsMap);
-				console.log("[v0] All match stats loaded successfully");
 			}
 
 			// LOAD PENALTY SHOOTERS IF THEY EXIST
@@ -641,7 +634,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			const safeValue = safeNumber(value);
 			const newStats = { ...currentStats, [field]: safeValue };
 
-			const player = allPlayers.find((p) => p.id === playerId);
+			const player = playersById.get(playerId);
 
 			if (player?.is_goalkeeper) {
 				const goalkeeperSaveCategories: (keyof MatchStats)[] = [
@@ -764,7 +757,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				if (!activeQuarter) return updated;
 
 				// recalcula solo el ACTIVO desde cero
-				const { homeGoals, awayGoals } = calculateScores(updatedAllStats);
+				const { homeGoals, awayGoals } = calculateScores(updatedAllStats, playersById);
 
 				// diferencia respecto al total del cuarto anterior
 				const previousQuartersTotal = Object.values(prev)
@@ -840,7 +833,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			return;
 		}
 
-		const { homeGoals, awayGoals } = calculateScores(stats);
+		const { homeGoals, awayGoals } = calculateScores(stats, playersById);
+
 		// VALIDATE PENALTY SHOOTOUT IF THERE'S A TIE
 		if (homeGoals === awayGoals) {
 			if (penaltyHomeScore === null || penaltyAwayScore === null) {
@@ -889,16 +883,16 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				}
 			});
 
-			// When saving goalkeeper stats, add penalty saves
-			for (const [playerId, playerStat] of Object.entries(stats)) {
-				const player = allPlayers.find((p) => p.id === Number(playerId));
+			const statsForSave: Record<number, Partial<MatchStats>> = { ...stats };
+
+			for (const [playerId] of Object.entries(statsForSave)) {
+				const player = playersById.get(Number(playerId));
 				if (player?.is_goalkeeper && penaltySavesByGoalkeeper[player.id]) {
-					// Add penalty saves to goalkeeper stats
-					if (!stats[player.id]) {
-						stats[player.id] = {};
-					}
-					stats[player.id].portero_paradas_penalti_parado =
-						(stats[player.id].portero_paradas_penalti_parado || 0) + penaltySavesByGoalkeeper[player.id];
+					const prev = statsForSave[player.id] ?? {};
+					statsForSave[player.id] = {
+						...prev,
+						portero_paradas_penalti_parado: (prev.portero_paradas_penalti_parado ?? 0) + penaltySavesByGoalkeeper[player.id]
+					};
 				}
 			}
 
@@ -1091,6 +1085,45 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		safeNumber(s?.faltas_exp_3_bruta) +
 		safeNumber(s?.faltas_exp_simple);
 
+	const activeSet = useMemo(() => new Set(activePlayerIds), [activePlayerIds]);
+
+	const activePlayers = useMemo(() => allPlayers.filter((p) => activeSet.has(p.id)), [allPlayers, activeSet]);
+
+	const fieldPlayers = useMemo(() => activePlayers.filter((p) => !p.is_goalkeeper), [activePlayers]);
+
+	const goalkeepers = useMemo(() => activePlayers.filter((p) => p.is_goalkeeper), [activePlayers]);
+
+	const availableFieldPlayers = useMemo(() => allPlayers.filter((p) => !p.is_goalkeeper && !activeSet.has(p.id)), [allPlayers, activeSet]);
+
+	const availableGoalkeepers = useMemo(() => allPlayers.filter((p) => p.is_goalkeeper && !activeSet.has(p.id)), [allPlayers, activeSet]);
+
+	const getAvailablePlayers = (isGoalkeeper: boolean): Player[] => {
+		return isGoalkeeper ? availableGoalkeepers : availableFieldPlayers;
+	};
+
+	const score = useMemo(() => calculateScores(stats, playersById), [stats, playersById]);
+
+	const homeGoals = score.homeGoals;
+	const awayGoals = score.awayGoals;
+	const isTied = homeGoals === awayGoals;
+
+	const selectedPlayersForPenalty = useMemo(() => {
+		return activePlayerIds.map((id) => {
+			const player = playersById.get(id);
+			return {
+				playerId: id,
+				played: true,
+				is_goalkeeper: player?.is_goalkeeper || false,
+				jersey_number: player?.number,
+				name: player?.name
+			};
+		});
+	}, [activePlayerIds, playersById]);
+
+	const players = allPlayers;
+	const homeTeamName = myClub?.name || "Mi Equipo";
+	const awayTeamName = opponent || "Rival";
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-[50vh]">
@@ -1114,30 +1147,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			</main>
 		);
 	}
-
-	const activePlayers = allPlayers.filter((p) => activePlayerIds.includes(p.id));
-	const fieldPlayers = activePlayers.filter((p) => !p.is_goalkeeper);
-	const goalkeepers = activePlayers.filter((p) => p.is_goalkeeper);
-
-	const { homeGoals, awayGoals } = calculateScores(stats);
-	// CHECK IF MATCH IS TIED
-	const isTied = homeGoals === awayGoals;
-
-	const selectedPlayersForPenalty = activePlayerIds.map((id) => {
-		const player = allPlayers.find((p) => p.id === id);
-		return {
-			playerId: id,
-			played: true, // Assuming 'played' status is determined elsewhere or implicitly
-			is_goalkeeper: player?.is_goalkeeper || false,
-			jersey_number: player?.number,
-			name: player?.name,
-			status: player?.status // Assuming status indicates if they are available/played
-		};
-	});
-
-	const players = allPlayers; // Use allPlayers for the dialog
-	const homeTeamName = myClub?.name || "Mi Equipo";
-	const awayTeamName = opponent || "Rival";
 
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
