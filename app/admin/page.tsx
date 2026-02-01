@@ -4,9 +4,7 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { UserManagementForm } from "@/components/user-management-form"
-
 import { Shield, Users, Building2 } from "lucide-react"
-import { ClubManagementForm } from "@/components/admin-settings/ClubManagementForm"
 
 export default async function AdminPage() {
   await requireAuth()
@@ -30,9 +28,6 @@ export default async function AdminPage() {
 
   // Get all clubs
   const { data: clubs } = await supabase.from("clubs").select("*").order("name")
-
-  // Get all competitions (para el formulario de crear club)
-  const { data: competitions } = await supabase.from("competitions").select("*").order("name")
 
   // Get statistics
   const { count: totalUsers } = await supabase.from("profiles").select("*", { count: "exact", head: true })
@@ -79,17 +74,6 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Create Club Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Crear Nuevo Club</CardTitle>
-          <CardDescription>Crea un club y selecciona las competiciones en las que participa</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ClubManagementForm competitions={competitions || []} />
-        </CardContent>
-      </Card>
 
       {/* Create User Form */}
       <Card>

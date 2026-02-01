@@ -24,12 +24,10 @@ export function DisciplineChart({ matches, stats }: Props) {
       const exp20_boya = sumField(ms, "faltas_exp_20_boya")
       const exp3_bruta = sumField(ms, "faltas_exp_3_bruta")
       const exp3_int = sumField(ms, "faltas_exp_3_int")
-      const exp_simple = sumField(ms, "faltas_exp_simple") // ✅ NUEVO
       const penalti = sumField(ms, "faltas_penalti")
       const contrafaltas = sumField(ms, "faltas_contrafaltas")
 
-      // ✅ exp_simple suma dentro del totalExclusiones (no va como barra aparte)
-      const totalExclusiones = exp20_1c1 + exp20_boya + exp3_bruta + exp3_int + exp_simple
+      const totalExclusiones = exp20_1c1 + exp20_boya + exp3_bruta + exp3_int
 
       return {
         ...formatMatchRow(match, idx),
@@ -37,7 +35,6 @@ export function DisciplineChart({ matches, stats }: Props) {
         exp20_boya,
         exp3_bruta,
         exp3_int,
-        exp_simple, // (solo para tabla/tooltip si quieres)
         penalti,
         contrafaltas,
         totalExclusiones,
@@ -70,36 +67,22 @@ export function DisciplineChart({ matches, stats }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
               <XAxis dataKey="jornada" fontSize={12} tickMargin={8} axisLine={false} tickLine={false} />
               <YAxis fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
-
               <ChartTooltip
                 content={
                   <ChartTooltipContent
                     labelFormatter={(label, payload) => {
                       const p = payload?.[0]?.payload
                       if (!p) return label
-                      // ✅ Tooltip con desglose incluyendo exp_simple (aunque no haya barra)
-                      return `${label} · vs ${p.rival} · ${p.fullDate} · Excl: ${p.totalExclusiones} (20"1c1:${p.exp20_1c1}, 20"b:${p.exp20_boya}, 3b:${p.exp3_bruta}, 3i:${p.exp3_int}, simple:${p.exp_simple})`
+                      return `${label} · vs ${p.rival} · ${p.fullDate}`
                     }}
                   />
                 }
               />
-
               <Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
 
-              {/* ✅ SOLO estas barras (exp_simple NO se pinta aparte) */}
-              <Bar
-                dataKey="totalExclusiones"
-                name="Total exclusiones"
-                fill="var(--color-totalExclusiones)"
-                radius={[6, 6, 0, 0]}
-              />
+              <Bar dataKey="totalExclusiones" name="Total exclusiones" fill="var(--color-totalExclusiones)" radius={[6, 6, 0, 0]} />
               <Bar dataKey="penalti" name="Penaltis" fill="var(--color-penalti)" radius={[6, 6, 0, 0]} />
-              <Bar
-                dataKey="contrafaltas"
-                name="Contrafaltas"
-                fill="var(--color-contrafaltas)"
-                radius={[6, 6, 0, 0]}
-              />
+              <Bar dataKey="contrafaltas" name="Contrafaltas" fill="var(--color-contrafaltas)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -108,44 +91,37 @@ export function DisciplineChart({ matches, stats }: Props) {
         <div className="rounded-xl border overflow-hidden bg-card w-full">
           <div className="w-full overflow-x-auto">
             <div className="max-h-[520px] overflow-y-auto">
-              <Table className="min-w-[1120px]">
+              <Table className="min-w-[1040px]">
                 <UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="w-[90px]">Jornada</TableHead>
                     <TableHead>Rival</TableHead>
-                    <TableHead className="text-right">Exp 20&quot; 1c1</TableHead>
-                    <TableHead className="text-right">Exp 20&quot; Boya</TableHead>
+                    <TableHead className="text-right">Exp 20" 1c1</TableHead>
+                    <TableHead className="text-right">Exp 20" Boya</TableHead>
                     <TableHead className="text-right">Exp 3 Bruta</TableHead>
                     <TableHead className="text-right">Exp 3 Int</TableHead>
-                    <TableHead className="text-right">Exp simple</TableHead>
                     <TableHead className="text-right">Penalti</TableHead>
                     <TableHead className="text-right">Contrafaltas</TableHead>
-                    <TableHead className="text-right">Total Excl.</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
                   </TableRow>
                 </UITableHeader>
-
                 <TableBody>
                   {data.map((m, idx) => (
                     <TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : ""} hover:bg-muted/40`}>
                       <TableCell className="font-semibold">{m.jornada}</TableCell>
-
                       <TableCell className="max-w-[360px]">
                         <div className="min-w-0">
                           <p className="font-medium truncate">{m.rival}</p>
                           <p className="text-xs text-muted-foreground sm:hidden">{m.fullDate}</p>
                         </div>
                       </TableCell>
-
                       <TableCell className="text-right tabular-nums">{m.exp20_1c1}</TableCell>
                       <TableCell className="text-right tabular-nums">{m.exp20_boya}</TableCell>
                       <TableCell className="text-right tabular-nums">{m.exp3_bruta}</TableCell>
                       <TableCell className="text-right tabular-nums">{m.exp3_int}</TableCell>
-                      <TableCell className="text-right tabular-nums">{m.exp_simple}</TableCell>
-
                       <TableCell className="text-right tabular-nums">{m.penalti}</TableCell>
                       <TableCell className="text-right tabular-nums">{m.contrafaltas}</TableCell>
-
                       <TableCell className="text-right tabular-nums font-semibold">{m.totalExclusiones}</TableCell>
                       <TableCell className="text-right text-muted-foreground hidden lg:table-cell">{m.fullDate}</TableCell>
                     </TableRow>

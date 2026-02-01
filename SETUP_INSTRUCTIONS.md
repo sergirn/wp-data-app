@@ -24,9 +24,9 @@ He creado una página de configuración que utiliza la API de administración de
 
 Puedes hacer una petición POST a `/api/setup-admin`:
 
-```bash
+\`\`\`bash
 curl -X POST http://localhost:3000/api/setup-admin
-```
+\`\`\`
 
 ## Credenciales del Administrador
 
@@ -54,7 +54,7 @@ curl -X POST http://localhost:3000/api/setup-admin
 
 Para verificar que el usuario se creó correctamente, puedes ejecutar esta consulta SQL:
 
-```sql
+\`\`\`sql
 SELECT 
   p.email,
   p.full_name,
@@ -63,7 +63,7 @@ SELECT
   p.club_id
 FROM profiles p
 WHERE p.email = 'admin@waterpolostats.com';
-```
+\`\`\`
 
 ## Troubleshooting
 

@@ -16,18 +16,13 @@ import { useRouter } from "next/navigation";
 import logo from "@/public/images/lewaterpolo_bg.png";
 import Image from "next/image";
 
-type MatchWithCompetition = Match & {
-  competitions?: { id: number; name: string; slug: string; image_url: string | null } | null
-}
-
 export default function MatchesPage() {
 	const { currentClub } = useClub();
 	const { profile } = useProfile();
-	const [matches, setMatches] = useState<MatchWithCompetition[]>([]);
+	const [matches, setMatches] = useState<Match[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
-	
 
 	useEffect(() => {
 		async function fetchData() {
@@ -48,17 +43,9 @@ export default function MatchesPage() {
 
 				const { data: matchesData, error } = await supabase
 					.from("matches")
-					.select(`
-						*,
-						competitions:competition_id (
-						id,
-						name,
-						slug,
-						image_url
-						)
-					`)
+					.select("*")
 					.eq("club_id", currentClub.id)
-					.order("match_date", { ascending: false })
+					.order("match_date", { ascending: false });
 
 				if (error) throw error;
 
@@ -127,14 +114,12 @@ export default function MatchesPage() {
 	);
 }
 
-function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; clubName: string; canEdit: boolean }) {
+function MatchCard({ match, clubName, canEdit }: { match: Match; clubName: string; canEdit: boolean }) {
 	const router = useRouter();
 	const matchDate = new Date(match.match_date);
 
 	const isTied = match.home_score === match.away_score;
 	const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null;
-	const competitionImage = match.competitions?.image_url?.trim() || null
-
 	let result: string;
 	let resultColor: string;
 
@@ -173,6 +158,7 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 	}
 
 	const handleCardClick = (e: React.MouseEvent) => {
+		// Don't navigate if clicking on action buttons
 		if ((e.target as HTMLElement).closest(".action-buttons")) {
 			return;
 		}
@@ -180,17 +166,17 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 	};
 
 	return (
-		<CardContent className="p-0 hover:bg-muted/100 rounded-xl transition-colors cursor-pointer" onClick={handleCardClick}>
+		<CardContent className="p-0 hover:bg-muted/100 transition-colors cursor-pointer" onClick={handleCardClick}>
 			<div className="relative overflow-hidden rounded-xl border-2">
 				<div className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[420px]">
 					<div className="relative h-full w-full">
 						<div className={`absolute inset-10 rounded-full bg-gradient-to-br ${logoGlow} blur-3xl`} />
 						<Image
-							src={competitionImage ?? logo}
-							alt={match.competitions?.name ?? "LEWaterpolo"}
+							src={logo}
+							alt="LEWaterpolo"
 							fill
-							className="object-contain opacity-30 hover:opacity-50  transition-opacity duration-200"
-							/>
+							className="object-contain opacity-25 hover:opacity-50 transition-opacity duration-2"
+						/>
 					</div>
 				</div>
 

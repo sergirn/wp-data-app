@@ -26,20 +26,12 @@ import {
 import { cn } from "@/lib/utils"
 import type { Player, MatchStats } from "@/lib/types"
 import { ComparisonRow } from "./comparisionRow"
-import { Swords, PlusCircle, Shield, Hand } from "lucide-react"
-
-// helpers
-const safe = (n: any) => (Number.isFinite(Number(n)) ? Number(n) : 0)
-
-const calcGolesRecibidosPortero = (sum: (k: keyof MatchStats) => number) => {
-  return (
-    sum("portero_goles_boya_parada") +
-    sum("portero_goles_dir_mas_5m") +
-    sum("portero_goles_contraataque") +
-    sum("portero_goles_penalti") +
-    sum("portero_goles_hombre_menos")
-  )
-}
+import {
+  Swords,
+  PlusCircle,
+  Shield,
+  Hand,
+} from "lucide-react"
 
 interface PlayerComparisonProps {
   players: Player[]
@@ -70,23 +62,29 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
         const s = stats.filter((st) => st.player_id === player.id)
 
         const sum = (key: keyof MatchStats) =>
-          s.reduce((acc, x) => acc + (x?.[key] ? Number(x[key]) : 0), 0)
+          s.reduce((acc, x) => acc + (x[key] || 0), 0)
 
         const isGoalkeeper = player.is_goalkeeper === true
 
         /* ===== ATAQUE ===== */
         const goles = sum("goles_totales")
         const tiros = sum("tiros_totales")
-        const eficienciaTiro = tiros > 0 ? Math.round((goles / tiros) * 100) : 0
+        const eficienciaTiro =
+          tiros > 0 ? Math.round((goles / tiros) * 100) : 0
         const asistencias = sum("acciones_asistencias")
 
         /* ===== SUPERIORIDAD ===== */
         const golesHombreMas = sum("goles_hombre_mas")
-        const fallosHombreMas = sum("tiros_hombre_mas") + sum("tiros_penalti_fallado")
+        const fallosHombreMas =
+          sum("tiros_hombre_mas") + sum("tiros_penalti_fallado")
 
         const eficienciaHombreMas =
           golesHombreMas + fallosHombreMas > 0
-            ? Math.round((golesHombreMas / (golesHombreMas + fallosHombreMas)) * 100)
+            ? Math.round(
+                (golesHombreMas /
+                  (golesHombreMas + fallosHombreMas)) *
+                  100,
+              )
             : 0
 
         /* ===== DEFENSA / ACCIONES ===== */
@@ -99,9 +97,7 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
 
         /* ===== PORTERO ===== */
         const paradas = sum("portero_paradas_totales")
-
-        // ✅ AQUÍ APLICADO: goles recibidos por suma de campos
-        const golesRecibidos = calcGolesRecibidosPortero(sum)
+        const golesRecibidos = sum("portero_goles_totales")
 
         const porcentajeParadas =
           paradas + golesRecibidos > 0
@@ -113,7 +109,11 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
 
         const eficienciaInferioridad =
           paradasHombreMenos + golesHombreMenos > 0
-            ? Math.round((paradasHombreMenos / (paradasHombreMenos + golesHombreMenos)) * 100)
+            ? Math.round(
+                (paradasHombreMenos /
+                  (paradasHombreMenos + golesHombreMenos)) *
+                  100,
+              )
             : 0
 
         const paradasRecuperacion = sum("portero_paradas_parada_recup")
@@ -171,8 +171,12 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
             <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl">
               ＋
             </div>
-            <h3 className="text-lg font-semibold">Añadir jugadores para comparar</h3>
-            <p className="text-muted-foreground text-sm">Comparación avanzada por fases del juego</p>
+            <h3 className="text-lg font-semibold">
+              Añadir jugadores para comparar
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Comparación avanzada por fases del juego
+            </p>
           </CardContent>
         </Card>
       )}
@@ -210,8 +214,12 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
       {(allFieldPlayers || allGoalkeepers) && (
         <Card>
           <CardHeader>
-            <CardTitle>Comparación de {allGoalkeepers ? "Porteros" : "Jugadores"}</CardTitle>
-            <CardDescription>Verde = mejor · Rojo = peor</CardDescription>
+            <CardTitle>
+              Comparación de {allGoalkeepers ? "Porteros" : "Jugadores"}
+            </CardTitle>
+            <CardDescription>
+              Verde = mejor · Rojo = peor
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="overflow-x-auto">
@@ -222,7 +230,9 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
                   {comparisonData.map((p) => (
                     <TableHead key={p.playerId} className="text-center">
                       <div className="font-semibold">#{p.number}</div>
-                      <div className="text-xs text-muted-foreground">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.name}
+                      </div>
                     </TableHead>
                   ))}
                 </TableRow>
@@ -231,6 +241,7 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
               <TableBody>
                 {!allGoalkeepers && (
                   <>
+                    {/* ATAQUE */}
                     <Section title="Ataque" icon={<Swords className="h-4 w-4" />}>
                       <ComparisonRow label="Goles" field="goles" data={comparisonData} />
                       <ComparisonRow label="Tiros" field="tiros" data={comparisonData} />
@@ -238,6 +249,7 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
                       <ComparisonRow label="Asistencias" field="asistencias" data={comparisonData} />
                     </Section>
 
+                    {/* SUPERIORIDAD */}
                     <Section title="Superioridad (H+)" icon={<PlusCircle className="h-4 w-4" />}>
                       <ComparisonRow
                         label="H+ (goles/fallos)"
@@ -245,14 +257,10 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
                         extraField="fallosHombreMas"
                         data={comparisonData}
                       />
-                      <ComparisonRow
-                        label="Eficiencia H+"
-                        field="eficienciaHombreMas"
-                        isPercentage
-                        data={comparisonData}
-                      />
+                      <ComparisonRow label="Eficiencia H+" field="eficienciaHombreMas" isPercentage data={comparisonData} />
                     </Section>
 
+                    {/* DEFENSA */}
                     <Section title="Defensa y acciones" icon={<Shield className="h-4 w-4" />}>
                       <ComparisonRow label="Bloqueos" field="bloqueos" data={comparisonData} />
                       <ComparisonRow label="Recuperaciones" field="recuperaciones" data={comparisonData} />
@@ -285,7 +293,9 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Seleccionar jugadores</DialogTitle>
-            <DialogDescription>Pulsa sobre los jugadores que quieras comparar</DialogDescription>
+            <DialogDescription>
+              Pulsa sobre los jugadores que quieras comparar
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
@@ -298,13 +308,17 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
                   onClick={() => togglePlayer(p.id)}
                   className={cn(
                     "flex items-center justify-between rounded-lg border p-3 cursor-pointer transition",
-                    checked ? "border-primary bg-primary/10" : "hover:bg-muted/40",
+                    checked
+                      ? "border-primary bg-primary/10"
+                      : "hover:bg-muted/40",
                   )}
                 >
                   <p className="font-medium">
                     #{p.number} · {p.name}
                     {p.is_goalkeeper && (
-                      <span className="ml-2 text-xs text-muted-foreground">(Portero)</span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (Portero)
+                      </span>
                     )}
                   </p>
 
@@ -324,7 +338,9 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
           </div>
 
           <div className="flex justify-end pt-2">
-            <Button onClick={() => setOpen(false)}>Confirmar ({selectedIds.length})</Button>
+            <Button onClick={() => setOpen(false)}>
+              Confirmar ({selectedIds.length})
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

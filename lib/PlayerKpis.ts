@@ -25,4 +25,3 @@ export function buildFieldPlayerKpis(args: {
     { key: "gpm", label: "Goles/Partido", value: golesPerMatch, cardClass: "bg-gradient-to-br from-background to-muted" },
   ]
 }
-

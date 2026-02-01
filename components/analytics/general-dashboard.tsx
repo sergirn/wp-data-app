@@ -2,12 +2,18 @@
 
 import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   TrendingUp,
   TrendingDown,
   Target,
   Shield,
-  Activity
+  Activity,
+  AlertTriangle,
+  Award,
+  Users,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react"
 
 interface GeneralDashboardProps {
@@ -60,8 +66,7 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
         sum +
         (s.faltas_exp_20_1c1 || 0) +
         (s.faltas_exp_20_boya || 0) +
-        (s.faltas_exp_3_bruta || 0)+
-        (s.faltas_exp_simple || 0),
+        (s.faltas_exp_3_bruta || 0),
       0
     )
 
