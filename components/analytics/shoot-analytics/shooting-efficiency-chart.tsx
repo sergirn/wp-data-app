@@ -82,7 +82,7 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 						general: { label: "Eficiencia General (%)", color: "hsla(0, 91%, 60%, 1.00)" },
 						superiority: { label: "Eficiencia Superioridad (%)", color: "hsla(59, 85%, 45%, 1.00)" }
 					}}
-					className={`w-full ${compact ? "h-[190px]" : "h-[420px]"}`}
+					className={`w-full ${compact ? "h-[120px]" : "h-[420px]"}`}
 				>
 					<ResponsiveContainer width="100%" height="100%">
 						<AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>

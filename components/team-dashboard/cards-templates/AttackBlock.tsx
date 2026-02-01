@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { TopPlayerCard } from "./TopPlayerCard"
+import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
@@ -33,13 +33,13 @@ export function AttackBlock({ playerStats }: AttackBlockProps) {
   const eff = toNum(topEfficiencyPlayer?.eficiencia)
 
   return (
-    <Card>
-      <CardHeader>
+    <div>
+      <div>
         <CardTitle>Ataque</CardTitle>
         <CardDescription>Producción y calidad ofensiva</CardDescription>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
+      <div className="mt-4">
 
         {topEfficiencyPlayer && (
           <div className="space-y-2">
@@ -109,7 +109,7 @@ export function AttackBlock({ playerStats }: AttackBlockProps) {
             </Dialog>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

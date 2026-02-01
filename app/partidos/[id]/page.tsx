@@ -5,20 +5,14 @@ import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
 import { notFound } from "next/navigation";
 import { DeleteMatchButton } from "@/components/delete-match-button";
-import { MatchExportButton } from "@/components/match-export-button";
 import { getCurrentProfile } from "@/lib/auth";
-import { MatchSuperiorityChart } from "@/components/match-components/match-superiority-chart";
-import { MatchInferiorityChart } from "@/components/match-components/match-inferiority-chart";
-import { MatchBlocksChart } from "@/components/match-blocks-chart";
 import Image from "next/image";
 import logo from "@/public/images/lewaterpolo_bg.png";
 import { MatchPeriodsAndPenaltiesCard } from "@/components/match-components/MatchPeriodsAndPenaltiesCard";
 import { TeamTotalsOverviewCard } from "@/components/match-components/TotalMatchStats";
-import { MatchPossessionChart } from "@/components/match-components/perd_rec_pos-chart_team";
-import { MatchGoalkeepersPieChart } from "@/components/match-components/GoalkeeperMatch-chart";
 import { PlayerStatsCard } from "@/components/match-components/PlayerStatsAccordion";
 import { GoalkeeperStatsCard } from "@/components/match-components/GoalkeeperStatsCard";
-import { GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/evolution-component/GoalkeepersShotsEvolutions";
+import { MatchChartsModalTrigger } from "@/components/match-components/match-charts-main";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -285,25 +279,22 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				rivalPenaltyShots={rivalPenaltyShots}
 			/>
 
-			<div className="grid gap-6 mb-6">
+			<div className="grid gap- mb-8">
 				<TeamTotalsOverviewCard stats={match.match_stats} />
 
-				<div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
-					<MatchSuperiorityChart stats={superioridadStats} />
-					<MatchInferiorityChart stats={inferioridadStats} />
-					<MatchBlocksChart stats={blocksStats} matchStats={matchStats} clubName={clubName} />
-					<MatchPossessionChart
-						stats={match.match_stats}
-						rival={match.opponent}
-						matchDateLabel={matchDate.toLocaleDateString("es-ES")}
-						size="sm"
-					/>
-					<MatchGoalkeepersPieChart stats={match.match_stats} match={match} />
-
-					<div className="col-span-2 md:col-span-3">
-						<GoalkeeperShotsGoalChart shots={allGoalkeeperShots} goalkeeperPlayerId={goalkeeperId} matchId={match.id} />
-					</div>
-				</div>
+				<MatchChartsModalTrigger
+					clubName={clubName}
+					opponentName={match.opponent}
+					matchDateLabel={matchDate.toLocaleDateString("es-ES")}
+					match={match}
+					matchStats={match.match_stats}
+					superioridadStats={superioridadStats}
+					inferioridadStats={inferioridadStats}
+					blocksStats={blocksStats}
+					allGoalkeeperShots={allGoalkeeperShots}
+					goalkeeperId={goalkeeperId}
+					matchId={match.id}
+				/>
 			</div>
 
 			{/* Field Players Stats */}
@@ -312,7 +303,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					<CardTitle>Estadísticas - Jugadores de Campo</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+					<div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6">
 						{fieldPlayersStats.map((stat: any) => (
 							<PlayerStatsCard key={stat.id} stat={stat} player={stat.players} />
 						))}
@@ -327,7 +318,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 						<CardTitle>Estadísticas - Porteros</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+						<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
 							{goalkeepersStats.map((stat: any) => (
 								<GoalkeeperStatsCard key={stat.id} stat={stat} player={stat.players} />
 							))}
@@ -337,9 +328,9 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			)}
 
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
-				<div className="w-full sm:w-auto">
+				{/* <div className="w-full sm:w-auto">
 					<MatchExportButton match={match} players={players} stats={stats} />
-				</div>
+				</div> */}
 
 				<div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
 					{canEdit && (
@@ -352,7 +343,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					)}
 
 					{canEdit && (
-						<div className="flex items-center gap-2">
+						<div className="flex items-center gap-2 bg-muted rounded-md">
 							<DeleteMatchButton matchId={match.id} />
 
 							<span className="hidden sm:inline text-sm text-red-600 dark:text-red-400">Eliminar Partido</span>

@@ -42,7 +42,7 @@ export function GoalkeeperStatsCard({ stat, player }: { stat: MatchStats; player
         aria-label={`Ver estadísticas de portero de ${player.name}`}
       >
         <div className="w-full overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30">
-          <div className="relative h-50 sm:h-52 overflow-hidden">
+          <div className="relative aspect-[4/5] sm:aspect-[3/3] overflow-hidden">
             {player.photo_url ? (
               <img
                 src={player.photo_url ?? undefined}
@@ -69,29 +69,32 @@ export function GoalkeeperStatsCard({ stat, player }: { stat: MatchStats; player
             </div>
           </div>
 
-          <div className="p-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
               <Badge
                 variant="secondary"
-                className="inline-flex items-center bg-green-500/10 text-green-700 dark:text-green-300 text-[11px] px-2 py-0.5"
+                className="inline-flex items-center bg-green-500/10 text-green-700 dark:text-green-300 text-[11px] px-2 py-0.5 whitespace-nowrap"
               >
-                <Shield className="w-3 h-3 mr-1" />
-                {paradas} paradas
+                <Shield className="w-3 h-3 mr-1 shrink-0" />
+                <span className="tabular-nums">{paradas}</span>
+                <span className="hidden sm:inline">&nbsp;paradas</span>
+                <span className="sm:hidden">&nbsp;P</span>
               </Badge>
 
               <Badge
                 variant="secondary"
-                className="inline-flex items-center bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] px-2 py-0.5"
+                className="inline-flex items-center bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] px-2 py-0.5 whitespace-nowrap"
               >
-                <TrendingUp className="w-3 h-3 mr-1" />
-                {savePercentage}%
+                <TrendingUp className="w-3 h-3 mr-1 shrink-0" />
+                <span className="tabular-nums">{savePercentage}%</span>
               </Badge>
 
               <Badge
                 variant="secondary"
-                className="inline-flex items-center bg-red-500/10 text-red-700 dark:text-red-300 text-[11px] px-2 py-0.5"
+                className="inline-flex items-center bg-red-500/10 text-red-700 dark:text-red-300 text-[11px] px-2 py-0.5 whitespace-nowrap"
               >
-                GC {golesRecibidos}
+                <span className="font-semibold">GC</span>&nbsp;
+                <span className="tabular-nums">{golesRecibidos}</span>
               </Badge>
             </div>
           </div>

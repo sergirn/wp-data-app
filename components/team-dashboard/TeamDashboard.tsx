@@ -1,19 +1,38 @@
 "use client"
 
-import { useState } from "react"
-import { AttackBlock } from "./AttackBlock"
-import { DefenseBlock } from "./DefenseBlock"
-import { GoalkeeperBlock } from "./GoalkeeperBlock"
+import React, { useEffect, useMemo, useRef, useState } from "react"
+import { AttackBlock } from "./cards-templates/AttackBlock"
+import { DefenseBlock } from "./cards-templates/DefenseBlock"
+import { GoalkeeperBlock } from "./cards-templates/GoalkeeperBlock"
 import { PlayerStatCard } from "./PlayerStatCard"
 import { CustomStatCardDialog } from "./CustomStatCardDialog"
-import { UserX, Target, Activity, Crosshair } from "lucide-react"
+import { ChevronLeft, ChevronRight, Target } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { MostExpelledFeaturedCard } from "./cards-templates/MostExpelledBlock"
+import { MostAssistsFeaturedCard } from "./cards-templates/MostAssistsBlock"
+import { MostRecoveriesFeaturedCard } from "./cards-templates/MostRecoveriesBlock"
+import { BestPenaltyFeaturedCard } from "./cards-templates/BestPenaltyBlock"
 
 interface TeamDashboardProps {
   teamStats?: any
 }
 
+function chunk<T>(arr: T[], size: number) {
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
+const toNum = (v: any) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
 export function TeamDashboard({ teamStats }: TeamDashboardProps) {
   const [customCards, setCustomCards] = useState<Array<{ statField: string; statLabel: string }>>([])
+  const [page, setPage] = useState(0)
+  const [perPage, setPerPage] = useState(3)
+  const railRef = useRef<HTMLDivElement | null>(null)
 
   const playerStats =
     (Array.isArray(teamStats) && teamStats) ||
@@ -24,207 +43,192 @@ export function TeamDashboard({ teamStats }: TeamDashboardProps) {
   const fieldPlayers = playerStats.filter((p: any) => !p.is_goalkeeper)
   const goalkeepers = playerStats.filter((p: any) => p.is_goalkeeper)
 
-  const getMostExpelledPlayer = () => {
-    if (fieldPlayers.length === 0) return null
+  // ✅ Responsive perPage: móvil 1, tablet 2, desktop 3
+  useEffect(() => {
+    const mqLg = window.matchMedia("(min-width: 1024px)") // lg
+    const mqSm = window.matchMedia("(min-width: 640px)") // sm
 
-    return fieldPlayers.reduce((max: any, player: any) => {
-      const totalExpulsions =
-        (player.faltas_exp_3_bruta || 0) +
-        (player.faltas_exp_3_int || 0) +
-        (player.faltas_exp_20_1c1 || 0) +
-        (player.faltas_exp_20_boya || 0)
-
-      const maxExpulsions =
-        (max.faltas_exp_3_bruta || 0) +
-        (max.faltas_exp_3_int || 0) +
-        (max.faltas_exp_20_1c1 || 0) +
-        (max.faltas_exp_20_boya || 0)
-
-      return totalExpulsions > maxExpulsions ? player : max
-    })
-  }
-
-  const getMostAssistsPlayer = () => {
-    if (fieldPlayers.length === 0) return null
-
-    return fieldPlayers.reduce((max: any, player: any) => {
-      const assists = player.acciones_asistencias || 0
-      const maxAssists = max.acciones_asistencias || 0
-      return assists > maxAssists ? player : max
-    })
-  }
-
-  const getMostRecoveriesPlayer = () => {
-    if (fieldPlayers.length === 0) return null
-
-    return fieldPlayers.reduce((max: any, player: any) => {
-      const recoveries = player.acciones_recuperacion || 0
-      const maxRecoveries = max.acciones_recuperacion || 0
-      return recoveries > maxRecoveries ? player : max
-    })
-  }
-
-  const getBestPenaltyPlayer = () => {
-    if (fieldPlayers.length === 0) return null
-
-    const playersWithPenalties = fieldPlayers.filter(
-      (p: any) => (p.goles_penalti_anotado || 0) + (p.goles_penalti_fallo || 0) > 0,
-    )
-
-    if (playersWithPenalties.length === 0) return null
-
-    return playersWithPenalties.reduce((max: any, player: any) => {
-      const scored = player.goles_penalti_anotado || 0
-      const missed = player.goles_penalti_fallo || 0
-      const total = scored + missed
-      const efficiency = total > 0 ? (scored / total) * 100 : 0
-
-      const maxScored = max.goles_penalti_anotado || 0
-      const maxMissed = max.goles_penalti_fallo || 0
-      const maxTotal = maxScored + maxMissed
-      const maxEfficiency = maxTotal > 0 ? (maxScored / maxTotal) * 100 : 0
-
-      return efficiency > maxEfficiency ? player : max
-    })
-  }
-
-  const getTopPlayerForStat = (statField: string) => {
-    const allPlayers = [...fieldPlayers, ...goalkeepers]
-    if (allPlayers.length === 0) return null
-
-    // Filtrar jugadores que tienen un valor válido para esta estadística
-    const playersWithStat = allPlayers.filter((player: any) => {
-      const value = player[statField]
-      return value !== null && value !== undefined && value > 0
-    })
-
-    if (playersWithStat.length === 0) {
-      console.log(`[v0] No players found with stat: ${statField}`)
-      return null
+    const compute = () => {
+      if (mqLg.matches) return 3
+      if (mqSm.matches) return 2
+      return 1
     }
 
-    const topPlayer = playersWithStat.reduce((max: any, player: any) => {
-      const value = Number(player[statField]) || 0
-      const maxValue = Number(max[statField]) || 0
-      return value > maxValue ? player : max
-    })
+    const apply = () => setPerPage(compute())
+    apply()
 
-    console.log(`[v0] Top player for ${statField}:`, {
-      name: topPlayer.name,
-      value: topPlayer[statField],
-      allValues: playersWithStat.map((p: any) => ({ name: p.name, value: p[statField] })),
-    })
+    const onChange = () => apply()
 
-    return topPlayer
+    // compat Safari viejo
+    if (mqLg.addEventListener) {
+      mqLg.addEventListener("change", onChange)
+      mqSm.addEventListener("change", onChange)
+      return () => {
+        mqLg.removeEventListener("change", onChange)
+        mqSm.removeEventListener("change", onChange)
+      }
+    } else {
+      mqLg.addListener(onChange)
+      mqSm.addListener(onChange)
+      return () => {
+        mqLg.removeListener(onChange)
+        mqSm.removeListener(onChange)
+      }
+    }
+  }, [])
+
+  const cards = useMemo(() => {
+    const items: React.ReactNode[] = []
+
+    const bestEfficiency = [...(fieldPlayers ?? [])]
+      .filter((p: any) => toNum(p.totalTiros) >= 10)
+      .sort((a: any, b: any) => toNum(b.eficiencia) - toNum(a.eficiencia))
+      .slice(0, 10)
+
+    const topEfficiencyPlayer = bestEfficiency[0] ?? null
+
+    if (topEfficiencyPlayer) items.push(<AttackBlock key="attack" playerStats={fieldPlayers} />)
+    if (topEfficiencyPlayer) items.push(<DefenseBlock key="defense" playerStats={fieldPlayers} />)
+    if (topEfficiencyPlayer) items.push(<GoalkeeperBlock key="gk" playerStats={goalkeepers} />)
+
+    // Destacados
+    if (fieldPlayers.length > 0) items.push(<MostExpelledFeaturedCard key="exp" playerStats={fieldPlayers} />)
+    if (fieldPlayers.length > 0) items.push(<MostAssistsFeaturedCard key="assist" playerStats={fieldPlayers} />)
+    if (fieldPlayers.length > 0) items.push(<MostRecoveriesFeaturedCard key="rec" playerStats={fieldPlayers} />)
+    if (fieldPlayers.length > 0) items.push(<BestPenaltyFeaturedCard key="pen" playerStats={fieldPlayers} />)
+
+    // custom cards
+    // customCards.forEach((card, index) => {
+    //   const topPlayer = getTopPlayerForStat(card.statField)
+    //   if (!topPlayer) return
+    //   items.push(
+    //     <PlayerStatCard
+    //       key={`custom-${index}-${card.statField}`}
+    //       title={card.statLabel}
+    //       icon={Target}
+    //       player={topPlayer}
+    //       statLabel={card.statLabel}
+    //       statValue={topPlayer[card.statField] || 0}
+    //       details={[{ label: "Total", value: topPlayer[card.statField] || 0 }]}
+    //     />,
+    //   )
+    // })
+
+    // add button as a “card”
+    // items.push(<CustomStatCardDialog key="custom-add" onAddCard={handleAddCustomCard} />)
+
+    return items
+  }, [fieldPlayers, goalkeepers, customCards])
+
+  // ✅ 2) Paginamos según breakpoint
+  const pages = useMemo(() => chunk(cards, perPage), [cards, perPage])
+  const totalPages = pages.length
+
+  // si cambia el número de páginas, ajustamos la página actual
+  useEffect(() => {
+    setPage((p) => Math.min(p, Math.max(totalPages - 1, 0)))
+  }, [totalPages])
+
+  const scrollToPage = (next: number) => {
+    const clamped = Math.max(0, Math.min(next, totalPages - 1))
+    setPage(clamped)
+    const el = railRef.current
+    if (!el) return
+    const w = el.clientWidth
+    el.scrollTo({ left: clamped * w, behavior: "smooth" })
   }
 
-  const mostExpelledPlayer = getMostExpelledPlayer()
-  const mostAssistsPlayer = getMostAssistsPlayer()
-  const mostRecoveriesPlayer = getMostRecoveriesPlayer()
-  const bestPenaltyPlayer = getBestPenaltyPlayer()
+  const onPrev = () => scrollToPage(page - 1)
+  const onNext = () => scrollToPage(page + 1)
 
-  const handleAddCustomCard = (statField: string, statLabel: string) => {
-    setCustomCards([...customCards, { statField, statLabel }])
+  // sincroniza page al hacer swipe/scroll manual
+  const onScroll = () => {
+    const el = railRef.current
+    if (!el) return
+    const w = el.clientWidth || 1
+    const next = Math.round(el.scrollLeft / w)
+    if (next !== page) setPage(next)
   }
 
   return (
     <section className="space-y-6">
-      {/* Bloques principales */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <AttackBlock playerStats={fieldPlayers} />
-        <DefenseBlock playerStats={fieldPlayers} />
-        <GoalkeeperBlock playerStats={goalkeepers} />
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-base sm:text-lg font-semibold leading-tight">Destacados</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {cards.length} cards · página {totalPages ? page + 1 : 0}/{totalPages || 0}
+          </p>
+        </div>
+
+        {/* Controles */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="icon"
+            onClick={onPrev}
+            disabled={page <= 0}
+            aria-label="Anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            onClick={onNext}
+            disabled={page >= totalPages - 1}
+            aria-label="Siguiente"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Jugador más expulsado */}
-        {mostExpelledPlayer && (
-          <PlayerStatCard
-            title="Más Expulsado"
-            icon={UserX}
-            player={mostExpelledPlayer}
-            statLabel="Más Expulsado"
-            statValue={
-              (mostExpelledPlayer.faltas_exp_3_bruta || 0) +
-              (mostExpelledPlayer.faltas_exp_3_int || 0) +
-              (mostExpelledPlayer.faltas_exp_20_1c1 || 0) +
-              (mostExpelledPlayer.faltas_exp_20_boya || 0)
-            }
-            details={[
-              { label: "Exp. sencilla", value: mostExpelledPlayer.faltas_exp_20_1c1 || 0 }
-            ]}
-          />
-        )}
+      {/* Rail */}
+      <div
+        ref={railRef}
+        onScroll={onScroll}
+        className="
+          w-full overflow-x-auto scroll-smooth
+          snap-x snap-mandatory
+          [scrollbar-width:none] [-ms-overflow-style:none]
+        "
+      >
+        <div className="[&::-webkit-scrollbar]:hidden" />
 
-        {/* Más asistidor */}
-        {mostAssistsPlayer && (
-          <PlayerStatCard
-            title="Más Asistidor"
-            icon={Target}
-            player={mostAssistsPlayer}
-            statLabel="Más Asistidor"
-            statValue={mostAssistsPlayer.acciones_asistencias || 0}
-            details={[
-              { label: "Goles", value: mostAssistsPlayer.goles_totales || 0 },
-              { label: "Tiros", value: mostAssistsPlayer.tiros_totales || 0 },
-            ]}
-          />
-        )}
+        <div className="flex">
+          {pages.map((group, idx) => (
+            <div key={idx} className="w-full shrink-0 snap-start px-0">
+              {/* ✅ Coincide con perPage: móvil 1, tablet 2, desktop 3 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {group.map((node, i) => (
+                  <div key={i} className="min-w-0">
+                    {node}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        {/* Más recuperaciones */}
-        {mostRecoveriesPlayer && (
-          <PlayerStatCard
-            title="Más Recuperaciones"
-            icon={Activity}
-            player={mostRecoveriesPlayer}
-            statLabel="Más Recuperaciones"
-            statValue={mostRecoveriesPlayer.acciones_recuperacion || 0}
-            details={[
-              { label: "Bloqueos", value: mostRecoveriesPlayer.acciones_bloqueo || 0 },
-              { label: "Rebotes", value: mostRecoveriesPlayer.acciones_rebote || 0 },
-            ]}
-          />
-        )}
-
-        {/* Mayor eficiencia en penaltis */}
-        {bestPenaltyPlayer && (
-          <PlayerStatCard
-            title="Mejor en Penaltis"
-            icon={Crosshair}
-            player={bestPenaltyPlayer}
-            statLabel="Eficiencia en Penaltis"
-            statValue={`${(
-              ((bestPenaltyPlayer.goles_penalti_anotado || 0) /
-                ((bestPenaltyPlayer.goles_penalti_anotado || 0) + (bestPenaltyPlayer.goles_penalti_fallo || 0))) *
-                100
-            ).toFixed(0)}%`}
-            details={[
-              { label: "Anotados", value: bestPenaltyPlayer.goles_penalti_anotado || 0 },
-              { label: "Fallados", value: bestPenaltyPlayer.goles_penalti_fallo || 0 },
-            ]}
-          />
-        )}
-
-        {customCards.map((card, index) => {
-          const topPlayer = getTopPlayerForStat(card.statField)
-          if (!topPlayer) return null
-
-          return (
-            <PlayerStatCard
-              key={`custom-${index}-${card.statField}`}
-              title={card.statLabel}
-              icon={Target}
-              player={topPlayer}
-              statLabel={card.statLabel}
-              statValue={topPlayer[card.statField] || 0}
-              details={[{ label: "Total", value: topPlayer[card.statField] || 0 }]}
+      {/* Dots */}
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => scrollToPage(i)}
+              className={`
+                h-2 w-2 rounded-full transition
+                ${i === page ? "bg-foreground" : "bg-muted-foreground/30 hover:bg-muted-foreground/50"}
+              `}
+              aria-label={`Ir a página ${i + 1}`}
             />
-          )
-        })}
-
-        {/* Botón para añadir card personalizada */}
-        <CustomStatCardDialog onAddCard={handleAddCustomCard} />
-      </div>
+          ))}
+        </div>
+      ) : null}
     </section>
   )
 }

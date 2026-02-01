@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { TopPlayerCard } from "./TopPlayerCard"
+import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
@@ -61,13 +61,13 @@ export function DefenseBlock({ playerStats }: DefenseBlockProps) {
   const restRecoveries = topId ? topRecoveries.filter((p) => getId(p) !== topId) : topRecoveries
 
   return (
-    <Card>
-      <CardHeader>
+    <div>
+      <div>
         <CardTitle>Defensa</CardTitle>
         <CardDescription>Capacidad defensiva y recuperación de balón</CardDescription>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
+      <div className="mt-4">
 
         {(!playerStats || playerStats.length === 0) && (
           <div className="rounded-xl border p-4 text-sm text-muted-foreground">
@@ -178,7 +178,7 @@ export function DefenseBlock({ playerStats }: DefenseBlockProps) {
             </Dialog>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

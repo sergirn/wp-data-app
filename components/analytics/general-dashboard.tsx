@@ -9,6 +9,7 @@ import {
   Shield,
   Activity
 } from "lucide-react"
+import { MatchResultsChart } from "../match-results-chart"
 
 interface GeneralDashboardProps {
   matches: any[]
@@ -158,89 +159,100 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
     }[accent]
 
     return (
-      <Card className={`relative overflow-hidden ring-1 ${ringMap}`}>
-        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentMap}`} />
-        <CardHeader className="relative pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground/90">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-background/70 ring-1 ring-border">
-              {icon}
-            </span>
-            <span className="truncate">{title}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="relative">
-          <div className="flex items-end gap-1.5">
-            <div className="text-3xl font-bold tracking-tight">{value}</div>
-            {unit ? <div className="pb-1 text-sm font-medium text-muted-foreground">{unit}</div> : null}
-          </div>
-          {subline ? <p className="mt-1 text-xs text-muted-foreground">{subline}</p> : null}
-        </CardContent>
-      </Card>
+<Card className={`hidden sm:block relative overflow-hidden ring-1 ${ringMap}`}>
+  <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentMap}`} />
+
+  <CardHeader className="relative pb-3">
+    <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground/90">
+      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-background/70 ring-1 ring-border">
+        {icon}
+      </span>
+      <span className="truncate">{title}</span>
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent className="relative">
+    <div className="flex items-end gap-1.5">
+      <div className="text-3xl font-bold tracking-tight">{value}</div>
+      {unit ? <div className="pb-1 text-sm font-medium text-muted-foreground">{unit}</div> : null}
+    </div>
+    {subline ? <p className="mt-1 text-xs text-muted-foreground">{subline}</p> : null}
+  </CardContent>
+</Card>
+
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* ===== Header mini (contexto) ===== */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm text-muted-foreground truncate">
-            Indicadores clave y tendencias del equipo · {analytics.totalMatches} partidos
-          </p>
+  <div className="space-y-6">
+    {/* Layout principal: Chart izquierda / Contenido derecha (en línea en desktop) */}
+    <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground truncate">
+              Indicadores clave y tendencias del equipo · {analytics.totalMatches} partidos
+            </p>
+          </div>
         </div>
+    <div className="grid gap-6 lg:grid-cols-[minmax(320px,1fr)_2fr] lg:items-start">
+      {/* IZQUIERDA: Chart */}
+      <div className="order-2 lg:order-1">
+        <MatchResultsChart matches={matches || []} />
       </div>
 
-      {/* ===== KPIs (Eficiencias) ===== */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Eficiencia de tiro"
-          icon={<Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />}
-          value={analytics.shootingEfficiency}
-          unit="%"
-          subline={`${analytics.totalGoalsFor} goles / ${analytics.totalShots} tiros`}
-          accent="blue"
-        />
+      {/* DERECHA: Todo lo demás */}
+      <div className="order-1 lg:order-2 space-y-7">
+        {/* ===== Header mini (contexto) ===== */}
+        
 
-        <MetricCard
-          title="Superioridad"
-          icon={<TrendingUp className="h-4 w-4 text-green-600 dark:text-green-300" />}
-          value={analytics.superiorityEfficiency}
-          unit="%"
-          subline={`${analytics.goalsSuperiority} goles / ${analytics.shotsSuperiority} tiros`}
-          accent="green"
-        />
+        {/* ===== KPIs (Eficiencias) ===== */}
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-2">
+          <MetricCard
+            title="Eficiencia de tiro"
+            icon={<Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />}
+            value={analytics.shootingEfficiency}
+            unit="%"
+            subline={`${analytics.totalGoalsFor} goles / ${analytics.totalShots} tiros`}
+            accent="blue"
+          />
 
-        <MetricCard
-          title="Inferioridad"
-          icon={<TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-300" />}
-          value={analytics.inferiorityEfficiency}
-          unit="%"
-          subline={`${analytics.savesInferiority} paradas / ${analytics.savesInferiority + analytics.goalsAgainstInferiority} tiros`}
-          accent="orange"
-        />
+          <MetricCard
+            title="Superioridad"
+            icon={<TrendingUp className="h-4 w-4 text-green-600 dark:text-green-300" />}
+            value={analytics.superiorityEfficiency}
+            unit="%"
+            subline={`${analytics.goalsSuperiority} goles / ${analytics.shotsSuperiority} tiros`}
+            accent="green"
+          />
 
-        <MetricCard
-          title="Eficiencia porteros"
-          icon={<Shield className="h-4 w-4 text-purple-600 dark:text-purple-300" />}
-          value={analytics.goalkeeperEfficiency}
-          unit="%"
-          subline={`${analytics.totalSaves} paradas totales`}
-          accent="purple"
-        />
-      </div>
+          <MetricCard
+            title="Inferioridad"
+            icon={<TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-300" />}
+            value={analytics.inferiorityEfficiency}
+            unit="%"
+            subline={`${analytics.savesInferiority} paradas / ${analytics.savesInferiority + analytics.goalsAgainstInferiority} tiros`}
+            accent="orange"
+          />
 
-      {/* ===== Medias por partido (más “card-like”) ===== */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-muted-foreground" />
-            Medias por Partido
-          </CardTitle>
-          <CardDescription>Valores medios para comparar consistencia entre jornadas</CardDescription>
-        </CardHeader>
+          <MetricCard
+            title="Eficiencia porteros"
+            icon={<Shield className="h-4 w-4 text-purple-600 dark:text-purple-300" />}
+            value={analytics.goalkeeperEfficiency}
+            unit="%"
+            subline={`${analytics.totalSaves} paradas totales`}
+            accent="purple"
+          />
+        </div>
 
-        <CardContent>
-          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        {/* ===== Medias por partido ===== */}
+        <div className="overflow-hidden">
+          <div className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-muted-foreground" />
+              Medias por Partido
+            </CardTitle>
+          </div>
+
+          <div className="grid gap-3 grid-cols-3 sm:grid-cols-3 lg:grid-cols-6">
             <div className="rounded-lg border bg-card p-3 text-center">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgGoalsFor}</div>
               <p className="text-xs text-muted-foreground">Goles a favor</p>
@@ -271,8 +283,10 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
               <p className="text-xs text-muted-foreground">Faltas</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
-  )
+  </div>
+)
+
 }

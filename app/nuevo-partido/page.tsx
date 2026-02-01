@@ -179,6 +179,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					(playerStat.portero_goles_hombre_menos || 0) +
 					(playerStat.portero_goles_dir_mas_5m || 0) +
 					(playerStat.portero_goles_contraataque || 0) +
+					(playerStat.portero_goles_lanzamiento || 0) +
 					(playerStat.portero_goles_penalti || 0);
 
 				awayGoals += goalkeeperGoals;
@@ -656,7 +657,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					"portero_goles_contraataque",
 					"portero_goles_penalti",
 					"portero_gol", // Added
-					"portero_gol_superioridad" // Added
+					"portero_gol_superioridad", // Added
+					"portero_goles_lanzamiento"
 				];
 
 				if (field.startsWith("portero_gol") || field.startsWith("portero_goles_")) {
@@ -835,25 +837,27 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 		const { homeGoals, awayGoals } = calculateScores(stats, playersById);
 
-		// VALIDATE PENALTY SHOOTOUT IF THERE'S A TIE
-		if (homeGoals === awayGoals) {
-			if (penaltyHomeScore === null || penaltyAwayScore === null) {
-				alert("El partido está empatado. Debes registrar el resultado de los penaltis.");
-				return;
-			}
-			if (penaltyHomeScore === penaltyAwayScore) {
-				alert("La tanda de penaltis no puede terminar en empate. Debe haber un ganador.");
-				return;
-			}
+		const isTied = homeGoals === awayGoals;
+		const isZeroZero = homeGoals === 0 && awayGoals === 0;
+
+		if (isTied && !isZeroZero) {
+		if (penaltyHomeScore === null || penaltyAwayScore === null) {
+			alert("El partido está empatado. Debes registrar el resultado de los penaltis.");
+			return;
+		}
+		if (penaltyHomeScore === penaltyAwayScore) {
+			alert("La tanda de penaltis no puede terminar en empate. Debe haber un ganador.");
+			return;
 		}
 
-		if (homeGoals === awayGoals && penaltyHomeScore !== null && penaltyShooters.length === 0) {
+		if (penaltyShooters.length === 0) {
 			toast({
-				title: "Atención",
-				description: "No has seleccionado los lanzadores de penaltis de tu equipo",
-				variant: "destructive"
+			title: "Atención",
+			description: "No has seleccionado los lanzadores de penaltis de tu equipo",
+			variant: "destructive",
 			});
 			return;
+		}
 		}
 
 		setSaving(true);
@@ -2188,6 +2192,7 @@ function GoalkeeperStatsDialog({
 		safeNumber(stats.portero_goles_hombre_menos) +
 		safeNumber(stats.portero_goles_dir_mas_5m) +
 		safeNumber(stats.portero_goles_contraataque) +
+		safeNumber(stats.portero_goles_lanzamiento) +
 		safeNumber(stats.portero_goles_penalti);
 
 	return (
@@ -2233,6 +2238,11 @@ function GoalkeeperStatsDialog({
 						label="Penalti"
 						value={safeNumber(stats.portero_goles_penalti)}
 						onChange={(v) => onUpdate("portero_goles_penalti", v)}
+					/>
+					<StatField
+						label="Lanzamiento"
+						value={safeNumber(stats.portero_goles_lanzamiento)}
+						onChange={(v) => onUpdate("portero_goles_lanzamiento", v)}
 					/>
 				</div>
 				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />

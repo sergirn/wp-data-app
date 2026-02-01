@@ -56,8 +56,8 @@ export function MatchPeriodsAndPenaltiesCard({
   if (!hasPeriods && !hasPenalties) return null
 
   return (
-    <Card className="mb-6">
-      <CardContent>
+    <div className="mb-6 border-0 bg-transparent">
+      <div>
         <Tabs defaultValue="parciales" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="parciales">Parciales</TabsTrigger>
@@ -73,62 +73,79 @@ export function MatchPeriodsAndPenaltiesCard({
 
                 return (
                   <div key={q} className="space-y-3">
-                    <div className="p-4 bg-muted/30 rounded-lg text-center border">
-                      <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+                  {/* Parcial */}
+                  <div className="p-4 bg-muted/30 rounded-lg text-center border">
+                    <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
 
-                      <div className="flex justify-around items-center gap-2">
-                        <div>
-                          <p className="text-2xl font-bold">{home ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">{clubName}</p>
-                        </div>
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Home */}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-2xl font-bold tabular-nums">{home ?? 0}</p>
+                        {/* ✅ truncate real */}
+                        <p className="text-xs text-muted-foreground truncate">{clubName}</p>
+                      </div>
 
-                        <p className="text-muted-foreground font-bold">-</p>
+                      <p className="text-muted-foreground font-bold shrink-0">-</p>
 
-                        <div>
-                          <p className="text-2xl font-bold">{away ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">{opponentName}</p>
-                        </div>
+                      {/* Away */}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-2xl font-bold tabular-nums">{away ?? 0}</p>
+                        {/* ✅ truncate real */}
+                        <p className="text-xs text-muted-foreground truncate">{opponentName}</p>
                       </div>
                     </div>
-
-                    <div className="p-3 rounded-lg border bg-card/60">
-                      {player ? (
-                        <div className="mx-auto w-[250px] flex items-center gap-3">
-                          <div className="w-20 h-14 overflow-hidden flex items-center justify-center flex-shrink-0">
-                            {player.photo_url ? (
-                              <img
-                                src={player.photo_url}
-                                alt={player.name}
-                                className="h-[120%] w-full object-cover object-top"
-                                loading="lazy"
-                                onError={(e) => {
-                                  const img = e.currentTarget
-                                  img.src = "/placeholder.svg"
-                                }}
-                              />
-                            ) : (
-                              <span className="font-bold text-lg tabular-nums">{player.number ?? "—"}</span>
-                            )}
-                          </div>
-
-                          <div className="min-w-0 flex-1 text-left">
-                            <span className="block text-xs font-semibold text-green-600 dark:text-green-400">
-                              Sprint ganado
-                            </span>
-                            <span className="block text-sm font-medium truncate">
-                              #{player.number} · {player.name}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <span className="text-sm font-semibold text-red-500 dark:text-red-400">
-                            Sprint perdido
-                          </span>
-                        </div>
-                      )}
-                    </div>
                   </div>
+
+                  {/* Sprint */}
+                  <div className="p-3 rounded-lg border bg-card/60">
+                    {player ? (
+                      <div className="mx-auto w-full max-w-[520px]">
+                        {/* ✅ Mobile: vertical / sm+: horizontal */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          {/* Photo / number */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-18 h-12 sm:w-20 sm:h-14 overflow-hidden rounded-md flex items-center justify-center shrink-0">
+                              {player.photo_url ? (
+                                <img
+                                  src={player.photo_url}
+                                  alt={player.name}
+                                  className="h-full w-full object-cover object-top"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    const img = e.currentTarget;
+                                    img.src = "/placeholder.svg";
+                                  }}
+                                />
+                              ) : (
+                                <span className="font-bold text-lg tabular-nums">{player.number ?? "—"}</span>
+                              )}
+                            </div>
+
+                            {/* ✅ In móvil, pone el label al lado y no rompe */}
+                            <div className="min-w-0">
+                              <span className="block text-xs font-semibold text-green-600 dark:text-green-400">
+                                Sprint ganado
+                              </span>
+
+                              {/* ✅ no overflow: min-w-0 + truncate */}
+                              <span className="block text-sm font-medium truncate">
+                                <span className="tabular-nums">#{player.number}</span>
+                                <span className="text-muted-foreground"> · </span>
+                                {player.name}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <span className="text-sm font-semibold text-red-500 dark:text-red-400">
+                          Sprint perdido
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 )
               })}
             </div>
@@ -151,7 +168,7 @@ export function MatchPeriodsAndPenaltiesCard({
             )}
             </TabsContent>
         </Tabs>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

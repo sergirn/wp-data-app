@@ -69,7 +69,18 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!w-[55vw] !max-w-none p-0 overflow-hidden">
+      <DialogContent
+        className="
+          !w-[calc(100vw-16px)]
+          sm:!w-[94vw]
+          md:!w-[90vw]
+          lg:!w-[86vw]
+          xl:!w-[78vw]
+          2xl:!w-[70vw]
+          !max-w-[1600px]
+          p-0 overflow-hidden
+        "
+        >
         <VisuallyHidden>
           <DialogTitle>{player?.name ?? "Estadísticas del portero"}</DialogTitle>
         </VisuallyHidden>

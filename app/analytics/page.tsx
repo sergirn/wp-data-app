@@ -18,7 +18,7 @@ import type { MatchWithQuarterScores } from "@/lib/types";
 import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard";
 import { GeneralDashboard } from "@/components/analytics/general-dashboard";
 import { DisciplineChart } from "@/components/analytics/discipline-chart";
-import { ShootingEfficiencyChart } from "@/components/analytics/shooting-efficiency-chart";
+import { ShootingEfficiencyChart } from "@/components/analytics/shoot-analytics/shooting-efficiency-chart";
 import { GoalkeeperPerformanceChart } from "@/components/analytics/goalkeeper-performance-chart";
 import { ManAdvantageChartExpandable } from "@/components/analytics/man-advantage-chart";
 import { ManDownGoalkeeperChart } from "@/components/analytics/man-down-goalkeeper-chart";
@@ -26,6 +26,10 @@ import { TurnoversRecoveriesChart } from "@/components/analytics/perd_rec_pos_ch
 import { PlayerMatchCompare } from "@/components/analytics/PlayerMatchCompare";
 import { SprintEfficiencyChart } from "@/components/analytics/SprintEfficiencyChart";
 import { GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/GoalkeeperShotsGoalChart";
+import { ShotMistakesDonutChart } from "@/components/analytics/shoot-analytics/quality-shoot-chart";
+import { GoalMixChart } from "@/components/analytics/shoot-analytics/offensive-shoot-chart";
+import { ChartSwipeCarousel } from "@/components/chartCarousel";
+
 
 export default function AnalyticsPage() {
 	const { currentClub } = useClub();
@@ -261,7 +265,7 @@ export default function AnalyticsPage() {
 					</p>
 				</div>
 
-				<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+				{/* <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
 					<ExportButtons data={prepareMatchesForExport(matches || [])} filename={`partidos_${selectedSeason}`} label="Exportar Partidos" />
 					<ExportButtons
 						data={preparePlayersForExport(playerStats || [])}
@@ -269,7 +273,7 @@ export default function AnalyticsPage() {
 						label="Exportar Jugadores"
 					/>
 					<SeasonSelector seasons={seasons} selectedSeason={selectedSeason} />
-				</div>
+				</div> */}
 			</div>
 
 			<section className="mb-8">
@@ -287,12 +291,6 @@ export default function AnalyticsPage() {
 					<TabsContent value="overview" className="mt-4 space-y-10">
 						<section>
 							<GeneralDashboard matches={matches || []} stats={allStats || []} players={players || []} />
-						</section>
-
-						<section>
-							<div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-1">
-								<MatchResultsChart matches={matches || []} />
-							</div>
 						</section>
 
 						{/* ===== BLOQUE 1: VISIÓN GLOBAL ===== */}
@@ -334,29 +332,70 @@ export default function AnalyticsPage() {
 					<TabsContent value="quarters" className="mt-4 space-y-10">
 						{/* ===== BLOQUE 1: DINÁMICA DEL PARTIDO ===== */}
 						<section>
-							<div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
-								<QuarterGoalsChart matches={quarterMatches || []} />
-								<GoalDifferenceEvolutionChart matches={matches || []} />
-								<SprintEfficiencyChart matches={matches || []} players={players || []} />
-							</div>
-							{/* <br></br>
-							<div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-1">
-								
-							</div> */}
+						<div className="md:hidden">
+							<ChartSwipeCarousel
+							className="w-full"
+							items={[
+								<QuarterGoalsChart key="q" matches={quarterMatches || []} />,
+								<GoalDifferenceEvolutionChart key="gd" matches={matches || []} />,
+								<SprintEfficiencyChart key="sp" matches={matches || []} players={players || []} />,
+							]}
+							/>
+						</div>
+
+						{/* TABLET+ : grid normal */}
+						<div className="hidden md:grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
+							<QuarterGoalsChart matches={quarterMatches || []} />
+							<GoalDifferenceEvolutionChart matches={matches || []} />
+							<SprintEfficiencyChart matches={matches || []} players={players || []} />
+						</div>
 						</section>
 
 						<section>
-							<h2 className="text-xl font-bold mb-4">Rendimiento</h2>
-							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 auto-rows-fr items-stretch">
+						<h2 className="text-xl font-bold mb-4">Rendimiento</h2>
+
+						<div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-3 items-stretch">
+							{/* IZQUIERDA: 2 filas (shoot + gk) */}
+							<div className="md:col-span-2 grid gap-4 lg:gap-6 grid-rows-2 items-stretch">
+							<div className="h-full min-h-0">
 								<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
+							</div>
+
+							<div className="h-full min-h-0">
 								<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
 							</div>
+							</div>
+
+							{/* DERECHA: ocupa las 2 filas => mismo alto total */}
+							<div className="md:col-span-1 md:row-span-2 h-full min-h-0">
+							<ChartSwipeCarousel
+								items={[
+								<ShotMistakesDonutChart
+									key="mistakes"
+									matches={matches || []}
+									stats={allStats || []}
+									players={players || []}
+								/>,
+								<GoalMixChart
+									key="mix"
+									matches={matches || []}
+									stats={allStats || []}
+									players={players || []}
+								/>,
+								]}
+							/>
+							</div>
+
+						</div>
 						</section>
+
+
+
 
 						{/* ===== BLOQUE 2: SITUACIONES DE JUEGO ===== */}
 						<section>
 							<h2 className="text-xl font-bold mb-4">Rendimiento en Superioridad e Inferioridad</h2>
-							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 auto-rows-fr items-stretch">
+							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 md:grid-cols-2 auto-rows-fr items-stretch">
 								<ManAdvantageChartExpandable matches={matches || []} stats={allStats || []} players={players || []} />
 								<ManDownGoalkeeperChart matches={matches || []} stats={allStats || []} players={players || []} />
 							</div>
@@ -364,7 +403,17 @@ export default function AnalyticsPage() {
 
 						<section>
 							<h2 className="text-xl font-bold mb-4">Rendimiento del juego</h2>
-							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-3 auto-rows-fr items-stretch">
+							<div className="md:hidden">
+								<ChartSwipeCarousel
+								className="w-full"
+								items={[
+									<BlocksChart key="bl" matches={matches || []} stats={allStats || []} players={players || []} />,
+									<TurnoversRecoveriesChart key="to" matches={matches || []} stats={allStats || []} />,
+									<DisciplineChart key="di" matches={matches || []} stats={allStats || []} />,
+								]}
+								/>
+							</div>
+							<div className="hidden md:grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr items-stretch">
 								<BlocksChart matches={matches || []} stats={allStats || []} players={players || []} />
 								<TurnoversRecoveriesChart matches={matches || []} stats={allStats || []} />
 								<DisciplineChart matches={matches || []} stats={allStats || []} />

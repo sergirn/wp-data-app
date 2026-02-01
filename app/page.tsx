@@ -1,37 +1,143 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+
 import { createClient } from "@/lib/supabase/client";
+import { useClub } from "@/lib/club-context";
+import { useProfile } from "@/lib/profile-context";
+import { LandingPage } from "@/components/landing-page";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Trophy, Users, BarChart3, PlusCircle, Calendar, Target, TrendingUp, Clock, Award } from "lucide-react";
-import { LandingPage } from "@/components/landing-page";
-import { useClub } from "@/lib/club-context";
-import { useProfile } from "@/lib/profile-context";
-import { useEffect, useState } from "react";
+
+import {
+	AlertCircle,
+	Calendar,
+	ChevronDown,
+	ChevronRight,
+	ChevronUp,
+	PlusCircle,
+	Target,
+	Trophy,
+	TrendingUp,
+	Users
+} from "lucide-react";
+
+type MatchRow = {
+	id: string;
+	club_id: string;
+	opponent: string;
+	match_date: string;
+	home_score: number;
+	away_score: number;
+	penalty_home_score: number | null;
+	penalty_away_score: number | null;
+};
+
+type PlayerRow = {
+	id: string;
+	club_id: string;
+	name: string;
+	number: number;
+	photo_url?: string | null;
+};
+
+function formatEsDate(dateStr: string) {
+	try {
+		return new Date(dateStr).toLocaleDateString("es-ES", {
+			day: "numeric",
+			month: "short",
+			year: "numeric"
+		});
+	} catch {
+		return dateStr;
+	}
+}
+
+function getOutcome(match: MatchRow) {
+	const isTied = match.home_score === match.away_score;
+	const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null;
+
+	if (hasPenalties) {
+		const win = (match.penalty_home_score ?? 0) > (match.penalty_away_score ?? 0);
+		return { status: win ? ("W" as const) : ("L" as const), label: win ? "Victoria (Pen.)" : "Derrota (Pen.)" };
+	}
+
+	if (match.home_score > match.away_score) return { status: "W" as const, label: "Victoria" };
+	if (match.home_score < match.away_score) return { status: "L" as const, label: "Derrota" };
+	return { status: "D" as const, label: "Empate" };
+}
+
+function StatusDot({ status }: { status: "W" | "L" | "D" }) {
+	const cls =
+		status === "W" ? "bg-green-500" : status === "L" ? "bg-red-500" : "bg-muted-foreground/50";
+	return <span className={`inline-block h-2 w-2 rounded-full ${cls}`} aria-hidden="true" />;
+}
+
+function MetricPill({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+	return (
+		<div className="flex items-center gap-2 rounded-full border bg-background/60 px-3 py-2">
+			<div className="text-muted-foreground">{icon}</div>
+			<div className="leading-none">
+				<p className="text-[11px] text-muted-foreground">{label}</p>
+				<p className="text-sm font-semibold tabular-nums">{value}</p>
+			</div>
+		</div>
+	);
+}
+
+function LoadingMinimal() {
+	return (
+		<main className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
+			<div className="container mx-auto px-4 py-8 sm:py-10">
+				<div className="space-y-8">
+					<div className="rounded-3xl border bg-background/60 p-6 sm:p-8">
+						<div className="h-5 w-40 rounded bg-muted animate-pulse" />
+						<div className="mt-3 h-9 w-[min(520px,85vw)] rounded bg-muted animate-pulse" />
+						<div className="mt-3 h-5 w-[min(360px,70vw)] rounded bg-muted animate-pulse" />
+						<div className="mt-6 flex gap-2">
+							<div className="h-10 w-36 rounded-xl bg-muted animate-pulse" />
+							<div className="h-10 w-28 rounded-xl bg-muted animate-pulse" />
+						</div>
+						<div className="mt-6 flex flex-wrap gap-2">
+							{Array.from({ length: 4 }).map((_, i) => (
+								<div key={i} className="h-12 w-36 rounded-full bg-muted animate-pulse" />
+							))}
+						</div>
+					</div>
+
+					<div className="space-y-6">
+						<div className="h-[200px] rounded-3xl bg-muted animate-pulse" />
+						<div className="h-[420px] rounded-3xl bg-muted animate-pulse" />
+					</div>
+				</div>
+			</div>
+		</main>
+	);
+}
 
 export default function HomePage() {
 	const { currentClub } = useClub();
 	const { profile, loading: profileLoading } = useProfile();
-	const [matches, setMatches] = useState<any[]>([]);
-	const [players, setPlayers] = useState<any[]>([]);
+
+	const [matches, setMatches] = useState<MatchRow[]>([]);
+	const [players, setPlayers] = useState<PlayerRow[]>([]);
 	const [loading, setLoading] = useState(true);
+
 	const [connectionError, setConnectionError] = useState(false);
 	const [tablesNotFound, setTablesNotFound] = useState(false);
-	const [stats, setStats] = useState({
-		totalMatches: 0,
-		wins: 0,
-		totalPlayers: 0,
-		recentForm: [] as string[]
-	});
+
+	// ✅ Mobile accordion state for players
+	const [showAllPlayersMobile, setShowAllPlayersMobile] = useState(false);
+
+	const canEdit = profile?.role === "admin" || profile?.role === "coach";
 
 	useEffect(() => {
 		async function fetchData() {
-			if (profileLoading) {
-				return;
-			}
+			if (profileLoading) return;
 
 			if (!currentClub || !profile) {
 				setLoading(false);
@@ -39,8 +145,6 @@ export default function HomePage() {
 			}
 
 			setLoading(true);
-			setMatches([]);
-			setPlayers([]);
 			setConnectionError(false);
 			setTablesNotFound(false);
 
@@ -57,41 +161,13 @@ export default function HomePage() {
 					.select("*")
 					.eq("club_id", currentClub.id)
 					.order("match_date", { ascending: false })
-					.limit(4);
+					.limit(6);
 
 				if (matchesError) {
-					if (matchesError.message?.includes("Could not find the table")) {
-						setTablesNotFound(true);
-					} else {
-						throw matchesError;
-					}
+					if (matchesError.message?.includes("Could not find the table")) setTablesNotFound(true);
+					else throw matchesError;
 				} else {
-					setMatches(matchesData || []);
-				}
-
-				const { data: allMatchesData, error: allMatchesError } = await supabase
-					.from("matches")
-					.select("*")
-					.eq("club_id", currentClub.id)
-					.order("match_date", { ascending: false });
-
-				if (allMatchesError) {
-					console.error("[v0] Error fetching all matches:", allMatchesError);
-				} else {
-					const allMatches = allMatchesData || [];
-					const wins = allMatches.filter((m) => m.home_score > m.away_score).length;
-					const recentForm = allMatches.slice(0, 5).map((m) => {
-						if (m.home_score > m.away_score) return "W";
-						if (m.home_score < m.away_score) return "L";
-						return "D";
-					});
-
-					setStats({
-						totalMatches: allMatches.length,
-						wins,
-						totalPlayers: 0,
-						recentForm
-					});
+					setMatches(((matchesData || []) as MatchRow[]) ?? []);
 				}
 
 				const { data: playersData, error: playersError } = await supabase
@@ -101,17 +177,13 @@ export default function HomePage() {
 					.order("number");
 
 				if (playersError) {
-					if (playersError.message?.includes("Could not find the table")) {
-						setTablesNotFound(true);
-					} else {
-						throw playersError;
-					}
+					if (playersError.message?.includes("Could not find the table")) setTablesNotFound(true);
+					else throw playersError;
 				} else {
-					setPlayers(playersData || []);
-					setStats((prev) => ({ ...prev, totalPlayers: playersData?.length || 0 }));
+					setPlayers(((playersData || []) as PlayerRow[]) ?? []);
 				}
-			} catch (error) {
-				console.error("[v0] Error fetching home data:", error);
+			} catch (e) {
+				console.error("[home] Error fetching:", e);
 				setConnectionError(true);
 			} finally {
 				setLoading(false);
@@ -121,451 +193,417 @@ export default function HomePage() {
 		fetchData();
 	}, [currentClub, profile, profileLoading]);
 
-	if (!profile && !profileLoading) {
-		return <LandingPage />;
-	}
+	const derived = useMemo(() => {
+		const totalMatches = matches.length;
+		const wins = matches.filter((m) => m.home_score > m.away_score).length;
+		const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0;
 
-	if (profileLoading || loading) {
-		return (
-			<main className="container mx-auto px-4 py-8">
-				<div className="text-center py-12">
-					<div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-					<p className="text-muted-foreground mt-4">Cargando...</p>
-				</div>
-			</main>
-		);
-	}
+		const previewMatches = matches.slice(0, 3);
+		const recentForm = previewMatches.map((m) => getOutcome(m).status);
 
-	const canEdit = profile?.role === "admin" || profile?.role === "coach";
-	const winRate = stats.totalMatches > 0 ? Math.round((stats.wins / stats.totalMatches) * 100) : 0;
+		// Desktop/tablet preview
+		const previewPlayers = players.slice(0, 16);
+
+		// Mobile: show first 6 by default (accordion reveals the rest)
+		const mobileFirst = players.slice(0, 8);
+		const mobileRest = players.slice(6);
+
+		const primaryCta = canEdit
+			? { href: "/nuevo-partido", label: "Nuevo partido", icon: <PlusCircle className="mr-2 h-4 w-4" /> }
+			: { href: "/partidos", label: "Ver partidos", icon: <Calendar className="mr-2 h-4 w-4" /> };
+
+		return {
+			totalMatches,
+			wins,
+			winRate,
+			previewMatches,
+			recentForm,
+			previewPlayers,
+			mobileFirst,
+			mobileRest,
+			primaryCta
+		};
+	}, [matches, players, canEdit]);
+
+	// If players change (e.g. switch club), collapse accordion on mobile
+	useEffect(() => {
+		setShowAllPlayersMobile(false);
+	}, [currentClub?.id]);
+
+	if (!profile && !profileLoading) return <LandingPage />;
+	if (profileLoading || loading) return <LoadingMinimal />;
 
 	return (
 		<main className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-			<div className="relative overflow-hidden pb-8">
-				<div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 pointer-events-none" />
+			<div className="container mx-auto px-4 py-4 sm:py-10">
+				<div className="space-y-8">
+					{/* HERO */}
+					<section className="relative overflow-hidden rounded-3xl border bg-background/60 p-6 sm:p-8">
+						<div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10" />
 
-				<div className="container mx-auto px-4 relative">
-					{currentClub?.logo_url && (
-						<div className="absolute -right-20 -top-20 w-[600px] h-[600px] opacity-[0.08] dark:opacity-[0.08] pointer-events-none">
-							<img src={currentClub.logo_url || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
+						{currentClub?.logo_url && (
+							<div className="pointer-events-none absolute -right-16 -top-16 h-[360px] w-[360px] opacity-[0.07] dark:opacity-[0.08]">
+								<img src={currentClub.logo_url} alt="" className="h-full w-full object-contain" />
+							</div>
+						)}
+
+						<div className="relative">
+							<div className="flex items-center justify-between gap-4">
+								<div className="min-w-0">
+									<Badge variant="secondary" className="rounded-full">
+										<TrendingUp className="mr-1 h-3 w-3" />
+										Inicio
+									</Badge>
+									<h1 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight truncate">
+										{currentClub?.name || "Mi Club"}
+									</h1>
+								</div>
+							</div>
+
+							<div className="mt-6 flex flex-wrap gap-2">
+								<Button asChild className="rounded-xl" disabled={tablesNotFound || connectionError}>
+									<Link href={derived.primaryCta.href}>
+										{derived.primaryCta.icon}
+										{derived.primaryCta.label}
+									</Link>
+								</Button>
+
+								<Button asChild variant="secondary" className="rounded-xl" disabled={tablesNotFound || connectionError}>
+									<Link href="/jugadores">
+										<Users className="mr-2 h-4 w-4" />
+										Jugadores
+									</Link>
+								</Button>
+
+								<Button asChild variant="ghost" className="rounded-xl" disabled={tablesNotFound || connectionError}>
+									<Link href="/analytics">
+										<Target className="mr-2 h-4 w-4" />
+										Análisis
+									</Link>
+								</Button>
+							</div>
+
+							<div className="mt-6 flex flex-wrap gap-2">
+								<MetricPill icon={<Trophy className="h-4 w-4" />} label="Partidos (preview)" value={derived.totalMatches} />
+								<MetricPill icon={<Target className="h-4 w-4" />} label="Rendimiento" value={`${derived.winRate}%`} />
+								<MetricPill icon={<Users className="h-4 w-4" />} label="Jugadores" value={players.length} />
+
+								{derived.recentForm.length > 0 && (
+									<div className="flex items-center gap-2 rounded-full border bg-background/60 px-3 py-2">
+										<p className="text-[11px] text-muted-foreground">Forma</p>
+										<div className="flex items-center gap-1">
+											{derived.recentForm.map((s, i) => (
+												<StatusDot key={i} status={s} />
+											))}
+										</div>
+									</div>
+								)}
+							</div>
 						</div>
-					)}
+					</section>
 
-					<div className="py-8 sm:py-12 lg:py-16 relative">
-						<div className="max-w-4xl">
-							<Badge variant="secondary" className="mb-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-								<Trophy className="w-3 h-3 mr-1" />
-								Sistema de Estadísticas
-							</Badge>
-							<h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold mb-4 dark:text-white">{currentClub?.name || "Mi Club"}</h1>
-							<p className="text-lg text-muted-foreground max-w-2xl">Análisis profesional de waterpolo</p>
-						</div>
-					</div>
-
+					{/* Alerts */}
 					{tablesNotFound && (
-						<Alert variant="destructive" className="mb-6">
+						<Alert variant="destructive" className="rounded-2xl">
 							<AlertCircle className="h-4 w-4" />
 							<AlertTitle>Base de datos no inicializada</AlertTitle>
 							<AlertDescription className="space-y-3 mt-2">
-								<p>Las tablas de la base de datos aún no se han creado. Sigue estos pasos:</p>
+								<p>Las tablas aún no se han creado. Para inicializar:</p>
 								<ol className="list-decimal list-inside space-y-2 ml-2">
-									<li>Abre el panel lateral haciendo clic en el icono de menú</li>
+									<li>Abre el panel lateral (icono de menú)</li>
 									<li>
-										Ve a la pestaña de <strong>Scripts</strong>
+										Ve a <strong>Scripts</strong>
 									</li>
-									<li>Ejecuta los scripts SQL en orden</li>
-									<li>Recarga la página después de ejecutar los scripts</li>
+									<li>Ejecuta los SQL en orden</li>
+									<li>Recarga la página</li>
 								</ol>
 							</AlertDescription>
 						</Alert>
 					)}
 
 					{connectionError && !tablesNotFound && (
-						<Alert variant="destructive" className="mb-6">
+						<Alert variant="destructive" className="rounded-2xl">
 							<AlertCircle className="h-4 w-4" />
-							<AlertTitle>Error de Conexión</AlertTitle>
-							<AlertDescription>
-								No se pudo conectar a la base de datos. Verifica la configuración de Supabase en el panel lateral.
-							</AlertDescription>
+							<AlertTitle>Error de conexión</AlertTitle>
+							<AlertDescription>Revisa la configuración de Supabase en el panel lateral.</AlertDescription>
 						</Alert>
 					)}
 
-					{!tablesNotFound && !connectionError && (
-						<div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
-							{/* Partidos */}
-							<Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-blue-500/5 hover:shadow-lg transition-all">
-								<CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-									<div className="p-2 rounded-lg bg-blue-500/10 mb-1">
-										<Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
-									</div>
-									<p className="text-lg sm:text-xl font-bold leading-none">{stats.totalMatches}</p>
-									<p className="text-[10px] sm:text-xs text-muted-foreground">Partidos</p>
-								</CardContent>
-							</Card>
+					<section className="space-y-8">
+						{/* Matches */}
+							<div>
+								<div className="flex items-center justify-between gap-3">
+								<CardTitle className="text-lg sm:text-xl">Últimos partidos</CardTitle>
 
-							{/* Victorias */}
-							<Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-green-500/5 hover:shadow-lg transition-all">
-								<CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-									<div className="p-2 rounded-lg bg-green-500/10 mb-1">
-										<Target className="w-4 h-4 sm:w-5 sm:h-5" />
-									</div>
-									<p className="text-lg sm:text-xl font-bold leading-none">{winRate}%</p>
-									<p className="text-[10px] sm:text-xs text-muted-foreground">Victorias</p>
-								</CardContent>
-							</Card>
+								<Button asChild size="sm" className="rounded-md">
+									<Link href="/partidos">
+									Ver todos <ChevronRight className="ml-1 h-4 w-4" />
+									</Link>
+								</Button>
+								</div>
+							</div>
 
-							{/* Jugadores */}
-							<Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-purple-500/5 hover:shadow-lg transition-all">
-								<CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-									<div className="p-2 rounded-lg bg-purple-500/10 mb-1">
-										<Users className="w-4 h-4 sm:w-5 sm:h-5" />
-									</div>
-									<p className="text-lg sm:text-xl font-bold leading-none">{stats.totalPlayers}</p>
-									<p className="text-[10px] sm:text-xs text-muted-foreground">Jugadores</p>
-								</CardContent>
-							</Card>
+							<div className="space-y-3">
+								{derived.previewMatches.length > 0 ? (
+								<MatchListCompact matches={derived.previewMatches} />
+								) : (
+								<EmptyMinimal
+									icon={<Calendar className="h-5 w-5" />}
+									title="Sin partidos"
+									desc={canEdit ? "Crea el primer partido para empezar a registrar estadísticas." : "Todavía no hay partidos registrados."}
+									cta={canEdit ? { href: "/nuevo-partido", label: "Crear primer partido" } : undefined}
+								/>
+								)}
+							</div>
 
-							{/* Forma reciente */}
-							<Card className="aspect-square md:aspect-auto md:h-[140px] lg:h-[130px] border-2 bg-gradient-to-br from-background to-amber-500/5 hover:shadow-lg transition-all">
-								<CardContent className="h-full flex flex-col items-center justify-center p-2 sm:p-3 text-center">
-									<div className="p-2 rounded-lg bg-amber-500/10 mb-1">
-										<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+						{/* Players */}
+						<Card className="rounded-3xl border ">
+							<CardHeader className="pb-3">
+								<div className="flex items-center justify-between gap-3">
+									<div className="min-w-0">
+										<CardTitle className="text-lg sm:text-xl">Plantilla</CardTitle>
+										<CardDescription className="truncate">Vista rápida de jugadores</CardDescription>
 									</div>
 
-									{/* Mobile: últimos 3 */}
-									<div className="flex gap-1 sm:hidden">
-										{stats.recentForm.slice(-3).map((result, i) => (
-											<div
-												key={i}
-												className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${
-													result === "W"
-														? "bg-green-500/20 text-green-600"
-														: result === "L"
-														? "bg-red-500/20 text-red-600"
-														: "bg-gray-500/20 text-gray-600"
-												}`}
-											>
-												{result}
-											</div>
-										))}
-									</div>
-
-									{/* Desktop: todos */}
-									<div className="hidden sm:flex gap-1">
-										{stats.recentForm.map((result, i) => (
-											<div
-												key={i}
-												className={`w-6 h-6 rounded flex items-center justify-center text-[11px] font-bold ${
-													result === "W"
-														? "bg-green-500/20 text-green-600"
-														: result === "L"
-														? "bg-red-500/20 text-red-600"
-														: "bg-gray-500/20 text-gray-600"
-												}`}
-											>
-												{result}
-											</div>
-										))}
-									</div>
-
-									<p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Forma</p>
-								</CardContent>
-							</Card>
-						</div>
-					)}
-
-					<div className="container mx-auto space-y-8 pb-8">
-						<div className="hidden lg:grid lg:grid-cols-3 gap-6">
-							{canEdit && (
-								<Card className="group relative overflow-hidden border-2 hover:border-primary transition-all hover:shadow-xl">
-									<div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-									<CardHeader className="relative">
-										<div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-											<PlusCircle className="w-6 h-6 text-primary" />
-										</div>
-										<CardTitle className="text-xl">Nuevo Partido</CardTitle>
-										<CardDescription>Registra las estadísticas de un nuevo partido</CardDescription>
-									</CardHeader>
-									<CardContent className="relative">
-										<Button asChild className="w-full" disabled={tablesNotFound || connectionError}>
-											<Link href="/nuevo-partido">Crear Acta</Link>
-										</Button>
-									</CardContent>
-								</Card>
-							)}
-
-							<Card className="group relative overflow-hidden border-2 hover:border-blue-500 transition-all hover:shadow-xl">
-								<div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-								<CardHeader className="relative">
-									<div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-										<Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-									</div>
-									<CardTitle className="text-xl">Partidos</CardTitle>
-									<CardDescription>Ver historial y estadísticas de partidos</CardDescription>
-								</CardHeader>
-								<CardContent className="relative">
-									<Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
-										<Link href="/partidos">Ver Partidos</Link>
+									<Button asChild size="sm" className="rounded-md">
+										<Link href="/jugadores">
+											Ver todos <ChevronRight className="ml-1 h-4 w-4" />
+										</Link>
 									</Button>
-								</CardContent>
-							</Card>
+								</div>
+							</CardHeader>
 
-							<Card className="group relative overflow-hidden border-2 hover:border-purple-500 transition-all hover:shadow-xl">
-								<div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-								<CardHeader className="relative">
-									<div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-										<BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-									</div>
-									<CardTitle className="text-xl">Analytics</CardTitle>
-									<CardDescription>Análisis detallado por temporada</CardDescription>
-								</CardHeader>
-								<CardContent className="relative">
-									<Button asChild variant="secondary" className="w-full" disabled={tablesNotFound || connectionError}>
-										<Link href="/analytics">Ver Analytics</Link>
-									</Button>
-								</CardContent>
-							</Card>
-						</div>
+							<CardContent className="space-y-4">
+								{players.length > 0 ? (
+									<>
+										{/* ✅ Mobile accordion (only on mobile) */}
+										<div className="sm:hidden space-y-3">
+											<PlayerPhotoGridResponsive players={derived.mobileFirst} />
 
-						<div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-							{/* Recent Matches */}
-							<Card className="border-2 bg-gradient-to-br from-background to-background">
-								<CardHeader>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-3">
-											<div className="p-2 rounded-lg bg-blue-500/10">
-												<Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-											</div>
-											<CardTitle className="text-xl">Últimos Partidos</CardTitle>
-										</div>
-										{matches.length > 0 && (
-											<Button asChild variant="ghost" size="sm">
-												<Link href="/partidos">Ver todos</Link>
-											</Button>
-										)}
-									</div>
-								</CardHeader>
-								<CardContent className="space-y-2">
-									{matches && matches.length > 0 ? (
-										matches.map((match) => {
-											const isTied = match.home_score === match.away_score;
-											const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null;
-
-											let isWin: boolean;
-											let isDraw: boolean;
-											let resultLabel: string;
-
-											if (hasPenalties) {
-												isWin = match.penalty_home_score! > match.penalty_away_score!;
-												isDraw = false;
-												resultLabel = isWin ? "Victoria (Pen.)" : "Derrota (Pen.)";
-											} else {
-												isWin = match.home_score > match.away_score;
-												isDraw = match.home_score === match.away_score;
-												resultLabel = isWin ? "Victoria" : isDraw ? "Empate" : "Derrota";
-											}
-
-											const accentColor = isWin ? "bg-green-500" : isDraw ? "bg-gray-400" : "bg-red-500";
-
-											return (
-												<Link
-													key={match.id}
-													href={`/partidos/${match.id}`}
-													className="
-                              group flex items-center gap-4
-                              rounded-lg border
-                              px-3 py-3
-                              transition-all
-                              hover:bg-muted/40
-                              hover:border-primary
-                            "
-												>
-													{/* ACCENT BAR */}
-													<div className={`w-1.5 self-stretch rounded-full ${accentColor}`} />
-
-													{/* INFO */}
-													<div className="flex-1 min-w-0">
-														<div className="flex items-center gap-2 mb-1">
-															<Badge
-																variant={isWin ? "default" : isDraw ? "secondary" : "destructive"}
-																className="text-[11px]"
-															>
-																{resultLabel}
-															</Badge>
+											{derived.mobileRest.length > 0 && (
+												<>
+													{/* Collapsible area */}
+													<div
+														className={[
+															"grid transition-[max-height,opacity] duration-300 ease-out",
+															showAllPlayersMobile ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0",
+															"overflow-hidden"
+														].join(" ")}
+													>
+														<div className={showAllPlayersMobile ? "pt-3" : ""}>
+															<PlayerPhotoGridResponsive players={derived.mobileRest} />
 														</div>
-
-														<p className="truncate font-semibold group-hover:text-primary transition-colors">
-															{match.opponent}
-														</p>
-
-														<p className="text-xs text-muted-foreground">
-															{new Date(match.match_date).toLocaleDateString("es-ES", {
-																day: "numeric",
-																month: "short",
-																year: "numeric"
-															})}
-														</p>
 													</div>
 
-													{/* SCORE */}
-													<div className="flex flex-col items-end gap-0.5">
-														<div
-															className="
-                                  px-3 py-1
-                                  rounded-md
-                                  bg-muted
-                                  text-lg font-bold
-                                  tracking-tight
-                                "
-														>
-															{match.home_score}
-															<span className="mx-1 text-muted-foreground">–</span>
-															{match.away_score}
-														</div>
-
-														{hasPenalties && (
-															<span className="text-[11px] text-muted-foreground">
-																Pen. {match.penalty_home_score}–{match.penalty_away_score}
-															</span>
-														)}
-													</div>
-												</Link>
-											);
-										})
-									) : (
-										/* EMPTY STATE */
-										<div className="py-14 text-center">
-											<div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-												<Calendar className="h-6 w-6 text-muted-foreground" />
-											</div>
-											<p className="text-sm text-muted-foreground max-w-sm mx-auto">
-												{connectionError || tablesNotFound
-													? "No se pueden cargar los partidos en este momento"
-													: `No hay partidos registrados para ${currentClub?.short_name}`}
-											</p>
-										</div>
-									)}
-								</CardContent>
-							</Card>
-
-							{/* Players Squad */}
-							<Card className="border-2 bg-gradient-to-br from-background to-background">
-								<CardHeader className="pb-3">
-									<div className="flex items-center justify-between gap-3">
-										<div className="flex items-center gap-3 min-w-0">
-											{/* Escudo */}
-											<div className="h-10 w-10 rounded-xl bg-white/0 overflow-hidden flex items-center justify-center shrink-0">
-												{currentClub?.logo_url ? (
-													<img
-														src={currentClub.logo_url}
-														alt={currentClub.short_name ?? "Escudo del club"}
-														className="h-full w-full object-contain p-1"
-														loading="lazy"
-													/>
-												) : (
-													<div className="p-2 rounded-lg bg-purple-500/10">
-														<Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-													</div>
-												)}
-											</div>
-
-											{/* Título */}
-											<div className="min-w-0">
-												<CardTitle className="text-lg sm:text-xl leading-tight truncate">
-													Plantilla{" "}
-													<span className="text-muted-foreground font-medium">· {currentClub?.short_name ?? "Equipo"}</span>
-												</CardTitle>
-												<p className="text-xs text-muted-foreground truncate">
-													{players.length} jugador{players.length === 1 ? "" : "es"}
-												</p>
-											</div>
-										</div>
-
-										{players.length > 0 && (
-											<Button asChild variant="ghost" size="sm" className="shrink-0">
-												<Link href="/jugadores">Ver todos</Link>
-											</Button>
-										)}
-									</div>
-								</CardHeader>
-
-								<CardContent className="max-h-[400px] overflow-y-auto">
-									{players && players.length > 0 ? (
-										<div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-											{players.map((player) => (
-												<Link
-													key={player.id}
-													href={`/jugadores/${player.id}`}
-													className="
-                            group relative overflow-hidden rounded-xl border
-                            bg-background/60
-                            hover:bg-muted/40 hover:border-primary/40
-                            hover:-translate-y-0.5 hover:shadow-md
-                            transition-all
-                          "
-												>
-													{/* TOP IMAGE */}
-													<div className="relative h-20 sm:h-24 overflow-hidden">
-														{player.photo_url ? (
-															<img
-																src={player.photo_url}
-																alt={player.name}
-																className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
-																loading="lazy"
-															/>
+													<Button
+														type="button"
+														variant="secondary"
+														className="w-full rounded-2xl"
+														onClick={() => setShowAllPlayersMobile((v) => !v)}
+													>
+														{showAllPlayersMobile ? (
+															<>
+																<ChevronUp className="mr-2 h-4 w-4" />
+																Mostrar menos
+															</>
 														) : (
-															<div className="h-full w-full grid place-items-center bg-muted">
-																<span className="text-lg sm:text-xl font-extrabold text-muted-foreground">
-																	#{player.number}
-																</span>
-															</div>
+															<>
+																<ChevronDown className="mr-2 h-4 w-4" />
+																Mostrar {derived.mobileRest.length} más
+															</>
 														)}
-
-														{/* Gradient adaptativo al theme */}
-														<div
-															className="
-                                absolute inset-0 bg-gradient-to-t
-                                from-white/80 via-white/10 to-transparent
-                                dark:from-black/60 dark:via-black/15 dark:to-transparent
-                              "
-														/>
-
-														{/* número en esquina (solo si hay foto, queda pro) */}
-														{player.photo_url && (
-															<div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-																#{player.number}
-															</div>
-														)}
-													</div>
-
-													{/* CONTENT */}
-													<div className="p-2.5 sm:p-3">
-														<p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">
-															{player.name}
-														</p>
-														<p className="text-xs text-muted-foreground">#{player.number}</p>
-													</div>
-												</Link>
-											))}
+													</Button>
+												</>
+											)}
 										</div>
-									) : (
-										<div className="text-center py-12">
-											<div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-												<Users className="w-8 h-8 text-muted-foreground" />
-											</div>
-											<p className="text-muted-foreground text-sm">
-												{connectionError || tablesNotFound
-													? "No se pueden cargar los jugadores"
-													: `No hay jugadores registrados para ${currentClub?.short_name}`}
-											</p>
+
+										{/* ✅ Tablet/Desktop (no accordion, show a nice amount) */}
+										<div className="hidden sm:block">
+											<PlayerPhotoGridResponsive players={derived.previewPlayers} />
 										</div>
-									)}
-								</CardContent>
-							</Card>
-						</div>
-					</div>
+									</>
+								) : (
+									<EmptyMinimal
+										icon={<Users className="h-5 w-5" />}
+										title="Sin jugadores"
+										desc="Añade jugadores para tener la plantilla completa."
+										cta={{ href: "/jugadores", label: "Ir a jugadores" }}
+									/>
+								)}
+							</CardContent>
+						</Card>
+					</section>
 				</div>
 			</div>
 		</main>
+	);
+}
+
+/* ----------------------------- Subcomponents ----------------------------- */
+
+/**
+ * ✅ More compact match rows:
+ * - Slightly less vertical padding
+ * - Smaller score pill
+ * - Same tap target & readability
+ */
+function MatchListCompact({ matches }: { matches: MatchRow[] }) {
+	return (
+		<div className="space-y-3">
+			{matches.map((m) => {
+				const o = getOutcome(m);
+
+				return (
+					<Link
+						key={m.id}
+						href={`/partidos/${m.id}`}
+						aria-label={`Ver partido vs ${m.opponent}`}
+						className="
+              group flex items-center justify-between gap-3
+              rounded-2xl border bg-background/60
+              px-3 py-2
+              hover:bg-muted/25 hover:border-primary/25
+              transition-all
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+            "
+					>
+						<div className="min-w-0">
+							<div className="flex items-center gap-2">
+								<StatusDot status={o.status} />
+								<p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">
+									{m.opponent}
+								</p>
+							</div>
+							<p className="text-[11px] text-muted-foreground mt-0.5">{formatEsDate(m.match_date)}</p>
+						</div>
+
+						<div className="flex items-center gap-2 shrink-0">
+							<div className="rounded-xl bg-muted px-2 py-0.5 text-[13px] font-semibold tabular-nums">
+								{m.home_score}
+								<span className="mx-1 text-muted-foreground">–</span>
+								{m.away_score}
+							</div>
+							<ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+						</div>
+					</Link>
+				);
+			})}
+		</div>
+	);
+}
+
+function PlayerPhotoGridResponsive({ players }: { players: PlayerRow[] }) {
+	return (
+		<div
+			className="
+        grid gap-3
+        grid-cols-4
+        sm:grid-cols-5
+        lg:grid-cols-7
+        xl:grid-cols-8
+        2xl:grid-cols-10
+      "
+		>
+			{players.map((player) => (
+				<Link
+					key={player.id}
+					href={`/jugadores/${player.id}`}
+					aria-label={`Ver jugador ${player.name}`}
+					className="
+            group rounded-2xl border bg-background/60 overflow-hidden
+            hover:bg-muted/25 hover:border-primary/25 hover:shadow-sm hover:-translate-y-0.5
+            transition-all
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+          "
+				>
+					<div className="relative aspect-[4/5] bg-muted/40 overflow-hidden">
+						{player.photo_url ? (
+							<img
+								src={player.photo_url}
+								alt={player.name}
+								className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
+								loading="lazy"
+							/>
+						) : (
+							<div className="absolute inset-0 grid place-items-center">
+								<span className="text-2xl font-extrabold text-muted-foreground tabular-nums">#{player.number}</span>
+							</div>
+						)}
+
+						<div className="absolute top-2 right-2 rounded-xl bg-black/35 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm tabular-nums">
+							#{player.number}
+						</div>
+
+						<div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/95 via-background/20 to-transparent dark:from-black/70" />
+
+						<div className="absolute inset-x-0 bottom-0 p-3">
+							<p className="text-sm font-semibold leading-tight line-clamp-2">{player.name}</p>
+							<p className="mt-1 text-[11px] text-muted-foreground tabular-nums">#{player.number}</p>
+						</div>
+					</div>
+				</Link>
+			))}
+		</div>
+	);
+}
+
+function EmptyMinimal({
+	icon,
+	title,
+	desc,
+	cta
+}: {
+	icon: React.ReactNode;
+	title: string;
+	desc: string;
+	cta?: { href: string; label: string };
+}) {
+	return (
+		<div className="rounded-2xl border bg-background/60 p-6 text-center">
+			<div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-muted text-muted-foreground">
+				{icon}
+			</div>
+			<p className="font-semibold">{title}</p>
+			<p className="mt-1 text-sm text-muted-foreground">{desc}</p>
+			{cta ? (
+				<div className="mt-4">
+					<Button asChild size="sm" className="rounded-xl">
+						<Link href={cta.href}>{cta.label}</Link>
+					</Button>
+				</div>
+			) : null}
+		</div>
+	);
+}
+
+function QuickCardMinimal({
+	href,
+	title,
+	desc,
+	icon
+}: {
+	href: string;
+	title: string;
+	desc: string;
+	icon: React.ReactNode;
+}) {
+	return (
+		<Link
+			href={href}
+			className="
+        group rounded-3xl border bg-background/60 p-4
+        hover:bg-muted/25 hover:border-primary/25 hover:shadow-sm
+        transition-all
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+      "
+		>
+			<div className="flex items-start justify-between gap-3">
+				<div className="min-w-0">
+					<p className="font-semibold group-hover:text-primary transition-colors">{title}</p>
+					<p className="mt-1 text-sm text-muted-foreground">{desc}</p>
+				</div>
+				<div className="rounded-2xl bg-muted p-2 text-muted-foreground">{icon}</div>
+			</div>
+		</Link>
 	);
 }

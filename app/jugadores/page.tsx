@@ -14,6 +14,7 @@ import { GoalkeeperRadarChart } from "@/components/analytics-goalkeeper/Goalkeep
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { EditPlayersModal } from "@/components/players-components/EditPlayersModal";
+import { useIsMobile } from "@/hooks/player-movile";
 
 export default function PlayersPage() {
 	const { currentClub } = useClub();
@@ -193,7 +194,7 @@ export default function PlayersPage() {
 
 					<TabsContent value="field-players">
 						{fieldPlayers.length > 0 ? (
-							<div className="grid gap-3 sm:gap-4 grid-cols-3 md:grid-cols-3 lg:grid-cols-3">
+							<div className="grid gap-3 sm:gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
 								{fieldPlayers.map((player) => (
 									<FieldPlayerCard key={player.id} player={player} matchStats={matchStats} />
 								))}
@@ -209,7 +210,7 @@ export default function PlayersPage() {
 
 					<TabsContent value="goalkeepers">
 						{goalkeepers.length > 0 ? (
-							<div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+							<div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
 								{goalkeepers.map((player) => (
 									<GoalkeeperCard key={player.id} player={player} matchStats={matchStats} />
 								))}
@@ -237,173 +238,190 @@ export default function PlayersPage() {
 }
 
 const FieldPlayerCard = memo(function FieldPlayerCard({
-	player,
-	matchStats
+  player,
+  matchStats
 }: {
-	player: Player & {
-		totalGoles: number;
-		totalTiros: number;
-		totalAsistencias: number;
-		matchesPlayed: number;
-	};
-	matchStats: any[];
+  player: Player & {
+    totalGoles: number;
+    totalTiros: number;
+    totalAsistencias: number;
+    matchesPlayed: number;
+  };
+  matchStats: any[];
 }) {
-	const router = useRouter();
+  const router = useRouter();
+  const isMobile = useIsMobile();
 
-	const playerMatchStats = useMemo(
-		() => (Array.isArray(matchStats) ? matchStats.filter((s) => s.player_id === player.id) : []),
-		[matchStats, player.id]
-	);
+  const playerMatchStats = useMemo(
+    () => (Array.isArray(matchStats) ? matchStats.filter((s) => s.player_id === player.id) : []),
+    [matchStats, player.id]
+  );
 
-	const goToPlayer = useCallback(() => {
-		router.push(`/jugadores/${player.id}`);
-	}, [router, player.id]);
+  const goToPlayer = useCallback(() => {
+    router.push(`/jugadores/${player.id}`);
+  }, [router, player.id]);
 
-	return (
-		<Card
-			role="link"
-			tabIndex={0}
-			onClick={goToPlayer}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") goToPlayer();
-			}}
-			className={cn(`
+  return (
+    <Card
+      role="link"
+      tabIndex={0}
+      onClick={goToPlayer}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") goToPlayer();
+      }}
+      className={cn(`
         h-full overflow-hidden p-0 cursor-pointer
         transition-all duration-200
         hover:-translate-y-1 hover:shadow-lg
         flex flex-col
       `)}
-		>
-			<div className="relative h-50 sm:h-40 md:h-65 overflow-hidden">
-				{player.photo_url ? (
-					<img
-						src={player.photo_url ?? undefined}
-						alt={player.name}
-						loading="lazy"
-						className="
-              h-full w-full
-              object-contain sm:object-cover
-              object-center sm:object-top
+    >
+      {/* ✅ FOTO: más compacta en móvil */}
+      <div className="relative aspect-[5/4] sm:aspect-auto sm:h-40 md:h-65 overflow-hidden">
+        {player.photo_url ? (
+          <img
+            src={player.photo_url ?? undefined}
+            alt={player.name}
+            loading="lazy"
+            className="
+              absolute inset-0 h-full w-full
+              object-cover sm:object-cover
+              object-top
               bg-muted
             "
-					/>
-				) : (
-					<div className="h-full w-full grid place-items-center bg-muted">
-						<div className="text-center">
-							<div className="text-3xl font-extrabold text-muted-foreground">#{player.number}</div>
-							<div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
-						</div>
-					</div>
-				)}
+          />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center bg-muted">
+            <div className="text-center">
+              <div className="text-3xl font-extrabold text-muted-foreground">#{player.number}</div>
+              <div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
+            </div>
+          </div>
+        )}
 
-				<div
-					className="
+        <div
+          className="
             absolute inset-0 bg-gradient-to-t
             from-white/75 via-white/10 to-transparent
             dark:from-black/60 dark:via-black/20 dark:to-transparent
           "
-				/>
+        />
 
-				<div className="absolute inset-x-0 bottom-0 px-4 pb-3">
-					<h3 className="text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">{player.name}</h3>
-					<p className="text-xs text-zinc-700/80 dark:text-white/80">#{player.number} · Jugador de campo</p>
-				</div>
-			</div>
+        {/* ✅ Texto más compacto en móvil */}
+        <div className="absolute inset-x-0 bottom-0 px-3 pb-2 sm:px-4 sm:pb-3">
+          <h3 className="text-sm sm:text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">
+            {player.name}
+          </h3>
+          <p className="text-[11px] sm:text-xs text-zinc-700/80 dark:text-white/80">
+            #{player.number} · Jugador de campo
+          </p>
+        </div>
+      </div>
 
-			<div
-				onClick={(e) => e.stopPropagation()}
-				onMouseDown={(e) => e.stopPropagation()}
-				onPointerDown={(e) => e.stopPropagation()}
-				className="cursor-default"
-			>
-				<PlayerRadarChart playerName={player.name} matchStats={playerMatchStats} height={340} />
-			</div>
-		</Card>
-	);
+      {/* Radar */}
+		<div
+		onClick={(e) => e.stopPropagation()}
+		onMouseDown={(e) => e.stopPropagation()}
+		onPointerDown={(e) => e.stopPropagation()}
+		className="cursor-default -mt-15 sm:mt-0"
+		>
+		<PlayerRadarChart
+			playerName={player.name}
+			matchStats={playerMatchStats}
+			height={isMobile ? 220 : 340}
+		/>
+		</div>
+    </Card>
+  );
 });
 
 const GoalkeeperCard = memo(function GoalkeeperCard({
-	player,
-	matchStats
+  player,
+  matchStats
 }: {
-	player: Player & {
-		totalParadas: number;
-		totalRivalGoles: number;
-		totalAsistencias: number;
-		matchesPlayed: number;
-	};
-	matchStats: any[];
+  player: Player & {
+    totalParadas: number;
+    totalRivalGoles: number;
+    totalAsistencias: number;
+    matchesPlayed: number;
+  };
+  matchStats: any[];
 }) {
-	const router = useRouter();
+  const router = useRouter();
+  const isMobile = useIsMobile();
 
-	const goalkeeperMatchStats = useMemo(
-		() => (Array.isArray(matchStats) ? matchStats.filter((s) => String(s.player_id) === String(player.id)) : []),
-		[matchStats, player.id]
-	);
+  const goalkeeperMatchStats = useMemo(
+    () => (Array.isArray(matchStats) ? matchStats.filter((s) => String(s.player_id) === String(player.id)) : []),
+    [matchStats, player.id]
+  );
 
-	const goToPlayer = useCallback(() => {
-		router.push(`/jugadores/${player.id}`);
-	}, [router, player.id]);
+  const goToPlayer = useCallback(() => {
+    router.push(`/jugadores/${player.id}`);
+  }, [router, player.id]);
 
-	return (
-		<Card
-			role="link"
-			tabIndex={0}
-			onClick={goToPlayer}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") goToPlayer();
-			}}
-			className={cn(`
+  return (
+    <Card
+      role="link"
+      tabIndex={0}
+      onClick={goToPlayer}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") goToPlayer();
+      }}
+      className={cn(`
         h-full overflow-hidden p-0 cursor-pointer
         transition-all duration-200
         hover:-translate-y-1 hover:shadow-lg
         flex flex-col
       `)}
-		>
-			<div className="relative h-50 sm:h-40 md:h-65 overflow-hidden">
-				{player.photo_url ? (
-					<img
-						src={player.photo_url ?? undefined}
-						alt={player.name}
-						loading="lazy"
-						className="
-              h-full w-full
-              object-contain sm:object-cover
-              object-center sm:object-top
-              bg-muted
-            "
-					/>
-				) : (
-					<div className="h-full w-full grid place-items-center bg-muted">
-						<div className="text-center">
-							<div className="text-3xl font-extrabold text-muted-foreground">#{player.number}</div>
-							<div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
-						</div>
-					</div>
-				)}
+    >
+      {/* ✅ FOTO compacta móvil */}
+      <div className="relative aspect-[5/4] sm:aspect-auto sm:h-40 md:h-65 overflow-hidden">
+        {player.photo_url ? (
+          <img
+            src={player.photo_url ?? undefined}
+            alt={player.name}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover object-top bg-muted"
+          />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center bg-muted">
+            <div className="text-center">
+              <div className="text-3xl font-extrabold text-muted-foreground">#{player.number}</div>
+              <div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
+            </div>
+          </div>
+        )}
 
-				<div
-					className="
+        <div
+          className="
             absolute inset-0 bg-gradient-to-t
             from-white/75 via-white/10 to-transparent
             dark:from-black/60 dark:via-black/10 dark:to-transparent
           "
-				/>
+        />
 
-				<div className="absolute inset-x-0 bottom-0 px-4 pb-3">
-					<h3 className="text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">{player.name}</h3>
-					<p className="text-xs text-zinc-700/80 dark:text-white/80">#{player.number} · Portero</p>
-				</div>
-			</div>
+        <div className="absolute inset-x-0 bottom-0 px-3 pb-2 sm:px-4 sm:pb-3">
+          <h3 className="text-sm sm:text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">
+            {player.name}
+          </h3>
+          <p className="text-[11px] sm:text-xs text-zinc-700/80 dark:text-white/80">
+            #{player.number} · Portero
+          </p>
+        </div>
+      </div>
 
-			<div
-				onClick={(e) => e.stopPropagation()}
-				onMouseDown={(e) => e.stopPropagation()}
-				onPointerDown={(e) => e.stopPropagation()}
-				className="cursor-default"
-			>
-				<GoalkeeperRadarChart playerName={player.name} matchStats={goalkeeperMatchStats} height={340} />
-			</div>
-		</Card>
-	);
+      <div
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="cursor-default -mt-15 sm:mt-0"
+      >
+        <GoalkeeperRadarChart
+          playerName={player.name}
+          matchStats={goalkeeperMatchStats}
+          height={isMobile ? 220 : 340}
+        />
+      </div>
+    </Card>
+  );
 });

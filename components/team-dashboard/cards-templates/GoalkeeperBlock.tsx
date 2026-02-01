@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { TopPlayerCard } from "./TopPlayerCard"
+import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
@@ -31,13 +31,13 @@ export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
   const pensPerMatch = matches > 0 ? penSaved / matches : 0
 
   return (
-    <Card>
-      <CardHeader>
+    <div>
+      <div>
         <CardTitle>Portero</CardTitle>
         <CardDescription>Rendimiento bajo palos</CardDescription>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
+      <div className="space-y-4">
 
         {(!playerStats || playerStats.length === 0) && (
           <div className="rounded-xl border p-4 text-sm text-muted-foreground">
@@ -46,7 +46,7 @@ export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
         )}
 
         {topKeeper && (
-          <div className="space-y-2">
+          <div className="mt-4">
             <TopPlayerCard
               player={{
                 id: topKeeper.id, // o player_id si lo usas
@@ -67,7 +67,7 @@ export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="secondary" className="w-full" disabled={restKeepers.length === 0}>
+                <Button variant="secondary" className="w-full mt-2" disabled={restKeepers.length === 0}>
                   Ver más
                 </Button>
               </DialogTrigger>
@@ -111,7 +111,7 @@ export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
             </Dialog>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

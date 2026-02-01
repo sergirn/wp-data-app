@@ -80,7 +80,7 @@ export function GoalkeeperPerformanceChart({ matches, stats }: GoalkeeperPerform
 						savesInf: { label: "Paradas en Inferioridad", color: "hsl(142 85% 45%)" },
 						percentage: { label: "% Efectividad", color: "hsl(34 95% 55%)" }
 					}}
-					className={`w-full ${compact ? "h-[190px]" : "h-[420px]"}`}
+					className={`w-full ${compact ? "h-[120px]" : "h-[420px]"}`}
 				>
 					<ResponsiveContainer width="100%" height="100%">
 						<AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
