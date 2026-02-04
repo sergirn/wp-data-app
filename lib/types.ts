@@ -118,6 +118,7 @@ export interface MatchStats {
 	portero_paradas_fuera: number;
 	portero_paradas_penalti_parado: number;
 	portero_paradas_hombre_menos: number; // Added man down saves
+	lanz_recibido_fuera: number;
 
 	portero_acciones_asistencias: number; // Updated field name
 	portero_acciones_recuperacion: number; // Updated field name

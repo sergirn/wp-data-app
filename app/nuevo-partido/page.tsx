@@ -428,6 +428,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		portero_recibir_gol: 0,
 		portero_inferioridad_fuera: 0,
 		portero_inferioridad_bloqueo: 0,
+		lanz_recibido_fuera: 0,
 
 		rebote_recup_hombre_mas: 0,
 		rebote_perd_hombre_mas: 0
@@ -642,7 +643,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					"portero_tiros_parada_recup",
 					"portero_paradas_fuera",
 					"portero_paradas_penalti_parado",
-					"portero_paradas_hombre_menos" // This is likely a typo, should be portero_paradas_hombre_menos
+					"portero_paradas_hombre_menos",
+					"lanz_recibido_fuera"
 				];
 
 				if (field.startsWith("portero_") && (field.includes("parada") || field.includes("paradas"))) {
@@ -841,23 +843,23 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		const isZeroZero = homeGoals === 0 && awayGoals === 0;
 
 		if (isTied && !isZeroZero) {
-		if (penaltyHomeScore === null || penaltyAwayScore === null) {
-			alert("El partido está empatado. Debes registrar el resultado de los penaltis.");
-			return;
-		}
-		if (penaltyHomeScore === penaltyAwayScore) {
-			alert("La tanda de penaltis no puede terminar en empate. Debe haber un ganador.");
-			return;
-		}
+			if (penaltyHomeScore === null || penaltyAwayScore === null) {
+				alert("El partido está empatado. Debes registrar el resultado de los penaltis.");
+				return;
+			}
+			if (penaltyHomeScore === penaltyAwayScore) {
+				alert("La tanda de penaltis no puede terminar en empate. Debe haber un ganador.");
+				return;
+			}
 
-		if (penaltyShooters.length === 0) {
-			toast({
-			title: "Atención",
-			description: "No has seleccionado los lanzadores de penaltis de tu equipo",
-			variant: "destructive",
-			});
-			return;
-		}
+			if (penaltyShooters.length === 0) {
+				toast({
+					title: "Atención",
+					description: "No has seleccionado los lanzadores de penaltis de tu equipo",
+					variant: "destructive"
+				});
+				return;
+			}
 		}
 
 		setSaving(true);
@@ -2265,6 +2267,11 @@ function GoalkeeperStatsDialog({
 						label="Penalti Parado"
 						value={safeNumber(stats.portero_paradas_penalti_parado)}
 						onChange={(v) => onUpdate("portero_paradas_penalti_parado", v)}
+					/>
+					<StatField
+						label="Lanz. recibido fuera"
+						value={safeNumber(stats.lanz_recibido_fuera)}
+						onChange={(v) => onUpdate("lanz_recibido_fuera", v)}
 					/>
 				</div>
 				<GoalkeeperSavesRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
