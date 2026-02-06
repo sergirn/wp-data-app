@@ -1,10 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlayerHeroHeader } from "@/app/jugadores/[id]/playerHeader";
 
@@ -18,18 +16,53 @@ type Props = {
 		golesRecibidos: number;
 		tirosRecibidos: number;
 		savePercentage: string;
-		// ✅ NUEVO (si lo pasas desde GoalkeeperStatsCard)
 		lanzRecibidoFuera?: number;
 	};
 };
 
-export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, derived }: Props) {
-	const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }) : "—");
+function usePlayerFavorites(playerId?: number, open?: boolean) {
+	const [keys, setKeys] = React.useState<string[]>([]);
+	const favSet = React.useMemo(() => new Set(keys), [keys]);
 
-	const match = stat?.matches;
-	const opponent = match?.opponent ?? "—";
-	const date = formatDate(match?.match_date);
-	const score = `${match?.home_score ?? 0} - ${match?.away_score ?? 0}`;
+	React.useEffect(() => {
+		if (!open || !playerId) return;
+
+		(async () => {
+			const res = await fetch(`/api/favorites?playerId=${playerId}`);
+			const json = await res.json();
+			setKeys(Array.isArray(json.keys) ? json.keys : []);
+		})();
+	}, [playerId, open]);
+
+	const toggle = async (statKey: string) => {
+		if (!playerId) return;
+
+		// optimistic
+		setKeys((prev) => (prev.includes(statKey) ? prev.filter((k) => k !== statKey) : [...prev, statKey]));
+
+		const res = await fetch("/api/favorites", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ playerId, statKey })
+		});
+
+		// si falla, recarga
+		if (!res.ok) {
+			const reload = await fetch(`/api/favorites?playerId=${playerId}`);
+			const json = await reload.json();
+			setKeys(Array.isArray(json.keys) ? json.keys : []);
+		}
+	};
+
+	return { favSet, toggle };
+}
+
+export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, derived }: Props) {
+	const playerId: number | undefined = player?.id ?? stat?.player_id;
+	const { favSet, toggle } = usePlayerFavorites(playerId, open);
+
+	const formatDate = (d?: string) =>
+		d ? new Date(d).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }) : "—";
 
 	const KpiBox = ({ label, value, className }: { label: string; value: React.ReactNode; className: string }) => (
 		<div className={`rounded-xl p-4 text-center border ${className}`}>
@@ -45,20 +78,61 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 		</div>
 	);
 
-	const KV = ({ label, value }: { label: string; value: React.ReactNode }) => (
-		<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-			<span className="text-sm text-muted-foreground">{label}</span>
-			<span className="text-sm font-semibold tabular-nums">{value}</span>
-		</div>
-	);
+	const KV = ({ label, value, statKey }: { label: string; value: React.ReactNode; statKey: string }) => {
+		const isFav = favSet.has(statKey);
+		const onToggle = () => toggle(statKey);
+
+		return (
+			<div
+				role="button"
+				tabIndex={0}
+				onClick={onToggle}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						onToggle();
+					}
+				}}
+				className={[
+					"flex items-center justify-between rounded-lg px-3 py-2 border transition-colors select-none",
+					"cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30",
+					isFav
+						? "bg-yellow-500/20 border-yellow-500/20 hover:bg-yellow-500/25"
+						: "bg-muted/50 border-transparent hover:bg-muted/70"
+				].join(" ")}
+				aria-label={`${label}: ${isFav ? "favorita" : "no favorita"}`}
+				title="Pulsa para marcar/desmarcar como favorita"
+			>
+				<span className="text-sm text-muted-foreground">{label}</span>
+
+				<div className="flex items-center gap-2">
+					<span className="text-sm font-semibold tabular-nums">{value}</span>
+
+					{/* Indicador/botón opcional */}
+					<button
+						type="button"
+						onClick={(e) => {
+							e.stopPropagation(); // evita doble toggle al clicar el botón
+							onToggle();
+						}}
+						className={[
+							"h-7 w-7 grid place-items-center rounded-md text-xs",
+							isFav ? "opacity-100" : "opacity-50 hover:opacity-90"
+						].join(" ")}
+						aria-label={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
+						title={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
+					>
+						★
+					</button>
+				</div>
+			</div>
+		);
+	};
 
 	const savesItems = [
 		{ label: "Parada + Recup", key: "portero_tiros_parada_recup" },
 		{ label: "Fuera", key: "portero_paradas_fuera" },
-
-		// ✅ NUEVO
 		{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" },
-
 		{ label: "Penalti parado", key: "portero_paradas_penalti_parado" },
 		{ label: "Hombre -", key: "portero_paradas_hombre_menos" }
 	] as const;
@@ -89,7 +163,6 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 					<DialogTitle>{player?.name ?? "Estadísticas del portero"}</DialogTitle>
 				</VisuallyHidden>
 
-				{/* Header tipo hero */}
 				<div className="p-4">
 					<PlayerHeroHeader
 						player={{
@@ -102,7 +175,6 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 					/>
 				</div>
 
-				{/* Body */}
 				<div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 						<KpiBox label="Paradas" value={derived.paradas} className="bg-blue-500/5 border-blue-500/10" />
@@ -114,13 +186,13 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 					<div className="grid md:grid-cols-2 gap-4">
 						<Section title="Paradas por tipo">
 							{savesItems.map((it) => (
-								<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} />
+								<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
 							))}
 						</Section>
 
 						<Section title="Goles encajados por tipo">
 							{goalsItems.map((it) => (
-								<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} />
+								<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
 							))}
 						</Section>
 					</div>
@@ -128,15 +200,24 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 					<Card className="bg-muted/20">
 						<CardContent className="pt-4">
 							<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-								<KV label="Paradas inf." value={stat?.portero_paradas_hombre_menos ?? 0} />
-								<KV label="Pen. parados" value={stat?.portero_paradas_penalti_parado ?? 0} />
-								<KV label="Fuera" value={stat?.portero_paradas_fuera ?? 0} />
-
-								{/* ✅ NUEVO (en resumen también) */}
-								<KV label="Lanz. fuera" value={stat?.lanz_recibido_fuera ?? 0} />
-
-								{/* Si quieres mantener también Parada+Recup, cambia el grid a md:grid-cols-5 o quita uno */}
-								{/* <KV label="Parada+Recup" value={stat?.portero_tiros_parada_recup ?? 0} /> */}
+								{/* Si quisieras también hacer favoritos aquí, podrías asignar statKey a cada uno.
+                    Por ahora lo dejo como resumen sin toggle. */}
+								<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+									<span className="text-sm text-muted-foreground">Paradas inf.</span>
+									<span className="text-sm font-semibold tabular-nums">{stat?.portero_paradas_hombre_menos ?? 0}</span>
+								</div>
+								<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+									<span className="text-sm text-muted-foreground">Pen. parados</span>
+									<span className="text-sm font-semibold tabular-nums">{stat?.portero_paradas_penalti_parado ?? 0}</span>
+								</div>
+								<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+									<span className="text-sm text-muted-foreground">Fuera</span>
+									<span className="text-sm font-semibold tabular-nums">{stat?.portero_paradas_fuera ?? 0}</span>
+								</div>
+								<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+									<span className="text-sm text-muted-foreground">Lanz. fuera</span>
+									<span className="text-sm font-semibold tabular-nums">{stat?.lanz_recibido_fuera ?? 0}</span>
+								</div>
 							</div>
 						</CardContent>
 					</Card>

@@ -122,20 +122,41 @@ export function ChartSwipeCarousel({ items, className, dotsClassName }: ChartSwi
 
       {/* Dots */}
       {totalPages > 1 ? (
-        <div className={`flex items-center justify-center gap-2 mt-3 ${dotsClassName ?? ""}`}>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => scrollToPage(i)}
-              className={`h-2 w-2 rounded-full transition ${
-                i === page ? "bg-foreground" : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
-              }`}
-              aria-label={`Ir a página ${i + 1}`}
-            />
-          ))}
-        </div>
-      ) : null}
+  <div className={`flex items-center justify-center mt-3 ${dotsClassName ?? ""}`}>
+    {/* Contenedor con padding controlado para zona táctil */}
+    <div className="flex items-center justify-center gap-2 rounded-full px-2 py-1">
+      {Array.from({ length: totalPages }).map((_, i) => {
+        const active = i === page;
+
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => scrollToPage(i)}
+            aria-label={`Ir a página ${i + 1}`}
+            className={[
+              "inline-flex items-center justify-center shrink-0",
+              "p-0 m-0 border-0 bg-transparent",
+              "leading-none align-middle",
+
+              "h-5 w-5",
+
+              "before:content-[''] before:block before:rounded-full",
+              "before:h-2 before:w-2",
+              "before:transition-colors",
+
+              active
+                ? "before:bg-foreground"
+                : "before:bg-muted-foreground/30 hover:before:bg-muted-foreground/50",
+
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2",
+            ].join(" ")}
+          />
+        );
+      })}
+    </div>
+  </div>
+) : null}
     </div>
   );
 }
