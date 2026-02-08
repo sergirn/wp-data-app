@@ -98,16 +98,6 @@ export function GoalkeeperStatsCard({ stat, player }: { stat: MatchStats; player
 								<span className="font-semibold">GC</span>&nbsp;
 								<span className="tabular-nums">{golesRecibidos}</span>
 							</Badge>
-
-							{/* (Opcional) Si quieres mostrarlo en la tarjeta:
-              <Badge
-                variant="secondary"
-                className="inline-flex items-center bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 text-[11px] px-2 py-0.5 whitespace-nowrap"
-              >
-                <span className="font-semibold">FU</span>&nbsp;
-                <span className="tabular-nums">{lanzRecibidoFuera}</span>
-              </Badge>
-              */}
 						</div>
 					</div>
 				</div>

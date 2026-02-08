@@ -187,7 +187,9 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 	const eficPortero = paradas + goles_recibidos ? pct(paradas, paradas + goles_recibidos) : 0;
 
 	return (
-		<Card className="mb-6 bg-transparent shadow-none">
+		
+		<Card className="mb-6 bg-transparent shadow-none border-none">
+			<div className="mb-3 border-t border-muted/80" />
 			<CardHeader className="pb-2">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
 					<CardTitle className="text-base sm:text-lg">{title}</CardTitle>
@@ -197,7 +199,7 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 				</div>
 			</CardHeader>
 
-			<CardContent className="space-y-4">
+			<div className="space-y-4">
 				{/* Compacto: 2 cols móvil, 3 cols tablet, 4 desktop */}
 				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 					<MetricTile label="Goles" value={goles} hint={`${goles}/${intentos} · ${efectividad}%`} icon={<Target />} />
@@ -231,7 +233,7 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 							</div>
 						</AccordionTrigger>
 
-						<AccordionContent className="px-4 pb-4 pt-3 space-y-4">
+						<AccordionContent className="px-4 pb-4 pt-3 space-y-4 bg-muted/10 rounded-xl border-1">
 							{/* Acciones */}
 							<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 								<MetricTile
@@ -324,7 +326,7 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 						</AccordionContent>
 					</AccordionItem>
 				</Accordion>
-			</CardContent>
+			</div>
 		</Card>
 	);
 }

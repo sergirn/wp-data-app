@@ -4,13 +4,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatInput } from "@/components/stat-input";
 import type { Player, MatchStats, Profile, Match } from "@/lib/types";
-import { Loader2, AlertCircle, RefreshCw, Plus, Users, CheckCircle, XCircle, Trophy, X, Shield, Target, Save } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Plus, Users, CheckCircle, XCircle, X, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -195,27 +194,23 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		async function initializeFromParams() {
 			const params = await searchParams;
 
-			// 1. Detectamos si estamos editando o creando nuevo
 			if (params.matchId) {
 				setEditingMatchId(Number(params.matchId));
 			}
 
-			// 2. Carga todo lo necesario (permisos + jugadores + datos del partido si existe)
-			await checkPermissions(); // ← establece profile
-			await loadPlayers(); // ← ahora carga jugadores + convocatoria por defecto (solo si es nuevo)
+			await checkPermissions();
+			await loadPlayers();
 			await loadPreviousMatches();
 
-			// 3. Si estamos editando → cargamos los datos reales del partido (sobrescribe la convocatoria por defecto)
 			if (params.matchId) {
 				await loadExistingMatch(Number(params.matchId));
 			}
 
-			// 4. Todo listo
 			setLoading(false);
 		}
 
 		initializeFromParams();
-	}, [searchParams]); // ← importante: depende de searchParams
+	}, [searchParams]);
 
 	const checkPermissions = async () => {
 		if (!supabase) {
@@ -449,7 +444,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 		return (
 			safeNumber(s.portero_tiros_parada_recup) +
-			safeNumber(s.portero_tiros_parado) +
 			safeNumber(s.portero_paradas_fuera) +
 			safeNumber(s.portero_paradas_penalti_parado) +
 			safeNumber(s.portero_paradas_hombre_menos)
@@ -639,19 +633,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			const player = playersById.get(playerId);
 
 			if (player?.is_goalkeeper) {
-				const goalkeeperSaveCategories: (keyof MatchStats)[] = [
+				const saveFields: (keyof MatchStats)[] = [
 					"portero_tiros_parada_recup",
 					"portero_paradas_fuera",
 					"portero_paradas_penalti_parado",
 					"portero_paradas_hombre_menos",
-					"lanz_recibido_fuera"
 				];
 
-				if (field.startsWith("portero_") && (field.includes("parada") || field.includes("paradas"))) {
-					newStats.portero_paradas_totales = goalkeeperSaveCategories.reduce((sum, cat) => {
-						return sum + safeNumber(newStats[cat] as number);
-					}, 0) as any;
+				if (saveFields.includes(field)) {
+					newStats.portero_paradas_totales = calcParadasTotales(newStats) as any;
 				}
+
 				const goalkeeperGoalCategories: (keyof MatchStats)[] = [
 					"portero_goles_boya_parada",
 					"portero_goles_hombre_menos",
@@ -684,13 +676,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						field === "portero_paradas_hombre_menos" ? safeValue : currentStatsForPlayer.portero_paradas_hombre_menos
 					);
 
-					newStats.portero_paradas_totales =
-						(safeNumber(newStats.portero_paradas_totales) || 0) +
-						(safeNumber(newStats.portero_inferioridad_fuera) || 0) +
-						(safeNumber(newStats.portero_inferioridad_bloqueo) || 0);
+					// newStats.portero_paradas_totales =
+					// 	(safeNumber(newStats.portero_paradas_totales) || 0) +
+					// 	(safeNumber(newStats.portero_inferioridad_fuera) || 0) +
+					// 	(safeNumber(newStats.portero_inferioridad_bloqueo) || 0);
 
-					// The efficiency calculation below is for generic field players, we need to adjust for goalkeepers if needed.
-					// For now, let's ensure we're not overwriting existing correct calculations.
+					// // The efficiency calculation below is for generic field players, we need to adjust for goalkeepers if needed.
+					// // For now, let's ensure we're not overwriting existing correct calculations.
 				}
 			} else {
 				const goalCategories: (keyof MatchStats)[] = [
@@ -1223,91 +1215,120 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					)}
 				</TabsList>
 
-				<TabsContent value="info">
-					<Card>
-						<CardHeader>
-							<CardTitle>Información del Partido</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-6">
-							<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+				<TabsContent value="info" >
+						<div className="space-y-6">
+							<div className="grid gap-6 lg:grid-cols-3">
+							{/* COLUMNA 1: Datos */}
+							<div className="space-y-4 rounded-sm border bg-muted/15 p-4">
+								{/* <h3 className="text-sm font-semibold">Datos del partido</h3> */}
+
+								<div className="space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="date">Fecha</Label>
 									<Input id="date" type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} />
 								</div>
+
 								<div className="space-y-2">
 									<Label htmlFor="opponent">Rival *</Label>
 									<Input
-										id="opponent"
-										value={opponent}
-										onChange={(e) => setOpponent(e.target.value)}
-										placeholder="Nombre del equipo rival"
+									id="opponent"
+									value={opponent}
+									onChange={(e) => setOpponent(e.target.value)}
+									placeholder="Nombre del equipo rival"
 									/>
 								</div>
+
 								<div className="space-y-2">
 									<Label htmlFor="location">Ubicación</Label>
 									<Input
-										id="location"
-										value={location}
-										onChange={(e) => setLocation(e.target.value)}
-										placeholder="Piscina o ciudad"
+									id="location"
+									value={location}
+									onChange={(e) => setLocation(e.target.value)}
+									placeholder="Piscina o ciudad"
 									/>
 								</div>
-								<div className="space-y-2">
-									<Label htmlFor="home-score">Goles Propios</Label>
-									<Input
-										id="home-score"
-										type="number"
-										value={homeGoals}
-										readOnly
-										className="bg-muted text-center text-lg font-bold"
-										title="Se calcula automáticamente sumando los goles de los jugadores"
-									/>
-									<p className="text-xs text-muted-foreground">Se calcula automáticamente</p>
 								</div>
-								<div className="space-y-2">
-									<Label htmlFor="away-score">Goles Rival</Label>
-									<Input
-										id="away-score"
-										type="number"
-										value={awayGoals}
-										readOnly
-										className="bg-muted text-center text-lg font-bold"
-										title="Se calcula automáticamente desde las estadísticas del portero"
-									/>
-									<p className="text-xs text-muted-foreground">Se calcula desde goles del portero</p>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="season">Temporada</Label>
-									<Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="jornada">Jornada</Label>
-									<Input
-										id="jornada"
-										type="number"
-										value={jornada}
-										onChange={(e) => setJornada(Number.parseInt(e.target.value) || 1)}
-										min={1}
-									/>
-								</div>
+							</div>
+
+
+
+							{/* COLUMNA 2: Competición + Temporada */}
+							<div className="space-y-4 rounded-sm border-2 p-4">
+								{/* <h3 className="text-sm font-semibold">Competición y temporada</h3> */}
+
+								<div className="space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="competition">Competición</Label>
 									<Select value={competitionId} onValueChange={setCompetitionId}>
-										<SelectTrigger id="competition" className="w-full">
-											<SelectValue placeholder="Selecciona competición" />
-										</SelectTrigger>
-										<SelectContent>
-											{competitions.map((c) => (
-												<SelectItem key={c.id} value={String(c.id)}>
-													{c.name}
-												</SelectItem>
-											))}
-										</SelectContent>
+									<SelectTrigger id="competition" className="w-full">
+										<SelectValue placeholder="Selecciona competición" />
+									</SelectTrigger>
+									<SelectContent>
+										{competitions.map((c) => (
+										<SelectItem key={c.id} value={String(c.id)}>
+											{c.name}
+										</SelectItem>
+										))}
+									</SelectContent>
 									</Select>
 
 									{competitions.length === 0 && <p className="text-xs text-muted-foreground"></p>}
 								</div>
+
+
+
+								<div className="space-y-2">
+									<Label htmlFor="jornada">Jornada</Label>
+									<Input
+									id="jornada"
+									type="number"
+									value={jornada}
+									onChange={(e) => setJornada(Number.parseInt(e.target.value) || 1)}
+									min={1}
+									/>
+								</div>
+
+									<div className="space-y-2">
+									<Label htmlFor="season">Temporada</Label>
+									<Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
+								</div>
+								</div>
 							</div>
+
+							{/* COLUMNA 3: Marcador */}
+							<div className="space-y-4 rounded-sm border bg-muted/15 p-4">
+								<h3 className="text-sm font-semibold">Marcador</h3>
+
+								<div className="space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="home-score">Goles Propios</Label>
+									<Input
+									id="home-score"
+									type="number"
+									value={homeGoals}
+									readOnly
+									className="bg-muted text-center text-lg font-bold"
+									title="Se calcula automáticamente sumando los goles de los jugadores"
+									/>
+									<p className="text-xs text-muted-foreground">Se calcula automáticamente</p>
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="away-score">Goles Rival</Label>
+									<Input
+									id="away-score"
+									type="number"
+									value={awayGoals}
+									readOnly
+									className="bg-muted text-center text-lg font-bold"
+									title="Se calcula automáticamente desde las estadísticas del portero"
+									/>
+									<p className="text-xs text-muted-foreground">Se calcula desde goles del portero</p>
+								</div>
+								</div>
+							</div>
+							</div>
+
 
 							<div className="space-y-2 md:col-span-3 border-t pt-4 mt-4">
 								<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1443,16 +1464,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									rows={2}
 								/>
 							</div>
-						</CardContent>
-					</Card>
+						</div>
 				</TabsContent>
 
 				<TabsContent value="field">
-					<Card>
-						<CardHeader>
+						{/* <CardHeader>
 							<CardTitle>Jugadores de Campo</CardTitle>
-						</CardHeader>
-						<CardContent>
+						</CardHeader> */}
+						<div>
 							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
 								{fieldPlayers.map((player) => (
 									<div key={player.id} className="relative">
@@ -1583,16 +1602,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									</Button>
 								)}
 							</div>
-						</CardContent>
-					</Card>
+						</div>
 				</TabsContent>
 
 				<TabsContent value="goalkeepers">
-					<Card>
-						<CardHeader>
-							<CardTitle>Porteros</CardTitle>
-						</CardHeader>
-						<CardContent>
+						<div>
 							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
 								{goalkeepers.map((player) => (
 									<div key={player.id} className="relative">
@@ -1690,8 +1704,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									</div>
 								))}
 							</div>
-						</CardContent>
-					</Card>
+						</div>
 				</TabsContent>
 
 				{isTied && (
@@ -2180,7 +2193,7 @@ function GoalkeeperStatsDialog({
 	stats,
 	onUpdate,
 	goalkeeperShots,
-	setGoalkeeperShots
+	setGoalkeeperShots,
 }: {
 	player: Player;
 	stats: Partial<MatchStats>;
@@ -2252,7 +2265,18 @@ function GoalkeeperStatsDialog({
 
 			<TabsContent value="paradas" className="space-y-4 mt-4">
 				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-					<StatField label="Totales" value={safeNumber(stats.portero_paradas_totales)} onChange={() => {}} readOnly />
+					<StatField
+						label="Totales"
+						value={
+							safeNumber(stats.portero_tiros_parada_recup) +
+							safeNumber(stats.portero_paradas_fuera) +
+							safeNumber(stats.portero_paradas_penalti_parado) +
+							safeNumber(stats.portero_paradas_hombre_menos)
+						}
+						onChange={() => {}}
+						readOnly
+						/>
+
 					<StatField
 						label="Parada Recup"
 						value={safeNumber(stats.portero_tiros_parada_recup)}

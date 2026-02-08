@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, Edit } from "lucide-react";
@@ -10,9 +10,7 @@ import Image from "next/image";
 import logo from "@/public/images/lewaterpolo_bg.png";
 import { MatchPeriodsAndPenaltiesCard } from "@/components/match-components/MatchPeriodsAndPenaltiesCard";
 import { TeamTotalsOverviewCard } from "@/components/match-components/TotalMatchStats";
-import { PlayerStatsCard } from "@/components/match-components/PlayerStatsAccordion";
-import { GoalkeeperStatsCard } from "@/components/match-components/GoalkeeperStatsCard";
-import { MatchChartsModalTrigger } from "@/components/match-components/match-charts-main";
+import { MatchPlayersTabs } from "./MatchPlayersTabs";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -281,56 +279,26 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
 			<div className="grid gap- mb-8">
 				<TeamTotalsOverviewCard stats={match.match_stats} />
-
-				<MatchChartsModalTrigger
-					clubName={clubName}
-					opponentName={match.opponent}
-					matchDateLabel={matchDate.toLocaleDateString("es-ES")}
-					match={match}
-					matchStats={match.match_stats}
-					superioridadStats={superioridadStats}
-					inferioridadStats={inferioridadStats}
-					blocksStats={blocksStats}
-					allGoalkeeperShots={allGoalkeeperShots}
-					goalkeeperId={goalkeeperId}
-					matchId={match.id}
-				/>
 			</div>
 
-			{/* Field Players Stats */}
-			<Card className="mb-6">
-				<CardHeader>
-					<CardTitle>Estadísticas - Jugadores de Campo</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6">
-						{fieldPlayersStats.map((stat: any) => (
-							<PlayerStatsCard key={stat.id} stat={stat} player={stat.players} />
-						))}
-					</div>
-				</CardContent>
-			</Card>
-
-			{/* Goalkeepers Stats */}
-			{goalkeepersStats.length > 0 && (
-				<Card className="mb-6">
-					<CardHeader>
-						<CardTitle>Estadísticas - Porteros</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
-							{goalkeepersStats.map((stat: any) => (
-								<GoalkeeperStatsCard key={stat.id} stat={stat} player={stat.players} />
-							))}
-						</div>
-					</CardContent>
-				</Card>
-			)}
+			<MatchPlayersTabs
+				fieldPlayersStats={fieldPlayersStats}
+				goalkeepersStats={goalkeepersStats}
+				matchId={match.id}
+				clubName={clubName}
+				opponentName={match.opponent}
+				matchDateLabel={matchDate.toLocaleDateString("es-ES")}
+				match={match}
+				matchStats={match.match_stats}
+				superioridadStats={superioridadStats}
+				inferioridadStats={inferioridadStats}
+				blocksStats={blocksStats}
+				allGoalkeeperShots={allGoalkeeperShots}
+				goalkeeperId={goalkeeperId}
+				players={players}
+			/>
 
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
-				{/* <div className="w-full sm:w-auto">
-					<MatchExportButton match={match} players={players} stats={stats} />
-				</div> */}
 
 				<div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
 					{canEdit && (

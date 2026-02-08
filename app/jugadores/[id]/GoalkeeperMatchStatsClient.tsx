@@ -4,11 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import type { Player, MatchStats, Match } from "@/lib/types";
 
+import { usePlayerFavorites } from "@/hooks/usePlayerFavorites";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@radix-ui/react-accordion";
-
-import { usePlayerFavorites } from "@/hooks/usePlayerFavorites";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface MatchStatsWithMatch extends MatchStats {
   matches: Match;
@@ -32,9 +32,23 @@ export function GoalkeeperMatchStatsClient({
   }
 
   const formatDate = (d?: string) =>
-    d ? new Date(d).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }) : "";
+    d
+      ? new Date(d).toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "";
 
-  const KpiBox = ({ label, value, className }: { label: string; value: React.ReactNode; className: string }) => (
+  const KpiBox = ({
+    label,
+    value,
+    className,
+  }: {
+    label: string;
+    value: React.ReactNode;
+    className: string;
+  }) => (
     <div className={`rounded-xl p-4 text-center border ${className}`}>
       <p className="text-2xl font-bold tabular-nums">{value}</p>
       <p className="text-xs text-muted-foreground mt-1">{label}</p>
@@ -48,14 +62,17 @@ export function GoalkeeperMatchStatsClient({
     </div>
   );
 
-  // ✅ playerId para favoritos
-  const playerId: number | undefined = (player as any)?.id ?? (matchStats?.[0] as any)?.player_id ?? undefined;
-  const { favSet, toggle } = usePlayerFavorites(playerId);
+  // ✅ playerId para cargar favoritos desde BBDD
+  const playerId: number | undefined =
+    (player as any)?.id ?? (matchStats?.[0] as any)?.player_id ?? undefined;
 
-  // ✅ KV “favoritable” (fila completa clicable) + hover que NO pisa el amarillo
+  // ✅ draft + guardar (igual que FieldPlayerMatchStatsClient)
+  const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId);
+
+  // ✅ KV “favoritable”
   const KV = ({ label, value, statKey }: { label: string; value: React.ReactNode; statKey: string }) => {
     const isFav = favSet.has(statKey);
-    const onToggle = () => toggle(statKey);
+    const onToggle = () => toggleLocal(statKey);
 
     return (
       <div
@@ -71,7 +88,9 @@ export function GoalkeeperMatchStatsClient({
         className={[
           "flex items-center justify-between rounded-lg px-3 py-2 border transition-colors select-none",
           "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30",
-          isFav ? "bg-yellow-500/20 border-yellow-500/20 hover:bg-yellow-500/25" : "bg-muted/50 border-transparent hover:bg-muted/70",
+          isFav
+            ? "bg-yellow-500/20 border-yellow-500/20 hover:bg-yellow-500/25"
+            : "bg-muted/50 border-transparent hover:bg-muted/70",
         ].join(" ")}
         aria-label={`${label}: ${isFav ? "favorita" : "no favorita"}`}
         title="Pulsa para marcar/desmarcar como favorita"
@@ -81,14 +100,16 @@ export function GoalkeeperMatchStatsClient({
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold tabular-nums">{value}</span>
 
-          {/* Indicador opcional */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onToggle();
             }}
-            className={["h-7 w-7 grid place-items-center rounded-md text-xs", isFav ? "opacity-100" : "opacity-50 hover:opacity-90"].join(" ")}
+            className={[
+              "h-7 w-7 grid place-items-center rounded-md text-xs",
+              isFav ? "opacity-100" : "opacity-50 hover:opacity-90",
+            ].join(" ")}
             aria-label={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
             title={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
           >
@@ -99,11 +120,36 @@ export function GoalkeeperMatchStatsClient({
     );
   };
 
+  // ✅ Abre por defecto el primero (si viene ordenado DESC por fecha, es el más reciente)
+  const defaultOpen = `match-${matchStats[0]?.id}`;
+
   return (
     <div className="space-y-4 mb-6">
-      <div className="space-y-4">
+      {/* ✅ Barra Guardar/Descartar (solo si hay cambios) */}
+      {dirty ? (
+        <div className="sticky top-2 z-20">
+          <div className="rounded-xl border bg-background/60 backdrop-blur px-3 py-2 flex items-center justify-between gap-3">
+            <div className="text-xs text-muted-foreground">
+              Cambios sin guardar{error ? <span className="text-destructive"> · {error}</span> : null}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={discard} disabled={saving}>
+                Descartar
+              </Button>
+              <Button size="sm" onClick={save} disabled={saving}>
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ✅ TODOS EN ACORDEÓN (como móvil), excepto el último partido abierto */}
+      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue={defaultOpen}>
         {matchStats.map((stat) => {
           const match = stat.matches;
+
           const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0;
 
           const paradas = stat.portero_paradas_totales ?? 0;
@@ -127,95 +173,92 @@ export function GoalkeeperMatchStatsClient({
           ] as const;
 
           return (
-            <Card key={stat.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base md:text-lg truncate">{match?.opponent ?? "—"}</CardTitle>
-                    <p className="text-xs md:text-sm text-muted-foreground truncate">{formatDate(match?.match_date)}</p>
-                  </div>
+            <AccordionItem key={stat.id} value={`match-${stat.id}`} className="border-0">
+              <Card className="overflow-hidden">
+                <AccordionTrigger
+                  className="
+                    w-full p-0 hover:no-underline
+                    [&>svg]:mr-4
+                    [&>svg]:shrink-0
+                    [&>svg]:transition-transform
+                    data-[state=open]:[&>svg]:rotate-180
+                  "
+                >
+                  <CardHeader className="pb-3 w-full">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full">
+                      <div className="min-w-0 text-left">
+                        <CardTitle className="text-base md:text-lg truncate">{match?.opponent ?? "—"}</CardTitle>
+                        <p className="text-xs md:text-sm text-muted-foreground truncate">
+                          {formatDate(match?.match_date)}
+                        </p>
+                      </div>
 
-                  <div className="flex items-center justify-between md:justify-end gap-3">
-                    <span className="text-xl md:text-2xl font-bold tabular-nums">
-                      {match?.home_score ?? 0} - {match?.away_score ?? 0}
-                    </span>
-                    <Button asChild variant="outline" size="sm" className="bg-transparent">
-                      <Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
+                      <div className="flex items-center justify-between md:justify-end gap-3">
+                        <span className="text-xl md:text-2xl font-bold tabular-nums">
+                          {match?.home_score ?? 0} - {match?.away_score ?? 0}
+                        </span>
 
-              <CardContent className="space-y-4">
-                {/* KPIs */}
-                <div className="grid grid-cols-4 md:grid-cols-4 gap-3">
-                  <KpiBox label="Paradas" value={paradas} className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400" />
-                  <KpiBox label="Goles Recibidos" value={rivalGoals ?? 0} className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400" />
-                  <KpiBox label="Eficiencia" value={`${eficiencia}%`} className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400" />
-                  <KpiBox label="Tiros Totales" value={totalShots} className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400" />
-                </div>
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="bg-transparent"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </AccordionTrigger>
 
-                {/* ✅ MOBILE */}
-                <div className="sm:hidden">
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value={`detail-${stat.id}`} className="border rounded-xl overflow-hidden">
-                      <AccordionTrigger
-                        className="
-                          w-full !flex !justify-between
-                          px-3 py-2
-                          bg-muted/20 hover:bg-muted/30
-                          text-sm font-semibold
-                          [&>svg]:shrink-0
-                          [&>svg]:transition-transform
-                          data-[state=open]:[&>svg]:rotate-180
-                        "
-                      >
-                        <div className="flex w-full items-center justify-between gap-2">
-                          <span>Ver detalle</span>
-                          <span className="shrink-0 rounded-lg border bg-background/60 px-2.5 py-1 text-xs font-semibold opacity-80">
-                            Abrir
-                          </span>
-                        </div>
-                      </AccordionTrigger>
+                <AccordionContent className="p-0">
+                  <CardContent className="space-y-4">
+                    {/* KPIs */}
+                    <div className="grid grid-cols-4 md:grid-cols-4 gap-3">
+                      <KpiBox
+                        label="Paradas"
+                        value={paradas}
+                        className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
+                      />
+                      <KpiBox
+                        label="Goles Recibidos"
+                        value={rivalGoals ?? 0}
+                        className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
+                      />
+                      <KpiBox
+                        label="Eficiencia"
+                        value={`${eficiencia}%`}
+                        className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
+                      />
+                      <KpiBox
+                        label="Tiros Totales"
+                        value={totalShots}
+                        className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
+                      />
+                    </div>
 
-                      <AccordionContent className="px-3 pb-3 pt-2">
-                        <div className="grid gap-3">
-                          <Section title="Paradas por tipo">
-                            {savesItems.map((it) => (
-                              <KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
-                            ))}
-                          </Section>
+                    {/* Detalle (igual que el otro: siempre dentro del acordeón) */}
+                    <div className="grid gap-3 grid-cols-2">
+                      <Section title="Paradas por tipo">
+                        {savesItems.map((it) => (
+                          <KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+                        ))}
+                      </Section>
 
-                          <Section title="Goles encajados por tipo">
-                            {goalsItems.map((it) => (
-                              <KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
-                            ))}
-                          </Section>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </div>
-
-                {/* ✅ TABLET/DESKTOP */}
-                <div className="hidden sm:grid sm:grid-cols-2 gap-4">
-                  <Section title="Paradas por tipo">
-                    {savesItems.map((it) => (
-                      <KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
-                    ))}
-                  </Section>
-
-                  <Section title="Goles encajados por tipo">
-                    {goalsItems.map((it) => (
-                      <KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
-                    ))}
-                  </Section>
-                </div>
-              </CardContent>
-            </Card>
+                      <Section title="Goles encajados por tipo">
+                        {goalsItems.map((it) => (
+                          <KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+                        ))}
+                      </Section>
+                    </div>
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
           );
         })}
-      </div>
+      </Accordion>
     </div>
   );
 }

@@ -138,7 +138,7 @@ export function MatchPeriodsAndPenaltiesCard({
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center">
+                      <div className="text-center py-4">
                         <span className="text-sm font-semibold text-red-500 dark:text-red-400">
                           Sprint perdido
                         </span>
