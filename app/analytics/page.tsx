@@ -30,7 +30,6 @@ import { ShotMistakesDonutChart } from "@/components/analytics/shoot-analytics/q
 import { GoalMixChart } from "@/components/analytics/shoot-analytics/offensive-shoot-chart";
 import { ChartSwipeCarousel } from "@/components/chartCarousel";
 
-
 export default function AnalyticsPage() {
 	const { currentClub } = useClub();
 	const searchParams = useSearchParams();
@@ -129,7 +128,7 @@ export default function AnalyticsPage() {
 
 					// Penaltis
 					const goles_penalti_anotado = stats.reduce((sum, s) => sum + (s.goles_penalti_anotado || 0), 0);
-					const goles_penalti_fallo = stats.reduce((sum, s) => sum + (s.goles_penalti_fallo || 0), 0);
+					const tiros_penalti_fallado = stats.reduce((sum, s) => sum + (s.tiros_penalti_fallado || 0), 0);
 
 					const totalPerdidas = stats.reduce((sum, s) => sum + (s.acciones_perdida_poco || 0) + (s.portero_acciones_perdida_pos || 0), 0);
 					const eficiencia = tiros_totales > 0 ? Math.round((goles_totales / tiros_totales) * 100) : 0;
@@ -156,7 +155,7 @@ export default function AnalyticsPage() {
 						faltas_exp_20_1c1,
 						faltas_exp_20_boya,
 						goles_penalti_anotado,
-						goles_penalti_fallo,
+						tiros_penalti_fallado,
 						// Campos legacy (mantener para compatibilidad)
 						totalGoles: goles_totales,
 						totalTiros: tiros_totales,
@@ -332,65 +331,56 @@ export default function AnalyticsPage() {
 					<TabsContent value="quarters" className="mt-4 space-y-10">
 						{/* ===== BLOQUE 1: DINÁMICA DEL PARTIDO ===== */}
 						<section>
-						<div className="md:hidden">
-							<ChartSwipeCarousel
-							className="w-full"
-							items={[
-								<QuarterGoalsChart key="q" matches={quarterMatches || []} />,
-								<GoalDifferenceEvolutionChart key="gd" matches={matches || []} />,
-								<SprintEfficiencyChart key="sp" matches={matches || []} players={players || []} />,
-							]}
-							/>
-						</div>
+							<div className="md:hidden">
+								<ChartSwipeCarousel
+									className="w-full"
+									items={[
+										<QuarterGoalsChart key="q" matches={quarterMatches || []} />,
+										<GoalDifferenceEvolutionChart key="gd" matches={matches || []} />,
+										<SprintEfficiencyChart key="sp" matches={matches || []} players={players || []} />
+									]}
+								/>
+							</div>
 
-						{/* TABLET+ : grid normal */}
-						<div className="hidden md:grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-							<QuarterGoalsChart matches={quarterMatches || []} />
-							<GoalDifferenceEvolutionChart matches={matches || []} />
-							<SprintEfficiencyChart matches={matches || []} players={players || []} />
-						</div>
+							{/* TABLET+ : grid normal */}
+							<div className="hidden md:grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
+								<QuarterGoalsChart matches={quarterMatches || []} />
+								<GoalDifferenceEvolutionChart matches={matches || []} />
+								<SprintEfficiencyChart matches={matches || []} players={players || []} />
+							</div>
 						</section>
 
 						<section>
-						<h2 className="text-xl font-bold mb-4">Rendimiento</h2>
+							<h2 className="text-xl font-bold mb-4">Rendimiento</h2>
 
-						<div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-3 items-stretch">
-							{/* IZQUIERDA: 2 filas (shoot + gk) */}
-							<div className="md:col-span-2 grid gap-4 lg:gap-6 grid-rows-2 items-stretch">
-							<div className="h-full min-h-0">
-								<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
-							</div>
+							<div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-3 items-stretch">
+								{/* IZQUIERDA: 2 filas (shoot + gk) */}
+								<div className="md:col-span-2 grid gap-4 lg:gap-6 grid-rows-2 items-stretch">
+									<div className="h-full min-h-0">
+										<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
+									</div>
 
-							<div className="h-full min-h-0">
-								<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
-							</div>
-							</div>
+									<div className="h-full min-h-0">
+										<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
+									</div>
+								</div>
 
-							{/* DERECHA: ocupa las 2 filas => mismo alto total */}
-							<div className="md:col-span-1 md:row-span-2 h-full min-h-0">
-							<ChartSwipeCarousel
-								items={[
-								<ShotMistakesDonutChart
-									key="mistakes"
-									matches={matches || []}
-									stats={allStats || []}
-									players={players || []}
-								/>,
-								<GoalMixChart
-									key="mix"
-									matches={matches || []}
-									stats={allStats || []}
-									players={players || []}
-								/>,
-								]}
-							/>
+								{/* DERECHA: ocupa las 2 filas => mismo alto total */}
+								<div className="md:col-span-1 md:row-span-2 h-full min-h-0">
+									<ChartSwipeCarousel
+										items={[
+											<ShotMistakesDonutChart
+												key="mistakes"
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+											/>,
+											<GoalMixChart key="mix" matches={matches || []} stats={allStats || []} players={players || []} />
+										]}
+									/>
+								</div>
 							</div>
-
-						</div>
 						</section>
-
-
-
 
 						{/* ===== BLOQUE 2: SITUACIONES DE JUEGO ===== */}
 						<section>
@@ -405,12 +395,12 @@ export default function AnalyticsPage() {
 							<h2 className="text-xl font-bold mb-4">Rendimiento del juego</h2>
 							<div className="md:hidden">
 								<ChartSwipeCarousel
-								className="w-full"
-								items={[
-									<BlocksChart key="bl" matches={matches || []} stats={allStats || []} players={players || []} />,
-									<TurnoversRecoveriesChart key="to" matches={matches || []} stats={allStats || []} />,
-									<DisciplineChart key="di" matches={matches || []} stats={allStats || []} />,
-								]}
+									className="w-full"
+									items={[
+										<BlocksChart key="bl" matches={matches || []} stats={allStats || []} players={players || []} />,
+										<TurnoversRecoveriesChart key="to" matches={matches || []} stats={allStats || []} />,
+										<DisciplineChart key="di" matches={matches || []} stats={allStats || []} />
+									]}
 								/>
 							</div>
 							<div className="hidden md:grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr items-stretch">
