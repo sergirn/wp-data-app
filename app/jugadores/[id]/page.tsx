@@ -73,7 +73,7 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 					</Link>
 				</Button>
 
-				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" />
+				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
@@ -263,7 +263,7 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 					</Link>
 				</Button>
 
-				<PlayerHeroHeader player={player} roleLabel="Portero" />
+				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
