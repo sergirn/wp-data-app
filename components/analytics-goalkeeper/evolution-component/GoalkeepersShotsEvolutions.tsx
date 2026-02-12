@@ -179,25 +179,34 @@ function HeatmapCanvas({
 			const w = Math.max(1, Math.floor(rect.width));
 			const h = Math.max(1, Math.floor(rect.height));
 
-			const dpr = window.devicePixelRatio || 1;
-			canvas.width = Math.floor(w * dpr);
-			canvas.height = Math.floor(h * dpr);
+			const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+			// ✅ tamaño real (device pixels)
+			const wd = Math.max(1, Math.floor(w * dpr));
+			const hd = Math.max(1, Math.floor(h * dpr));
+
+			canvas.width = wd;
+			canvas.height = hd;
 			canvas.style.width = `${w}px`;
 			canvas.style.height = `${h}px`;
 
 			const ctx = canvas.getContext("2d");
 			if (!ctx) return;
 
-			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-			ctx.clearRect(0, 0, w, h);
+			// ✅ trabajamos en device pixels (sin setTransform)
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
+			ctx.clearRect(0, 0, wd, hd);
 
-			const base = Math.min(w, h);
-			const r = clamp((radiusPx / 420) * base, 14, 60);
+			// radio adaptativo al tamaño de la portería (en device px)
+			const base = Math.min(wd, hd);
+			const r = clamp((radiusPx / 420) * base, 14 * dpr, 60 * dpr);
 
+			// 1) Pintar "intensidad" en alpha con gradiente
 			ctx.globalCompositeOperation = "source-over";
+
 			for (const p of points) {
-				const px = p.x * w;
-				const py = p.y * h;
+				const px = p.x * wd;
+				const py = p.y * hd;
 
 				const grad = ctx.createRadialGradient(px, py, 0, px, py, r);
 				grad.addColorStop(0, "rgba(255,255,255,0.60)");
@@ -206,24 +215,31 @@ function HeatmapCanvas({
 				ctx.fillRect(px - r, py - r, r * 2, r * 2);
 			}
 
-			const img = ctx.getImageData(0, 0, w, h);
+			// 2) Leer el buffer COMPLETO en device px ✅
+			const img = ctx.getImageData(0, 0, wd, hd);
 			const data = img.data;
 
 			let maxA = 0;
 			for (let i = 3; i < data.length; i += 4) maxA = Math.max(maxA, data[i]);
+
 			if (maxA === 0) {
 				ctx.putImageData(img, 0, 0);
 				return;
 			}
 
+			// gamma para mejorar contraste en pantallas pequeñas
+			const gamma = 0.75; // 1 = lineal; <1 aumenta contraste; >1 lo suaviza
+
 			for (let i = 0; i < data.length; i += 4) {
 				const a = data[i + 3];
-				const t = clamp(a / maxA);
+				let t = clamp(a / maxA);
 
 				if (t <= 0) {
 					data[i + 3] = 0;
 					continue;
 				}
+
+				t = Math.pow(t, gamma);
 
 				const [rr, gg, bb] = heatColor(t);
 				data[i] = rr;
