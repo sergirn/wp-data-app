@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Profile } from "@/lib/types"
 import { Loader2, Shield, User, Mail } from "lucide-react"
+import { StatWeightsConfig } from "@/components/StatWeightsConfig"
 
 export default function AjustesPage() {
   const { theme } = useTheme()
@@ -120,6 +121,8 @@ export default function AjustesPage() {
               </p>
             </CardContent>
           </Card>
+
+          <StatWeightsConfig />
 
           <Card>
             <CardHeader>
