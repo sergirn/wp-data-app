@@ -73,10 +73,19 @@ export function useStatWeights() {
     setSaving(true);
     setError(null);
     try {
+      // Build payload: include draft values + explicitly send 0 for keys
+      // that were saved before but removed from draft (so the API deletes them)
+      const payload: WeightsMap = { ...draftWeights };
+      for (const key of Object.keys(weights)) {
+        if (!(key in payload)) {
+          payload[key] = 0;
+        }
+      }
+
       const res = await fetch("/api/stat-weights", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weights: draftWeights }),
+        body: JSON.stringify({ weights: payload }),
       });
 
       if (!res.ok) {
