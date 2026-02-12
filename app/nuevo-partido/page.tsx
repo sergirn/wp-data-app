@@ -637,7 +637,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					"portero_tiros_parada_recup",
 					"portero_paradas_fuera",
 					"portero_paradas_penalti_parado",
-					"portero_paradas_hombre_menos",
+					"portero_paradas_hombre_menos"
 				];
 
 				if (saveFields.includes(field)) {
@@ -1215,83 +1215,79 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					)}
 				</TabsList>
 
-				<TabsContent value="info" >
-						<div className="space-y-6">
-							<div className="grid gap-6 lg:grid-cols-3">
+				<TabsContent value="info">
+					<div className="space-y-6">
+						<div className="grid gap-6 lg:grid-cols-3">
 							{/* COLUMNA 1: Datos */}
 							<div className="space-y-4 rounded-sm border bg-muted/15 p-4">
 								{/* <h3 className="text-sm font-semibold">Datos del partido</h3> */}
 
 								<div className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="date">Fecha</Label>
-									<Input id="date" type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} />
-								</div>
+									<div className="space-y-2">
+										<Label htmlFor="date">Fecha</Label>
+										<Input id="date" type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} />
+									</div>
 
-								<div className="space-y-2">
-									<Label htmlFor="opponent">Rival *</Label>
-									<Input
-									id="opponent"
-									value={opponent}
-									onChange={(e) => setOpponent(e.target.value)}
-									placeholder="Nombre del equipo rival"
-									/>
-								</div>
+									<div className="space-y-2">
+										<Label htmlFor="opponent">Rival *</Label>
+										<Input
+											id="opponent"
+											value={opponent}
+											onChange={(e) => setOpponent(e.target.value)}
+											placeholder="Nombre del equipo rival"
+										/>
+									</div>
 
-								<div className="space-y-2">
-									<Label htmlFor="location">Ubicación</Label>
-									<Input
-									id="location"
-									value={location}
-									onChange={(e) => setLocation(e.target.value)}
-									placeholder="Piscina o ciudad"
-									/>
-								</div>
+									<div className="space-y-2">
+										<Label htmlFor="location">Ubicación</Label>
+										<Input
+											id="location"
+											value={location}
+											onChange={(e) => setLocation(e.target.value)}
+											placeholder="Piscina o ciudad"
+										/>
+									</div>
 								</div>
 							</div>
-
-
 
 							{/* COLUMNA 2: Competición + Temporada */}
 							<div className="space-y-4 rounded-sm border-2 p-4">
 								{/* <h3 className="text-sm font-semibold">Competición y temporada</h3> */}
 
 								<div className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="competition">Competición</Label>
-									<Select value={competitionId} onValueChange={setCompetitionId}>
-									<SelectTrigger id="competition" className="w-full">
-										<SelectValue placeholder="Selecciona competición" />
-									</SelectTrigger>
-									<SelectContent>
-										{competitions.map((c) => (
-										<SelectItem key={c.id} value={String(c.id)}>
-											{c.name}
-										</SelectItem>
-										))}
-									</SelectContent>
-									</Select>
+									<div className="space-y-2">
+										<Label htmlFor="competition">Competición</Label>
+										<Select value={competitionId} onValueChange={setCompetitionId}>
+											<SelectTrigger id="competition" className="w-full">
+												<SelectValue placeholder="Selecciona competición" />
+											</SelectTrigger>
+											<SelectContent>
+												{competitions.map((c) => (
+													<SelectItem key={c.id} value={String(c.id)}>
+														{c.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 
-									{competitions.length === 0 && <p className="text-xs text-muted-foreground"></p>}
-								</div>
-
-
-
-								<div className="space-y-2">
-									<Label htmlFor="jornada">Jornada</Label>
-									<Input
-									id="jornada"
-									type="number"
-									value={jornada}
-									onChange={(e) => setJornada(Number.parseInt(e.target.value) || 1)}
-									min={1}
-									/>
-								</div>
+										{competitions.length === 0 && <p className="text-xs text-muted-foreground"></p>}
+									</div>
 
 									<div className="space-y-2">
-									<Label htmlFor="season">Temporada</Label>
-									<Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
-								</div>
+										<Label htmlFor="jornada">Jornada</Label>
+										<Input
+											id="jornada"
+											type="number"
+											value={jornada}
+											onChange={(e) => setJornada(Number.parseInt(e.target.value) || 1)}
+											min={1}
+										/>
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="season">Temporada</Label>
+										<Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
+									</div>
 								</div>
 							</div>
 
@@ -1300,184 +1296,183 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 								<h3 className="text-sm font-semibold">Marcador</h3>
 
 								<div className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="home-score">Goles Propios</Label>
-									<Input
-									id="home-score"
-									type="number"
-									value={homeGoals}
-									readOnly
-									className="bg-muted text-center text-lg font-bold"
-									title="Se calcula automáticamente sumando los goles de los jugadores"
-									/>
-									<p className="text-xs text-muted-foreground">Se calcula automáticamente</p>
+									<div className="space-y-2">
+										<Label htmlFor="home-score">Goles Propios</Label>
+										<Input
+											id="home-score"
+											type="number"
+											value={homeGoals}
+											readOnly
+											className="bg-muted text-center text-lg font-bold"
+											title="Se calcula automáticamente sumando los goles de los jugadores"
+										/>
+										<p className="text-xs text-muted-foreground">Se calcula automáticamente</p>
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="away-score">Goles Rival</Label>
+										<Input
+											id="away-score"
+											type="number"
+											value={awayGoals}
+											readOnly
+											className="bg-muted text-center text-lg font-bold"
+											title="Se calcula automáticamente desde las estadísticas del portero"
+										/>
+										<p className="text-xs text-muted-foreground">Se calcula desde goles del portero</p>
+									</div>
 								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="away-score">Goles Rival</Label>
-									<Input
-									id="away-score"
-									type="number"
-									value={awayGoals}
-									readOnly
-									className="bg-muted text-center text-lg font-bold"
-									title="Se calcula automáticamente desde las estadísticas del portero"
-									/>
-									<p className="text-xs text-muted-foreground">Se calcula desde goles del portero</p>
-								</div>
-								</div>
-							</div>
-							</div>
-
-
-							<div className="space-y-2 md:col-span-3 border-t pt-4 mt-4">
-								<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-									{[1, 2, 3, 4].map((q) => {
-										const quarter = q as Quarter;
-										const winnerId = sprintWinners[quarter];
-										const hasWinner = winnerId != null;
-										const winnerLabel = getWinnerLabel(winnerId);
-
-										return (
-											<div
-												key={q}
-												className={`space-y-2 p-3 border rounded ${
-													closedQuarters[q] ? "bg-gray-200/50 opacity-60 dark:bg-gray-800/50" : "bg-muted/30"
-												}`}
-											>
-												<div className="flex items-center justify-between mb-2">
-													<Label className="text-sm font-medium">Parcial {q}</Label>
-												</div>
-
-												<div className="grid grid-cols-2 gap-2">
-													<div>
-														<Label className="text-xs">Propios</Label>
-														<Input
-															type="number"
-															value={quarterScores[q].home}
-															onChange={(e) => {
-																if (!closedQuarters[q]) {
-																	setQuarterScores((prev) => ({
-																		...prev,
-																		[q]: { ...prev[q], home: Number.parseInt(e.target.value) || 0 }
-																	}));
-																}
-															}}
-															disabled={closedQuarters[q]}
-															min={0}
-															className="text-center font-bold text-lg"
-														/>
-													</div>
-
-													<div>
-														<Label className="text-xs">Rival</Label>
-														<Input
-															type="number"
-															value={quarterScores[q].away}
-															onChange={(e) => {
-																if (!closedQuarters[q]) {
-																	setQuarterScores((prev) => ({
-																		...prev,
-																		[q]: { ...prev[q], away: Number.parseInt(e.target.value) || 0 }
-																	}));
-																}
-															}}
-															disabled={closedQuarters[q]}
-															min={0}
-															className="text-center font-bold text-lg"
-														/>
-													</div>
-												</div>
-
-												{/* SPRINT WINNER */}
-												<button
-													type="button"
-													onClick={() => {
-														if (closedQuarters[q]) return;
-
-														if (hasWinner) {
-															setSprintWinners((prev) => ({ ...prev, [quarter]: null }));
-															return;
-														}
-
-														setActiveSprintQuarter(quarter);
-														setSprintModalOpen(true);
-													}}
-													className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border ${
-														hasWinner
-															? "bg-green-500 text-white border-green-600"
-															: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
-													}`}
-												>
-													{hasWinner ? "Sprint ganado" : "Sprint NO ganado"}
-												</button>
-
-												{hasWinner ? (
-													<div className="rounded-md border bg-card/60 px-2 py-1 text-[11px] text-muted-foreground">
-														Ganador: <span className="font-medium text-foreground">{winnerLabel}</span>
-													</div>
-												) : null}
-
-												<Button
-													size="sm"
-													variant={closedQuarters[q] ? "default" : "destructive"}
-													onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
-													className="w-full mt-2 text-xs"
-												>
-													{closedQuarters[q] ? "Abrir Parcial" : "Cerrar Parcial"}
-												</Button>
-											</div>
-										);
-									})}
-								</div>
-							</div>
-
-							<SprintWinnerModal
-								open={sprintModalOpen}
-								quarter={activeSprintQuarter}
-								players={allPlayers}
-								activePlayerIds={activePlayerIds}
-								onClose={() => {
-									setSprintModalOpen(false);
-									setActiveSprintQuarter(null);
-								}}
-								onConfirm={(playerId) => {
-									if (!activeSprintQuarter) return;
-
-									setSprintWinners((prev) => ({
-										...prev,
-										[activeSprintQuarter]: playerId
-									}));
-
-									setSprintModalOpen(false);
-									setActiveSprintQuarter(null);
-								}}
-							/>
-
-							<div className="space-y-2 md:col-span-2">
-								<Label htmlFor="notes">Notas</Label>
-								<Textarea
-									id="notes"
-									value={notes}
-									onChange={(e) => setNotes(e.target.value)}
-									placeholder="Observaciones del partido..."
-									rows={2}
-								/>
 							</div>
 						</div>
+
+						<div className="space-y-2 md:col-span-3 border-t pt-4 mt-4">
+							<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+								{[1, 2, 3, 4].map((q) => {
+									const quarter = q as Quarter;
+									const winnerId = sprintWinners[quarter];
+									const hasWinner = winnerId != null;
+									const winnerLabel = getWinnerLabel(winnerId);
+
+									return (
+										<div
+											key={q}
+											className={`space-y-2 p-3 border rounded ${
+												closedQuarters[q] ? "bg-gray-200/50 opacity-60 dark:bg-gray-800/50" : "bg-muted/30"
+											}`}
+										>
+											<div className="flex items-center justify-between mb-2">
+												<Label className="text-sm font-medium">Parcial {q}</Label>
+											</div>
+
+											<div className="grid grid-cols-2 gap-2">
+												<div>
+													<Label className="text-xs">Propios</Label>
+													<Input
+														type="number"
+														value={quarterScores[q].home}
+														onChange={(e) => {
+															if (!closedQuarters[q]) {
+																setQuarterScores((prev) => ({
+																	...prev,
+																	[q]: { ...prev[q], home: Number.parseInt(e.target.value) || 0 }
+																}));
+															}
+														}}
+														disabled={closedQuarters[q]}
+														min={0}
+														className="text-center font-bold text-lg"
+													/>
+												</div>
+
+												<div>
+													<Label className="text-xs">Rival</Label>
+													<Input
+														type="number"
+														value={quarterScores[q].away}
+														onChange={(e) => {
+															if (!closedQuarters[q]) {
+																setQuarterScores((prev) => ({
+																	...prev,
+																	[q]: { ...prev[q], away: Number.parseInt(e.target.value) || 0 }
+																}));
+															}
+														}}
+														disabled={closedQuarters[q]}
+														min={0}
+														className="text-center font-bold text-lg"
+													/>
+												</div>
+											</div>
+
+											{/* SPRINT WINNER */}
+											<button
+												type="button"
+												onClick={() => {
+													if (closedQuarters[q]) return;
+
+													if (hasWinner) {
+														setSprintWinners((prev) => ({ ...prev, [quarter]: null }));
+														return;
+													}
+
+													setActiveSprintQuarter(quarter);
+													setSprintModalOpen(true);
+												}}
+												className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border ${
+													hasWinner
+														? "bg-green-500 text-white border-green-600"
+														: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
+												}`}
+											>
+												{hasWinner ? "Sprint ganado" : "Sprint NO ganado"}
+											</button>
+
+											{hasWinner ? (
+												<div className="rounded-md border bg-card/60 px-2 py-1 text-[11px] text-muted-foreground">
+													Ganador: <span className="font-medium text-foreground">{winnerLabel}</span>
+												</div>
+											) : null}
+
+											<Button
+												size="sm"
+												variant={closedQuarters[q] ? "default" : "destructive"}
+												onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
+												className="w-full mt-2 text-xs"
+											>
+												{closedQuarters[q] ? "Abrir Parcial" : "Cerrar Parcial"}
+											</Button>
+										</div>
+									);
+								})}
+							</div>
+						</div>
+
+						<SprintWinnerModal
+							open={sprintModalOpen}
+							quarter={activeSprintQuarter}
+							players={allPlayers}
+							activePlayerIds={activePlayerIds}
+							onClose={() => {
+								setSprintModalOpen(false);
+								setActiveSprintQuarter(null);
+							}}
+							onConfirm={(playerId) => {
+								if (!activeSprintQuarter) return;
+
+								setSprintWinners((prev) => ({
+									...prev,
+									[activeSprintQuarter]: playerId
+								}));
+
+								setSprintModalOpen(false);
+								setActiveSprintQuarter(null);
+							}}
+						/>
+
+						<div className="space-y-2 md:col-span-2">
+							<Label htmlFor="notes">Notas</Label>
+							<Textarea
+								id="notes"
+								value={notes}
+								onChange={(e) => setNotes(e.target.value)}
+								placeholder="Observaciones del partido..."
+								rows={2}
+							/>
+						</div>
+					</div>
 				</TabsContent>
 
 				<TabsContent value="field">
-						{/* <CardHeader>
+					{/* <CardHeader>
 							<CardTitle>Jugadores de Campo</CardTitle>
 						</CardHeader> */}
-						<div>
-							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-								{fieldPlayers.map((player) => (
-									<div key={player.id} className="relative">
-										<Button
-											variant="outline"
-											className="
+					<div>
+						<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+							{fieldPlayers.map((player) => (
+								<div key={player.id} className="relative">
+									<Button
+										variant="outline"
+										className="
                         group w-full p-0 h-auto overflow-hidden
                         aspect-square
                         rounded-xl border-2 bg-transparent
@@ -1486,59 +1481,59 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                         transition-all
                         flex flex-col
                       "
-											onClick={() => setSelectedPlayer(player)}
-										>
-											{/* TOP: FOTO */}
-											<div className="relative w-full h-[62%] overflow-hidden">
-												{player.photo_url ? (
-													<img
-														src={player.photo_url}
-														alt={player.name}
-														className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
-														loading="lazy"
-													/>
-												) : (
-													<div className="h-full w-full grid place-items-center bg-muted">
-														<span className="text-2xl font-extrabold text-muted-foreground">#{player.number}</span>
-													</div>
-												)}
+										onClick={() => setSelectedPlayer(player)}
+									>
+										{/* TOP: FOTO */}
+										<div className="relative w-full h-[62%] overflow-hidden">
+											{player.photo_url ? (
+												<img
+													src={player.photo_url}
+													alt={player.name}
+													className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
+													loading="lazy"
+												/>
+											) : (
+												<div className="h-full w-full grid place-items-center bg-muted">
+													<span className="text-2xl font-extrabold text-muted-foreground">#{player.number}</span>
+												</div>
+											)}
 
-												<div
-													className="
+											<div
+												className="
                             absolute inset-0 bg-gradient-to-t
                             from-white/80 via-white/10 to-transparent
                             dark:from-black/60 dark:via-black/15 dark:to-transparent
                           "
-												/>
+											/>
 
-												{player.photo_url && (
-													<div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-														#{player.number}
-													</div>
-												)}
-											</div>
+											{player.photo_url && (
+												<div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+													#{player.number}
+												</div>
+											)}
+										</div>
 
-											{/* MIDDLE: NOMBRE + GOLES */}
-											<div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
-												<p className="font-semibold text-sm w-full truncate group-hover:text-primary transition-colors">
-													{player.name}
-												</p>
+										{/* MIDDLE: NOMBRE + GOLES */}
+										<div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
+											<p className="font-semibold text-sm w-full truncate group-hover:text-primary transition-colors">
+												{player.name}
+											</p>
 
-												<p className="text-xs text-muted-foreground mt-1">
-													{safeNumber(stats[player.id]?.goles_totales)} goles
-													<span> | </span>
-													{totalExpulsiones(stats[player.id])} expulsiones
-												</p>
-											</div>
+											<p className="text-xs text-muted-foreground mt-1">
+												{safeNumber(stats[player.id]?.goles_totales)} goles
+												<span> | </span>
+												{totalExpulsiones(stats[player.id])} expulsiones
+											</p>
+										</div>
 
-											{/* BOTTOM: SUSTITUIR */}
-											<div className="w-full px-2 pb-2 cursor-pointer">
-												{!hasStats(player.id) && getAvailablePlayers(false).length > 0 ? (
-													<div
-														role="button"
-														tabIndex={0}
-														title="Sustituir jugador"
-														className="
+										{/* BOTTOM: SUSTITUIR */}
+										<div className="w-full px-2 pb-2 cursor-pointer">
+											{!hasStats(player.id) && getAvailablePlayers(false).length > 0 ? (
+												<div
+													role="button"
+													tabIndex={0}
+													title="Sustituir jugador"
+													className="
                               h-8 w-full rounded-md
                               bg-muted/70 hover:bg-blue-500/40
                               border border-border/70
@@ -1546,35 +1541,35 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                               text-xs font-medium
                               transition-colors
                             "
-														onClick={(e) => {
+													onClick={(e) => {
+														e.stopPropagation();
+														setSubstitutionPlayer(player);
+													}}
+													onKeyDown={(e) => {
+														if (e.key === "Enter" || e.key === " ") {
+															e.preventDefault();
 															e.stopPropagation();
 															setSubstitutionPlayer(player);
-														}}
-														onKeyDown={(e) => {
-															if (e.key === "Enter" || e.key === " ") {
-																e.preventDefault();
-																e.stopPropagation();
-																setSubstitutionPlayer(player);
-															}
-														}}
-													>
-														<RefreshCw className="h-4 w-4" />
-														Sustituir
-													</div>
-												) : (
-													// Mantiene altura constante para que todas las cards queden iguales
-													<div className="h-8" />
-												)}
-											</div>
-										</Button>
-									</div>
-								))}
+														}
+													}}
+												>
+													<RefreshCw className="h-4 w-4" />
+													Sustituir
+												</div>
+											) : (
+												// Mantiene altura constante para que todas las cards queden iguales
+												<div className="h-8" />
+											)}
+										</div>
+									</Button>
+								</div>
+							))}
 
-								{/* CONVOCAR */}
-								{getAvailablePlayers(false).length > 0 && fieldPlayers.length < 12 && (
-									<Button
-										variant="outline"
-										className="
+							{/* CONVOCAR */}
+							{getAvailablePlayers(false).length > 0 && fieldPlayers.length < 12 && (
+								<Button
+									variant="outline"
+									className="
                       group w-full p-0 h-auto overflow-hidden
                       aspect-square
                       rounded-xl border-2 border-dashed bg-transparent
@@ -1583,36 +1578,36 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                       transition-all
                       flex flex-col
                     "
-										onClick={() => setShowAddPlayerDialog(true)}
-									>
-										<div className="w-full h-[52%] grid place-items-center bg-muted/40">
-											<Plus className="h-10 w-10 text-green-600" />
-										</div>
+									onClick={() => setShowAddPlayerDialog(true)}
+								>
+									<div className="w-full h-[52%] grid place-items-center bg-muted/40">
+										<Plus className="h-10 w-10 text-green-600" />
+									</div>
 
-										<div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
-											<p className="font-semibold text-sm">Convocar jugador</p>
-											<p className="text-xs text-muted-foreground mt-1">Añadir a la lista</p>
-										</div>
+									<div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
+										<p className="font-semibold text-sm">Convocar jugador</p>
+										<p className="text-xs text-muted-foreground mt-1">Añadir a la lista</p>
+									</div>
 
-										<div className="w-full px-2 pb-2">
-											<div className="h-8 w-full rounded-md border border-green-500/40 bg-green-500/10 grid place-items-center text-xs font-medium text-green-700 dark:text-green-400">
-												Añadir
-											</div>
+									<div className="w-full px-2 pb-2">
+										<div className="h-8 w-full rounded-md border border-green-500/40 bg-green-500/10 grid place-items-center text-xs font-medium text-green-700 dark:text-green-400">
+											Añadir
 										</div>
-									</Button>
-								)}
-							</div>
+									</div>
+								</Button>
+							)}
 						</div>
+					</div>
 				</TabsContent>
 
 				<TabsContent value="goalkeepers">
-						<div>
-							<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-								{goalkeepers.map((player) => (
-									<div key={player.id} className="relative">
-										<Button
-											variant="outline"
-											className="
+					<div>
+						<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+							{goalkeepers.map((player) => (
+								<div key={player.id} className="relative">
+									<Button
+										variant="outline"
+										className="
                         group w-full p-0 h-auto overflow-hidden
                         aspect-square
                         rounded-xl border-2 bg-transparent
@@ -1621,59 +1616,59 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                         transition-all
                         flex flex-col
                       "
-											onClick={() => setSelectedPlayer(player)}
-										>
-											{/* TOP: FOTO (más alta en móvil) */}
-											<div className="relative w-full h-[62%] overflow-hidden">
-												{player.photo_url ? (
-													<img
-														src={player.photo_url}
-														alt={player.name}
-														className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
-														loading="lazy"
-													/>
-												) : (
-													<div className="h-full w-full grid place-items-center bg-muted">
-														<span className="text-2xl font-extrabold text-muted-foreground">#{player.number}</span>
-													</div>
-												)}
+										onClick={() => setSelectedPlayer(player)}
+									>
+										{/* TOP: FOTO (más alta en móvil) */}
+										<div className="relative w-full h-[62%] overflow-hidden">
+											{player.photo_url ? (
+												<img
+													src={player.photo_url}
+													alt={player.name}
+													className="h-full w-full object-cover object-top group-hover:scale-[1.03] transition-transform"
+													loading="lazy"
+												/>
+											) : (
+												<div className="h-full w-full grid place-items-center bg-muted">
+													<span className="text-2xl font-extrabold text-muted-foreground">#{player.number}</span>
+												</div>
+											)}
 
-												<div
-													className="
+											<div
+												className="
                             absolute inset-0 bg-gradient-to-t
                             from-white/80 via-white/10 to-transparent
                             dark:from-black/60 dark:via-black/15 dark:to-transparent
                           "
-												/>
+											/>
 
-												{player.photo_url && (
-													<div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-														#{player.number}
-													</div>
-												)}
-											</div>
+											{player.photo_url && (
+												<div className="absolute top-2 right-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+													#{player.number}
+												</div>
+											)}
+										</div>
 
-											{/* MIDDLE: NOMBRE + STATS */}
-											<div className="w-full flex-1 flex flex-col items-center justify-center px-1.5 sm:px-2 text-center">
-												<p className="font-semibold text-[11px] sm:text-sm w-full truncate group-hover:text-primary transition-colors">
-													{player.name}
-												</p>
+										{/* MIDDLE: NOMBRE + STATS */}
+										<div className="w-full flex-1 flex flex-col items-center justify-center px-1.5 sm:px-2 text-center">
+											<p className="font-semibold text-[11px] sm:text-sm w-full truncate group-hover:text-primary transition-colors">
+												{player.name}
+											</p>
 
-												<p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
-													{safeNumber(stats[player.id]?.portero_goles_totales)} goles
-													<span className="mx-1">|</span>
-													{calcParadasTotales(stats[player.id])} paradas
-												</p>
-											</div>
+											<p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+												{safeNumber(stats[player.id]?.portero_goles_totales)} goles
+												<span className="mx-1">|</span>
+												{calcParadasTotales(stats[player.id])} paradas
+											</p>
+										</div>
 
-											{/* BOTTOM: SUSTITUIR (sin button dentro de button) */}
-											<div className="w-full px-1.5 sm:px-2 pb-1.5 sm:pb-2">
-												{!hasStats(player.id) && getAvailablePlayers(true).length > 0 ? (
-													<div
-														role="button"
-														tabIndex={0}
-														title="Sustituir jugador"
-														className="
+										{/* BOTTOM: SUSTITUIR (sin button dentro de button) */}
+										<div className="w-full px-1.5 sm:px-2 pb-1.5 sm:pb-2">
+											{!hasStats(player.id) && getAvailablePlayers(true).length > 0 ? (
+												<div
+													role="button"
+													tabIndex={0}
+													title="Sustituir jugador"
+													className="
                               h-7 sm:h-8 w-full rounded-md
                               bg-muted/70 hover:bg-muted
                               border border-border/70
@@ -1681,30 +1676,30 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
                               text-[10px] sm:text-xs font-medium
                               transition-colors
                             "
-														onClick={(e) => {
+													onClick={(e) => {
+														e.stopPropagation();
+														setSubstitutionPlayer(player);
+													}}
+													onKeyDown={(e) => {
+														if (e.key === "Enter" || e.key === " ") {
+															e.preventDefault();
 															e.stopPropagation();
 															setSubstitutionPlayer(player);
-														}}
-														onKeyDown={(e) => {
-															if (e.key === "Enter" || e.key === " ") {
-																e.preventDefault();
-																e.stopPropagation();
-																setSubstitutionPlayer(player);
-															}
-														}}
-													>
-														<RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-														Sustituir
-													</div>
-												) : (
-													<div className="h-7 sm:h-8" />
-												)}
-											</div>
-										</Button>
-									</div>
-								))}
-							</div>
+														}
+													}}
+												>
+													<RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+													Sustituir
+												</div>
+											) : (
+												<div className="h-7 sm:h-8" />
+											)}
+										</div>
+									</Button>
+								</div>
+							))}
 						</div>
+					</div>
 				</TabsContent>
 
 				{isTied && (
@@ -2064,7 +2059,9 @@ function FieldPlayerStatsDialog({
 								safeNumber(stats.goles_lanzamiento) +
 								safeNumber(stats.goles_dir_mas_5m) +
 								safeNumber(stats.goles_contraataque) +
-								safeNumber(stats.goles_penalti_anotado);
+								safeNumber(stats.goles_penalti_anotado) +
+								safeNumber(stats.goles_hombre_mas) +
+								safeNumber(stats.gol_del_palo_sup);
 
 							const fallosGenerales =
 								safeNumber(stats.tiros_penalti_fallado) +
@@ -2072,7 +2069,8 @@ function FieldPlayerStatsDialog({
 								safeNumber(stats.tiros_fuera) +
 								safeNumber(stats.tiros_parados) +
 								safeNumber(stats.tiros_bloqueado) +
-								safeNumber(stats.tiro_palo);
+								safeNumber(stats.tiro_palo) +
+								safeNumber(stats.tiros_hombre_mas);
 
 							const intentos = golesGenerales + fallosGenerales;
 
@@ -2193,7 +2191,7 @@ function GoalkeeperStatsDialog({
 	stats,
 	onUpdate,
 	goalkeeperShots,
-	setGoalkeeperShots,
+	setGoalkeeperShots
 }: {
 	player: Player;
 	stats: Partial<MatchStats>;
@@ -2275,7 +2273,7 @@ function GoalkeeperStatsDialog({
 						}
 						onChange={() => {}}
 						readOnly
-						/>
+					/>
 
 					<StatField
 						label="Parada Recup"

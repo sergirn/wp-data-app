@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { Player, MatchStats, Match } from "@/lib/types";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { ArrowLeft } from "lucide-react";
@@ -16,15 +15,13 @@ import { KpiGrid } from "@/components/analytics-player/summary-components/KpiGri
 import { StatsChartsGoalkeeper } from "@/components/analytics-goalkeeper/summary-components/StatsChartsGoalkeeper";
 import { buildGoalkeeperKpis } from "@/lib/GoalkeeperKpis";
 import { KpiGridGoalkeeper } from "@/components/analytics-goalkeeper/summary-components/KpiGridGoalkeeper";
-import { GoalkeeperEvolutionChart } from "@/components/analytics-goalkeeper/evolution-component/GK_EvolutionChart";
 import { PlayerHeroHeader } from "./playerHeader";
 import { BlocksVsGoalsChart } from "@/components/analytics-player/evolution-component/BlocksVsGoalsChart";
 import { PerformanceEvolutionChart } from "@/components/analytics-player/evolution-component/PerformanceEvolutionChart";
 import { GoalkeeperShotForChart, GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/evolution-component/GoalkeepersShotsEvolutions";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@radix-ui/react-accordion";
-import { usePlayerFavorites } from "@/hooks/usePlayerFavorites";
 import { FieldPlayerMatchStatsClient } from "./FieldPlayerMatchStatsClient";
 import { GoalkeeperMatchStatsClient } from "./GoalkeeperMatchStatsClient";
+import { ChartSwipeCarousel } from "@/components/chartCarousel";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -94,8 +91,13 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
-					<PerformanceEvolutionChart matchStats={matchStats} player={player} />
-					{!player.is_goalkeeper ? <BlocksVsGoalsChart matchStats={matchStats} /> : null}
+					<ChartSwipeCarousel
+						className="w-full"
+						items={[
+							<PerformanceEvolutionChart matchStats={matchStats} player={player} />,
+							<BlocksVsGoalsChart matchStats={matchStats} />
+						]}
+					/>
 				</TabsContent>
 
 				<TabsContent value="partidos" className="space-y-6">
@@ -280,8 +282,13 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
-					<GoalkeeperShotsGoalChart shots={chartShots} goalkeeperPlayerId={player.id} />
-					<GoalkeeperEvolutionChart matchStats={matchStats} />
+					<ChartSwipeCarousel
+						className="w-full"
+						items={[
+							<GoalkeeperShotsGoalChart shots={chartShots} goalkeeperPlayerId={player.id} />,
+							<PerformanceEvolutionChart matchStats={matchStats} player={player} />
+						]}
+					/>
 				</TabsContent>
 			</Tabs>
 		</main>
