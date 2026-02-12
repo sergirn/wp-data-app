@@ -21,76 +21,106 @@ interface StatGroup {
   stats: StatDef[];
 }
 
+/* --- Jugador de campo: mismos grupos y campos que nuevo-partido UI --- */
 const FIELD_PLAYER_GROUPS: StatGroup[] = [
   {
-    title: "Goles por tipo",
+    title: "Goles",
     stats: [
       { key: "goles_boya_jugada", label: "Boya / Jugada" },
-      { key: "goles_hombre_mas", label: "Hombre +" },
       { key: "goles_lanzamiento", label: "Lanzamiento" },
-      { key: "goles_dir_mas_5m", label: "+6m" },
+      { key: "goles_dir_mas_5m", label: "Dir +6m" },
       { key: "goles_contraataque", label: "Contraataque" },
-      { key: "goles_penalti_anotado", label: "Penalti" },
-      { key: "gol_del_palo_sup", label: "Gol del palo (H+)" },
+      { key: "goles_penalti_anotado", label: "Penalti Anotado" },
     ],
   },
   {
-    title: "Tiros fallados",
+    title: "Tiros",
     stats: [
-      { key: "tiros_hombre_mas", label: "Hombre +" },
-      { key: "tiros_penalti_fallado", label: "Penalti" },
+      { key: "tiros_penalti_fallado", label: "Penalti Fallado" },
       { key: "tiros_corner", label: "Corner" },
       { key: "tiros_fuera", label: "Fuera" },
       { key: "tiros_parados", label: "Parados" },
-      { key: "tiros_bloqueado", label: "Bloqueados" },
-      { key: "tiro_palo", label: "Tiro al palo" },
+      { key: "tiros_bloqueado", label: "Bloqueado" },
+      { key: "tiro_palo", label: "Palo" },
+    ],
+  },
+  {
+    title: "Superioridad",
+    stats: [
+      { key: "goles_hombre_mas", label: "Goles H+" },
+      { key: "gol_del_palo_sup", label: "Gol del palo H+" },
+      { key: "tiros_hombre_mas", label: "Fallos H+" },
+      { key: "rebote_recup_hombre_mas", label: "Rebote Recup." },
+      { key: "rebote_perd_hombre_mas", label: "Rebote Perd." },
     ],
   },
   {
     title: "Faltas",
     stats: [
-      { key: "faltas_exp_20_1c1", label: 'Exp 20" 1c1' },
-      { key: "faltas_exp_20_boya", label: 'Exp 20" Boya' },
-      { key: "faltas_exp_simple", label: "Exp Simple" },
+      { key: "faltas_exp_20_1c1", label: "Exp 18'' 1c1" },
+      { key: "faltas_exp_20_boya", label: "Exp 18'' Boya" },
       { key: "faltas_penalti", label: "Penalti" },
-      { key: "faltas_contrafaltas", label: "Contrafaltas" },
+      { key: "faltas_exp_simple", label: "Exp (Simple)" },
     ],
   },
   {
     title: "Acciones",
     stats: [
-      { key: "acciones_bloqueo", label: "Bloqueos" },
-      { key: "acciones_recuperacion", label: "Recuperaciones" },
-      { key: "acciones_rebote", label: "Rebotes" },
-      { key: "acciones_exp_provocada", label: "Exp. Provocada" },
-      { key: "acciones_penalti_provocado", label: "Pen. Provocado" },
-      { key: "acciones_recibir_gol", label: "Gol recibido" },
-      { key: "pase_boya", label: "Pase al boya" },
-      { key: "pase_boya_fallado", label: "Pase al boya fallado" },
+      { key: "acciones_bloqueo", label: "Bloqueo" },
       { key: "acciones_asistencias", label: "Asistencias" },
+      { key: "acciones_recuperacion", label: "Recuperacion" },
+      { key: "acciones_rebote", label: "Rebote" },
+      { key: "acciones_exp_provocada", label: "Exp Provocada" },
+      { key: "acciones_penalti_provocado", label: "Penalti Provocado" },
+      { key: "acciones_recibir_gol", label: "Recibe Gol" },
+      { key: "acciones_perdida_poco", label: "Perdida Posesion" },
+      { key: "faltas_contrafaltas", label: "Contrafaltas" },
+      { key: "pase_boya", label: "Pase boya" },
+      { key: "pase_boya_fallado", label: "Pase boya fallado" },
     ],
   },
 ];
 
+/* --- Portero: mismos grupos y campos que nuevo-partido UI --- */
 const GOALKEEPER_GROUPS: StatGroup[] = [
   {
-    title: "Paradas por tipo",
+    title: "Goles encajados",
     stats: [
-      { key: "portero_tiros_parada_recup", label: "Parada + Recup" },
-      { key: "portero_paradas_fuera", label: "Fuera" },
-      { key: "portero_paradas_penalti_parado", label: "Penalti parado" },
-      { key: "portero_paradas_hombre_menos", label: "Hombre -" },
+      { key: "portero_goles_boya_parada", label: "Boya" },
+      { key: "portero_goles_dir_mas_5m", label: "Dir +6m" },
+      { key: "portero_goles_contraataque", label: "Contraataque" },
+      { key: "portero_goles_penalti", label: "Penalti" },
+      { key: "portero_goles_lanzamiento", label: "Lanzamiento" },
+    ],
+  },
+  {
+    title: "Paradas",
+    stats: [
+      { key: "portero_tiros_parada_recup", label: "Parada Recup" },
+      { key: "portero_paradas_fuera", label: "Parada Fuera" },
+      { key: "portero_paradas_penalti_parado", label: "Penalti Parado" },
       { key: "lanz_recibido_fuera", label: "Lanz. recibido fuera" },
     ],
   },
   {
-    title: "Goles encajados por tipo",
+    title: "Inferioridad",
     stats: [
-      { key: "portero_goles_boya_parada", label: "Boya / Parada" },
-      { key: "portero_goles_hombre_menos", label: "Hombre -" },
-      { key: "portero_goles_dir_mas_5m", label: "+6m" },
-      { key: "portero_goles_contraataque", label: "Contraataque" },
-      { key: "portero_goles_penalti", label: "Penalti" },
+      { key: "portero_goles_hombre_menos", label: "Goles Hombre -" },
+      { key: "portero_paradas_hombre_menos", label: "Paradas Hombre -" },
+      { key: "portero_inferioridad_fuera", label: "Fuera" },
+      { key: "portero_inferioridad_bloqueo", label: "Bloqueo" },
+    ],
+  },
+  {
+    title: "Acciones",
+    stats: [
+      { key: "acciones_asistencias", label: "Asistencias" },
+      { key: "acciones_recuperacion", label: "Recuperacion" },
+      { key: "portero_acciones_perdida_pos", label: "Perdida Posesion" },
+      { key: "acciones_exp_provocada", label: "Expulsion Provocada" },
+      { key: "portero_gol", label: "Gol" },
+      { key: "portero_gol_superioridad", label: "Gol Superioridad" },
+      { key: "portero_fallo_superioridad", label: "Fallo Superioridad" },
     ],
   },
 ];
