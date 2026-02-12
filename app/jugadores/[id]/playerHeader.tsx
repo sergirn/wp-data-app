@@ -2,6 +2,8 @@
 
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { useClub } from "@/lib/club-context";
+import { useStatWeights } from "@/hooks/useStatWeights";
+import { Loader2, TrendingUp } from "lucide-react";
 
 type PlayerLike = {
 	name: string;
@@ -10,9 +12,36 @@ type PlayerLike = {
 	is_goalkeeper?: boolean | null;
 };
 
-export function PlayerHeroHeader({ player, roleLabel }: { player: PlayerLike; roleLabel?: string }) {
+/**
+ * Calcula la puntuacion total de un jugador multiplicando
+ * cada total de stat por el peso que el usuario le haya asignado.
+ * Solo se suman las stats que tengan un peso configurado.
+ */
+function computeWeightedScore(statTotals: Record<string, number>, weights: Record<string, number>): number {
+	let score = 0;
+	for (const [key, weight] of Object.entries(weights)) {
+		const statValue = statTotals[key] ?? 0;
+		score += statValue * weight;
+	}
+	return score;
+}
+
+export function PlayerHeroHeader({
+	player,
+	roleLabel,
+	statTotals
+}: {
+	player: PlayerLike;
+	roleLabel?: string;
+	/** Totales acumulados de todas las stats del jugador (de calculateFieldPlayerStats o calculateGoalkeeperStats) */
+	statTotals?: Record<string, number>;
+}) {
 	const { currentClub } = useClub();
+	const { weights, loaded } = useStatWeights();
 	const role = roleLabel ?? (player.is_goalkeeper ? "Portero" : "Jugador de Campo");
+
+	const hasWeights = loaded && Object.keys(weights).length > 0;
+	const score = statTotals && hasWeights ? computeWeightedScore(statTotals, weights) : null;
 
 	return (
 		<CardHeader className="p-0">
@@ -64,6 +93,26 @@ export function PlayerHeroHeader({ player, roleLabel }: { player: PlayerLike; ro
 						</div>
 
 						<p className="mt-1 text-xs sm:text-sm text-muted-foreground truncate">{currentClub?.name ?? "—"}</p>
+
+						{/* Puntuacion ponderada */}
+						{statTotals && (
+							<div className="mt-2">
+								{!loaded ? (
+									<Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+								) : hasWeights && score !== null ? (
+									<div className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1">
+										<TrendingUp className="h-4 w-4 text-black dark:text-white" />
+										<span className="text-lg font-bold tabular-nums text-black dark:text-white">
+											{score > 0 ? "+ " : ""}
+											{score}
+										</span>
+										<span className="text-[13px] text-muted-foreground">pts</span>
+									</div>
+								) : (
+									<span className="text-[10px] text-muted-foreground">Configura valoraciones en Ajustes</span>
+								)}
+							</div>
+						)}
 					</div>
 				</div>
 			</div>

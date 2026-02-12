@@ -73,7 +73,7 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 					</Link>
 				</Button>
 
-				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" />
+				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats as unknown as Record<string, number>} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
@@ -191,15 +191,7 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 	);
 }
 
-function FieldPlayerSummary({
-	stats,
-	matchCount,
-	matchStats
-}: {
-	stats: any;
-	matchCount: number;
-	matchStats: MatchStatsWithMatch[];
-}) {
+function FieldPlayerSummary({ stats, matchCount, matchStats }: { stats: any; matchCount: number; matchStats: MatchStatsWithMatch[] }) {
 	const golesPerMatch = matchCount > 0 ? (stats.goles_totales / matchCount).toFixed(1) : "0.0";
 	const tirosPerMatch = matchCount > 0 ? (stats.tiros_totales / matchCount).toFixed(1) : "0.0";
 	const eficienciaGeneral = stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0";
@@ -263,7 +255,7 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 					</Link>
 				</Button>
 
-				<PlayerHeroHeader player={player} roleLabel="Portero" />
+				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats as unknown as Record<string, number>} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">

@@ -13,18 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-import {
-	AlertCircle,
-	Calendar,
-	ChevronDown,
-	ChevronRight,
-	ChevronUp,
-	PlusCircle,
-	Target,
-	Trophy,
-	TrendingUp,
-	Users
-} from "lucide-react";
+import { AlertCircle, Calendar, ChevronDown, ChevronRight, ChevronUp, PlusCircle, Target, Trophy, TrendingUp, Users } from "lucide-react";
 
 type MatchRow = {
 	id: string;
@@ -72,8 +61,7 @@ function getOutcome(match: MatchRow) {
 }
 
 function StatusDot({ status }: { status: "W" | "L" | "D" }) {
-	const cls =
-		status === "W" ? "bg-green-500" : status === "L" ? "bg-red-500" : "bg-muted-foreground/50";
+	const cls = status === "W" ? "bg-green-500" : status === "L" ? "bg-red-500" : "bg-muted-foreground/50";
 	return <span className={`inline-block h-2 w-2 rounded-full ${cls}`} aria-hidden="true" />;
 }
 
@@ -331,30 +319,34 @@ export default function HomePage() {
 
 					<section className="space-y-8">
 						{/* Matches */}
-							<div>
-								<div className="flex items-center justify-between gap-3">
+						<div>
+							<div className="flex items-center justify-between gap-3">
 								<CardTitle className="text-lg sm:text-xl">Últimos partidos</CardTitle>
 
 								<Button asChild size="sm" className="rounded-md">
 									<Link href="/partidos">
-									Ver todos <ChevronRight className="ml-1 h-4 w-4" />
+										Ver todos <ChevronRight className="ml-1 h-4 w-4" />
 									</Link>
 								</Button>
-								</div>
 							</div>
+						</div>
 
-							<div className="space-y-3">
-								{derived.previewMatches.length > 0 ? (
+						<div className="space-y-3">
+							{derived.previewMatches.length > 0 ? (
 								<MatchListCompact matches={derived.previewMatches} />
-								) : (
+							) : (
 								<EmptyMinimal
 									icon={<Calendar className="h-5 w-5" />}
 									title="Sin partidos"
-									desc={canEdit ? "Crea el primer partido para empezar a registrar estadísticas." : "Todavía no hay partidos registrados."}
+									desc={
+										canEdit
+											? "Crea el primer partido para empezar a registrar estadísticas."
+											: "Todavía no hay partidos registrados."
+									}
 									cta={canEdit ? { href: "/nuevo-partido", label: "Crear primer partido" } : undefined}
 								/>
-								)}
-							</div>
+							)}
+						</div>
 
 						{/* Players */}
 						<Card className="rounded-3xl border ">
@@ -470,9 +462,7 @@ function MatchListCompact({ matches }: { matches: MatchRow[] }) {
 						<div className="min-w-0">
 							<div className="flex items-center gap-2">
 								<StatusDot status={o.status} />
-								<p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">
-									{m.opponent}
-								</p>
+								<p className="text-[13px] font-semibold truncate group-hover:text-primary transition-colors">{m.opponent}</p>
 							</div>
 							<p className="text-[11px] text-muted-foreground mt-0.5">{formatEsDate(m.match_date)}</p>
 						</div>
@@ -547,22 +537,10 @@ function PlayerPhotoGridResponsive({ players }: { players: PlayerRow[] }) {
 	);
 }
 
-function EmptyMinimal({
-	icon,
-	title,
-	desc,
-	cta
-}: {
-	icon: React.ReactNode;
-	title: string;
-	desc: string;
-	cta?: { href: string; label: string };
-}) {
+function EmptyMinimal({ icon, title, desc, cta }: { icon: React.ReactNode; title: string; desc: string; cta?: { href: string; label: string } }) {
 	return (
 		<div className="rounded-2xl border bg-background/60 p-6 text-center">
-			<div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-muted text-muted-foreground">
-				{icon}
-			</div>
+			<div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-muted text-muted-foreground">{icon}</div>
 			<p className="font-semibold">{title}</p>
 			<p className="mt-1 text-sm text-muted-foreground">{desc}</p>
 			{cta ? (
@@ -573,37 +551,5 @@ function EmptyMinimal({
 				</div>
 			) : null}
 		</div>
-	);
-}
-
-function QuickCardMinimal({
-	href,
-	title,
-	desc,
-	icon
-}: {
-	href: string;
-	title: string;
-	desc: string;
-	icon: React.ReactNode;
-}) {
-	return (
-		<Link
-			href={href}
-			className="
-        group rounded-3xl border bg-background/60 p-4
-        hover:bg-muted/25 hover:border-primary/25 hover:shadow-sm
-        transition-all
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
-      "
-		>
-			<div className="flex items-start justify-between gap-3">
-				<div className="min-w-0">
-					<p className="font-semibold group-hover:text-primary transition-colors">{title}</p>
-					<p className="mt-1 text-sm text-muted-foreground">{desc}</p>
-				</div>
-				<div className="rounded-2xl bg-muted p-2 text-muted-foreground">{icon}</div>
-			</div>
-		</Link>
 	);
 }

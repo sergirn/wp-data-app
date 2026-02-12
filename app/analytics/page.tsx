@@ -156,7 +156,6 @@ export default function AnalyticsPage() {
 						faltas_exp_20_boya,
 						goles_penalti_anotado,
 						tiros_penalti_fallado,
-						// Campos legacy (mantener para compatibilidad)
 						totalGoles: goles_totales,
 						totalTiros: tiros_totales,
 						totalAsistencias: acciones_asistencias,
