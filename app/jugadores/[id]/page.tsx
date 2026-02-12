@@ -18,7 +18,10 @@ import { KpiGridGoalkeeper } from "@/components/analytics-goalkeeper/summary-com
 import { PlayerHeroHeader } from "./playerHeader";
 import { BlocksVsGoalsChart } from "@/components/analytics-player/evolution-component/BlocksVsGoalsChart";
 import { PerformanceEvolutionChart } from "@/components/analytics-player/evolution-component/PerformanceEvolutionChart";
-import { GoalkeeperShotForChart, GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/evolution-component/GoalkeepersShotsEvolutions";
+import {
+	GoalkeeperShotForChart,
+	GoalkeeperShotsGoalChartSimple
+} from "@/components/analytics-goalkeeper/evolution-component/GoalkeepersShotsEvolutions";
 import { FieldPlayerMatchStatsClient } from "./FieldPlayerMatchStatsClient";
 import { GoalkeeperMatchStatsClient } from "./GoalkeeperMatchStatsClient";
 import { ChartSwipeCarousel } from "@/components/chartCarousel";
@@ -285,7 +288,7 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 					<ChartSwipeCarousel
 						className="w-full"
 						items={[
-							<GoalkeeperShotsGoalChart shots={chartShots} goalkeeperPlayerId={player.id} />,
+							<GoalkeeperShotsGoalChartSimple shots={chartShots} goalkeeperPlayerId={player.id} />,
 							<PerformanceEvolutionChart matchStats={matchStats} player={player} />
 						]}
 					/>

@@ -11,16 +11,15 @@ import { Grid3X3, Percent, Target, Flame, ChevronLeft, ChevronRight, ListFilter,
  *  =========================== */
 
 /**
- * ✅ Tipo interno unificado del chart:
- * - goal/save: x/y en coords INNER (0..1 dentro de palos)
- * - out: x/y en coords OUTER (0..1 del canvas completo)
+ * ✅ Tipo interno unificado:
+ * - goal/save: x/y coords INNER (0..1 dentro de palos)
+ * - out: x/y coords OUTER (0..1 del canvas completo)
  */
 export type UnifiedShot = {
 	id: string;
 	x: number;
 	y: number;
 	result: "goal" | "save" | "out";
-	// opcionales para filtros
 	jornadaNumber?: number;
 	goalkeeperPlayerId?: string;
 	goalkeeperName?: string;
@@ -31,7 +30,6 @@ type ShotLayer = "all" | "goals" | "saves" | "out";
 /** ===========================
  *  JITTER (solo UI)
  *  =========================== */
-
 function clamp01(v: number) {
 	return Math.max(0, Math.min(1, v));
 }
@@ -54,7 +52,6 @@ function yJitter(id: string, amp = 0.015) {
 /** ===========================
  *  DOTS
  *  =========================== */
-
 function InnerDot({ id, x, y, result }: { id: string; x: number; y: number; result: "goal" | "save" }) {
 	const y2 = clamp01(y + yJitter(`inner-${id}`, 0.015));
 	return (
@@ -90,13 +87,7 @@ function OutDot({ id, x, y }: { id: string; x: number; y: number }) {
 /** ===========================
  *  GRID STATS
  *  =========================== */
-
-type CellStats = {
-	total: number;
-	saves: number;
-	goals: number;
-	savePct: number;
-};
+type CellStats = { total: number; saves: number; goals: number; savePct: number };
 
 function cellIndex3(x: number, y: number) {
 	const cx = Math.min(2, Math.max(0, Math.floor(x * 3)));
@@ -127,7 +118,6 @@ function pctBadgeClass(pct: number) {
 /** ===========================
  *  HEATMAP
  *  =========================== */
-
 function lerp(a: number, b: number, t: number) {
 	return a + (b - a) * t;
 }
@@ -275,7 +265,6 @@ function HeatmapCanvas({
 /** ===========================
  *  SIDEBAR UI
  *  =========================== */
-
 function SidebarSection({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
 	return (
 		<div className="rounded-xl border bg-background/40 p-3">
@@ -332,7 +321,6 @@ function ToggleRow({
 /** ===========================
  *  CORE CHART (REUTILIZABLE)
  *  =========================== */
-
 function GoalkeeperShotsChartCore({
 	shots,
 	className,
@@ -349,16 +337,16 @@ function GoalkeeperShotsChartCore({
 	const [showCellPct, setShowCellPct] = React.useState(false);
 	const [showHeatmap, setShowHeatmap] = React.useState(false);
 
-	const jornadaEnabled = !!enableJornadaFilter;
-	const goalkeeperFilterEnabled = !!enableGoalkeeperFilter;
+	const jornadaEnabled = Boolean(enableJornadaFilter);
+	const goalkeeperFilterEnabled = Boolean(enableGoalkeeperFilter);
 
 	const [selectedJornada, setSelectedJornada] = React.useState<number | null>(null);
 	const [selectedGoalkeepers, setSelectedGoalkeepers] = React.useState<Set<string>>(new Set());
 
-	/** ===== Jornadas disponibles ===== */
+	/** Jornadas */
 	const jornadas = React.useMemo(() => {
-		const set = new Set<number>();
 		if (!jornadaEnabled) return [];
+		const set = new Set<number>();
 		for (const s of shots) if (typeof s.jornadaNumber === "number") set.add(s.jornadaNumber);
 		return Array.from(set).sort((a, b) => a - b);
 	}, [shots, jornadaEnabled]);
@@ -374,7 +362,7 @@ function GoalkeeperShotsChartCore({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [jornadaEnabled, jornadas.join("|")]);
 
-	/** ===== Porteros disponibles ===== */
+	/** Porteros */
 	const goalkeepers = React.useMemo(() => {
 		if (!goalkeeperFilterEnabled) return [];
 		const map = new Map<string, { id: string; name: string }>();
@@ -394,20 +382,27 @@ function GoalkeeperShotsChartCore({
 		}
 		setSelectedGoalkeepers((prev) => {
 			const next = new Set(prev);
+
+			// primera vez: selecciona todos
 			if (next.size === 0) {
 				for (const gk of goalkeepers) next.add(gk.id);
 				return next;
 			}
+
+			// limpia ids que ya no existen
 			for (const id of Array.from(next)) {
 				if (!goalkeepers.some((g) => g.id === id)) next.delete(id);
 			}
+
+			// si quedó vacío, vuelve a todos
 			if (next.size === 0) for (const gk of goalkeepers) next.add(gk.id);
+
 			return next;
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [goalkeeperFilterEnabled, goalkeepers.map((g) => g.id).join("|")]);
 
-	/** ===== dependencias ===== */
+	/** dependencias */
 	React.useEffect(() => {
 		if (!showGrid) {
 			setShowCellPct(false);
@@ -415,13 +410,11 @@ function GoalkeeperShotsChartCore({
 		}
 	}, [showGrid]);
 
-	/** ===== filtro base: jornada + porteros ===== */
+	/** filtro base */
 	const baseShots = React.useMemo(() => {
 		let out = shots;
 
-		if (jornadaEnabled && selectedJornada != null) {
-			out = out.filter((s) => s.jornadaNumber === selectedJornada);
-		}
+		if (jornadaEnabled && selectedJornada != null) out = out.filter((s) => s.jornadaNumber === selectedJornada);
 
 		if (goalkeeperFilterEnabled) {
 			out = out.filter((s) => {
@@ -433,7 +426,7 @@ function GoalkeeperShotsChartCore({
 		return out;
 	}, [shots, jornadaEnabled, selectedJornada, goalkeeperFilterEnabled, selectedGoalkeepers]);
 
-	/** ===== filtro final: capa ===== */
+	/** filtro capa */
 	const filteredShots = React.useMemo(() => {
 		let out = baseShots;
 		if (shotLayer === "goals") out = out.filter((s) => s.result === "goal");
@@ -442,11 +435,11 @@ function GoalkeeperShotsChartCore({
 		return out;
 	}, [baseShots, shotLayer]);
 
-	/** ===== separación render coherente ===== */
+	/** separación render */
 	const innerShots = React.useMemo(() => filteredShots.filter((s) => s.result === "goal" || s.result === "save"), [filteredShots]);
 	const outShots = React.useMemo(() => filteredShots.filter((s) => s.result === "out"), [filteredShots]);
 
-	/** ===== stats totales ===== */
+	/** stats */
 	const totalsAll = React.useMemo(() => {
 		const goals = baseShots.filter((s) => s.result === "goal").length;
 		const saves = baseShots.filter((s) => s.result === "save").length;
@@ -461,7 +454,7 @@ function GoalkeeperShotsChartCore({
 		return { total: filteredShots.length, goals, saves, out };
 	}, [filteredShots]);
 
-	/** ===== stats por celda: SOLO inner ===== */
+	/** cell stats SOLO inner */
 	const cellStats = React.useMemo(() => {
 		const map = new Map<string, CellStats>();
 		for (const s of innerShots) {
@@ -476,7 +469,7 @@ function GoalkeeperShotsChartCore({
 		return map;
 	}, [innerShots]);
 
-	/** ===== nav jornada ===== */
+	/** nav jornada */
 	const selectedIndex = React.useMemo(() => {
 		if (!jornadaEnabled || selectedJornada == null) return -1;
 		return jornadas.indexOf(selectedJornada);
@@ -494,12 +487,13 @@ function GoalkeeperShotsChartCore({
 		setSelectedJornada(jornadas[selectedIndex + 1]);
 	};
 
+	/** porteros */
 	const toggleGoalkeeper = (id: string) => {
 		setSelectedGoalkeepers((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
 			else next.add(id);
-			if (next.size === 0) return prev; // evita quedarte a cero
+			if (next.size === 0) return prev; // no permitir 0
 			return next;
 		});
 	};
@@ -571,8 +565,10 @@ function GoalkeeperShotsChartCore({
 						<div className="pointer-events-none absolute right-[10%] top-[12%] bottom-[28%] w-[10px] rounded bg-foreground/80 shadow-md" />
 						<div className="pointer-events-none absolute left-[10%] right-[10%] bottom-[28%] h-[4px] rounded bg-foreground/70 shadow-sm" />
 
-						{/* OUT dots (outer canvas) */}
-						{!showHeatmap && outShots.map((s) => <OutDot key={s.id} id={s.id} x={s.x} y={s.y} />)}
+						{/* ✅ OUT dots SIEMPRE visibles (aunque haya heatmap) */}
+						{outShots.map((s) => (
+							<OutDot key={s.id} id={s.id} x={s.x} y={s.y} />
+						))}
 
 						{/* INNER area */}
 						<div className="absolute left-[10%] right-[10%] top-[12%] bottom-[28%] overflow-hidden rounded-xl border bg-muted/10">
@@ -597,6 +593,7 @@ function GoalkeeperShotsChartCore({
 											radiusPx={42}
 										/>
 									)}
+
 									<div className="absolute top-0 bottom-0 left-1/3 w-px bg-foreground/20" />
 									<div className="absolute top-0 bottom-0 left-2/3 w-px bg-foreground/20" />
 									<div className="absolute left-0 right-0 top-1/3 h-px bg-foreground/20" />
@@ -631,6 +628,7 @@ function GoalkeeperShotsChartCore({
 								</div>
 							)}
 
+							{/* ✅ Inner dots: solo cuando NO hay heatmap */}
 							{!showHeatmap &&
 								innerShots.map((s) => <InnerDot key={s.id} id={s.id} x={s.x} y={s.y} result={s.result as "goal" | "save"} />)}
 						</div>
@@ -667,7 +665,6 @@ function GoalkeeperShotsChartCore({
 									>
 										Todos
 									</Button>
-
 									<Button
 										type="button"
 										size="sm"
@@ -677,7 +674,6 @@ function GoalkeeperShotsChartCore({
 									>
 										Goles
 									</Button>
-
 									<Button
 										type="button"
 										size="sm"
@@ -687,7 +683,6 @@ function GoalkeeperShotsChartCore({
 									>
 										Paradas
 									</Button>
-
 									<Button
 										type="button"
 										size="sm"
@@ -749,10 +744,7 @@ function GoalkeeperShotsChartCore({
 											)}
 											disabled={jornadas.length === 0}
 											value={selectedJornada == null ? "all" : String(selectedJornada)}
-											onChange={(e) => {
-												const v = e.target.value;
-												setSelectedJornada(v === "all" ? null : Number(v));
-											}}
+											onChange={(e) => setSelectedJornada(e.target.value === "all" ? null : Number(e.target.value))}
 										>
 											<option value="all">Todas</option>
 											{jornadas.map((j) => (
@@ -850,7 +842,6 @@ function GoalkeeperShotsChartCore({
 /** ===========================
  *  WRAPPER 1: "GRANDE" (rows + matches + players)
  *  =========================== */
-
 export type GoalkeeperShotRow = {
 	id: number;
 	match_id: number;
@@ -913,8 +904,8 @@ export function GoalkeeperShotsGoalChartFromRows({
 
 				return {
 					id: `${r.match_id}-${r.goalkeeper_player_id}-${r.id}`,
-					x: r.x,
-					y: r.y,
+					x: Number(r.x),
+					y: Number(r.y),
 					result,
 					jornadaNumber: match?.jornada ?? undefined,
 					goalkeeperPlayerId: String(r.goalkeeper_player_id),
@@ -930,14 +921,12 @@ export function GoalkeeperShotsGoalChartFromRows({
 /** ===========================
  *  WRAPPER 2: "SIMPLE" (shots + goalkeeperPlayerId + matchId)
  *  =========================== */
-
 export type GoalkeeperShotForChart = {
 	id: number | string;
 	match_id: number;
 	goalkeeper_player_id: number;
 	x: number;
 	y: number;
-	// admite out opcional para reutilizar el mismo render
 	result: "goal" | "save" | "out";
 };
 
@@ -956,25 +945,17 @@ export function GoalkeeperShotsGoalChartSimple({
 		const arr = Array.isArray(shots) ? shots : [];
 		return arr
 			.filter((s) => {
-				if (s.goalkeeper_player_id !== goalkeeperPlayerId) return false;
-				if (typeof matchId === "number" && s.match_id !== matchId) return false;
+				if (Number(s.goalkeeper_player_id) !== Number(goalkeeperPlayerId)) return false;
+				if (typeof matchId === "number" && Number(s.match_id) !== Number(matchId)) return false;
 				return true;
 			})
 			.map((s) => ({
 				id: `${s.match_id}-${s.goalkeeper_player_id}-${String(s.id)}`,
-				x: s.x,
-				y: s.y,
+				x: Number(s.x),
+				y: Number(s.y),
 				result: s.result
 			}));
 	}, [shots, goalkeeperPlayerId, matchId]);
 
-	return (
-		<GoalkeeperShotsChartCore
-			shots={filtered}
-			className={className}
-			// simple: sin filtros extras
-			enableJornadaFilter={false}
-			enableGoalkeeperFilter={false}
-		/>
-	);
+	return <GoalkeeperShotsChartCore shots={filtered} className={className} enableJornadaFilter={false} enableGoalkeeperFilter={false} />;
 }
