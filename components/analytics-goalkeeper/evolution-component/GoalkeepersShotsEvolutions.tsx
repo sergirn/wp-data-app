@@ -173,37 +173,38 @@ function HeatmapCanvas({
 		const wrap = wrapperRef.current;
 
 		let raf = 0;
+		let tmr: number | null = null;
 
 		const draw = () => {
 			const rect = wrap.getBoundingClientRect();
-			const w = Math.max(1, Math.floor(rect.width));
-			const h = Math.max(1, Math.floor(rect.height));
+			const w = Math.floor(rect.width);
+			const h = Math.floor(rect.height);
+
+			// ✅ clave para tabs/carousel: si aún no hay tamaño real, no pintes
+			if (w < 10 || h < 10) return;
 
 			const dpr = Math.max(1, window.devicePixelRatio || 1);
-
-			// ✅ tamaño real (device pixels)
 			const wd = Math.max(1, Math.floor(w * dpr));
 			const hd = Math.max(1, Math.floor(h * dpr));
 
-			canvas.width = wd;
-			canvas.height = hd;
+			// evita repaints innecesarios si ya está igual
+			if (canvas.width !== wd) canvas.width = wd;
+			if (canvas.height !== hd) canvas.height = hd;
+
 			canvas.style.width = `${w}px`;
 			canvas.style.height = `${h}px`;
 
 			const ctx = canvas.getContext("2d");
 			if (!ctx) return;
 
-			// ✅ trabajamos en device pixels (sin setTransform)
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
 			ctx.clearRect(0, 0, wd, hd);
 
-			// radio adaptativo al tamaño de la portería (en device px)
 			const base = Math.min(wd, hd);
 			const r = clamp((radiusPx / 420) * base, 14 * dpr, 60 * dpr);
 
-			// 1) Pintar "intensidad" en alpha con gradiente
+			// 1) intensidad
 			ctx.globalCompositeOperation = "source-over";
-
 			for (const p of points) {
 				const px = p.x * wd;
 				const py = p.y * hd;
@@ -215,25 +216,22 @@ function HeatmapCanvas({
 				ctx.fillRect(px - r, py - r, r * 2, r * 2);
 			}
 
-			// 2) Leer el buffer COMPLETO en device px ✅
+			// 2) colorizar (device px completo ✅)
 			const img = ctx.getImageData(0, 0, wd, hd);
 			const data = img.data;
 
 			let maxA = 0;
 			for (let i = 3; i < data.length; i += 4) maxA = Math.max(maxA, data[i]);
-
 			if (maxA === 0) {
 				ctx.putImageData(img, 0, 0);
 				return;
 			}
 
-			// gamma para mejorar contraste en pantallas pequeñas
-			const gamma = 0.75; // 1 = lineal; <1 aumenta contraste; >1 lo suaviza
+			const gamma = 0.75; // opcional: mejora contraste en pantallas pequeñas
 
 			for (let i = 0; i < data.length; i += 4) {
 				const a = data[i + 3];
 				let t = clamp(a / maxA);
-
 				if (t <= 0) {
 					data[i + 3] = 0;
 					continue;
@@ -254,6 +252,13 @@ function HeatmapCanvas({
 		const schedule = () => {
 			if (raf) cancelAnimationFrame(raf);
 			raf = requestAnimationFrame(draw);
+
+			// ✅ segundo intento por si el layout termina después (tabs/carousel)
+			if (tmr) window.clearTimeout(tmr);
+			tmr = window.setTimeout(() => {
+				if (raf) cancelAnimationFrame(raf);
+				raf = requestAnimationFrame(draw);
+			}, 0);
 		};
 
 		schedule();
@@ -263,11 +268,14 @@ function HeatmapCanvas({
 
 		const onResize = () => schedule();
 		window.addEventListener("resize", onResize);
+		window.addEventListener("orientationchange", onResize);
 
 		return () => {
 			if (raf) cancelAnimationFrame(raf);
+			if (tmr) window.clearTimeout(tmr);
 			ro.disconnect();
 			window.removeEventListener("resize", onResize);
+			window.removeEventListener("orientationchange", onResize);
 		};
 	}, [enabled, points, opacity, radiusPx]);
 

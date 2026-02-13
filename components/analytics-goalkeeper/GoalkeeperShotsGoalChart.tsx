@@ -177,7 +177,7 @@ function HeatmapCanvas({
 	points,
 	enabled,
 	opacity = 0.75,
-	radiusPx = 42 // “radio de referencia” (en un contenedor ~420px)
+	radiusPx = 42
 }: {
 	points: Array<{ x: number; y: number }>;
 	enabled: boolean;
@@ -187,48 +187,42 @@ function HeatmapCanvas({
 	const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
 	const wrapperRef = React.useRef<HTMLDivElement | null>(null);
 
-	const rafRef = React.useRef<number | null>(null);
-	const lastSizeRef = React.useRef<{ w: number; h: number } | null>(null);
-
-	const scheduleDraw = React.useCallback(() => {
+	React.useEffect(() => {
 		if (!enabled) return;
-		if (rafRef.current) cancelAnimationFrame(rafRef.current);
-		rafRef.current = requestAnimationFrame(() => {
-			const wrap = wrapperRef.current;
-			const canvas = canvasRef.current;
-			if (!wrap || !canvas) return;
+		if (!wrapperRef.current || !canvasRef.current) return;
 
+		const canvas = canvasRef.current;
+		const wrap = wrapperRef.current;
+
+		let raf = 0;
+
+		const draw = () => {
 			const rect = wrap.getBoundingClientRect();
 			const w = Math.max(1, Math.floor(rect.width));
 			const h = Math.max(1, Math.floor(rect.height));
 
-			// Si todavía está oculto (tabs/carousel), no pintes hasta que tenga tamaño real
+			// Si el slide/tab está oculto, a veces da 0x0: evita pintar ahí
 			if (w <= 1 || h <= 1) return;
 
-			// Evita trabajo si no cambió el tamaño y no hay puntos
-			lastSizeRef.current = { w, h };
-
 			const dpr = Math.max(1, window.devicePixelRatio || 1);
-			const targetW = Math.floor(w * dpr);
-			const targetH = Math.floor(h * dpr);
 
-			if (canvas.width !== targetW) canvas.width = targetW;
-			if (canvas.height !== targetH) canvas.height = targetH;
-
+			canvas.width = Math.floor(w * dpr);
+			canvas.height = Math.floor(h * dpr);
 			canvas.style.width = `${w}px`;
 			canvas.style.height = `${h}px`;
 
 			const ctx = canvas.getContext("2d");
 			if (!ctx) return;
 
+			// dibujamos en coords CSS px (w/h), escaladas por dpr
 			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 			ctx.clearRect(0, 0, w, h);
 
-			// radio que escala con el tamaño del contenedor (baseline: 420px)
+			// radio responsive (en CSS px)
 			const base = Math.min(w, h);
 			const r = clamp((radiusPx / 420) * base, 14, 60);
 
-			// 1) Intensidad (alpha acumulada)
+			// 1) Intensidad (alpha)
 			ctx.globalCompositeOperation = "source-over";
 			for (const p of points) {
 				const px = p.x * w;
@@ -241,8 +235,11 @@ function HeatmapCanvas({
 				ctx.fillRect(px - r, py - r, r * 2, r * 2);
 			}
 
-			// 2) Colorizar
-			const img = ctx.getImageData(0, 0, w, h);
+			// ✅ 2) Colorizar (IMPORTANTE: usar backing store size)
+			const cw = canvas.width; // w * dpr
+			const ch = canvas.height; // h * dpr
+
+			const img = ctx.getImageData(0, 0, cw, ch);
 			const data = img.data;
 
 			let maxA = 0;
@@ -268,54 +265,31 @@ function HeatmapCanvas({
 				data[i + 3] = Math.round(lerp(0, 255, t) * opacity);
 			}
 
+			// putImageData no depende del transform
 			ctx.putImageData(img, 0, 0);
-		});
-	}, [enabled, points, opacity, radiusPx]);
+		};
 
-	React.useEffect(() => {
-		if (!enabled) return;
+		const schedule = () => {
+			if (raf) cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(draw);
+		};
 
-		const wrap = wrapperRef.current;
-		if (!wrap) return;
+		schedule();
 
-		// 1) ResizeObserver: cambios de tamaño del contenedor (tabs/carousel/grid)
-		const ro = new ResizeObserver(() => scheduleDraw());
+		const ro = new ResizeObserver(() => schedule());
 		ro.observe(wrap);
 
-		// 2) IntersectionObserver: cuando pasa de hidden/0px a visible
-		const io = new IntersectionObserver(
-			(entries) => {
-				const visible = entries.some((e) => e.isIntersecting);
-				if (visible) scheduleDraw();
-			},
-			{ threshold: 0.01 }
-		);
-		io.observe(wrap);
-
-		// 3) Fallback extra: window resize + orientationchange
-		const onResize = () => scheduleDraw();
+		const onResize = () => schedule();
 		window.addEventListener("resize", onResize);
 		window.addEventListener("orientationchange", onResize);
 
-		// Primer render
-		scheduleDraw();
-
 		return () => {
+			if (raf) cancelAnimationFrame(raf);
 			ro.disconnect();
-			io.disconnect();
 			window.removeEventListener("resize", onResize);
 			window.removeEventListener("orientationchange", onResize);
-
-			if (rafRef.current) cancelAnimationFrame(rafRef.current);
-			rafRef.current = null;
 		};
-	}, [enabled, scheduleDraw]);
-
-	// Redibuja también cuando cambian puntos/props (sin depender sólo de observers)
-	React.useEffect(() => {
-		if (!enabled) return;
-		scheduleDraw();
-	}, [enabled, points, opacity, radiusPx, scheduleDraw]);
+	}, [enabled, points, opacity, radiusPx]);
 
 	return (
 		<div ref={wrapperRef} className="absolute inset-0 pointer-events-none">
