@@ -32,10 +32,10 @@ function computeWeightedScore(row: Record<string, any>, weights: Record<string, 
 	return Math.round(score);
 }
 
-/** ✅ NUEVO: Catálogo de campos del portero (los que ya estás usando) */
 type StatItem = { label: string; key: string };
 type StatGroup = { title: string; stats: StatItem[] };
 
+/** ✅ Catálogo de campos del portero */
 const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
 	{
 		title: "Goles encajados",
@@ -45,9 +45,9 @@ const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
 			{ label: "+6m", key: "portero_goles_dir_mas_5m" },
 			{ label: "Contraataque", key: "portero_goles_contraataque" },
 			{ label: "Penalti", key: "portero_goles_penalti" },
-			{ label: "Lanzamiento", key: "portero_goles_lanzamiento" }, // por si lo usas
-			{ label: "Boya", key: "portero_goles_boya" }, // por si lo usas
-			{ label: "Totales", key: "portero_goles_totales" } // si existe y viene relleno
+			{ label: "Lanzamiento", key: "portero_goles_lanzamiento" },
+			{ label: "Boya", key: "portero_goles_boya" },
+			{ label: "Gol del palo", key: "portero_gol_palo" }
 		]
 	},
 	{
@@ -55,10 +55,17 @@ const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
 		stats: [
 			{ label: "Totales", key: "portero_paradas_totales" },
 			{ label: "Parada + Recup", key: "portero_tiros_parada_recup" },
-			{ label: "Fuera", key: "portero_paradas_fuera" },
+			{ label: "Fuera (parada)", key: "portero_paradas_fuera" },
 			{ label: "Penalti parado", key: "portero_paradas_penalti_parado" },
-			{ label: "Hombre -", key: "portero_paradas_hombre_menos" },
-			{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" }
+			{ label: "Hombre - (parada)", key: "portero_paradas_hombre_menos" },
+
+			// ✅ NUEVO: tiros del rival (cuentan como tiros recibidos, NO como paradas)
+			{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" },
+			{ label: "Lanz. al palo", key: "portero_lanz_palo" },
+
+			// ✅ NUEVO: inferioridad (tiros recibidos H- que NO son paradas ni goles)
+			{ label: "H- Fuera", key: "portero_inferioridad_fuera" },
+			{ label: "H- Bloqueo", key: "portero_inferioridad_bloqueo" }
 		]
 	},
 	{
@@ -79,6 +86,8 @@ const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
 		]
 	}
 ];
+
+const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
 	if (!matchStats?.length) {
@@ -118,7 +127,6 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 	);
 
 	const playerId: number | undefined = (player as any)?.id ?? (matchStats?.[0] as any)?.player_id ?? undefined;
-
 	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId);
 
 	const KV = ({ label, value, statKey }: { label: string; value: React.ReactNode; statKey: string }) => {
@@ -195,19 +203,41 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 				{matchStats.map((stat) => {
 					const match = stat.matches;
 
+					// ✅ goles recibidos (incluye gol_palo y lanzamiento)
 					const golesRecibidosPortero =
 						(stat as any).portero_goles_totales ??
-						((stat as any).portero_goles_boya_parada ?? 0) +
-							((stat as any).portero_goles_hombre_menos ?? 0) +
-							((stat as any).portero_goles_dir_mas_5m ?? 0) +
-							((stat as any).portero_goles_contraataque ?? 0) +
-							((stat as any).portero_goles_penalti ?? 0) +
-							((stat as any).portero_goles_lanzamiento ?? 0) +
-							((stat as any).portero_goles_boya ?? 0);
+						n((stat as any).portero_goles_boya_parada) +
+							n((stat as any).portero_goles_hombre_menos) +
+							n((stat as any).portero_goles_dir_mas_5m) +
+							n((stat as any).portero_goles_contraataque) +
+							n((stat as any).portero_goles_penalti) +
+							n((stat as any).portero_goles_lanzamiento) +
+							n((stat as any).portero_goles_boya) +
+							n((stat as any).portero_gol_palo);
 
-					const paradas = (stat as any).portero_paradas_totales ?? 0;
-					const totalShots = paradas + golesRecibidosPortero;
-					const eficiencia = totalShots > 0 ? ((paradas / totalShots) * 100).toFixed(1) : "0.0";
+					// ✅ paradas (si tienes totales ya, úsalos; si no, suma categorías)
+					const paradasRaw = n((stat as any).portero_paradas_totales);
+					const paradasFallback =
+						n((stat as any).portero_tiros_parada_recup) +
+						n((stat as any).portero_paradas_fuera) +
+						n((stat as any).portero_paradas_penalti_parado) +
+						n((stat as any).portero_paradas_hombre_menos);
+
+					const paradas = paradasRaw > 0 ? paradasRaw : paradasFallback;
+
+					// ✅ tiros del rival que cuentan como tiros recibidos, pero NO como paradas
+					const fuera = n((stat as any).lanz_recibido_fuera);
+					const palo = n((stat as any).portero_lanz_palo);
+
+					// ✅ inferioridad (tiros recibidos H- que NO son paradas ni goles)
+					const infFuera = n((stat as any).portero_inferioridad_fuera);
+					const infBloq = n((stat as any).portero_inferioridad_bloqueo);
+
+					// ✅ tiros recibidos totales: TODO lo que haya (paradas + goles + fuera + palo + H- fuera/bloq)
+					const tirosRecibidos = paradas + golesRecibidosPortero + fuera + palo + infFuera + infBloq;
+
+					// ✅ eficiencia basada en tiros recibidos
+					const eficiencia = tirosRecibidos > 0 ? ((paradas / tirosRecibidos) * 100).toFixed(1) : "0.0";
 
 					const score = hasWeights ? computeWeightedScore(stat as any, weights) : null;
 
@@ -274,7 +304,7 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 											/>
 											<KpiBox
 												label="Goles Recibidos"
-												value={golesRecibidosPortero ?? 0}
+												value={golesRecibidosPortero}
 												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
 											/>
 											<KpiBox
@@ -284,12 +314,11 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 											/>
 											<KpiBox
 												label="Tiros Totales"
-												value={totalShots}
+												value={tirosRecibidos}
 												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
 											/>
 										</div>
 
-										{/* ✅ NUEVO: muestra TODOS los campos en grupos */}
 										<div className="grid gap-3 grid-cols-2">
 											{GOALKEEPER_GROUPS_ALL.map((group) => (
 												<Section key={group.title} title={group.title}>

@@ -179,6 +179,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					(playerStat.portero_goles_dir_mas_5m || 0) +
 					(playerStat.portero_goles_contraataque || 0) +
 					(playerStat.portero_goles_lanzamiento || 0) +
+					(playerStat.portero_gol_palo || 0) +
 					(playerStat.portero_goles_penalti || 0);
 
 				awayGoals += goalkeeperGoals;
@@ -211,6 +212,86 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 		initializeFromParams();
 	}, [searchParams]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+
+		const isNewMatch = () => window.location.pathname === "/nuevo-partido";
+
+		const confirmLeave = () => window.confirm("¿Seguro que quieres salir? Se perderán los cambios no guardados.");
+
+		// 1) Intercepta clicks en enlaces (Next <Link /> acaba siendo <a>)
+		const onClickCapture = (e: MouseEvent) => {
+			if (!isNewMatch()) return;
+
+			const target = e.target as HTMLElement | null;
+			const a = target?.closest?.("a") as HTMLAnchorElement | null;
+			if (!a) return;
+
+			// respetar nueva pestaña / cmd/ctrl / middle click / downloads
+			if (a.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (e as any).button === 1 || a.hasAttribute("download")) {
+				return;
+			}
+
+			const href = a.getAttribute("href") || "";
+			if (!href) return;
+
+			// anchors (#) en misma página => no confirm
+			if (href.startsWith("#")) return;
+
+			// sacar pathname destino
+			let nextPathname = "";
+			try {
+				nextPathname = new URL(href, window.location.href).pathname;
+			} catch {
+				return;
+			}
+
+			// si es la misma ruta, no confirmamos
+			if (nextPathname === window.location.pathname) return;
+
+			// Bloquea y pregunta
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (confirmLeave()) {
+				window.location.href = href; // navega
+			}
+		};
+
+		// 2) Intercepta back/forward
+		const onPopState = () => {
+			// Si intentan irse desde nuevo-partido con back/forward
+			if (!isNewMatch()) return;
+
+			// “Cancelamos” el back/forward metiendo un state dummy
+			history.pushState(null, "", window.location.href);
+
+			if (confirmLeave()) {
+				history.back();
+			}
+		};
+
+		// 3) Recargar/cerrar pestaña
+		const onBeforeUnload = (e: BeforeUnloadEvent) => {
+			if (!isNewMatch()) return;
+			e.preventDefault();
+			e.returnValue = "";
+		};
+
+		// Necesario para poder “cancelar” el primer back
+		history.pushState(null, "", window.location.href);
+
+		document.addEventListener("click", onClickCapture, true);
+		window.addEventListener("popstate", onPopState);
+		window.addEventListener("beforeunload", onBeforeUnload);
+
+		return () => {
+			document.removeEventListener("click", onClickCapture, true);
+			window.removeEventListener("popstate", onPopState);
+			window.removeEventListener("beforeunload", onBeforeUnload);
+		};
+	}, []);
 
 	const checkPermissions = async () => {
 		if (!supabase) {
@@ -363,6 +444,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		faltas_exp_20_boya: 0,
 		faltas_penalti: 0,
 		faltas_contrafaltas: 0,
+		exp_trans_def: 0,
 
 		acciones_bloqueo: 0,
 		acciones_asistencias: 0,
@@ -424,6 +506,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		portero_inferioridad_fuera: 0,
 		portero_inferioridad_bloqueo: 0,
 		lanz_recibido_fuera: 0,
+		portero_gol_palo: 0,
+		portero_lanz_palo: 0,
 
 		rebote_recup_hombre_mas: 0,
 		rebote_perd_hombre_mas: 0
@@ -652,7 +736,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					"portero_goles_penalti",
 					"portero_gol", // Added
 					"portero_gol_superioridad", // Added
-					"portero_goles_lanzamiento"
+					"portero_goles_lanzamiento",
+					"portero_gol_palo"
 				];
 
 				if (field.startsWith("portero_gol") || field.startsWith("portero_goles_")) {
@@ -1081,7 +1166,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		safeNumber(s?.faltas_penalti) +
 		safeNumber(s?.faltas_exp_3_int) +
 		safeNumber(s?.faltas_exp_3_bruta) +
-		safeNumber(s?.faltas_exp_simple);
+		safeNumber(s?.faltas_exp_simple) +
+		safeNumber(s?.exp_trans_def);
 
 	const activeSet = useMemo(() => new Set(activePlayerIds), [activePlayerIds]);
 
@@ -2132,6 +2218,7 @@ function FieldPlayerStatsDialog({
 					/>
 					<StatField label="Penalti" value={safeNumber(stats.faltas_penalti)} onChange={(v) => onUpdate("faltas_penalti", v)} />
 					<StatField label="Exp (Simple)" value={safeNumber(stats.faltas_exp_simple)} onChange={(v) => onUpdate("faltas_exp_simple", v)} />
+					<StatField label="Exp trans. def." value={safeNumber(stats.exp_trans_def)} onChange={(v) => onUpdate("exp_trans_def", v)} />
 				</div>
 			</TabsContent>
 
@@ -2206,6 +2293,7 @@ function GoalkeeperStatsDialog({
 		safeNumber(stats.portero_goles_dir_mas_5m) +
 		safeNumber(stats.portero_goles_contraataque) +
 		safeNumber(stats.portero_goles_lanzamiento) +
+		safeNumber(stats.portero_gol_palo) +
 		safeNumber(stats.portero_goles_penalti);
 
 	return (
@@ -2257,6 +2345,7 @@ function GoalkeeperStatsDialog({
 						value={safeNumber(stats.portero_goles_lanzamiento)}
 						onChange={(v) => onUpdate("portero_goles_lanzamiento", v)}
 					/>
+					<StatField label="Gol de palo" value={safeNumber(stats.portero_gol_palo)} onChange={(v) => onUpdate("portero_gol_palo", v)} />
 				</div>
 				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
 			</TabsContent>
@@ -2295,6 +2384,7 @@ function GoalkeeperStatsDialog({
 						value={safeNumber(stats.lanz_recibido_fuera)}
 						onChange={(v) => onUpdate("lanz_recibido_fuera", v)}
 					/>
+					<StatField label="Lanz. al palo" value={safeNumber(stats.portero_lanz_palo)} onChange={(v) => onUpdate("portero_lanz_palo", v)} />
 				</div>
 				<GoalkeeperSavesRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
 			</TabsContent>

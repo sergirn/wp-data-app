@@ -60,7 +60,8 @@ const FIELD_PLAYER_GROUPS: StatGroup[] = [
 			{ key: "faltas_exp_20_1c1", label: "Exp 18'' 1c1" },
 			{ key: "faltas_exp_20_boya", label: "Exp 18'' Boya" },
 			{ key: "faltas_penalti", label: "Penalti" },
-			{ key: "faltas_exp_simple", label: "Exp (Simple)" }
+			{ key: "faltas_exp_simple", label: "Exp (Simple)" },
+			{ key: "exp_trans_def", label: "Exp trans. def." }
 		]
 	},
 	{
@@ -99,7 +100,8 @@ const GOALKEEPER_GROUPS: StatGroup[] = [
 			{ key: "portero_tiros_parada_recup", label: "Parada Recup" },
 			{ key: "portero_paradas_fuera", label: "Parada Fuera" },
 			{ key: "portero_paradas_penalti_parado", label: "Penalti Parado" },
-			{ key: "lanz_recibido_fuera", label: "Lanz. recibido fuera" }
+			{ key: "lanz_recibido_fuera", label: "Lanz. recibido fuera" },
+			{ key: "portero_lanz_palo", label: "Lanz. recibido palo" }
 		]
 	},
 	{

@@ -26,7 +26,6 @@ export function GoalkeeperPerformanceChart({ matches, stats }: GoalkeeperPerform
 
 			const totalSaves = goalkeepersStats.reduce((sum, s) => sum + (s.portero_paradas_totales || 0), 0);
 
-			// ⚠️ igual que tu código: si esto no es correcto para "goles recibidos", ajústalo aquí
 			const totalGoalsAgainst = match.away_score || 0;
 
 			const totalShots = totalSaves + totalGoalsAgainst;

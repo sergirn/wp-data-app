@@ -12,70 +12,6 @@ type Props = {
 	stats: MatchStats[];
 };
 
-type Totals = {
-	goles: number;
-	fallos: number;
-	intentos: number;
-	efectividad: number;
-
-	g_boya_jugada: number;
-	g_hombre_mas: number;
-	g_lanzamiento: number;
-	g_dir_5m: number;
-	g_contraataque: number;
-	g_penalti: number;
-
-	f_hombre_mas: number;
-	f_penalti: number;
-	f_corner: number;
-	f_fuera: number;
-	f_parados: number;
-	f_bloqueados: number;
-
-	faltas: number;
-	faltas_20_1c1: number;
-	faltas_20_boya: number;
-	faltas_simple: number;
-	faltas_penalti: number;
-	faltas_contrafaltas: number;
-	faltas_3_int: number;
-	faltas_3_bruta: number;
-
-	asistencias: number;
-	bloqueos: number;
-	recuperaciones: number;
-	rebotes: number;
-	exp_provocada: number;
-	penalti_provocado: number;
-	pase_boya: number;
-	pase_boya_fallado: number;
-	perdidas: number;
-
-	rebote_recup_hm: number;
-	rebote_perd_hm: number;
-
-	paradas: number;
-	paradas_recup: number;
-	paradas_fuera: number;
-	paradas_penalti: number;
-	paradas_hombre_menos: number;
-
-	goles_recibidos: number;
-	gc_boya_parada: number;
-	gc_hombre_menos: number;
-	gc_dir_5m: number;
-	gc_contraataque: number;
-	gc_penalti: number;
-	gc_lanzamiento: number;
-	gc_penalti_encajado: number;
-
-	portero_asist: number;
-	portero_recup: number;
-	portero_perdidas: number;
-	portero_exp_provocada: number;
-	portero_penalti_provocado: number;
-};
-
 const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 function sum(stats: MatchStats[], key: keyof MatchStats) {
@@ -99,7 +35,6 @@ function MetricTile({ label, value, hint, icon }: { label: string; value: string
 
 				{icon ? (
 					<div className="shrink-0 rounded-lg border bg-card/60 p-1.5 sm:p-2 text-muted-foreground">
-						{/* fuerza tamaños de iconos consistentes */}
 						<span className="block [&_svg]:h-4 [&_svg]:w-4 sm:[&_svg]:h-5 sm:[&_svg]:w-5">{icon}</span>
 					</div>
 				) : null}
@@ -138,11 +73,14 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 	const faltas_20_1c1 = sum(stats, "faltas_exp_20_1c1");
 	const faltas_20_boya = sum(stats, "faltas_exp_20_boya");
 	const faltas_simple = sum(stats, "faltas_exp_simple");
+
+	const exp_trans_def = sum(stats, "exp_trans_def");
 	const faltas_penalti = sum(stats, "faltas_penalti");
 	const faltas_contrafaltas = sum(stats, "faltas_contrafaltas");
 	const faltas_3_int = sum(stats, "faltas_exp_3_int");
 	const faltas_3_bruta = sum(stats, "faltas_exp_3_bruta");
-	const faltas = faltas_20_1c1 + faltas_20_boya + faltas_simple + faltas_penalti + faltas_contrafaltas + faltas_3_int + faltas_3_bruta;
+	const faltas =
+		faltas_20_1c1 + faltas_20_boya + faltas_simple + faltas_penalti + faltas_contrafaltas + faltas_3_int + faltas_3_bruta + exp_trans_def;
 
 	// --- ACCIONES JUGADORES ---
 	const asistencias = sum(stats, "acciones_asistencias");
@@ -165,6 +103,13 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 	const paradas_penalti = sum(stats, "portero_paradas_penalti_parado");
 	const paradas_hombre_menos = sum(stats, "portero_paradas_hombre_menos");
 
+	// ✅ tiros del rival que NO cuentan como paradas
+	const lanz_recibido_fuera = sum(stats, "lanz_recibido_fuera");
+	const portero_lanz_palo = sum(stats, "portero_lanz_palo");
+	const portero_inferioridad_fuera = sum(stats, "portero_inferioridad_fuera");
+	const portero_inferioridad_bloqueo = sum(stats, "portero_inferioridad_bloqueo");
+
+	// ✅ goles recibidos (incluye gol de palo)
 	const gc_boya_parada = sum(stats, "portero_goles_boya_parada");
 	const gc_hombre_menos = sum(stats, "portero_goles_hombre_menos");
 	const gc_dir_5m = sum(stats, "portero_goles_dir_mas_5m");
@@ -172,8 +117,17 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 	const gc_penalti = sum(stats, "portero_goles_penalti");
 	const gc_lanzamiento = sum(stats, "portero_goles_lanzamiento");
 	const gc_penalti_encajado = sum(stats, "portero_goles_penalti_encajado");
+	const gc_portero_gol_palo = sum(stats, "portero_gol_palo");
 
-	const goles_recibidos = gc_boya_parada + gc_hombre_menos + gc_dir_5m + gc_contraataque + gc_penalti + gc_lanzamiento + gc_penalti_encajado;
+	const goles_recibidos =
+		gc_portero_gol_palo + gc_boya_parada + gc_hombre_menos + gc_dir_5m + gc_contraataque + gc_penalti + gc_lanzamiento + gc_penalti_encajado;
+
+	// ✅ NUEVO: tiros totales recibidos (cuenta TODO lo del portero: goles + paradas + fuera + palo + H- fuera/bloq)
+	const tiros_recibidos_totales =
+		paradas + goles_recibidos + lanz_recibido_fuera + portero_lanz_palo + portero_inferioridad_fuera + portero_inferioridad_bloqueo;
+
+	// ✅ eficiencia portero basada en tiros recibidos totales
+	const eficPortero = tiros_recibidos_totales > 0 ? pct(paradas, tiros_recibidos_totales) : 0;
 
 	const portero_asist = sum(stats, "portero_acciones_asistencias");
 	const portero_recup = sum(stats, "portero_acciones_recuperacion");
@@ -184,10 +138,8 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 	const tirosAPorteria = f_parados + goles;
 	const pctAPorteria = pct(tirosAPorteria, intentos);
 	const balanceRebotesHM = rebote_recup_hm - rebote_perd_hm;
-	const eficPortero = paradas + goles_recibidos ? pct(paradas, paradas + goles_recibidos) : 0;
 
 	return (
-		
 		<Card className="mb-6 bg-transparent shadow-none border-none">
 			<div className="mb-3 border-t border-muted/80" />
 			<CardHeader className="pb-2">
@@ -200,14 +152,13 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 			</CardHeader>
 
 			<div className="space-y-4">
-				{/* Compacto: 2 cols móvil, 3 cols tablet, 4 desktop */}
 				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 					<MetricTile label="Goles" value={goles} hint={`${goles}/${intentos} · ${efectividad}%`} icon={<Target />} />
 					<MetricTile label="Efectividad" value={`${efectividad}%`} hint={`A portería ~ ${pctAPorteria}%`} icon={<TrendingUp />} />
 					<MetricTile
 						label="Faltas"
 						value={faltas}
-						hint={`20": ${faltas_20_1c1 + faltas_20_boya} · simple: ${faltas_simple}`}
+						hint={`20": ${faltas_20_1c1 + faltas_20_boya} · simple: ${faltas_simple} · trans. def.: ${exp_trans_def}`}
 						icon={<AlertTriangle />}
 					/>
 					<MetricTile
@@ -307,20 +258,30 @@ export function TeamTotalsOverviewCard({ title = "Totales del Equipo", stats }: 
 								</div>
 
 								<div className="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+									{/* ✅ NUEVO */}
+									<MetricTile
+										label="Tiros recibidos"
+										value={tiros_recibidos_totales}
+										hint={`Paradas ${paradas} · GC ${goles_recibidos} · Fuera ${lanz_recibido_fuera} · Palo ${portero_lanz_palo} · H- ${portero_inferioridad_fuera + portero_inferioridad_bloqueo}`}
+										icon={<Target />}
+									/>
+
 									<MetricTile
 										label="Paradas"
 										value={paradas}
 										hint={`Recup ${paradas_recup} · Pen ${paradas_penalti}`}
 										icon={<Shield />}
 									/>
+
 									<MetricTile
 										label="Goles recibidos"
 										value={goles_recibidos}
 										hint={`H- ${gc_hombre_menos} · Pen ${gc_penalti}`}
 										icon={<Target />}
 									/>
+
 									<MetricTile label="Paradas H-" value={paradas_hombre_menos} icon={<Shield />} />
-									<MetricTile label="Paradas fuera" value={paradas_fuera} icon={<Shield />} />
+									{/* <MetricTile label="Paradas fuera" value={paradas_fuera} icon={<Shield />} /> */}
 								</div>
 							</div>
 						</AccordionContent>

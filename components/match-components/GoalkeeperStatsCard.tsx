@@ -6,34 +6,69 @@ import { Shield, TrendingUp } from "lucide-react";
 import { MatchStats, Player } from "@/lib/types";
 import { GoalkeeperMatchStatsModal } from "./GoalkeeperMatchStatsModal";
 
+const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
 export function GoalkeeperStatsCard({ stat, player }: { stat: MatchStats; player: Player }) {
 	const [open, setOpen] = useState(false);
 
+	// ✅ includes: gol_palo, goles_lanzamiento, lanz al palo, inferioridad, acciones
 	const hasStats =
-		(stat.portero_paradas_totales || 0) > 0 ||
-		(stat.portero_goles_boya_parada || 0) > 0 ||
-		(stat.portero_goles_hombre_menos || 0) > 0 ||
-		(stat.portero_goles_dir_mas_5m || 0) > 0 ||
-		(stat.portero_goles_contraataque || 0) > 0 ||
-		(stat.portero_goles_penalti || 0) > 0 ||
-		(stat.acciones_asistencias || 0) > 0 ||
-		(stat.acciones_recuperacion || 0) > 0 ||
-		(stat.portero_acciones_perdida_pos || 0) > 0 ||
-		// ✅ NUEVO
-		(stat.lanz_recibido_fuera || 0) > 0;
+		n(stat.portero_paradas_totales) > 0 ||
+		n(stat.portero_tiros_parada_recup) > 0 ||
+		n(stat.portero_paradas_fuera) > 0 ||
+		n(stat.portero_paradas_penalti_parado) > 0 ||
+		n(stat.portero_paradas_hombre_menos) > 0 ||
+		n(stat.lanz_recibido_fuera) > 0 ||
+		n(stat.portero_lanz_palo) > 0 ||
+		n(stat.portero_goles_boya_parada) > 0 ||
+		n(stat.portero_goles_hombre_menos) > 0 ||
+		n(stat.portero_goles_dir_mas_5m) > 0 ||
+		n(stat.portero_goles_contraataque) > 0 ||
+		n(stat.portero_goles_penalti) > 0 ||
+		n(stat.portero_goles_lanzamiento) > 0 ||
+		n(stat.portero_gol_palo) > 0 ||
+		n(stat.portero_inferioridad_fuera) > 0 ||
+		n(stat.portero_inferioridad_bloqueo) > 0 ||
+		n(stat.acciones_asistencias) > 0 ||
+		n(stat.acciones_recuperacion) > 0 ||
+		n(stat.portero_acciones_perdida_pos) > 0 ||
+		n(stat.acciones_exp_provocada) > 0 ||
+		n(stat.portero_gol) > 0 ||
+		n(stat.portero_gol_superioridad) > 0 ||
+		n(stat.portero_fallo_superioridad) > 0;
 
-	const paradas = stat.portero_paradas_totales || 0;
-	const lanzRecibidoFuera = stat.lanz_recibido_fuera || 0; // ✅ NUEVO
+	// ✅ Paradas: NO usamos portero_paradas_totales para el KPI si quieres que "tiros" incluya todo lo registrado.
+	// Paradas reales = suma de tipos de parada (incluye H-)
+	const paradas =
+		n(stat.portero_tiros_parada_recup) +
+		n(stat.portero_paradas_fuera) +
+		n(stat.portero_paradas_penalti_parado) +
+		n(stat.portero_paradas_hombre_menos);
 
+	// ✅ tiros recibidos adicionales (NO cuentan como paradas)
+	const lanzRecibidoFuera = n(stat.lanz_recibido_fuera);
+	const lanzRecibidoPalo = n(stat.portero_lanz_palo);
+
+	// ✅ inferioridad: fuera y bloqueo cuentan como TIRO recibido (pero NO como parada)
+	const hmFuera = n(stat.portero_inferioridad_fuera);
+	const hmBloqueo = n(stat.portero_inferioridad_bloqueo);
+
+	// ✅ goles recibidos (incluye gol_palo y goles_lanzamiento)
+	// Nota: portero_goles_hombre_menos ya contabiliza los goles en H-
 	const golesRecibidos =
-		(stat.portero_goles_boya_parada || 0) +
-		(stat.portero_goles_hombre_menos || 0) +
-		(stat.portero_goles_dir_mas_5m || 0) +
-		(stat.portero_goles_contraataque || 0) +
-		(stat.portero_goles_penalti || 0);
+		n(stat.portero_goles_boya_parada) +
+		n(stat.portero_goles_hombre_menos) +
+		n(stat.portero_goles_dir_mas_5m) +
+		n(stat.portero_goles_contraataque) +
+		n(stat.portero_goles_penalti) +
+		n(stat.portero_goles_lanzamiento) +
+		n(stat.portero_gol_palo);
 
-	// ✅ Si “lanz_recibido_fuera” son tiros del rival que se van fuera, deben contar como tiros recibidos totales:
-	const tirosRecibidos = paradas + golesRecibidos + lanzRecibidoFuera;
+	// ✅ tiros recibidos totales = TODO intento del rival:
+	// paradas + goles + fuera + palo + (H- fuera/bloqueo)
+	const tirosRecibidos = paradas + golesRecibidos + lanzRecibidoFuera + lanzRecibidoPalo + hmFuera + hmBloqueo;
+
+	// ✅ eficiencia (paradas/tiros recibidos)
 	const savePercentage = tirosRecibidos > 0 ? ((paradas / tirosRecibidos) * 100).toFixed(1) : "0.0";
 
 	return (

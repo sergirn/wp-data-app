@@ -384,9 +384,13 @@ export default function AnalyticsPage() {
 						{/* ===== BLOQUE 2: SITUACIONES DE JUEGO ===== */}
 						<section>
 							<h2 className="text-xl font-bold mb-4">Rendimiento en Superioridad e Inferioridad</h2>
-							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 md:grid-cols-2 auto-rows-fr items-stretch">
-								<ManAdvantageChartExpandable matches={matches || []} stats={allStats || []} players={players || []} />
-								<ManDownGoalkeeperChart matches={matches || []} stats={allStats || []} players={players || []} />
+							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-1 md:grid-cols-2 auto-rows-fr items-stretch">
+								<ChartSwipeCarousel
+									items={[
+										<ManAdvantageChartExpandable matches={matches || []} stats={allStats || []} players={players || []} />,
+										<ManDownGoalkeeperChart matches={matches || []} stats={allStats || []} players={players || []} />
+									]}
+								/>
 							</div>
 						</section>
 

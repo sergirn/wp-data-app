@@ -140,6 +140,8 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 				faltas_exp_20_boya: acc.faltas_exp_20_boya + (stat.faltas_exp_20_boya || 0),
 				faltas_penalti: acc.faltas_penalti + (stat.faltas_penalti || 0),
 				faltas_contrafaltas: acc.faltas_contrafaltas + (stat.faltas_contrafaltas || 0),
+				faltas_exp_simple: acc.faltas_exp_simple + (stat.faltas_exp_simple || 0),
+				exp_trans_def: acc.exp_trans_def + (stat.exp_trans_def || 0),
 
 				// Acciones
 				acciones_bloqueo: acc.acciones_bloqueo + (stat.acciones_bloqueo || 0),
@@ -178,6 +180,7 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 			faltas_exp_20_1c1: 0,
 			faltas_exp_20_boya: 0,
 			faltas_exp_simple: 0,
+			exp_trans_def: 0,
 			faltas_penalti: 0,
 			faltas_contrafaltas: 0,
 			acciones_bloqueo: 0,
@@ -207,7 +210,8 @@ function FieldPlayerSummary({ stats, matchCount, matchStats }: { stats: any; mat
 		stats.faltas_exp_20_boya +
 		(stats.faltas_exp_3_bruta || 0) +
 		(stats.faltas_exp_3_int || 0) +
-		(stats.faltas_exp_simple || 0);
+		(stats.faltas_exp_simple || 0) +
+		(stats.exp_trans_def || 0);
 
 	const totalRebotes = (stats.rebote_recup_hombre_mas || 0) + (stats.rebote_perd_hombre_mas || 0);
 	const totalPenaltis = stats.goles_penalti_anotado + stats.tiros_penalti_fallado;
@@ -315,6 +319,7 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
 				portero_gol: acc.portero_gol + (stat.portero_gol || 0),
 				portero_gol_superioridad: acc.portero_gol_superioridad + (stat.portero_gol_superioridad || 0),
 				portero_fallo_superioridad: acc.portero_fallo_superioridad + (stat.portero_fallo_superioridad || 0),
+				portero_gol_palo: acc.portero_gol_palo + (stat.portero_gol_palo || 0),
 
 				// Paradas
 				portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
@@ -344,6 +349,7 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
 			portero_gol: 0,
 			portero_gol_superioridad: 0,
 			portero_fallo_superioridad: 0,
+			portero_gol_palo: 0,
 
 			portero_paradas_totales: 0,
 			portero_tiros_parada_recup: 0,

@@ -87,6 +87,7 @@ export interface MatchStats {
 	// Legacy foul fields (keeping for backward compatibility)
 	faltas_exp_3_int: number;
 	faltas_exp_3_bruta: number;
+	exp_trans_def: number;
 
 	// Actions
 	acciones_bloqueo: number; // Blocks
@@ -124,6 +125,8 @@ export interface MatchStats {
 	portero_acciones_recuperacion: number; // Updated field name
 	portero_acciones_perdida_pos: number;
 	portero_acciones_exp_provocada: number; // Updated field name
+	portero_gol_palo: number;
+	portero_lanz_palo: number;
 
 	portero_goles_boya_parada: number;
 	portero_goles_lanzamiento: number;

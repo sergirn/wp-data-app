@@ -131,7 +131,8 @@ export function FieldPlayerMatchStatsClient({ matchStats, player }: { matchStats
 		{ label: 'Exp 20" Boya', key: "faltas_exp_20_boya" as const },
 		{ label: "Exp Simple", key: "faltas_exp_simple" as const },
 		{ label: "Penalti", key: "faltas_penalti" as const },
-		{ label: "Contrafaltas", key: "faltas_contrafaltas" as const }
+		{ label: "Contrafaltas", key: "faltas_contrafaltas" as const },
+		{ label: "Exp trans. def.", key: "exp_trans_def" as const }
 	];
 
 	const actionsItems = [
