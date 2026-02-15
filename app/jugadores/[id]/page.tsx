@@ -10,11 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
 
 import { StatsCharts6x6 } from "@/components/analytics-player/summary-components/StatsChartsPlayer";
-import { buildFieldPlayerKpis } from "@/lib/PlayerKpis";
-import { KpiGrid } from "@/components/analytics-player/summary-components/KpiGrid";
 import { StatsChartsGoalkeeper } from "@/components/analytics-goalkeeper/summary-components/StatsChartsGoalkeeper";
-import { buildGoalkeeperKpis } from "@/lib/GoalkeeperKpis";
-import { KpiGridGoalkeeper } from "@/components/analytics-goalkeeper/summary-components/KpiGridGoalkeeper";
 import { PlayerHeroHeader } from "./playerHeader";
 import { BlocksVsGoalsChart } from "@/components/analytics-player/evolution-component/BlocksVsGoalsChart";
 import { PerformanceEvolutionChart } from "@/components/analytics-player/evolution-component/PerformanceEvolutionChart";
@@ -25,6 +21,8 @@ import {
 import { FieldPlayerMatchStatsClient } from "./FieldPlayerMatchStatsClient";
 import { GoalkeeperMatchStatsClient } from "./GoalkeeperMatchStatsClient";
 import { ChartSwipeCarousel } from "@/components/chartCarousel";
+import { FieldPlayerTotalsCard } from "@/components/analytics-player/total-stats-player/PlayerTotals";
+import { GoalkeeperTotalsCard  } from "@/components/analytics-goalkeeper/total-stats-goalkeeper/GoalkeeperTotals";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -90,7 +88,12 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 				</TabsList>
 
 				<TabsContent value="resumen" className="space-y-6">
-					<FieldPlayerSummary stats={fieldPlayerStats} matchCount={matchCount} matchStats={matchStats} />
+					<FieldPlayerSummary
+						stats={fieldPlayerStats}
+						matchCount={matchCount}
+						matchStats={matchStats}
+						playerId={player.id}
+						/>
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
@@ -199,7 +202,7 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 	);
 }
 
-function FieldPlayerSummary({ stats, matchCount, matchStats }: { stats: any; matchCount: number; matchStats: MatchStatsWithMatch[] }) {
+function FieldPlayerSummary({ stats, matchCount, matchStats, playerId }: { stats: any; matchCount: number; matchStats: MatchStatsWithMatch[]; playerId: number; }) {
 	const golesPerMatch = matchCount > 0 ? (stats.goles_totales / matchCount).toFixed(1) : "0.0";
 	const tirosPerMatch = matchCount > 0 ? (stats.tiros_totales / matchCount).toFixed(1) : "0.0";
 	const eficienciaGeneral = stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0";
@@ -217,13 +220,6 @@ function FieldPlayerSummary({ stats, matchCount, matchStats }: { stats: any; mat
 	const totalPenaltis = stats.goles_penalti_anotado + stats.tiros_penalti_fallado;
 	const eficienciaPenaltis = totalPenaltis > 0 ? ((stats.goles_penalti_anotado / totalPenaltis) * 100).toFixed(1) : "0.0";
 
-	const items = buildFieldPlayerKpis({
-		matchCount,
-		stats,
-		eficienciaGeneral,
-		totalExclusiones,
-		golesPerMatch
-	});
 
 	const matches = Array.isArray(matchStats)
 		? matchStats
@@ -236,7 +232,8 @@ function FieldPlayerSummary({ stats, matchCount, matchStats }: { stats: any; mat
 
 	return (
 		<div className="space-y-6 mb-6">
-			<KpiGrid items={items} />
+			{/* <KpiGrid items={items} /> */}
+			<FieldPlayerTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} />
 			<StatsCharts6x6 matches={matches} stats={statsPerMatch} />
 		</div>
 	);
@@ -281,7 +278,12 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 				</TabsList>
 
 				<TabsContent value="resumen" className="space-y-6">
-					<GoalkeeperSummary stats={goalkeeperStats} matchCount={matchCount} matchStats={matchStats} />
+					<GoalkeeperSummary
+						stats={goalkeeperStats}
+						matchCount={matchCount}
+						matchStats={matchStats}
+						playerId={player.id}
+						/>
 				</TabsContent>
 
 				<TabsContent value="partidos" className="space-y-6">
@@ -368,7 +370,7 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
 	);
 }
 
-function GoalkeeperSummary({ stats, matchCount, matchStats }: { stats: any; matchCount: number; matchStats: MatchStatsWithMatch[] }) {
+function GoalkeeperSummary({ stats, matchCount, matchStats, playerId }: { stats: any; matchCount: number; matchStats: MatchStatsWithMatch[]; playerId: number;}) {
 	const totalShots = stats.portero_paradas_totales + stats.goles_recibidos_reales;
 	const savePercentage = totalShots > 0 ? ((stats.portero_paradas_totales / totalShots) * 100).toFixed(1) : "0.0";
 	const paradasPerMatch = matchCount > 0 ? (stats.portero_paradas_totales / matchCount).toFixed(1) : "0.0";
@@ -376,14 +378,6 @@ function GoalkeeperSummary({ stats, matchCount, matchStats }: { stats: any; matc
 
 	const penaltiesAttempted = stats.portero_paradas_penalti_parado + stats.portero_goles_penalti;
 	const penaltySaveRate = penaltiesAttempted > 0 ? ((stats.portero_paradas_penalti_parado / penaltiesAttempted) * 100).toFixed(1) : "0.0";
-
-	const items = buildGoalkeeperKpis({
-		matchCount,
-		stats,
-		savePercentage,
-		paradasPerMatch,
-		golesPerMatch
-	});
 
 	const matches = Array.isArray(matchStats)
 		? matchStats
@@ -396,7 +390,7 @@ function GoalkeeperSummary({ stats, matchCount, matchStats }: { stats: any; matc
 
 	return (
 		<div className="space-y-6 mb-6">
-			<KpiGridGoalkeeper items={items} className="xl:grid-cols-6" />
+			<GoalkeeperTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} />
 			<StatsChartsGoalkeeper matches={matches} stats={statsPerMatch} />
 		</div>
 	);

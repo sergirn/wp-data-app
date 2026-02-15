@@ -4,211 +4,349 @@ import { useMemo } from "react";
 import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { Badge } from "@/components/ui/badge";
-import { Target, TrendingUp, TrendingDown, Volleyball } from "lucide-react";
+import { Target, TrendingUp, TrendingDown } from "lucide-react";
 
 interface SuperioridadStats {
-	anotadas: number;
-	falladas: number;
-	eficiencia: number;
-	rebotesRecuperados?: number;
-	rebotesPerdidos?: number;
-	anotadas_palo?: number;
+  anotadas: number;
+  falladas: number;
+  eficiencia: number;
+  rebotesRecuperados?: number;
+  rebotesPerdidos?: number;
+  anotadas_palo?: number;
+}
+
+const COLOR_OK = "#3a6bbbc4";
+const COLOR_BAD = "#ac2020c7";
+
+function pct(numer: number, denom: number) {
+  if (!denom) return 0;
+  return Math.round((numer / denom) * 1000) / 10;
+}
+
+function clamp01(x: number) {
+  if (!Number.isFinite(x)) return 0;
+  return Math.max(0, Math.min(1, x));
+}
+
+function TinyPill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">
+      {children}
+    </span>
+  );
+}
+
+function Row({
+  label,
+  value,
+  subtle,
+}: {
+  label: string;
+  value: React.ReactNode;
+  subtle?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        "flex items-center justify-between gap-3",
+        "rounded-xl px-3 py-2 border transition-colors",
+        subtle ? "bg-muted/30 border-transparent" : "bg-card/40 border-border/60",
+      ].join(" ")}
+    >
+      <span className="text-sm text-muted-foreground min-w-0 truncate">{label}</span>
+      <span className="text-sm font-semibold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function MiniBar({
+  leftLabel,
+  leftValue,
+  rightLabel,
+  rightValue,
+}: {
+  leftLabel: string;
+  leftValue: number;
+  rightLabel: string;
+  rightValue: number;
+}) {
+  const total = leftValue + rightValue;
+  const leftPct = total > 0 ? leftValue / total : 0;
+  const rightPct = total > 0 ? rightValue / total : 0;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span className="truncate">
+          {leftLabel} · <span className="font-semibold text-foreground tabular-nums">{leftValue}</span>
+        </span>
+        <span className="truncate">
+          {rightLabel} · <span className="font-semibold text-foreground tabular-nums">{rightValue}</span>
+        </span>
+      </div>
+
+      <div className="h-2 w-full rounded-full bg-muted/40 overflow-hidden border">
+        <div
+          className="h-full"
+          style={{
+            width: `${clamp01(leftPct) * 100}%`,
+            background: COLOR_OK,
+          }}
+        />
+        {/* el resto lo “rellena” el fondo, pero le ponemos capa para que se note */}
+        <div
+          className="h-full -mt-2"
+          style={{
+            width: `${clamp01(rightPct) * 100}%`,
+            marginLeft: `${clamp01(leftPct) * 100}%`,
+            background: COLOR_BAD,
+            opacity: 0.9,
+          }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>{pct(leftValue, total)}%</span>
+        <span>{pct(rightValue, total)}%</span>
+      </div>
+    </div>
+  );
+}
+
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: any[];
+}) {
+  if (!active || !payload?.length) return null;
+
+  const p = payload[0];
+  const name = String(p?.name ?? "");
+  const value = Number(p?.value ?? 0);
+
+  return (
+    <div className="rounded-xl border bg-background/95 backdrop-blur px-3 py-2 shadow-sm">
+      <p className="text-xs text-muted-foreground">{name}</p>
+      <p className="text-sm font-semibold tabular-nums">{value}</p>
+    </div>
+  );
 }
 
 export function MatchSuperiorityChart({ stats }: { stats: SuperioridadStats }) {
-	const computed = useMemo(() => {
-		const anotadas = stats?.anotadas ?? 0;
-		const golDelPalo = stats?.anotadas_palo ?? 0;
-		const falladas = stats?.falladas ?? 0;
+  const computed = useMemo(() => {
+    const anotadas = stats?.anotadas ?? 0;
+    const golDelPalo = stats?.anotadas_palo ?? 0;
+    const falladas = stats?.falladas ?? 0;
 
-		// ✅ En H+: anotadas = goles + gol del palo
-		const anotadasTotal = anotadas + golDelPalo;
-		const intentos = anotadasTotal + falladas;
+    // ✅ En H+: anotadas = goles + gol del palo
+    const anotadasTotal = anotadas + golDelPalo;
+    const intentos = anotadasTotal + falladas;
 
-		const rebRec = stats?.rebotesRecuperados ?? 0;
-		const rebPer = stats?.rebotesPerdidos ?? 0;
-		const rebTotal = rebRec + rebPer;
-		const rebBalance = rebRec - rebPer;
+    const rebRec = stats?.rebotesRecuperados ?? 0;
+    const rebPer = stats?.rebotesPerdidos ?? 0;
+    const rebTotal = rebRec + rebPer;
+    const rebBalance = rebRec - rebPer;
 
-		// Eficiencia recalculada con gol del palo
-		const eficiencia = intentos > 0 ? Math.round((anotadasTotal / intentos) * 1000) / 10 : 0;
+    const eficiencia = intentos > 0 ? pct(anotadasTotal, intentos) : 0;
+    const pctAnotadas = intentos > 0 ? pct(anotadasTotal, intentos) : 0;
+    const pctFalladas = intentos > 0 ? pct(falladas, intentos) : 0;
 
-		const pctAnotadas = intentos > 0 ? Math.round((anotadasTotal / intentos) * 1000) / 10 : 0;
-		const pctFalladas = intentos > 0 ? Math.round((falladas / intentos) * 1000) / 10 : 0;
+    return {
+      anotadas,
+      golDelPalo,
+      anotadasTotal,
+      falladas,
+      intentos,
+      eficiencia,
+      pctAnotadas,
+      pctFalladas,
+      rebRec,
+      rebPer,
+      rebTotal,
+      rebBalance,
+    };
+  }, [stats]);
 
-		return {
-			anotadas,
-			golDelPalo,
-			anotadasTotal,
-			falladas,
-			intentos,
-			eficiencia,
-			pctAnotadas,
-			pctFalladas,
-			rebRec,
-			rebPer,
-			rebTotal,
-			rebBalance
-		};
-	}, [stats]);
+  if (!stats) return null;
 
-	if (!stats) return null;
+  return (
+    <ExpandableChartCard
+      title="Superioridad"
+      description={`${computed.anotadasTotal}/${computed.intentos} · ${computed.eficiencia}% · Reb ${computed.rebRec}/${computed.rebPer}`}
+      icon={<Target className="h-5 w-5" />}
+      className="from-transparent"
+      rightHeader={<span className="text-xs text-muted-foreground tabular-nums">{computed.eficiencia}%</span>}
+      renderChart={({ compact }) => (
+        <div className="w-full">
+          <div className={`grid gap-4 ${compact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
+            {/* Pie Chart */}
+            <div className={`${compact ? "h-[210px]" : "h-[300px]"} w-full`}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Anotadas", value: computed.anotadasTotal }, // ✅ incluye gol del palo
+                      { name: "Falladas", value: computed.falladas },
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={compact ? 82 : 105}
+                    dataKey="value"
+                  >
+                    <Cell fill={COLOR_OK} />
+                    <Cell fill={COLOR_BAD} />
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-	return (
-		<ExpandableChartCard
-			title="Superioridad"
-			description={`${computed.anotadasTotal}/${computed.intentos} · ${computed.eficiencia}% · Reb ${computed.rebRec}/${computed.rebPer}`}
-			icon={<Target className="h-5 w-5" />}
-			className="from-transparent"
-			rightHeader={<span className="text-xs text-muted-foreground">{computed.eficiencia}%</span>}
-			renderChart={({ compact }) => (
-				<div className="w-full">
-					<div className={`grid gap-4 ${compact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
-						{/* Pie Chart */}
-						<div className={`${compact ? "h-[220px]" : "h-[320px]"} w-full`}>
-							<ResponsiveContainer width="100%" height="100%">
-								<PieChart>
-									<Pie
-										data={[
-											{ name: "Anotadas", value: computed.anotadasTotal }, // ✅ incluye gol del palo
-											{ name: "Falladas", value: computed.falladas }
-										]}
-										cx="50%"
-										cy="50%"
-										labelLine={false}
-										outerRadius={compact ? 85 : 110}
-										dataKey="value"
-									>
-										<Cell fill="#3a6bbbc4" />
-										<Cell fill="#ac2020c7" />
-									</Pie>
-									<Tooltip />
-								</PieChart>
-							</ResponsiveContainer>
-						</div>
+            {/* Summary */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2 pt-1">
+                <TinyPill>
+                  Intentos <span className="ml-1 font-semibold text-foreground tabular-nums">{computed.intentos}</span>
+                </TinyPill>
+                <TinyPill>
+                  Anotadas <span className="ml-1 font-semibold text-foreground tabular-nums">{computed.anotadasTotal}</span>
+                </TinyPill>
+                <TinyPill>
+                  Falladas <span className="ml-1 font-semibold text-foreground tabular-nums">{computed.falladas}</span>
+                </TinyPill>
 
-						{/* Summary */}
-						<div className="space-y-2">
-							<div className="flex flex-wrap gap-2 pt-1">
-								<Badge variant="outline" className="bg-muted/30">
-									Intentos: <span className="ml-1 font-semibold text-foreground">{computed.intentos}</span>
-								</Badge>
-								<Badge variant="outline" className="bg-muted/30">
-									% Anotadas: <span className="ml-1 font-semibold text-foreground">{computed.pctAnotadas}%</span>
-								</Badge>
-								<Badge variant="outline" className="bg-muted/30">
-									% Falladas: <span className="ml-1 font-semibold text-foreground">{computed.pctFalladas}%</span>
-								</Badge>
+                {computed.golDelPalo > 0 ? (
+                  <TinyPill>
+                    Gol del palo <span className="ml-1 font-semibold text-foreground tabular-nums">{computed.golDelPalo}</span>
+                  </TinyPill>
+                ) : null}
+              </div>
 
-								{/* ✅ extra opcional: mostrar palo si hay */}
-								{computed.golDelPalo > 0 && (
-									<Badge variant="outline" className="bg-muted/30">
-										Gol del palo: <span className="ml-1 font-semibold text-foreground">{computed.golDelPalo}</span>
-									</Badge>
-								)}
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-			renderTable={() => (
-				<div className="rounded-xl border bg-card overflow-hidden">
-					{/* Header detalle */}
-					<div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/20 px-4 py-3">
-						<div className="min-w-0">
-							<p className="text-sm font-semibold">Detalle de Superioridad</p>
-							<p className="text-xs text-muted-foreground">
-								Eficiencia recalculada · {computed.anotadasTotal}/{computed.intentos} · {computed.eficiencia}%
-							</p>
-						</div>
+              {/* ✅ Mini bar: lectura rapidísima */}
+              <div className="rounded-2xl border bg-card/40 p-3">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Conversión</p>
+                <MiniBar
+                  leftLabel="Anotadas"
+                  leftValue={computed.anotadasTotal}
+                  rightLabel="Falladas"
+                  rightValue={computed.falladas}
+                />
+              </div>
 
-						<div className="flex flex-wrap gap-2">
-							<Badge variant="outline" className="bg-muted/30">
-								Rebotes: <span className="ml-1 font-semibold text-foreground">{computed.rebTotal}</span>
-							</Badge>
-							<Badge variant="outline" className="bg-muted/30">
-								Balance:{" "}
-								<span className="ml-1 font-semibold text-foreground">
-									{computed.rebBalance >= 0 ? "+" : ""}
-									{computed.rebBalance}
-								</span>
-							</Badge>
-						</div>
-					</div>
+              {/* ✅ Rebotes (compacto) */}
+              {(stats.rebotesRecuperados !== undefined || stats.rebotesPerdidos !== undefined) ? (
+                <div className="rounded-2xl border bg-card/40 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-muted-foreground">Rebotes</p>
+                    <Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
+                      Total {computed.rebTotal}
+                    </Badge>
+                  </div>
 
-					{/* Cards detalle */}
-					<div className="p-4 space-y-4">
-						{/* Fila 1 */}
-						<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-							<div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-200 dark:border-blue-800">
-								<div className="flex items-center gap-2">
-									<div className="p-2 rounded-full bg-blue-500/20">
-										<Volleyball className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-									</div>
-									<span className="text-sm font-medium text-blue-900 dark:text-blue-100">Goles anotados</span>
-								</div>
-								<span className="text-lg font-bold text-blue-700 dark:text-blue-300 tabular-nums">{computed.anotadasTotal}</span>
-							</div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Row label="Recuperados" value={computed.rebRec} />
+                    <Row label="Perdidos" value={computed.rebPer} />
+                    <div className="col-span-2">
+                      <Row
+                        label="Balance"
+                        value={
+                          <span className="tabular-nums">
+                            {computed.rebBalance >= 0 ? "+" : ""}
+                            {computed.rebBalance}
+                          </span>
+                        }
+                        subtle
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+      renderTable={() => (
+        <div className="rounded-2xl border bg-card/40 overflow-hidden">
+          {/* Header detalle */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/20 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Detalle de Superioridad</p>
+              <p className="text-xs text-muted-foreground">
+                {computed.anotadasTotal}/{computed.intentos} · {computed.eficiencia}% · (incluye gol del palo)
+              </p>
+            </div>
 
-							<div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-red-500/10 to-red-500/5 border border-red-200 dark:border-red-800">
-								<div className="flex items-center gap-2">
-									<div className="p-2 rounded-full bg-red-500/20">
-										<TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-									</div>
-									<span className="text-sm font-medium text-red-900 dark:text-red-100">Fallos</span>
-								</div>
-								<span className="text-lg font-bold text-red-700 dark:text-red-300 tabular-nums">{computed.falladas}</span>
-							</div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
+                % Anotadas {computed.pctAnotadas}%
+              </Badge>
+              <Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
+                % Falladas {computed.pctFalladas}%
+              </Badge>
+            </div>
+          </div>
 
-							<div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-200 dark:border-emerald-800">
-								<div className="flex items-center gap-2">
-									<div className="p-2 rounded-full bg-emerald-500/20">
-										<TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-									</div>
-									<span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">Eficiencia</span>
-								</div>
-								<span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{computed.eficiencia}%</span>
-							</div>
-						</div>
+          {/* Body detalle (filas compactas, estilo "totals") */}
+          <div className="p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Row label="Intentos" value={computed.intentos} />
+              <Row label="Eficiencia" value={`${computed.eficiencia}%`} />
 
-						{/* Rebotes (si existen campos) */}
-						{(stats.rebotesRecuperados !== undefined || stats.rebotesPerdidos !== undefined) && (
-							<>
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-									<div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-200 dark:border-emerald-800">
-										<div className="flex items-center gap-2">
-											<div className="p-2 rounded-full bg-emerald-500/20">
-												<TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-											</div>
-											<span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">Rebotes recuperados</span>
-										</div>
-										<span className="text-lg font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">
-											{computed.rebRec}
-										</span>
-									</div>
+              <Row label="Goles anotados (sin palo)" value={computed.anotadas} subtle />
+              <Row label="Gol del palo" value={computed.golDelPalo} subtle />
 
-									<div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-200 dark:border-orange-800">
-										<div className="flex items-center gap-2">
-											<div className="p-2 rounded-full bg-orange-500/20">
-												<TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-											</div>
-											<span className="text-sm font-medium text-orange-900 dark:text-orange-100">Rebotes perdidos</span>
-										</div>
-										<span className="text-lg font-bold text-orange-700 dark:text-orange-300 tabular-nums">{computed.rebPer}</span>
-									</div>
-								</div>
+              <Row label="Anotadas (total)" value={computed.anotadasTotal} />
+              <Row label="Falladas" value={computed.falladas} />
+            </div>
 
-								<div className="pt-2 border-t">
-									<div className="flex items-center justify-between p-3 rounded-lg bg-muted/40">
-										<span className="text-sm font-semibold text-muted-foreground">Total rebotes</span>
-										<span className="text-lg font-bold tabular-nums">{computed.rebTotal}</span>
-									</div>
-								</div>
-							</>
-						)}
-					</div>
-				</div>
-			)}
-		/>
-	);
+            {(stats.rebotesRecuperados !== undefined || stats.rebotesPerdidos !== undefined) ? (
+              <div className="rounded-2xl border bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Rebotes</p>
+                  <Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
+                    Total {computed.rebTotal}
+                  </Badge>
+                </div>
+
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Row label="Recuperados" value={computed.rebRec} />
+                  <Row label="Perdidos" value={computed.rebPer} />
+                  <div className="sm:col-span-2">
+                    <Row
+                      label="Balance"
+                      value={
+                        <span className="tabular-nums">
+                          {computed.rebBalance >= 0 ? "+" : ""}
+                          {computed.rebBalance}
+                        </span>
+                      }
+                      subtle
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* micro insight */}
+            <div className="rounded-2xl border bg-muted/10 p-3">
+              <div className="flex items-center gap-2">
+                {computed.eficiencia >= 50 ? (
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {computed.eficiencia >= 50
+                    ? "Superioridad efectiva: buena conversión en H+."
+                    : "Superioridad mejorable: revisa selección de tiro y rebote tras fallo."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    />
+  );
 }

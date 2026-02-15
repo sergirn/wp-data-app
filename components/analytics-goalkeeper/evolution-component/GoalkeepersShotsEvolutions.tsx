@@ -955,31 +955,64 @@ export type GoalkeeperShotForChart = {
 };
 
 export function GoalkeeperShotsGoalChartSimple({
-	shots,
-	goalkeeperPlayerId,
-	matchId,
-	className
+  shots,
+  goalkeeperPlayerId,
+  matchId,
+  players,
+  className
 }: {
-	shots: GoalkeeperShotForChart[];
-	goalkeeperPlayerId: number;
-	matchId?: number;
-	className?: string;
+  shots: GoalkeeperShotForChart[]
+  goalkeeperPlayerId?: number | null 
+  matchId?: number
+  className?: string
+  players?: Array<{ id: number; name?: string | null; full_name?: string | null }>
 }) {
-	const filtered: UnifiedShot[] = React.useMemo(() => {
-		const arr = Array.isArray(shots) ? shots : [];
-		return arr
-			.filter((s) => {
-				if (Number(s.goalkeeper_player_id) !== Number(goalkeeperPlayerId)) return false;
-				if (typeof matchId === "number" && Number(s.match_id) !== Number(matchId)) return false;
-				return true;
-			})
-			.map((s) => ({
-				id: `${s.match_id}-${s.goalkeeper_player_id}-${String(s.id)}`,
-				x: Number(s.x),
-				y: Number(s.y),
-				result: s.result
-			}));
-	}, [shots, goalkeeperPlayerId, matchId]);
+    const playersById = React.useMemo(() => {
+    const m = new Map<number, string>()
+    ;(players ?? []).forEach((p) => {
+      const label = (p.full_name ?? p.name ?? "").trim()
+      if (label) m.set(Number(p.id), label)
+    })
+    return m
+  }, [players])
 
-	return <GoalkeeperShotsChartCore shots={filtered} className={className} enableJornadaFilter={false} enableGoalkeeperFilter={false} />;
+  const filtered: UnifiedShot[] = React.useMemo(() => {
+    const arr = Array.isArray(shots) ? shots : []
+    return arr
+      .filter((s) => {
+        if (goalkeeperPlayerId != null && Number(s.goalkeeper_player_id) !== Number(goalkeeperPlayerId)) return false
+        if (typeof matchId === "number" && Number(s.match_id) !== Number(matchId)) return false
+        return true
+      })
+      .map((s) => {
+        const gkIdNum = Number(s.goalkeeper_player_id)
+        const gkName =
+          playersById.get(gkIdNum) ?? `Portero ${gkIdNum}` // fallback bonito
+
+        return {
+          id: `${s.match_id}-${s.goalkeeper_player_id}-${String(s.id)}`,
+          x: Number(s.x),
+          y: Number(s.y),
+          result: s.result,
+          goalkeeperPlayerId: String(s.goalkeeper_player_id),
+          goalkeeperName: gkName, // ✅ AQUÍ
+        }
+      })
+  }, [shots, goalkeeperPlayerId, matchId, playersById])
+
+  const hasManyGoalkeepers = React.useMemo(() => {
+    const set = new Set(filtered.map((s) => s.goalkeeperPlayerId ?? ""))
+    set.delete("")
+    return set.size > 1
+  }, [filtered])
+
+  return (
+    <GoalkeeperShotsChartCore
+      shots={filtered}
+      className={className}
+      enableJornadaFilter={false}
+      enableGoalkeeperFilter={hasManyGoalkeepers} 
+    />
+  )
 }
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,337 +17,295 @@ import type { Profile } from "@/lib/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
 
 import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 
 interface NavigationProps {
-	profile?: Profile | null;
+  profile?: Profile | null;
 }
 
 const NAV_LINKS = [
-	{ href: "/", label: "Inicio", icon: Home },
-	{ href: "/nuevo-partido", label: "Nuevo Partido", icon: PlusCircle, requiresEdit: true },
-	{ href: "/partidos", label: "Partidos", icon: Calendar },
-	{ href: "/jugadores", label: "Jugadores", icon: UsersRound },
-	{ href: "/analytics", label: "Analytics", icon: BarChart3 }
+  { href: "/", label: "Inicio", icon: Home },
+  { href: "/nuevo-partido", label: "Nuevo Partido", icon: PlusCircle, requiresEdit: true },
+  { href: "/partidos", label: "Partidos", icon: Calendar },
+  { href: "/jugadores", label: "Jugadores", icon: UsersRound },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 }
 ];
 
-const DIRTY_KEY = "newMatchDirty"; // ✅ lo setea /nuevo-partido
-
-function getDirtyFlag() {
-	if (typeof window === "undefined") return false;
-	return window.sessionStorage.getItem(DIRTY_KEY) === "1";
-}
-
-function clearDirtyFlag() {
-	if (typeof window === "undefined") return;
-	window.sessionStorage.removeItem(DIRTY_KEY);
-}
-
 export const Navigation = memo(function Navigation({ profile }: NavigationProps) {
-	const pathname = usePathname();
-	const router = useRouter();
-	const { currentClub } = useClub();
+  const pathname = usePathname();
+  const router = useRouter();
+  const { currentClub } = useClub();
 
-	const [openSheet, setOpenSheet] = useState(false);
+  const [openSheet, setOpenSheet] = useState(false);
 
-	// ✅ confirm modal
-	const [confirmOpen, setConfirmOpen] = useState(false);
-	const [pendingHref, setPendingHref] = useState<string | null>(null);
+  // ✅ confirm modal
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
 
-	const canEdit = profile?.role === "admin" || profile?.role === "coach";
-	const isActive = (href: string) => pathname === href;
+  const canEdit = profile?.role === "admin" || profile?.role === "coach";
+  const isActive = (href: string) => pathname === href;
 
-	// ✅ solo protegemos cuando estás en /nuevo-partido
-	const isNewMatchPage = pathname === "/nuevo-partido";
+  // ✅ SOLO por ruta: SIEMPRE que estés en /nuevo-partido, confirmas al salir
+  const isNewMatchPage = pathname === "/nuevo-partido";
 
-	// ✅ mantenemos un “dirty” reactivo (por si lo cambias desde /nuevo-partido)
-	const [isDirty, setIsDirty] = useState(false);
+  const guardedNavigate = (href: string) => {
+    // si es la misma ruta, no hacemos nada
+    if (href === pathname) return;
 
-	useEffect(() => {
-		if (!isNewMatchPage) {
-			setIsDirty(false);
-			return;
-		}
+    // ✅ si estás en /nuevo-partido y quieres ir a otra ruta => modal SIEMPRE
+    if (isNewMatchPage && href !== "/nuevo-partido") {
+      setPendingHref(href);
+      setConfirmOpen(true);
+      return;
+    }
 
-		// inicial
-		setIsDirty(getDirtyFlag());
+    // resto: navegación normal
+    setOpenSheet(false);
+    router.push(href);
+  };
 
-		// polling ligero (simple y robusto)
-		const t = window.setInterval(() => setIsDirty(getDirtyFlag()), 400);
-		return () => window.clearInterval(t);
-	}, [isNewMatchPage]);
+  const handleLogout = async () => {
+    // ✅ logout también pide confirmación si estás en /nuevo-partido
+    if (isNewMatchPage) {
+      setPendingHref("__logout__");
+      setConfirmOpen(true);
+      return;
+    }
 
-	const guardedNavigate = (href: string) => {
-		// si no estás en nuevo partido o no hay cambios: navega normal
-		if (!isNewMatchPage || !isDirty) {
-			setOpenSheet(false);
-			router.push(href);
-			return;
-		}
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setOpenSheet(false);
+    router.replace("/auth/login");
+  };
 
-		// si estás en nuevo partido y hay cambios: pide confirmación
-		setPendingHref(href);
-		setConfirmOpen(true);
-	};
+  const confirmLeave = async () => {
+    const href = pendingHref;
 
-	const handleLogout = async () => {
-		// logout también debería protegerse si estás en /nuevo-partido con cambios
-		if (isNewMatchPage && isDirty) {
-			setPendingHref("__logout__");
-			setConfirmOpen(true);
-			return;
-		}
+    setConfirmOpen(false);
+    setOpenSheet(false);
+    setPendingHref(null);
 
-		const supabase = createClient();
-		await supabase.auth.signOut();
-		setOpenSheet(false);
-		router.replace("/auth/login");
-	};
+    if (!href) return;
 
-	const confirmLeave = async () => {
-		const href = pendingHref;
-		setConfirmOpen(false);
-		setOpenSheet(false);
+    if (href === "__logout__") {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.replace("/auth/login");
+      return;
+    }
 
-		// ✅ confirma: limpiamos el dirty flag (para no volver a preguntar)
-		clearDirtyFlag();
-		setIsDirty(false);
+    router.push(href);
+  };
 
-		if (!href) return;
+  const cancelLeave = () => {
+    setConfirmOpen(false);
+    setPendingHref(null);
+  };
 
-		if (href === "__logout__") {
-			const supabase = createClient();
-			await supabase.auth.signOut();
-			router.replace("/auth/login");
-			return;
-		}
+  // helper para interceptar clicks en Link
+  const onNavClick = (href: string) => (e: React.MouseEvent) => {
+    // permite abrir en nueva pestaña con cmd/ctrl/click o botón central
+    if (e.metaKey || e.ctrlKey || e.button === 1) return;
+    e.preventDefault();
+    guardedNavigate(href);
+  };
 
-		router.push(href);
-	};
+  return (
+    <>
+      <header className="sticky top-0 z-50 border-b bg-background/70 backdrop-blur-xl">
+        <div className="container mx-auto px-4">
+          <div className="flex h-14 items-center justify-between">
+            {/* Logo (también protegido si estás en nuevo partido) */}
+            <Link href="/" onClick={onNavClick("/")} className="flex items-center gap-3">
+              <div className="relative h-9 w-9 rounded-full overflow-hidden border shadow-sm">
+                <Image src={currentClub?.logo_url || "/none"} alt="Club Logo" fill className="object-cover" priority />
+              </div>
+              <span className="hidden sm:block font-semibold tracking-tight">
+                {currentClub?.short_name || "WaterpoloStats"}
+              </span>
+            </Link>
 
-	const cancelLeave = () => {
-		setConfirmOpen(false);
-		setPendingHref(null);
-	};
+            {/* Desktop nav */}
+            <nav className="hidden lg:flex items-center gap-1">
+              {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) => {
+                if (requiresEdit && !canEdit) return null;
+                const active = isActive(href);
 
-	// helper para interceptar clicks en Link
-	const onNavClick = (href: string) => (e: React.MouseEvent) => {
-		// permite abrir en nueva pestaña con cmd/ctrl/click o botón central
-		if (e.metaKey || e.ctrlKey || e.button === 1) return;
-		e.preventDefault();
-		guardedNavigate(href);
-	};
+                return (
+                  <Button
+                    key={href}
+                    asChild
+                    size="sm"
+                    className={[
+                      "group relative gap-2 rounded-full px-3",
+                      "bg-transparent hover:bg-transparent",
+                      active ? "text-blue-600 dark:text-blue-400" : "text-foreground"
+                    ].join(" ")}
+                  >
+                    <Link href={href} onClick={onNavClick(href)} className="relative flex items-center gap-2">
+                      <Icon className={["h-4 w-4", active ? "text-blue-600 dark:text-blue-400" : ""].join(" ")} />
+                      <span className="hidden xl:inline">{label}</span>
 
-	return (
-		<>
-			<header className="sticky top-0 z-50 border-b bg-background/70 backdrop-blur-xl">
-				<div className="container mx-auto px-4">
-					<div className="flex h-14 items-center justify-between">
-						{/* Logo */}
-						<Link href="/" className="flex items-center gap-3">
-							<div className="relative h-9 w-9 rounded-full overflow-hidden border shadow-sm">
-								<Image src={currentClub?.logo_url || "/none"} alt="Club Logo" fill className="object-cover" priority />
-							</div>
-							<span className="hidden sm:block font-semibold tracking-tight">{currentClub?.short_name || "WaterpoloStats"}</span>
-						</Link>
+                      <span
+                        className={[
+                          "pointer-events-none absolute left-2 right-2 -bottom-1 h-[3px] rounded-full",
+                          "transition-opacity duration-200",
+                          active
+                            ? "bg-blue-600 dark:bg-blue-400 opacity-100"
+                            : "bg-blue-600/40 dark:bg-blue-400/40 opacity-0 group-hover:opacity-100"
+                        ].join(" ")}
+                      />
+                    </Link>
+                  </Button>
+                );
+              })}
 
-						{/* Desktop nav */}
-						<nav className="hidden lg:flex items-center gap-1">
-							{NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) => {
-								if (requiresEdit && !canEdit) return null;
-								const active = isActive(href);
+              {profile?.is_super_admin &&
+                (() => {
+                  const active = pathname.startsWith("/admin");
+                  return (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="transparent"
+                      className={[
+                        "group relative gap-2 rounded-full px-3",
+                        "bg-transparent hover:bg-transparent",
+                        active ? "text-blue-600 dark:text-blue-400" : "text-foreground"
+                      ].join(" ")}
+                    >
+                      <Link href="/admin" onClick={onNavClick("/admin")} className="relative flex items-center gap-2">
+                        <Shield className={["h-4 w-4", active ? "text-blue-600 dark:text-blue-400" : ""].join(" ")} />
+                        <span className="hidden xl:inline">Admin</span>
 
-								return (
-									<Button
-										key={href}
-										asChild
-										size="sm"
-										className={[
-											"group relative gap-2 rounded-full px-3",
-											"bg-transparent hover:bg-transparent",
-											active ? "text-blue-600 dark:text-blue-400" : "text-foreground"
-										].join(" ")}
-									>
-										<Link href={href} onClick={onNavClick(href)} className="relative flex items-center gap-2">
-											<Icon className={["h-4 w-4", active ? "text-blue-600 dark:text-blue-400" : ""].join(" ")} />
-											<span className="hidden xl:inline">{label}</span>
+                        <span
+                          className={[
+                            "pointer-events-none absolute left-2 right-2 -bottom-1 h-[3px] rounded-full",
+                            "transition-opacity duration-200",
+                            active
+                              ? "bg-blue-600 dark:bg-blue-400 opacity-100"
+                              : "bg-blue-600/40 dark:bg-blue-400/40 opacity-0 group-hover:opacity-100"
+                          ].join(" ")}
+                        />
+                      </Link>
+                    </Button>
+                  );
+                })()}
+            </nav>
 
-											<span
-												className={[
-													"pointer-events-none absolute left-2 right-2 -bottom-1 h-[3px] rounded-full",
-													"transition-opacity duration-200",
-													active
-														? "bg-blue-600 dark:bg-blue-400 opacity-100"
-														: "bg-blue-600/40 dark:bg-blue-400/40 opacity-0 group-hover:opacity-100"
-												].join(" ")}
-											/>
-										</Link>
-									</Button>
-								);
-							})}
+            {/* Right actions */}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <ClubSelector className="hidden md:flex" />
+              {profile && <UserMenu profile={profile} />}
 
-							{profile?.is_super_admin &&
-								(() => {
-									const active = pathname.startsWith("/admin");
-									return (
-										<Button
-											asChild
-											size="sm"
-											variant="transparent"
-											className={[
-												"group relative gap-2 rounded-full px-3",
-												"bg-transparent hover:bg-transparent",
-												active ? "text-blue-600 dark:text-blue-400" : "text-foreground"
-											].join(" ")}
-										>
-											<Link href="/admin" onClick={onNavClick("/admin")} className="relative flex items-center gap-2">
-												<Shield className={["h-4 w-4", active ? "text-blue-600 dark:text-blue-400" : ""].join(" ")} />
-												<span className="hidden xl:inline">Admin</span>
+              {/* Sheet SOLO tablet / desktop pequeño (no móvil) */}
+              <Sheet open={openSheet} onOpenChange={setOpenSheet}>
+                <SheetTrigger asChild>
+                  <Button size="icon" variant="ghost" className="hidden md:inline-flex lg:hidden">
+                    <Menu />
+                  </Button>
+                </SheetTrigger>
 
-												<span
-													className={[
-														"pointer-events-none absolute left-2 right-2 -bottom-1 h-[3px] rounded-full",
-														"transition-opacity duration-200",
-														active
-															? "bg-blue-600 dark:bg-blue-400 opacity-100"
-															: "bg-blue-600/40 dark:bg-blue-400/40 opacity-0 group-hover:opacity-100"
-													].join(" ")}
-												/>
-											</Link>
-										</Button>
-									);
-								})()}
-						</nav>
+                <SheetContent side="right" className="w-[320px]">
+                  <div className="flex flex-col gap-6 mt-6">
+                    {profile && (
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
+                        <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                          {profile.full_name?.[0] ?? "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate">{profile.full_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+                        </div>
+                      </div>
+                    )}
 
-						{/* Right actions */}
-						<div className="flex items-center gap-2">
-							<ThemeToggle />
-							<ClubSelector className="hidden md:flex" />
-							{profile && <UserMenu profile={profile} />}
+                    <div className="space-y-1">
+                      {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) => {
+                        if (requiresEdit && !canEdit) return null;
+                        const active = isActive(href);
 
-							{/* Sheet SOLO tablet / desktop pequeño (no móvil) */}
-							<Sheet open={openSheet} onOpenChange={setOpenSheet}>
-								<SheetTrigger asChild>
-									<Button size="icon" variant="ghost" className="hidden md:inline-flex lg:hidden">
-										<Menu />
-									</Button>
-								</SheetTrigger>
+                        return (
+                          <Button
+                            key={href}
+                            asChild
+                            variant="ghost"
+                            className={[
+                              "group w-full justify-between rounded-lg relative",
+                              "bg-transparent hover:bg-transparent",
+                              active ? "text-blue-600 dark:text-blue-400" : ""
+                            ].join(" ")}
+                          >
+                            <Link
+                              href={href}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                guardedNavigate(href);
+                              }}
+                              className="relative flex w-full items-center justify-between"
+                            >
+                              <span className="flex items-center gap-3">
+                                <Icon
+                                  className={[
+                                    "h-4 w-4",
+                                    active ? "text-blue-600 dark:text-blue-400" : "text-foreground"
+                                  ].join(" ")}
+                                />
+                                {label}
+                              </span>
 
-								<SheetContent side="right" className="w-[320px]">
-									<div className="flex flex-col gap-6 mt-6">
-										{profile && (
-											<div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
-												<div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-													{profile.full_name?.[0] ?? "U"}
-												</div>
-												<div className="min-w-0">
-													<p className="text-sm font-semibold truncate">{profile.full_name}</p>
-													<p className="text-xs text-muted-foreground truncate">{profile.email}</p>
-												</div>
-											</div>
-										)}
+                              <ChevronRight className="h-4 w-4 opacity-50" />
+                            </Link>
+                          </Button>
+                        );
+                      })}
 
-										<div className="space-y-1">
-											{NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) => {
-												if (requiresEdit && !canEdit) return null;
-												const active = isActive(href);
+                      {/* si tienes logout en el sheet */}
+                      {/* <Button variant="destructive" onClick={handleLogout}>Cerrar sesión</Button> */}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+        </div>
+      </header>
 
-												return (
-													<Button
-														key={href}
-														asChild
-														variant="ghost"
-														className={[
-															"group w-full justify-between rounded-lg relative",
-															"bg-transparent hover:bg-transparent",
-															active ? "text-blue-600 dark:text-blue-400" : ""
-														].join(" ")}
-														// ojo: este onClick se aplica al child por asChild,
-														// pero igual interceptamos en el Link
-													>
-														<Link
-															href={href}
-															onClick={(e) => {
-																e.preventDefault();
-																guardedNavigate(href);
-															}}
-															className="relative flex w-full items-center justify-between"
-														>
-															<span className="flex items-center gap-3">
-																<Icon
-																	className={[
-																		"h-4 w-4",
-																		active ? "text-blue-600 dark:text-blue-400" : "text-foreground"
-																	].join(" ")}
-																/>
-																{label}
-															</span>
+      {/* ✅ Bottom nav protegido igual */}
+      <BottomNavigation canEdit={canEdit} onNavigate={guardedNavigate} />
 
-															<ChevronRight className="h-4 w-4 opacity-50" />
+      {/* ✅ Modal confirmación */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Salir de Nuevo Partido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Si sales ahora, perderás el formulario actual.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-															<span
-																className={[
-																	"pointer-events-none absolute left-2 right-2 -bottom-1 h-[3px] rounded-full",
-																	"transition-opacity duration-200",
-																	active
-																		? "bg-blue-600 dark:bg-blue-400 opacity-100"
-																		: "bg-blue-600/35 dark:bg-blue-400/35 opacity-0 group-hover:opacity-100"
-																].join(" ")}
-															/>
-														</Link>
-													</Button>
-												);
-											})}
-
-											{/* Ejemplo: si tienes logout en el sheet en algún sitio, llámalo con handleLogout() */}
-											{/* <Button variant="destructive" onClick={handleLogout}>Cerrar sesión</Button> */}
-										</div>
-									</div>
-								</SheetContent>
-							</Sheet>
-						</div>
-					</div>
-				</div>
-			</header>
-
-			{/* ✅ OJO: para que también salte en bottom nav, tienes que aplicar la misma lógica allí.
-          Como no me has pegado BottomNavigation, lo ideal es pasarle un callback:
-          <BottomNavigation canEdit={canEdit} onNavigate={guardedNavigate} />
-          y dentro de BottomNavigation usar onNavigate(href) en vez de Link directo.
-      */}
-			<BottomNavigation canEdit={canEdit} onNavigate={guardedNavigate} />
-
-			{/* ✅ Modal confirmación */}
-			<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>¿Salir sin guardar?</AlertDialogTitle>
-						<AlertDialogDescription>
-							Tienes cambios sin guardar en <strong>Nuevo Partido</strong>. Si sales ahora, puedes perder los datos.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-
-					<AlertDialogFooter>
-						<AlertDialogCancel onClick={cancelLeave}>Cancelar</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={(e) => {
-								e.preventDefault();
-								confirmLeave();
-							}}
-						>
-							Salir igualmente
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-		</>
-	);
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelLeave}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmLeave();
+              }}
+            >
+              Salir igualmente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 });

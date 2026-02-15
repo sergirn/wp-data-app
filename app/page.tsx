@@ -190,7 +190,7 @@ export default function HomePage() {
 		const recentForm = previewMatches.map((m) => getOutcome(m).status);
 
 		// Desktop/tablet preview
-		const previewPlayers = players.slice(0, 16);
+		const previewPlayers = players.slice(0, 22);
 
 		// Mobile: show first 6 by default (accordion reveals the rest)
 		const mobileFirst = players.slice(0, 8);
@@ -238,10 +238,6 @@ export default function HomePage() {
 						<div className="relative">
 							<div className="flex items-center justify-between gap-4">
 								<div className="min-w-0">
-									<Badge variant="secondary" className="rounded-full">
-										<TrendingUp className="mr-1 h-3 w-3" />
-										Inicio
-									</Badge>
 									<h1 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight truncate">
 										{currentClub?.name || "Mi Club"}
 									</h1>
@@ -491,7 +487,7 @@ function PlayerPhotoGridResponsive({ players }: { players: PlayerRow[] }) {
         sm:grid-cols-5
         lg:grid-cols-7
         xl:grid-cols-8
-        2xl:grid-cols-10
+        2xl:grid-cols-9
       "
 		>
 			{players.map((player) => (
@@ -524,11 +520,10 @@ function PlayerPhotoGridResponsive({ players }: { players: PlayerRow[] }) {
 							#{player.number}
 						</div>
 
-						<div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/95 via-background/20 to-transparent dark:from-black/70" />
+						<div className="absolute inset-x-0 bottom-0 h-18 bg-gradient-to-t from-background/95 via-background/70 to-transparent dark:from-black/70" />
 
 						<div className="absolute inset-x-0 bottom-0 p-3">
 							<p className="text-sm font-semibold leading-tight line-clamp-2">{player.name}</p>
-							<p className="mt-1 text-[11px] text-muted-foreground tabular-nums">#{player.number}</p>
 						</div>
 					</div>
 				</Link>

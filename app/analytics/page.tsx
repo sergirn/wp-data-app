@@ -2,10 +2,6 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SeasonSelector } from "@/components/season-selector";
-import { MatchResultsChart } from "@/components/match-results-chart";
-import { ExportButtons } from "@/components/export-buttons";
-import { prepareMatchesForExport, preparePlayersForExport } from "@/lib/export-utils";
 import { GoalDifferenceEvolutionChart } from "@/components/goal-difference-evolution-chart";
 import { useClub } from "@/lib/club-context";
 import { useEffect, useState, useMemo } from "react";
