@@ -121,6 +121,7 @@ export default function AnalyticsPage() {
 					const faltas_exp_3_int = stats.reduce((sum, s) => sum + (s.faltas_exp_3_int || 0), 0);
 					const faltas_exp_20_1c1 = stats.reduce((sum, s) => sum + (s.faltas_exp_20_1c1 || 0), 0);
 					const faltas_exp_20_boya = stats.reduce((sum, s) => sum + (s.faltas_exp_20_boya || 0), 0);
+					const faltas_penalti = stats.reduce((sum, s) => sum + (s.faltas_penalti || 0), 0);
 
 					// Penaltis
 					const goles_penalti_anotado = stats.reduce((sum, s) => sum + (s.goles_penalti_anotado || 0), 0);
@@ -150,6 +151,7 @@ export default function AnalyticsPage() {
 						faltas_exp_3_int,
 						faltas_exp_20_1c1,
 						faltas_exp_20_boya,
+						faltas_penalti,
 						goles_penalti_anotado,
 						tiros_penalti_fallado,
 						totalGoles: goles_totales,

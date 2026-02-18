@@ -26,7 +26,8 @@ export function MostExpelledFeaturedCard({ playerStats }: MostExpelledFeaturedCa
 					toNum(p.faltas_exp_20_1c1) +
 					toNum(p.faltas_exp_20_boya) +
 					toNum(p.exp_trans_def) +
-					toNum(p.faltas_exp_simple)
+					toNum(p.faltas_exp_simple) +
+					toNum(p.faltas_penalti)
 			}))
 			.filter((p) => toNum(p._exp) > 0)
 			.sort((a, b) => toNum(b._exp) - toNum(a._exp))
@@ -53,10 +54,11 @@ export function MostExpelledFeaturedCard({ playerStats }: MostExpelledFeaturedCa
 							gradientColors="from-rose-500 to-red-500"
 							details={[
 								// 👇 aquí se ve el total en vez de "bruta"
-								{ label: "Total expulsiones", value: toNum(top._exp) },
+								// { label: "Total expulsiones", value: toNum(top._exp) },
 								{ label: "Exp 3 int", value: toNum(top.faltas_exp_3_int) },
 								{ label: 'Exp 20" 1c1', value: toNum(top.faltas_exp_20_1c1) },
-								{ label: 'Exp 20" boya', value: toNum(top.faltas_exp_20_boya) }
+								{ label: 'Exp 20" boya', value: toNum(top.faltas_exp_20_boya) },
+								{ label: "Penaltis provocados", value: toNum(top.faltas_penalti) }
 							]}
 						/>
 
