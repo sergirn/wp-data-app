@@ -22,7 +22,7 @@ import { FieldPlayerMatchStatsClient } from "./FieldPlayerMatchStatsClient";
 import { GoalkeeperMatchStatsClient } from "./GoalkeeperMatchStatsClient";
 import { ChartSwipeCarousel } from "@/components/chartCarousel";
 import { FieldPlayerTotalsCard } from "@/components/analytics-player/total-stats-player/PlayerTotals";
-import { GoalkeeperTotalsCard  } from "@/components/analytics-goalkeeper/total-stats-goalkeeper/GoalkeeperTotals";
+import { GoalkeeperTotalsCard } from "@/components/analytics-goalkeeper/total-stats-goalkeeper/GoalkeeperTotals";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -88,12 +88,7 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 				</TabsList>
 
 				<TabsContent value="resumen" className="space-y-6">
-					<FieldPlayerSummary
-						stats={fieldPlayerStats}
-						matchCount={matchCount}
-						matchStats={matchStats}
-						playerId={player.id}
-						/>
+					<FieldPlayerSummary stats={fieldPlayerStats} matchCount={matchCount} matchStats={matchStats} playerId={player.id} />
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
@@ -202,7 +197,17 @@ function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
 	);
 }
 
-function FieldPlayerSummary({ stats, matchCount, matchStats, playerId }: { stats: any; matchCount: number; matchStats: MatchStatsWithMatch[]; playerId: number; }) {
+function FieldPlayerSummary({
+	stats,
+	matchCount,
+	matchStats,
+	playerId
+}: {
+	stats: any;
+	matchCount: number;
+	matchStats: MatchStatsWithMatch[];
+	playerId: number;
+}) {
 	const golesPerMatch = matchCount > 0 ? (stats.goles_totales / matchCount).toFixed(1) : "0.0";
 	const tirosPerMatch = matchCount > 0 ? (stats.tiros_totales / matchCount).toFixed(1) : "0.0";
 	const eficienciaGeneral = stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0";
@@ -219,7 +224,6 @@ function FieldPlayerSummary({ stats, matchCount, matchStats, playerId }: { stats
 	const totalRebotes = (stats.rebote_recup_hombre_mas || 0) + (stats.rebote_perd_hombre_mas || 0);
 	const totalPenaltis = stats.goles_penalti_anotado + stats.tiros_penalti_fallado;
 	const eficienciaPenaltis = totalPenaltis > 0 ? ((stats.goles_penalti_anotado / totalPenaltis) * 100).toFixed(1) : "0.0";
-
 
 	const matches = Array.isArray(matchStats)
 		? matchStats
@@ -278,12 +282,7 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 				</TabsList>
 
 				<TabsContent value="resumen" className="space-y-6">
-					<GoalkeeperSummary
-						stats={goalkeeperStats}
-						matchCount={matchCount}
-						matchStats={matchStats}
-						playerId={player.id}
-						/>
+					<GoalkeeperSummary stats={goalkeeperStats} matchCount={matchCount} matchStats={matchStats} playerId={player.id} />
 				</TabsContent>
 
 				<TabsContent value="partidos" className="space-y-6">
@@ -337,6 +336,7 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
 				acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
 				portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0),
 				acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
+				tiro_fallado_portero: acc.tiro_fallado_portero + (stat.tiro_fallado_portero || 0),
 
 				// Goles recibidos reales del marcador del partido
 				goles_recibidos_reales: acc.goles_recibidos_reales + rivalGoals
@@ -365,12 +365,23 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
 			portero_acciones_perdida_pos: 0,
 			acciones_exp_provocada: 0,
 
-			goles_recibidos_reales: 0
+			goles_recibidos_reales: 0,
+			tiro_fallado_portero: 0
 		}
 	);
 }
 
-function GoalkeeperSummary({ stats, matchCount, matchStats, playerId }: { stats: any; matchCount: number; matchStats: MatchStatsWithMatch[]; playerId: number;}) {
+function GoalkeeperSummary({
+	stats,
+	matchCount,
+	matchStats,
+	playerId
+}: {
+	stats: any;
+	matchCount: number;
+	matchStats: MatchStatsWithMatch[];
+	playerId: number;
+}) {
 	const totalShots = stats.portero_paradas_totales + stats.goles_recibidos_reales;
 	const savePercentage = totalShots > 0 ? ((stats.portero_paradas_totales / totalShots) * 100).toFixed(1) : "0.0";
 	const paradasPerMatch = matchCount > 0 ? (stats.portero_paradas_totales / matchCount).toFixed(1) : "0.0";

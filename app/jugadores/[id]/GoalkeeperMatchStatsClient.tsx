@@ -41,13 +41,13 @@ const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
 		title: "Goles encajados",
 		stats: [
 			{ label: "Boya/Parada", key: "portero_goles_boya_parada" },
-			{ label: "Hombre -", key: "portero_goles_hombre_menos" },
+			{ label: "Inferioridad -", key: "portero_goles_hombre_menos" },
 			{ label: "+6m", key: "portero_goles_dir_mas_5m" },
 			{ label: "Contraataque", key: "portero_goles_contraataque" },
 			{ label: "Penalti", key: "portero_goles_penalti" },
 			{ label: "Lanzamiento", key: "portero_goles_lanzamiento" },
 			{ label: "Boya", key: "portero_goles_boya" },
-			{ label: "Gol del palo", key: "portero_gol_palo" }
+			{ label: "Gol del palo (Inf.-)", key: "portero_gol_palo" }
 		]
 	},
 	{
@@ -57,15 +57,15 @@ const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
 			{ label: "Parada + Recup", key: "portero_tiros_parada_recup" },
 			{ label: "Fuera (parada)", key: "portero_paradas_fuera" },
 			{ label: "Penalti parado", key: "portero_paradas_penalti_parado" },
-			{ label: "Hombre - (parada)", key: "portero_paradas_hombre_menos" },
+			{ label: "Inferioridad - (parada)", key: "portero_paradas_hombre_menos" },
 
 			// ✅ NUEVO: tiros del rival (cuentan como tiros recibidos, NO como paradas)
 			{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" },
 			{ label: "Lanz. al palo", key: "portero_lanz_palo" },
 
 			// ✅ NUEVO: inferioridad (tiros recibidos H- que NO son paradas ni goles)
-			{ label: "H- Fuera", key: "portero_inferioridad_fuera" },
-			{ label: "H- Bloqueo", key: "portero_inferioridad_bloqueo" }
+			{ label: "Inf.- Fuera", key: "portero_inferioridad_fuera" },
+			{ label: "Inf.- Bloqueo", key: "portero_inferioridad_bloqueo" }
 		]
 	},
 	{
@@ -81,6 +81,7 @@ const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
 		title: "Ataque (portero)",
 		stats: [
 			{ label: "Gol", key: "portero_gol" },
+			{ label: "Tiro Fallado", key: "tiro_fallado_portero" },
 			{ label: "Gol superioridad", key: "portero_gol_superioridad" },
 			{ label: "Fallo superioridad", key: "portero_fallo_superioridad" }
 		]

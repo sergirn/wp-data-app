@@ -144,6 +144,7 @@ export interface MatchStats {
 	portero_inferioridad_bloqueo: number;
 	rebote_recup_hombre_mas: number;
 	rebote_perd_hombre_mas: number;
+	tiro_fallado_portero: number;
 }
 
 export interface Profile {

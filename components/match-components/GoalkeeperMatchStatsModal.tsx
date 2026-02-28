@@ -202,14 +202,14 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 		{ label: "Fuera", key: "portero_paradas_fuera" },
 		{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" },
 		{ label: "Penalti parado", key: "portero_paradas_penalti_parado" },
-		{ label: "Hombre -", key: "portero_paradas_hombre_menos" },
+		{ label: "Inferioridad -", key: "portero_paradas_hombre_menos" },
 		{ label: "Lanz. al palo", key: "portero_lanz_palo" } // ✅ cuenta como tiro recibido
 	] as const;
 
 	// ✅ Goles encajados (incluye gol de palo + gol de lanzamiento)
 	const goalsItems = [
 		{ label: "Boya/Parada", key: "portero_goles_boya_parada" },
-		{ label: "Hombre -", key: "portero_goles_hombre_menos" },
+		{ label: "Inferioridad -", key: "portero_goles_hombre_menos" },
 		{ label: "+6m", key: "portero_goles_dir_mas_5m" },
 		{ label: "Contraataque", key: "portero_goles_contraataque" },
 		{ label: "Penalti", key: "portero_goles_penalti" },
@@ -219,10 +219,10 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 
 	// ✅ Inferioridad (H-)
 	const inferioridadItems = [
-		{ label: "Goles Hombre -", key: "portero_goles_hombre_menos" },
-		{ label: "Paradas Hombre -", key: "portero_paradas_hombre_menos" },
-		{ label: "Fuera (H-)", key: "portero_inferioridad_fuera" },
-		{ label: "Bloqueo (H-)", key: "portero_inferioridad_bloqueo" }
+		{ label: "Goles Inferioridad -", key: "portero_goles_hombre_menos" },
+		{ label: "Paradas Inferioridad -", key: "portero_paradas_hombre_menos" },
+		{ label: "Fuera (Inf.-)", key: "portero_inferioridad_fuera" },
+		{ label: "Bloqueo (Inf.-)", key: "portero_inferioridad_bloqueo" }
 	] as const;
 
 	// ✅ Acciones
@@ -232,6 +232,7 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 		{ label: "Pérdida posesión", key: "portero_acciones_perdida_pos" },
 		{ label: "Expulsión provocada", key: "acciones_exp_provocada" },
 		{ label: "Gol", key: "portero_gol" },
+		{ label: "Tiro Fallado", key: "tiro_fallado_portero" },
 		{ label: "Gol superioridad", key: "portero_gol_superioridad" },
 		{ label: "Fallo superioridad", key: "portero_fallo_superioridad" }
 	] as const;

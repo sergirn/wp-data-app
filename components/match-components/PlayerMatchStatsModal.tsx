@@ -221,8 +221,8 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 
 	const goalsItems = [
 		{ label: "Boya/Jugada", key: "goles_boya_jugada" },
-		{ label: "Gol (H+)", key: "goles_hombre_mas" },
-		{ label: "Gol del palo (H+)", key: "gol_del_palo_sup" },
+		{ label: "Gol (Sup.+)", key: "goles_hombre_mas" },
+		{ label: "Gol del palo (Sup.+)", key: "gol_del_palo_sup" },
 		{ label: "Lanzamiento", key: "goles_lanzamiento" },
 		{ label: "+6m", key: "goles_dir_mas_5m" },
 		{ label: "Contraataque", key: "goles_contraataque" },
@@ -230,7 +230,7 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 	] as const;
 
 	const missesItems = [
-		{ label: "Fallo (H+)", key: "tiros_hombre_mas" },
+		{ label: "Fallo (Sup.+)", key: "tiros_hombre_mas" },
 		{ label: "Penalti", key: "tiros_penalti_fallado" },
 		{ label: "Corner", key: "tiros_corner" },
 		{ label: "Fuera", key: "tiros_fuera" },

@@ -108,16 +108,16 @@ export function FieldPlayerMatchStatsClient({ matchStats, player }: { matchStats
 
 	const goalsItems = [
 		{ label: "Boya/Jugada", key: "goles_boya_jugada" as const },
-		{ label: "Hombre +", key: "goles_hombre_mas" as const },
+		{ label: "Superioridad +", key: "goles_hombre_mas" as const },
 		{ label: "Lanzamiento", key: "goles_lanzamiento" as const },
 		{ label: "+6m", key: "goles_dir_mas_5m" as const },
 		{ label: "Contraataque", key: "goles_contraataque" as const },
 		{ label: "Penalti", key: "goles_penalti_anotado" as const },
-		{ label: "Gol del palo (H+)", key: "gol_del_palo_sup" as const }
+		{ label: "Gol del palo (Sup.+)", key: "gol_del_palo_sup" as const }
 	];
 
 	const missesItems = [
-		{ label: "Hombre +", key: "tiros_hombre_mas" as const },
+		{ label: "Superioridad +", key: "tiros_hombre_mas" as const },
 		{ label: "Penalti", key: "tiros_penalti_fallado" as const },
 		{ label: "Corner", key: "tiros_corner" as const },
 		{ label: "Fuera", key: "tiros_fuera" as const },

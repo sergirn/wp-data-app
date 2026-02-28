@@ -299,7 +299,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			/>
 
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
-
 				<div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
 					{canEdit && (
 						<Button asChild>
@@ -347,23 +346,19 @@ function calculateSuperioridadStats(stats: any[]) {
 }
 
 function calculateInferioridadStats(stats: any[]) {
-	const paradas = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos || 0), 0);
-	const fuera = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_fuera || 0), 0);
-	const bloqueo = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_bloqueo || 0), 0);
-	const evitados = paradas + fuera + bloqueo;
-	const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos || 0), 0);
-	const total = evitados + recibidos;
-	const eficiencia = total > 0 ? ((evitados / total) * 100).toFixed(1) : "0.0";
+	const paradas = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos ?? 0), 0);
+	const fuera = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_fuera ?? 0), 0);
+	const bloqueo = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_bloqueo ?? 0), 0);
 
-	return {
-		evitados,
-		recibidos,
-		paradas,
-		fuera,
-		bloqueo,
-		total,
-		eficiencia: Number.parseFloat(eficiencia)
-	};
+	const evitados = paradas + fuera + bloqueo;
+
+	// ✅ ahora incluye gol_palo como "recibido"
+	const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos ?? 0) + (stat.portero_gol_palo ?? 0), 0);
+
+	const total = evitados + recibidos;
+	const eficiencia = total > 0 ? Math.round((evitados / total) * 1000) / 10 : 0;
+
+	return { evitados, recibidos, paradas, fuera, bloqueo, total, eficiencia };
 }
 
 function calculateBlocksStats(stats: any[], golesRecibidos: number) {

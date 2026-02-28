@@ -24,7 +24,8 @@ import {
 	GoalkeeperShotDraft
 } from "@/components/nuevo-partido/modal-stats/GoalkeeperShotsRecorder";
 import { Competition } from "@/lib/admin";
-import { PenaltiesTab } from "@/components/players-components/PenaltiesTab";
+import { PenaltiesTab, type PenaltyShooter, type RivalPenalty } from "@/components/players-components/PenaltiesTab";
+import { PenaltyShooterDialog } from "@/components/players-components/PenaltyShooterDialog";
 
 interface MatchEditParams {
 	matchId?: number;
@@ -69,7 +70,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 	const [penaltyHomeScore, setPenaltyHomeScore] = useState<number | null>(null);
 	const [penaltyAwayScore, setPenaltyAwayScore] = useState<number | null>(null);
-	const [penaltyShooters, setPenaltyShooters] = useState<Array<{ playerId: number; scored: boolean }>>([]);
+	const [penaltyShooters, setPenaltyShooters] = useState<PenaltyShooter[]>([]);
 	const [showPenaltyShooterDialog, setShowPenaltyShooterDialog] = useState(false);
 	const [rivalPenalties, setRivalPenalties] = useState<Array<{ id: number; result: "scored" | "saved" | "missed" }>>([]);
 	const [penaltyGoalkeeperMap, setPenaltyGoalkeeperMap] = useState<Record<number, number>>({});
@@ -428,6 +429,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		lanz_recibido_fuera: 0,
 		portero_gol_palo: 0,
 		portero_lanz_palo: 0,
+		tiro_fallado_portero: 0,
 
 		rebote_recup_hombre_mas: 0,
 		rebote_perd_hombre_mas: 0
@@ -577,8 +579,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			if (penaltyError) {
 				console.error("Error loading penalty shooters:", penaltyError);
 			} else if (penaltyPlayers) {
-				setPenaltyShooters(penaltyPlayers.filter((p) => p.player_id !== null).map((p) => ({ playerId: p.player_id!, scored: p.scored })));
-
+				setPenaltyShooters(
+					penaltyPlayers
+						.filter((p) => p.player_id !== null)
+						.map((p) => ({
+							id: p.id, // ✅ importante
+							playerId: p.player_id!,
+							scored: !!p.scored
+						}))
+				);
 				// Load rival penalties and goalkeeper map
 				const rivalPenaltiesData = penaltyPlayers
 					.filter((p) => p.player_id === null)
@@ -782,9 +791,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			return updatedAllStats;
 		});
 	};
-
-	type PenaltyShooter = { playerId: number; scored: boolean };
-	type RivalPenalty = { id: number; result: "scored" | "saved" | "missed" };
 
 	function buildPenaltyRows(args: {
 		matchId: number;
@@ -1220,7 +1226,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						</TabsTrigger>
 					)}
 				</TabsList>
-
 				<TabsContent value="info">
 					<div className="space-y-6">
 						<div className="grid gap-6 lg:grid-cols-3">
@@ -1467,7 +1472,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						</div>
 					</div>
 				</TabsContent>
-
 				<TabsContent value="field">
 					{/* <CardHeader>
 							<CardTitle>Jugadores de Campo</CardTitle>
@@ -1605,7 +1609,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						</div>
 					</div>
 				</TabsContent>
-
 				<TabsContent value="goalkeepers">
 					<div>
 						<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
@@ -1707,7 +1710,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						</div>
 					</div>
 				</TabsContent>
-
 				{isTied && (
 					<PenaltiesTab
 						homeGoals={homeGoals}
@@ -1727,6 +1729,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						setShowPenaltyShooterDialog={setShowPenaltyShooterDialog}
 					/>
 				)}
+				<PenaltyShooterDialog
+					open={showPenaltyShooterDialog}
+					onOpenChange={setShowPenaltyShooterDialog}
+					fieldPlayers={fieldPlayers}
+					setPenaltyShooters={setPenaltyShooters}
+				/>
 			</Tabs>
 
 			{substitutionPlayer && (
@@ -1744,66 +1752,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						setSubstitutionPlayer(null);
 					}}
 				/>
-			)}
-
-			{/* ADD DIALOG TO SELECT PLAYER TO ADD */}
-			{showAddPlayerDialog && (
-				<Dialog open={showAddPlayerDialog} onOpenChange={setShowAddPlayerDialog}>
-					<DialogContent className="sm:max-w-md">
-						<DialogHeader>
-							<DialogTitle className="flex items-center gap-2">
-								<Plus className="h-5 w-5" />
-								Convocar Jugador
-							</DialogTitle>
-							<DialogDescription>Selecciona un jugador de campo para añadir a la convocatoria (máximo 12)</DialogDescription>
-						</DialogHeader>
-
-						<div className="space-y-4 py-4">
-							<div className="space-y-2">
-								<Label htmlFor="add-player">Selecciona el jugador</Label>
-								<Select
-									value={selectedAddPlayer?.id.toString() || ""}
-									onValueChange={(value) => {
-										const player = allPlayers.find((p) => p.id === Number(value));
-										setSelectedAddPlayer(player || null);
-									}}
-								>
-									<SelectTrigger id="add-player">
-										<SelectValue placeholder="Elige un jugador..." />
-									</SelectTrigger>
-									<SelectContent>
-										{getAvailablePlayers(false).length === 0 ? (
-											<div className="p-2 text-sm text-muted-foreground text-center">No hay jugadores disponibles</div>
-										) : (
-											getAvailablePlayers(false).map((player) => (
-												<SelectItem key={player.id} value={player.id.toString()}>
-													#{player.number} - {player.name}
-												</SelectItem>
-											))
-										)}
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className="flex justify-end gap-2 pt-4">
-								<Button variant="outline" onClick={() => setShowAddPlayerDialog(false)}>
-									Cancelar
-								</Button>
-								<Button
-									onClick={() => {
-										if (selectedAddPlayer) {
-											handleAddPlayer(selectedAddPlayer.id);
-										}
-									}}
-									disabled={!selectedAddPlayer}
-								>
-									<Plus className="mr-2 h-4 w-4" />
-									Convocar
-								</Button>
-							</div>
-						</div>
-					</DialogContent>
-				</Dialog>
 			)}
 
 			{selectedPlayer && (
@@ -1844,113 +1792,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						)}
 					</DialogContent>
 				</Dialog>
-			)}
-
-			{showPenaltyShooterDialog && (
-				<div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-					<div className="bg-background border border-border rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-						{/* Header con gradiente */}
-						<div className="relative p-6 border-b border-border bg-gradient-to-br from-blue-500/10 via-primary/5 to-transparent">
-							<div className="flex items-start justify-between gap-4">
-								<div className="flex-1">
-									<h2 className="text-2xl font-bold text-foreground mb-1">Añadir Lanzador</h2>
-									<p className="text-sm text-muted-foreground">Selecciona el jugador y el resultado del penalti</p>
-								</div>
-								<button
-									type="button"
-									onClick={() => setShowPenaltyShooterDialog(false)}
-									className="flex-shrink-0 w-9 h-9 rounded-full hover:bg-muted transition-colors flex items-center justify-center text-muted-foreground hover:text-foreground"
-								>
-									<X className="h-5 w-5" />
-								</button>
-							</div>
-						</div>
-
-						{/* Lista de jugadores con scroll */}
-						<div className="flex-1 overflow-y-auto p-6">
-							{(() => {
-								const availablePlayers = fieldPlayers.filter((p) => !penaltyShooters.some((s) => s.playerId === p.id));
-
-								if (availablePlayers.length === 0) {
-									return (
-										<div className="flex flex-col items-center justify-center py-16 text-center">
-											<div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-												<Users className="h-10 w-10 text-muted-foreground" />
-											</div>
-											<p className="text-lg font-semibold text-foreground mb-2">No hay jugadores disponibles</p>
-											<p className="text-sm text-muted-foreground max-w-[280px]">
-												Todos los jugadores de campo ya fueron añadidos como lanzadores
-											</p>
-										</div>
-									);
-								}
-
-								return (
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-										{availablePlayers.map((player) => (
-											<div
-												key={player.id}
-												className="group relative p-3 rounded-xl border-2 border-border hover:border-primary/40 bg-card hover:bg-accent/30 transition-all duration-200"
-											>
-												<div className="flex flex-col gap-3">
-													{/* Info del jugador */}
-													<div className="flex items-center gap-3">
-														<div className="flex-shrink-0 w-11 h-11 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/20 flex items-center justify-center">
-															<span className="text-lg font-bold text-primary">{player.number}</span>
-														</div>
-														<div className="flex-1 min-w-0">
-															<p className="font-semibold text-sm text-foreground truncate">{player.name}</p>
-															<p className="text-xs text-muted-foreground">
-																{player.is_goalkeeper ? "Portero" : "Jugador"}
-															</p>
-														</div>
-													</div>
-
-													{/* Botones de acción */}
-													<div className="flex gap-2">
-														<button
-															type="button"
-															onClick={() => {
-																setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: true }]);
-																setShowPenaltyShooterDialog(false);
-															}}
-															className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-medium shadow-lg shadow-green-600/30 hover:shadow-xl hover:shadow-green-600/40 transition-all duration-200 flex items-center justify-center gap-1.5"
-														>
-															<CheckCircle className="h-4 w-4" />
-															<span>Gol</span>
-														</button>
-														<button
-															type="button"
-															onClick={() => {
-																setPenaltyShooters((prev) => [...prev, { playerId: player.id, scored: false }]);
-																setShowPenaltyShooterDialog(false);
-															}}
-															className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-medium shadow-lg shadow-red-600/30 hover:shadow-xl hover:shadow-red-600/40 transition-all duration-200 flex items-center justify-center gap-1.5"
-														>
-															<XCircle className="h-4 w-4" />
-															<span>Falla</span>
-														</button>
-													</div>
-												</div>
-											</div>
-										))}
-									</div>
-								);
-							})()}
-						</div>
-
-						{/* Footer */}
-						<div className="p-6 border-t border-border bg-muted/20">
-							<button
-								type="button"
-								onClick={() => setShowPenaltyShooterDialog(false)}
-								className="w-full px-4 py-3 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
-							>
-								Cerrar
-							</button>
-						</div>
-					</div>
-				</div>
 			)}
 
 			<div className="fixed bottom-6 right-6 z-40">
@@ -2093,9 +1934,13 @@ function FieldPlayerStatsDialog({
 				<p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
 
 				<div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-					<StatField label="Goles H+" value={safeNumber(stats.goles_hombre_mas)} onChange={(v) => onUpdate("goles_hombre_mas", v)} />
-					<StatField label="Gol del palo H+" value={safeNumber(stats.gol_del_palo_sup)} onChange={(v) => onUpdate("gol_del_palo_sup", v)} />
-					<StatField label="Fallos H+" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
+					<StatField label="Goles Sup.+" value={safeNumber(stats.goles_hombre_mas)} onChange={(v) => onUpdate("goles_hombre_mas", v)} />
+					<StatField
+						label="Gol del palo Sup.+"
+						value={safeNumber(stats.gol_del_palo_sup)}
+						onChange={(v) => onUpdate("gol_del_palo_sup", v)}
+					/>
+					<StatField label="Fallos Sup.+" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
 
 					<StatField
 						label="Rebote Recup."
@@ -2265,7 +2110,6 @@ function GoalkeeperStatsDialog({
 						value={safeNumber(stats.portero_goles_lanzamiento)}
 						onChange={(v) => onUpdate("portero_goles_lanzamiento", v)}
 					/>
-					<StatField label="Gol de palo" value={safeNumber(stats.portero_gol_palo)} onChange={(v) => onUpdate("portero_gol_palo", v)} />
 				</div>
 				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
 			</TabsContent>
@@ -2290,7 +2134,7 @@ function GoalkeeperStatsDialog({
 						onChange={(v) => onUpdate("portero_tiros_parada_recup", v)}
 					/>
 					<StatField
-						label="Parada Fuera"
+						label="Parada Corner"
 						value={safeNumber(stats.portero_paradas_fuera)}
 						onChange={(v) => onUpdate("portero_paradas_fuera", v)}
 					/>
@@ -2316,13 +2160,14 @@ function GoalkeeperStatsDialog({
 
 				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 					<StatField
-						label="Goles Hombre -"
+						label="Goles Inf.-"
 						value={safeNumber(stats.portero_goles_hombre_menos)}
 						onChange={(v) => onUpdate("portero_goles_hombre_menos", v)}
 					/>
+					<StatField label="Gol de palo" value={safeNumber(stats.portero_gol_palo)} onChange={(v) => onUpdate("portero_gol_palo", v)} />
 
 					<StatField
-						label="Paradas Hombre -"
+						label="Paradas Inf.-"
 						value={safeNumber(stats.portero_paradas_hombre_menos)}
 						onChange={(v) => onUpdate("portero_paradas_hombre_menos", v)}
 					/>
@@ -2377,6 +2222,11 @@ function GoalkeeperStatsDialog({
 						onChange={(v) => onUpdate("acciones_exp_provocada", v)}
 					/>
 					<StatField label="Gol" value={safeNumber(stats.portero_gol)} onChange={(v) => onUpdate("portero_gol", v)} />
+					<StatField
+						label="Tiro Fallado"
+						value={safeNumber(stats.tiro_fallado_portero)}
+						onChange={(v) => onUpdate("tiro_fallado_portero", v)}
+					/>
 					<StatField
 						label="Gol Superioridad"
 						value={safeNumber(stats.portero_gol_superioridad)}
