@@ -1,30 +1,47 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoalDifferenceEvolutionChart } from "@/components/goal-difference-evolution-chart";
 import { useClub } from "@/lib/club-context";
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { BlocksChart } from "@/components/analytics/blocks-chart";
 import { MatchComparison } from "@/components/match-comparer";
 import { PlayerComparison } from "@/components/playerComparison";
 import { QuarterGoalsChart } from "@/components/QuarterGoalsChart";
 import type { MatchWithQuarterScores } from "@/lib/types";
 import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard";
 import { GeneralDashboard } from "@/components/analytics/general-dashboard";
-import { DisciplineChart } from "@/components/analytics/discipline-chart";
 import { ShootingEfficiencyChart } from "@/components/analytics/shoot-analytics/shooting-efficiency-chart";
-import { GoalkeeperPerformanceChart } from "@/components/analytics/goalkeeper-performance-chart";
-import { ManAdvantageChartExpandable } from "@/components/analytics/man-advantage-chart";
-import { ManDownGoalkeeperChart } from "@/components/analytics/man-down-goalkeeper-chart";
-import { TurnoversRecoveriesChart } from "@/components/analytics/perd_rec_pos_chart";
+import { GoalkeeperPerformanceChart } from "@/components/analytics/goalkeeper-analytics/goalkeeper-performance-chart";
+import { ManAdvantageChartExpandable } from "@/components/analytics/shoot-analytics/man-advantage-chart";
 import { PlayerMatchCompare } from "@/components/analytics/PlayerMatchCompare";
 import { SprintEfficiencyChart } from "@/components/analytics/SprintEfficiencyChart";
 import { GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/GoalkeeperShotsGoalChart";
 import { ShotMistakesDonutChart } from "@/components/analytics/shoot-analytics/quality-shoot-chart";
 import { GoalMixChart } from "@/components/analytics/shoot-analytics/offensive-shoot-chart";
 import { ChartSwipeCarousel } from "@/components/chartCarousel";
+import { SeasonAttackTotals, SeasonDefenseTotals, SeasonGoalkeeperTotals } from "@/components/analytics/SeassonTotalsTabs";
+import { AttackGoalTypesByMatchChart } from "@/components/analytics/shoot-analytics/AttackGoalTypesByMatchChart";
+import { AttackMistakeTypesByMatchChart } from "@/components/analytics/shoot-analytics/AttackMistakeTypesByMatchChart";
+import { AttackCreationVsLossesChart } from "@/components/analytics/shoot-analytics/AttackCreationVsLossesChart";
+import { AttackBoyaFlowChart } from "@/components/analytics/shoot-analytics/AttackBoyaFlowChart";
+import { TopScorersTable } from "@/components/analytics/shoot-analytics/TopScorersTable";
+import { DefenseFoulsMixChart } from "@/components/analytics/defense-analytics/DefenseFoulsMixChart";
+import { DefenseInferiorityMixChart } from "@/components/analytics/defense-analytics/DefenseInferiorityMixChart";
+import { DefenseFoulsByMatchChart } from "@/components/analytics/defense-analytics/DefenseFoulsByMatchChart";
+import { DefenseInferiorityEfficiencyChart } from "@/components/analytics/defense-analytics/DefenseInferiorityEfficiencyChart";
+import { DefenseActionsByMatchChart } from "@/components/analytics/defense-analytics/DefenseActionsByMatchChart";
+import { DefenseBalanceChart } from "@/components/analytics/defense-analytics/DefenseBalanceChart";
+import { TopDefendersTable } from "@/components/analytics/defense-analytics/TopDefenseTable";
+import { GoalkeeperGoalsMixChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperGoalsMixChart";
+import { GoalkeeperSavesMixChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperSavesMixChart";
+import { GoalkeeperInferiorityEfficiencyChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperInferiorityEfficiencyChart";
+import { GoalkeeperGoalsByTypeChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperGoalsByTypeChart";
+import { GoalkeeperBallImpactChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperBallImpactChart";
+import { GoalkeeperRankingTable } from "@/components/analytics/goalkeeper-analytics/TopGoalkeepersTable";
+import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
 
 export default function AnalyticsPage() {
 	const { currentClub } = useClub();
@@ -96,9 +113,7 @@ export default function AnalyticsPage() {
 					.in("match_id", matchIds)
 					.order("created_at", { ascending: true });
 
-				if (gkShotsError) {
-					console.error("Error fetching goalkeeper_shots:", gkShotsError);
-				}
+				if (gkShotsError) console.error("Error fetching goalkeeper_shots:", gkShotsError);
 
 				setMatches(matchesResult.data || []);
 				setPlayers(playersResult.data || []);
@@ -108,7 +123,6 @@ export default function AnalyticsPage() {
 				const calculatedPlayerStats = playersResult.data?.map((player) => {
 					const stats = statsResult.data?.filter((s) => s.player_id === player.id) || [];
 
-					// Campos agregados
 					const goles_totales = stats.reduce((sum, s) => sum + (s.goles_totales || 0), 0);
 					const tiros_totales = stats.reduce((sum, s) => sum + (s.tiros_totales || 0), 0);
 					const acciones_asistencias = stats.reduce((sum, s) => sum + (s.acciones_asistencias || 0), 0);
@@ -116,14 +130,12 @@ export default function AnalyticsPage() {
 					const acciones_recuperacion = stats.reduce((sum, s) => sum + (s.acciones_recuperacion || 0), 0);
 					const acciones_rebote = stats.reduce((sum, s) => sum + (s.acciones_rebote || 0), 0);
 
-					// Exclusiones individuales
 					const faltas_exp_3_bruta = stats.reduce((sum, s) => sum + (s.faltas_exp_3_bruta || 0), 0);
 					const faltas_exp_3_int = stats.reduce((sum, s) => sum + (s.faltas_exp_3_int || 0), 0);
 					const faltas_exp_20_1c1 = stats.reduce((sum, s) => sum + (s.faltas_exp_20_1c1 || 0), 0);
 					const faltas_exp_20_boya = stats.reduce((sum, s) => sum + (s.faltas_exp_20_boya || 0), 0);
 					const faltas_penalti = stats.reduce((sum, s) => sum + (s.faltas_penalti || 0), 0);
 
-					// Penaltis
 					const goles_penalti_anotado = stats.reduce((sum, s) => sum + (s.goles_penalti_anotado || 0), 0);
 					const tiros_penalti_fallado = stats.reduce((sum, s) => sum + (s.tiros_penalti_fallado || 0), 0);
 
@@ -140,7 +152,6 @@ export default function AnalyticsPage() {
 
 					return {
 						...player,
-						// Campos agregados
 						goles_totales,
 						tiros_totales,
 						acciones_asistencias,
@@ -162,7 +173,6 @@ export default function AnalyticsPage() {
 						eficiencia,
 						matchesPlayed: stats.length,
 						partidos: stats.length,
-						// Portero
 						portero_paradas_totales,
 						portero_paradas_penalti_parado,
 						portero_goles_totales,
@@ -173,17 +183,11 @@ export default function AnalyticsPage() {
 					};
 				});
 
-				if (isMounted) {
-					setPlayerStats(calculatedPlayerStats || []);
-				}
+				if (isMounted) setPlayerStats(calculatedPlayerStats || []);
 			} catch (error) {
-				if (!abortController.signal.aborted) {
-					console.error("Error fetching analytics:", error);
-				}
+				if (!abortController.signal.aborted) console.error("Error fetching analytics:", error);
 			} finally {
-				if (isMounted) {
-					setLoading(false);
-				}
+				if (isMounted) setLoading(false);
 			}
 		}
 
@@ -193,31 +197,7 @@ export default function AnalyticsPage() {
 			isMounted = false;
 			abortController.abort();
 		};
-	}, [currentClub, seasonParam]); // Use currentClub instead of currentClub?.id
-
-	const stats = useMemo(() => {
-		const totalMatches = matches?.length || 0;
-		const wins = matches?.filter((m) => m.home_score > m.away_score).length || 0;
-		const losses = matches?.filter((m) => m.home_score < m.away_score).length || 0;
-		const draws = matches?.filter((m) => m.home_score === m.away_score).length || 0;
-		const totalGoalsFor = matches?.reduce((sum, m) => sum + m.home_score, 0) || 0;
-		const totalGoalsAgainst = matches?.reduce((sum, m) => sum + m.away_score, 0) || 0;
-
-		return { totalMatches, wins, losses, draws, totalGoalsFor, totalGoalsAgainst };
-	}, [matches]);
-
-	const topPlayers = useMemo(() => {
-		return {
-			topScorers: [...playerStats].sort((a, b) => b.totalGoles - a.totalGoles).slice(0, 10),
-			topAssists: [...playerStats].sort((a, b) => b.totalAsistencias - a.totalAsistencias).slice(0, 10),
-			bestEfficiency: [...playerStats]
-				.filter((p) => p.totalTiros >= 10)
-				.sort((a, b) => b.eficiencia - a.eficiencia)
-				.slice(0, 10),
-			topBlocks: [...playerStats].sort((a, b) => b.totalBloqueos - a.totalBloqueos).slice(0, 10),
-			mostTurnovers: [...playerStats].sort((a, b) => b.totalPerdidas - a.totalPerdidas).slice(0, 10)
-		};
-	}, [playerStats]);
+	}, [currentClub, seasonParam]);
 
 	const matchesById = useMemo(() => {
 		const m = new Map<number, any>();
@@ -260,52 +240,75 @@ export default function AnalyticsPage() {
 						Análisis detallado de {currentClub?.short_name || ""} – Temporada {selectedSeason}
 					</p>
 				</div>
-
-				{/* <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-					<ExportButtons data={prepareMatchesForExport(matches || [])} filename={`partidos_${selectedSeason}`} label="Exportar Partidos" />
-					<ExportButtons
-						data={preparePlayersForExport(playerStats || [])}
-						filename={`jugadores_${selectedSeason}`}
-						label="Exportar Jugadores"
-					/>
-					<SeasonSelector seasons={seasons} selectedSeason={selectedSeason} />
-				</div> */}
 			</div>
 
 			<section className="mb-8">
+				{/* ✅ NUEVA ESTRUCTURA DE TABS */}
 				<Tabs defaultValue="overview">
-					<TabsList className="grid w-full grid-cols-2">
-						<TabsTrigger value="overview" className="text-xs sm:text-sm">
-							General
+					{/* TabsList scrollable para móvil */}
+					<TabsList className="flex w-full max-w-full items-stretch justify-start gap-2 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-2xl bg-muted/30 p-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+						<TabsTrigger
+							value="overview"
+							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+						>
+							<div className="flex items-center justify-center gap-2 w-full">
+								<LayoutGrid className="h-4 w-4 shrink-0" />
+								<span className="hidden sm:inline">Resumen</span>
+							</div>
 						</TabsTrigger>
-						<TabsTrigger value="quarters" className="text-xs sm:text-sm">
-							Detalles
+
+						<TabsTrigger
+							value="attack"
+							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+						>
+							<div className="flex items-center justify-center gap-2 w-full">
+								<Target className="h-4 w-4 shrink-0" />
+								<span className="hidden sm:inline">Ataque</span>
+							</div>
+						</TabsTrigger>
+
+						<TabsTrigger
+							value="defense"
+							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+						>
+							<div className="flex items-center justify-center gap-2 w-full">
+								<Shield className="h-4 w-4 shrink-0" />
+								<span className="hidden sm:inline">Defensa</span>
+							</div>
+						</TabsTrigger>
+
+						<TabsTrigger
+							value="goalkeeper"
+							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+						>
+							<div className="flex items-center justify-center gap-2 w-full">
+								<Hand className="h-4 w-4 shrink-0" />
+								<span className="hidden sm:inline">Portero</span>
+							</div>
 						</TabsTrigger>
 					</TabsList>
 
-					{/* ===== TAB 1: VISIÓN GLOBAL ===== */}
+					{/* ===== TAB: RESUMEN ===== */}
 					<TabsContent value="overview" className="mt-4 space-y-10">
 						<section>
 							<GeneralDashboard matches={matches || []} stats={allStats || []} players={players || []} />
 						</section>
 
-						{/* ===== BLOQUE 1: VISIÓN GLOBAL ===== */}
-						<section className="mt-10">
+						<section>
 							<TeamDashboard teamStats={playerStats} />
 						</section>
 
-						{/* ===== BLOQUE 2: COMPARADORES ===== */}
 						<section>
 							<Tabs defaultValue="compare">
-								<TabsList className="grid w-full grid-cols-3">
-									<TabsTrigger value="compare" className="text-xs sm:text-sm">
-										Comparador de partidos
+								<TabsList className="w-full justify-start overflow-x-auto whitespace-nowrap">
+									<TabsTrigger className="min-w-[170px] text-xs sm:text-sm" value="compare">
+										Comparador partidos
 									</TabsTrigger>
-									<TabsTrigger value="players-compare" className="text-xs sm:text-sm">
-										Comparador de jugadores
+									<TabsTrigger className="min-w-[170px] text-xs sm:text-sm" value="players-compare">
+										Comparador jugadores
 									</TabsTrigger>
-									<TabsTrigger value="players-jornada-compare" className="text-xs sm:text-sm">
-										Comparador de jornadas por jugador
+									<TabsTrigger className="min-w-[220px] text-xs sm:text-sm" value="players-jornada-compare">
+										Jornadas por jugador
 									</TabsTrigger>
 								</TabsList>
 
@@ -324,10 +327,11 @@ export default function AnalyticsPage() {
 						</section>
 					</TabsContent>
 
-					{/* ===== TAB 2: CUARTOS ===== */}
-					<TabsContent value="quarters" className="mt-4 space-y-10">
-						{/* ===== BLOQUE 1: DINÁMICA DEL PARTIDO ===== */}
+					{/* ===== TAB: PARTIDO ===== */}
+					{/* <TabsContent value="match" className="mt-4 space-y-10">
 						<section>
+							<h2 className="text-xl font-bold mb-4">Dinámica del partido</h2>
+
 							<div className="md:hidden">
 								<ChartSwipeCarousel
 									className="w-full"
@@ -339,87 +343,362 @@ export default function AnalyticsPage() {
 								/>
 							</div>
 
-							{/* TABLET+ : grid normal */}
 							<div className="hidden md:grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
 								<QuarterGoalsChart matches={quarterMatches || []} />
 								<GoalDifferenceEvolutionChart matches={matches || []} />
 								<SprintEfficiencyChart matches={matches || []} players={players || []} />
 							</div>
 						</section>
+					</TabsContent> */}
 
+					{/* ===== TAB: ATAQUE ===== */}
+					<TabsContent value="attack" className="mt-4 space-y-10">
 						<section>
-							<h2 className="text-xl font-bold mb-4">Rendimiento</h2>
+							<div className="mb-4">
+								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">Estadistica ofensiva</h1>
+								<p className="text-sm sm:text-base text-muted-foreground">
+									Estadistica ofensiva del {currentClub?.short_name || ""} – Temporada {selectedSeason}
+								</p>
+							</div>
 
-							<div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-3 items-stretch">
-								{/* IZQUIERDA: 2 filas (shoot + gk) */}
-								<div className="md:col-span-2 grid gap-4 lg:gap-6 grid-rows-2 items-stretch">
-									<div className="h-full min-h-0">
-										<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
+							<SeasonAttackTotals stats={allStats || []} />
+
+							<div className="flex items-center gap-2 mt-4 mb-4">
+								<div className="h-px flex-1 bg-border/90" />
+							</div>
+
+							<div className="space-y-8">
+								{/* BLOQUE 1 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Eficiencia y resumen ofensivo</h2>
+										<p className="text-sm text-muted-foreground">
+											Visión general del rendimiento ofensivo, distribución de goles y tipos de fallo.
+										</p>
 									</div>
 
-									<div className="h-full min-h-0">
-										<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
+									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
+										<div className="lg:col-span-2 h-full">
+											<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
+										</div>
+
+										<div className="lg:col-span-1 h-full">
+											<ChartSwipeCarousel
+												items={[
+													<GoalMixChart key="mix" matches={matches || []} stats={allStats || []} players={players || []} />,
+													<ShotMistakesDonutChart
+														key="mistakes"
+														matches={matches || []}
+														stats={allStats || []}
+														players={players || []}
+													/>
+												]}
+											/>
+										</div>
+
+										<div className="lg:col-span-3">
+											<ManAdvantageChartExpandable matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
 									</div>
 								</div>
 
-								{/* DERECHA: ocupa las 2 filas => mismo alto total */}
-								<div className="md:col-span-1 md:row-span-2 h-full min-h-0">
-									<ChartSwipeCarousel
-										items={[
-											<ShotMistakesDonutChart
-												key="mistakes"
+								{/* BLOQUE 2 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Eficienca por jornada</h2>
+										<p className="text-sm text-muted-foreground">Goles y fallos por jornada</p>
+									</div>
+
+									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<AttackGoalTypesByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+
+										<div className="h-full">
+											<AttackMistakeTypesByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
+								</div>
+
+								{/* BLOQUE 3 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Construcción ofensiva</h2>
+										<p className="text-sm text-muted-foreground">
+											Balance entre generación de ventajas, pérdidas y uso del juego con boya.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<AttackCreationVsLossesChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+
+										<div className="h-full">
+											<AttackBoyaFlowChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
+								</div>
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Ranking ofensivo</h2>
+										<p className="text-sm text-muted-foreground">
+											Jugadores más determinantes en finalización y aportación ofensiva.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<TopScorersTable matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+					</TabsContent>
+
+					{/* ===== TAB: DEFENSA ===== */}
+					<TabsContent value="defense" className="mt-4 space-y-10">
+						<section>
+							<div className="mb-4">
+								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">Estadística defensiva</h1>
+								<p className="text-sm sm:text-base text-muted-foreground">
+									Estadística defensiva del {currentClub?.short_name || ""} – Temporada {selectedSeason}
+								</p>
+							</div>
+
+							<SeasonDefenseTotals stats={allStats || []} />
+
+							<div className="flex items-center gap-2 mt-4 mb-4">
+								<div className="h-px flex-1 bg-border/90" />
+							</div>
+
+							<div className="space-y-8">
+								{/* BLOQUE 1 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Resumen defensivo</h2>
+										<p className="text-sm text-muted-foreground">
+											Visión general de disciplina defensiva, inferioridad y balance del equipo.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
+										<div className="lg:col-span-2 h-full">
+											<DefenseActionsByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+
+										{/* Carousel lateral */}
+										<div className="lg:col-span-1 h-full">
+											<ChartSwipeCarousel
+												items={[
+													<DefenseFoulsMixChart
+														key="def-fouls-mix"
+														matches={matches || []}
+														stats={allStats || []}
+														players={players || []}
+													/>,
+													<DefenseInferiorityMixChart
+														key="def-inf-mix"
+														matches={matches || []}
+														stats={allStats || []}
+														players={players || []}
+													/>
+												]}
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* BLOQUE 2 */}
+								<div className="space-y-4">
+									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<DefenseInferiorityEfficiencyChart
 												matches={matches || []}
 												stats={allStats || []}
 												players={players || []}
-											/>,
-											<GoalMixChart key="mix" matches={matches || []} stats={allStats || []} players={players || []} />
-										]}
-									/>
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* BLOQUE 3 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Acciones defensivas</h2>
+										<p className="text-sm text-muted-foreground">
+											Bloqueos, recuperaciones, rebotes y balance neto del trabajo defensivo.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<DefenseFoulsByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+										<div className="h-full">
+											<DefenseBalanceChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
+								</div>
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Ranking defensivo</h2>
+										<p className="text-sm text-muted-foreground">Jugadores más determinantes en defensa.</p>
+									</div>
+
+									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<TopDefendersTable matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
 								</div>
 							</div>
 						</section>
+					</TabsContent>
 
-						{/* ===== BLOQUE 2: SITUACIONES DE JUEGO ===== */}
+					{/* ===== TAB: PORTERO ===== */}
+					{/* ===== TAB: PORTERO ===== */}
+					<TabsContent value="goalkeeper" className="mt-4 space-y-10">
 						<section>
-							<h2 className="text-xl font-bold mb-4">Rendimiento en Superioridad e Inferioridad</h2>
-							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-1 md:grid-cols-2 auto-rows-fr items-stretch">
-								<ChartSwipeCarousel
-									items={[
-										<ManAdvantageChartExpandable matches={matches || []} stats={allStats || []} players={players || []} />,
-										<ManDownGoalkeeperChart matches={matches || []} stats={allStats || []} players={players || []} />
-									]}
-								/>
+							<div className="mb-4">
+								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">Estadística del portero</h1>
+								<p className="text-sm sm:text-base text-muted-foreground">
+									Rendimiento del portero de {currentClub?.short_name || ""} – Temporada {selectedSeason}
+								</p>
 							</div>
-						</section>
 
-						<section>
-							<h2 className="text-xl font-bold mb-4">Rendimiento del juego</h2>
-							<div className="md:hidden">
-								<ChartSwipeCarousel
-									className="w-full"
-									items={[
-										<BlocksChart key="bl" matches={matches || []} stats={allStats || []} players={players || []} />,
-										<TurnoversRecoveriesChart key="to" matches={matches || []} stats={allStats || []} />,
-										<DisciplineChart key="di" matches={matches || []} stats={allStats || []} />
-									]}
-								/>
-							</div>
-							<div className="hidden md:grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr items-stretch">
-								<BlocksChart matches={matches || []} stats={allStats || []} players={players || []} />
-								<TurnoversRecoveriesChart matches={matches || []} stats={allStats || []} />
-								<DisciplineChart matches={matches || []} stats={allStats || []} />
-							</div>
-						</section>
+							<SeasonGoalkeeperTotals stats={allStats || []} />
 
-						<section>
-							<h2 className="text-xl font-bold mb-4">Rendimiento del portero</h2>
-							<div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-1 auto-rows-fr items-stretch">
-								<GoalkeeperShotsGoalChart rows={goalkeeperShotsRows} matches={matches} players={players} />
+							<div className="flex items-center gap-2 mt-4 mb-4">
+								<div className="h-px flex-1 bg-border/90" />
+							</div>
+
+							<div className="space-y-8">
+								{/* BLOQUE 1 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Resumen del portero</h2>
+										<p className="text-sm text-muted-foreground">
+											Visión general del perfil de goles recibidos, tipo de paradas y rendimiento global.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
+										<div className="lg:col-span-2 h-full">
+											<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
+										</div>
+
+										<div className="lg:col-span-1 h-full">
+											<ChartSwipeCarousel
+												items={[
+													<GoalkeeperGoalsMixChart
+														key="gk-goals-mix"
+														matches={matches || []}
+														stats={allStats || []}
+														players={players || []}
+													/>,
+													<GoalkeeperSavesMixChart
+														key="gk-saves-mix"
+														matches={matches || []}
+														stats={allStats || []}
+														players={players || []}
+													/>
+												]}
+											/>
+										</div>
+									</div>
+								</div>
+
+								{/* BLOQUE 2 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Rendimiento específico</h2>
+										<p className="text-sm text-muted-foreground">
+											Comportamiento en inferioridad y distribución del daño recibido por tipo de lanzamiento.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<GoalkeeperInferiorityEfficiencyChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+											/>
+										</div>
+
+										<div className="h-full">
+											<GoalkeeperGoalsByTypeChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
+								</div>
+
+								{/* BLOQUE 3 */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Juego con balón</h2>
+										<p className="text-sm text-muted-foreground">
+											Aportación ofensiva del portero, balance de acciones positivas y pérdidas.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<GoalkeeperBallImpactChart matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
+								</div>
+
+								{/* BLOQUE 4 - SIEMPRE AL FINAL */}
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Detalle de lanzamientos</h2>
+										<p className="text-sm text-muted-foreground">
+											Distribución final de tiros recibidos y resultado de cada acción del portero.
+										</p>
+									</div>
+
+									<div className="grid grid-cols-1 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<GoalkeeperShotsGoalChart rows={goalkeeperShotsRows} matches={matches} players={players} />
+										</div>
+									</div>
+								</div>
+								<div className="space-y-4">
+									<div>
+										<h2 className="text-lg sm:text-xl font-semibold">Ranking en porteria</h2>
+										<p className="text-sm text-muted-foreground">Portero mas determinante.</p>
+									</div>
+
+									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
+										<div className="h-full">
+											<GoalkeeperRankingTable matches={matches || []} stats={allStats || []} players={players || []} />
+										</div>
+									</div>
+								</div>
 							</div>
 						</section>
 					</TabsContent>
 				</Tabs>
 			</section>
+			<div className="mt-6 flex flex-col items-center gap-2 text-center">
+				<p className="text-xs text-muted-foreground">
+					POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+				</p>
+
+				<div className="flex items-center gap-4 opacity-70">
+					<Image
+						src="/images/logo-sponsor/TFT_LOGO.webp"
+						alt="TFT"
+						width={30}
+						height={18}
+						className="h-[60px] w-auto dark:invert dark:brightness-0 dark:contrast-200"
+					/>
+
+					<Image src="/images/logo-sponsor/bwmf.svg" alt="BWMF" width={86} height={38} className="h-[40px] w-auto" />
+				</div>
+			</div>
 		</main>
 	);
 }

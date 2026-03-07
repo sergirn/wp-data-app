@@ -17,8 +17,8 @@ import logo from "@/public/images/lewaterpolo_bg.png";
 import Image from "next/image";
 
 type MatchWithCompetition = Match & {
-  competitions?: { id: number; name: string; slug: string; image_url: string | null } | null
-}
+	competitions?: { id: number; name: string; slug: string; image_url: string | null } | null;
+};
 
 export default function MatchesPage() {
 	const { currentClub } = useClub();
@@ -27,7 +27,6 @@ export default function MatchesPage() {
 	const [loading, setLoading] = useState(true);
 
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
-	
 
 	useEffect(() => {
 		async function fetchData() {
@@ -48,7 +47,8 @@ export default function MatchesPage() {
 
 				const { data: matchesData, error } = await supabase
 					.from("matches")
-					.select(`
+					.select(
+						`
 						*,
 						competitions:competition_id (
 						id,
@@ -56,9 +56,10 @@ export default function MatchesPage() {
 						slug,
 						image_url
 						)
-					`)
+					`
+					)
 					.eq("club_id", currentClub.id)
-					.order("match_date", { ascending: false })
+					.order("match_date", { ascending: false });
 
 				if (error) throw error;
 
@@ -133,7 +134,7 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 
 	const isTied = match.home_score === match.away_score;
 	const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null;
-	const competitionImage = match.competitions?.image_url?.trim() || null
+	const competitionImage = match.competitions?.image_url?.trim() || null;
 
 	let result: string;
 	let resultColor: string;
@@ -149,15 +150,15 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 			result === "Victoria"
 				? "text-green-600 dark:text-green-400"
 				: result === "Derrota"
-				? "text-red-600 dark:text-red-400"
-				: "text-yellow-600 dark:text-yellow-400";
+					? "text-red-600 dark:text-red-400"
+					: "text-yellow-600 dark:text-yellow-400";
 	}
 
 	const logoGlow = result.startsWith("Victoria")
 		? "from-green-500/80 via-emerald-400/40 to-transparent"
 		: result.startsWith("Derrota")
-		? "from-red-500/80 via-rose-400/40 to-transparent"
-		: "from-yellow-500/80 via-amber-400/40 to-transparent";
+			? "from-red-500/80 via-rose-400/40 to-transparent"
+			: "from-yellow-500/80 via-amber-400/40 to-transparent";
 
 	if (hasPenalties) {
 		result = match.penalty_home_score! > match.penalty_away_score! ? "Victoria (Penaltis)" : "Derrota (Penaltis)";
@@ -168,8 +169,8 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 			result === "Victoria"
 				? "text-green-600 dark:text-green-400"
 				: result === "Derrota"
-				? "text-red-600 dark:text-red-400"
-				: "text-yellow-600 dark:text-yellow-400";
+					? "text-red-600 dark:text-red-400"
+					: "text-yellow-600 dark:text-yellow-400";
 	}
 
 	const handleCardClick = (e: React.MouseEvent) => {
@@ -190,7 +191,7 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 							alt={match.competitions?.name ?? "LEWaterpolo"}
 							fill
 							className="object-contain opacity-30 hover:opacity-50  transition-opacity duration-200"
-							/>
+						/>
 					</div>
 				</div>
 
@@ -275,6 +276,22 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 							</div>
 						</div>
 					)}
+					<div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+						<span>POWERED BY</span>
+
+						<Image
+							src="/images/logo-sponsor/TFT_LOGO.webp"
+							alt="TFT"
+							width={30}
+							height={18}
+							className="h-[40px] w-auto dark:invert dark:brightness-0 dark:contrast-200"
+						/>
+
+						<span>&amp;</span>
+						<span></span>
+
+						<Image src="/images/logo-sponsor/bwmf.svg" alt="BWMF" width={86} height={38} className="h-[30px] w-auto" />
+					</div>
 				</div>
 			</div>
 		</CardContent>

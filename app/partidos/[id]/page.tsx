@@ -318,6 +318,22 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					)}
 				</div>
 			</div>
+			<div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+				<span>POWERED BY</span>
+
+				<Image
+					src="/images/logo-sponsor/TFT_LOGO.webp"
+					alt="TFT"
+					width={30}
+					height={18}
+					className="h-[40px] w-auto dark:invert dark:brightness-0 dark:contrast-200"
+				/>
+
+				<span>&amp;</span>
+				<span></span>
+
+				<Image src="/images/logo-sponsor/bwmf.svg" alt="BWMF" width={86} height={38} className="h-[30px] w-auto" />
+			</div>
 		</main>
 	);
 }

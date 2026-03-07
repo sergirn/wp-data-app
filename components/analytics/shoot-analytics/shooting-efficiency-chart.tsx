@@ -74,7 +74,7 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 			title="Eficiencia de tiros"
 			description={`Últimos ${data.length} · Media: ${avgGeneral}% (General) · ${avgSup}% (Sup.)`}
 			icon={<Target className="w-5 h-5" />}
-			className="bg-gradient-to-br from-blue-500/5 to-white-500/5"
+			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{avgGeneral}%</span>}
 			renderChart={({ compact }) => (
 				<ChartContainer
@@ -82,7 +82,7 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 						general: { label: "Eficiencia General (%)", color: "hsla(0, 91%, 60%, 1.00)" },
 						superiority: { label: "Eficiencia Superioridad (%)", color: "hsla(59, 85%, 45%, 1.00)" }
 					}}
-					className={`w-full ${compact ? "h-[120px]" : "h-[420px]"}`}
+					className="w-full h-full"
 				>
 					<ResponsiveContainer width="100%" height="100%">
 						<AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>

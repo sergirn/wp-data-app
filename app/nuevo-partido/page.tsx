@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatInput } from "@/components/stat-input";
+import Image from "next/image";
 import type { Player, MatchStats, Profile, Match } from "@/lib/types";
 import { Loader2, AlertCircle, RefreshCw, Plus, Users, CheckCircle, XCircle, X, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1809,6 +1810,23 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					)}
 				</Button>
 			</div>
+			<div className="mt-6 flex flex-col items-center gap-2 text-center">
+				<p className="text-xs text-muted-foreground">
+					POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+				</p>
+
+				<div className="flex items-center gap-4 opacity-70">
+					<Image
+						src="/images/logo-sponsor/TFT_LOGO.webp"
+						alt="TFT"
+						width={30}
+						height={18}
+						className="h-[60px] w-auto dark:invert dark:brightness-0 dark:contrast-200"
+					/>
+
+					<Image src="/images/logo-sponsor/bwmf.svg" alt="BWMF" width={86} height={38} className="h-[40px] w-auto" />
+				</div>
+			</div>
 		</main>
 	);
 }
@@ -1863,9 +1881,7 @@ function FieldPlayerStatsDialog({
 			</TabsList>
 
 			<TabsContent value="goles" className="space-y-4 mt-4">
-				<p className="text-sm text-muted-foreground mb-4">El total se calcula automáticamente sumando todos los tipos de goles.</p>
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-					<StatField label="Totales" value={safeNumber(stats.goles_totales)} onChange={() => {}} readOnly />
+				<Group title="Ofensiva">
 					<StatField label="Boya/Jugada" value={safeNumber(stats.goles_boya_jugada)} onChange={(v) => onUpdate("goles_boya_jugada", v)} />
 					<StatField label="Lanzamiento" value={safeNumber(stats.goles_lanzamiento)} onChange={(v) => onUpdate("goles_lanzamiento", v)} />
 					<StatField label="Dir +6m" value={safeNumber(stats.goles_dir_mas_5m)} onChange={(v) => onUpdate("goles_dir_mas_5m", v)} />
@@ -1879,15 +1895,14 @@ function FieldPlayerStatsDialog({
 						value={safeNumber(stats.goles_penalti_anotado)}
 						onChange={(v) => onUpdate("goles_penalti_anotado", v)}
 					/>
-				</div>
+				</Group>
+				<Group title="Otros">
+					<StatField label="Totales" value={safeNumber(stats.goles_totales)} onChange={() => {}} readOnly />
+				</Group>
 			</TabsContent>
 
 			<TabsContent value="tiros" className="space-y-4 mt-4">
-				<p className="text-sm text-muted-foreground mb-4">
-					El total incluye goles + tiros fallados. La eficiencia se calcula automáticamente.
-				</p>
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-					<StatField label="Totales" value={safeNumber(stats.tiros_totales)} onChange={() => {}} readOnly />
+				<Group title="Ofensiva">
 					<StatField
 						label="Penalti Fallado"
 						value={safeNumber(stats.tiros_penalti_fallado)}
@@ -1895,11 +1910,17 @@ function FieldPlayerStatsDialog({
 					/>
 					<StatField label="Corner" value={safeNumber(stats.tiros_corner)} onChange={(v) => onUpdate("tiros_corner", v)} />
 					<StatField label="Fuera" value={safeNumber(stats.tiros_fuera)} onChange={(v) => onUpdate("tiros_fuera", v)} />
+					<StatField label="Palo" value={safeNumber(stats.tiro_palo)} onChange={(v) => onUpdate("tiro_palo", v)} />
+				</Group>
+
+				<Group title="Defensiva">
 					<StatField label="Parados" value={safeNumber(stats.tiros_parados)} onChange={(v) => onUpdate("tiros_parados", v)} />
 					<StatField label="Bloqueado" value={safeNumber(stats.tiros_bloqueado)} onChange={(v) => onUpdate("tiros_bloqueado", v)} />
-					<StatField label="Palo" value={safeNumber(stats.tiro_palo)} onChange={(v) => onUpdate("tiro_palo", v)} />
+				</Group>
+				<Group title="Otros">
+					<StatField label="Totales" value={safeNumber(stats.tiros_totales)} onChange={() => {}} readOnly />
 					<StatField
-						label="Eficiencia (general) %"
+						label="Eficiencia %"
 						value={(() => {
 							const golesGenerales =
 								safeNumber(stats.goles_boya_jugada) +
@@ -1920,20 +1941,17 @@ function FieldPlayerStatsDialog({
 								safeNumber(stats.tiros_hombre_mas);
 
 							const intentos = golesGenerales + fallosGenerales;
-
 							return intentos > 0 ? Math.round((golesGenerales / intentos) * 100) : 0;
 						})()}
 						onChange={() => {}}
 						readOnly
 						suffix="%"
 					/>
-				</div>
+				</Group>
 			</TabsContent>
 
 			<TabsContent value="superioridad" className="space-y-4 mt-4">
-				<p className="text-sm text-muted-foreground mb-4">Estadísticas específicas de superioridad (Hombre +).</p>
-
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+				<Group title="Ofensiva">
 					<StatField label="Goles Sup.+" value={safeNumber(stats.goles_hombre_mas)} onChange={(v) => onUpdate("goles_hombre_mas", v)} />
 					<StatField
 						label="Gol del palo Sup.+"
@@ -1941,40 +1959,38 @@ function FieldPlayerStatsDialog({
 						onChange={(v) => onUpdate("gol_del_palo_sup", v)}
 					/>
 					<StatField label="Fallos Sup.+" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
-
-					<StatField
-						label="Rebote Recup."
-						value={safeNumber(stats.rebote_recup_hombre_mas)}
-						onChange={(v) => onUpdate("rebote_recup_hombre_mas", v)}
-					/>
-
-					<StatField
-						label="Rebote Perd."
-						value={safeNumber(stats.rebote_perd_hombre_mas)}
-						onChange={(v) => onUpdate("rebote_perd_hombre_mas", v)}
-					/>
-
 					<StatField
 						label="Eficiencia %"
 						value={(() => {
 							const g = safeNumber(stats.goles_hombre_mas);
 							const gp = safeNumber(stats.gol_del_palo_sup);
 							const t = safeNumber(stats.tiros_hombre_mas);
-
 							const goals = g + gp;
 							const attempts = goals + t;
-
 							return attempts > 0 ? Math.round((goals / attempts) * 100) : 0;
 						})()}
 						onChange={() => {}}
 						readOnly
 						suffix="%"
 					/>
-				</div>
+				</Group>
+
+				<Group title="Otros">
+					<StatField
+						label="Rebote Recup."
+						value={safeNumber(stats.rebote_recup_hombre_mas)}
+						onChange={(v) => onUpdate("rebote_recup_hombre_mas", v)}
+					/>
+					<StatField
+						label="Rebote Perd."
+						value={safeNumber(stats.rebote_perd_hombre_mas)}
+						onChange={(v) => onUpdate("rebote_perd_hombre_mas", v)}
+					/>
+				</Group>
 			</TabsContent>
 
 			<TabsContent value="faltas" className="space-y-4 mt-4">
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+				<Group title="Defensiva">
 					<StatField label="Exp 18'' 1c1" value={safeNumber(stats.faltas_exp_20_1c1)} onChange={(v) => onUpdate("faltas_exp_20_1c1", v)} />
 					<StatField
 						label="Exp 18'' Boya"
@@ -1984,23 +2000,17 @@ function FieldPlayerStatsDialog({
 					<StatField label="Penalti" value={safeNumber(stats.faltas_penalti)} onChange={(v) => onUpdate("faltas_penalti", v)} />
 					<StatField label="Exp (Simple)" value={safeNumber(stats.faltas_exp_simple)} onChange={(v) => onUpdate("faltas_exp_simple", v)} />
 					<StatField label="Exp trans. def." value={safeNumber(stats.exp_trans_def)} onChange={(v) => onUpdate("exp_trans_def", v)} />
-				</div>
+				</Group>
 			</TabsContent>
 
 			<TabsContent value="acciones" className="space-y-4 mt-4">
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-					<StatField label="Bloqueo" value={safeNumber(stats.acciones_bloqueo)} onChange={(v) => onUpdate("acciones_bloqueo", v)} />
+				<Group title="Ofensiva">
 					<StatField
 						label="Asistencias"
 						value={safeNumber(stats.acciones_asistencias)}
 						onChange={(v) => onUpdate("acciones_asistencias", v)}
 					/>
-					<StatField
-						label="Recuperación"
-						value={safeNumber(stats.acciones_recuperacion)}
-						onChange={(v) => onUpdate("acciones_recuperacion", v)}
-					/>
-					<StatField label="Rebote" value={safeNumber(stats.acciones_rebote)} onChange={(v) => onUpdate("acciones_rebote", v)} />
+
 					<StatField
 						label="Exp Provocada"
 						value={safeNumber(stats.acciones_exp_provocada)}
@@ -2011,10 +2021,12 @@ function FieldPlayerStatsDialog({
 						value={safeNumber(stats.acciones_penalti_provocado)}
 						onChange={(v) => onUpdate("acciones_penalti_provocado", v)}
 					/>
+
+					<StatField label="Pase boya" value={safeNumber(stats.pase_boya)} onChange={(v) => onUpdate("pase_boya", v)} />
 					<StatField
-						label="Recibe Gol"
-						value={safeNumber(stats.acciones_recibir_gol)}
-						onChange={(v) => onUpdate("acciones_recibir_gol", v)}
+						label="Pase boya fallado"
+						value={safeNumber(stats.pase_boya_fallado)}
+						onChange={(v) => onUpdate("pase_boya_fallado", v)}
 					/>
 					<StatField
 						label="Pérdida Posesión"
@@ -2026,13 +2038,25 @@ function FieldPlayerStatsDialog({
 						value={safeNumber(stats.faltas_contrafaltas)}
 						onChange={(v) => onUpdate("faltas_contrafaltas", v)}
 					/>
-					<StatField label="Pase boya" value={safeNumber(stats.pase_boya)} onChange={(v) => onUpdate("pase_boya", v)} />
+				</Group>
+
+				<Group title="Defensiva">
+					<StatField label="Bloqueo" value={safeNumber(stats.acciones_bloqueo)} onChange={(v) => onUpdate("acciones_bloqueo", v)} />
 					<StatField
-						label="Pase boya fallado"
-						value={safeNumber(stats.pase_boya_fallado)}
-						onChange={(v) => onUpdate("pase_boya_fallado", v)}
+						label="Recuperación"
+						value={safeNumber(stats.acciones_recuperacion)}
+						onChange={(v) => onUpdate("acciones_recuperacion", v)}
 					/>
-				</div>
+					<StatField
+						label="Recibe Gol"
+						value={safeNumber(stats.acciones_recibir_gol)}
+						onChange={(v) => onUpdate("acciones_recibir_gol", v)}
+					/>
+				</Group>
+
+				<Group title="Otros">
+					<StatField label="Rebote" value={safeNumber(stats.acciones_rebote)} onChange={(v) => onUpdate("acciones_rebote", v)} />
+				</Group>
 			</TabsContent>
 		</Tabs>
 	);
@@ -2080,9 +2104,6 @@ function GoalkeeperStatsDialog({
 			</TabsList>
 
 			<TabsContent value="goles" className="space-y-4 mt-4">
-				<p className="text-sm text-muted-foreground mb-4">
-					Registra los goles encajados del equipo rival. Se suman automáticamente a "Goles Rival".
-				</p>
 				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 					<StatField label="Totales" value={totalGoalsConceded} onChange={() => {}} readOnly />
 					<StatField
@@ -2154,58 +2175,79 @@ function GoalkeeperStatsDialog({
 			</TabsContent>
 
 			<TabsContent value="inferioridad" className="space-y-4 mt-4">
-				<p className="text-sm text-muted-foreground mb-4">
-					Estadísticas de inferioridad numérica (Hombre -). Se suman automáticamente al marcador del rival.
-				</p>
-
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+				<Group title="Recibidos">
 					<StatField
 						label="Goles Inf.-"
 						value={safeNumber(stats.portero_goles_hombre_menos)}
 						onChange={(v) => onUpdate("portero_goles_hombre_menos", v)}
 					/>
 					<StatField label="Gol de palo" value={safeNumber(stats.portero_gol_palo)} onChange={(v) => onUpdate("portero_gol_palo", v)} />
+				</Group>
 
+				<Group title="Defensiva">
 					<StatField
 						label="Paradas Inf.-"
 						value={safeNumber(stats.portero_paradas_hombre_menos)}
 						onChange={(v) => onUpdate("portero_paradas_hombre_menos", v)}
 					/>
-
 					<StatField
 						label="Fuera"
 						value={safeNumber(stats.portero_inferioridad_fuera)}
 						onChange={(v) => onUpdate("portero_inferioridad_fuera", v)}
 					/>
-
 					<StatField
 						label="Bloqueo"
 						value={safeNumber(stats.portero_inferioridad_bloqueo)}
 						onChange={(v) => onUpdate("portero_inferioridad_bloqueo", v)}
 					/>
+				</Group>
 
+				<Group title="Otros">
 					<StatField
 						label="Eficiencia %"
 						value={(() => {
-							const goles = safeNumber(stats.portero_goles_hombre_menos);
-							const paradas = safeNumber(stats.portero_paradas_hombre_menos);
-							const total = goles + paradas;
-							return total > 0 ? Math.round((paradas / total) * 100) : 0;
+							// ✅ mejor: total = goles + (paradas + fuera + bloqueo) para que tenga sentido
+							const goles = safeNumber(stats.portero_goles_hombre_menos) + safeNumber(stats.portero_gol_palo);
+							const evitados =
+								safeNumber(stats.portero_paradas_hombre_menos) +
+								safeNumber(stats.portero_inferioridad_fuera) +
+								safeNumber(stats.portero_inferioridad_bloqueo);
+							const total = goles + evitados;
+							return total > 0 ? Math.round((evitados / total) * 100) : 0;
 						})()}
 						onChange={() => {}}
 						readOnly
 						suffix="%"
 					/>
-				</div>
+				</Group>
 			</TabsContent>
 
 			<TabsContent value="acciones" className="space-y-4 mt-4">
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+				<Group title="Ofensiva">
 					<StatField
 						label="Asistencias"
 						value={safeNumber(stats.acciones_asistencias)}
 						onChange={(v) => onUpdate("acciones_asistencias", v)}
 					/>
+					<StatField label="Gol" value={safeNumber(stats.portero_gol)} onChange={(v) => onUpdate("portero_gol", v)} />
+					<StatField
+						label="Gol Superioridad"
+						value={safeNumber(stats.portero_gol_superioridad)}
+						onChange={(v) => onUpdate("portero_gol_superioridad", v)}
+					/>
+					<StatField
+						label="Tiro Fallado"
+						value={safeNumber(stats.tiro_fallado_portero)}
+						onChange={(v) => onUpdate("tiro_fallado_portero", v)}
+					/>
+					<StatField
+						label="Fallo Superioridad"
+						value={safeNumber(stats.portero_fallo_superioridad)}
+						onChange={(v) => onUpdate("portero_fallo_superioridad", v)}
+					/>
+				</Group>
+
+				<Group title="Defensiva">
 					<StatField
 						label="Recuperación"
 						value={safeNumber(stats.acciones_recuperacion)}
@@ -2217,27 +2259,11 @@ function GoalkeeperStatsDialog({
 						onChange={(v) => onUpdate("portero_acciones_perdida_pos", v)}
 					/>
 					<StatField
-						label="Expulsión Provocada"
+						label="Exp. Provocada"
 						value={safeNumber(stats.acciones_exp_provocada)}
 						onChange={(v) => onUpdate("acciones_exp_provocada", v)}
 					/>
-					<StatField label="Gol" value={safeNumber(stats.portero_gol)} onChange={(v) => onUpdate("portero_gol", v)} />
-					<StatField
-						label="Tiro Fallado"
-						value={safeNumber(stats.tiro_fallado_portero)}
-						onChange={(v) => onUpdate("tiro_fallado_portero", v)}
-					/>
-					<StatField
-						label="Gol Superioridad"
-						value={safeNumber(stats.portero_gol_superioridad)}
-						onChange={(v) => onUpdate("portero_gol_superioridad", v)}
-					/>
-					<StatField
-						label="Fallo Superioridad"
-						value={safeNumber(stats.portero_fallo_superioridad)}
-						onChange={(v) => onUpdate("portero_fallo_superioridad", v)}
-					/>
-				</div>
+				</Group>
 			</TabsContent>
 		</Tabs>
 	);
@@ -2288,3 +2314,15 @@ const getCurrentSeason = (): string => {
 		return `${year - 1}-${year}`;
 	}
 };
+
+const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
+	<div className="space-y-2">
+		<div className="flex items-center gap-2">
+			<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+			<div className="h-px flex-1 bg-border/60" />
+		</div>
+		<div className="rounded-xl p-3 sm:p-4">
+			<div className="grid grid-cols-2 md:grid-cols-3 gap-4">{children}</div>
+		</div>
+	</div>
+);

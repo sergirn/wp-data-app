@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useClub } from "@/lib/club-context";
 import { useProfile } from "@/lib/profile-context";
 import { LandingPage } from "@/components/landing-page";
+import Image from "next/image";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -422,19 +423,28 @@ export default function HomePage() {
 						</Card>
 					</section>
 				</div>
+				<div className="mt-6 flex flex-col items-center gap-2 text-center">
+					<p className="text-xs text-muted-foreground">
+						POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+					</p>
+
+					<div className="flex items-center gap-4 opacity-70">
+						<Image
+							src="/images/logo-sponsor/TFT_LOGO.webp"
+							alt="TFT"
+							width={30}
+							height={18}
+							className="h-[60px] w-auto dark:invert dark:brightness-0 dark:contrast-200"
+						/>
+
+						<Image src="/images/logo-sponsor/bwmf.svg" alt="BWMF" width={86} height={38} className="h-[40px] w-auto" />
+					</div>
+				</div>
 			</div>
 		</main>
 	);
 }
 
-/* ----------------------------- Subcomponents ----------------------------- */
-
-/**
- * ✅ More compact match rows:
- * - Slightly less vertical padding
- * - Smaller score pill
- * - Same tap target & readability
- */
 function MatchListCompact({ matches }: { matches: MatchRow[] }) {
 	return (
 		<div className="space-y-3">

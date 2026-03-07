@@ -15,6 +15,11 @@ interface ManAdvantageChartProps {
 	players: Player[];
 }
 
+const toNum = (v: unknown) => {
+	const n = Number(v);
+	return Number.isFinite(n) ? n : 0;
+};
+
 export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChartProps) {
 	const sortedMatches = useMemo(() => {
 		return [...(matches ?? [])].sort((a: any, b: any) => {
@@ -30,13 +35,16 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 
 		return sortedMatches.map((match: any, index: number) => {
 			const ms = statsArr.filter((s: any) => String(s.match_id) === String(match.id));
-			const totalGoals = ms.reduce((sum: number, s: any) => sum + (s.goles_hombre_mas || 0), 0);
-			const totalPalo = ms.reduce((sum: number, s: any) => sum + (s.gol_del_palo_sup || 0), 0);
-			const totalMisses = ms.reduce((sum: number, s: any) => sum + (s.tiros_hombre_mas || 0), 0);
 
-			const totalGoalsH = totalGoals + totalPalo;
-			const totalAttempts = totalGoalsH + totalMisses;
-			const efficiency = totalAttempts > 0 ? Math.round(((totalGoalsH + totalPalo) / totalAttempts) * 100) : 0;
+			const golesSup = ms.reduce((sum: number, s: any) => sum + toNum(s.goles_hombre_mas), 0);
+			const golesPaloSup = ms.reduce((sum: number, s: any) => sum + toNum(s.gol_del_palo_sup), 0);
+			const fallosSup = ms.reduce((sum: number, s: any) => sum + toNum(s.tiros_hombre_mas), 0);
+
+			const golesTotales = golesSup + golesPaloSup;
+			const intentosTotales = golesTotales + fallosSup;
+
+			// corregido: antes se sumaba golesPaloSup dos veces
+			const eficiencia = intentosTotales > 0 ? Math.round((golesTotales / intentosTotales) * 100) : 0;
 
 			const jornadaNumber = match.jornada ?? index + 1;
 
@@ -46,12 +54,12 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
 				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
-				goles_normales: totalGoals,
-				goles_palo: totalPalo,
-				goles: totalGoalsH,
-				fallos: totalMisses,
-				total: totalAttempts,
-				eficiencia: efficiency
+				golesSup,
+				golesPaloSup,
+				golesTotales,
+				fallosSup,
+				intentosTotales,
+				eficiencia
 			};
 		});
 	}, [sortedMatches, stats]);
@@ -66,29 +74,33 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 				jornada: m.jornada,
 				rival: m.rival,
 				fullDate: m.fullDate,
-				goles: m.goles,
-				fallos: m.fallos,
-				eficienciaAcumulada: Number(avgEfficiency.toFixed(1)),
-				total: m.total,
-				eficiencia: m.eficiencia
+				golesSup: m.golesSup,
+				golesPaloSup: m.golesPaloSup,
+				golesTotales: m.golesTotales,
+				fallosSup: m.fallosSup,
+				intentosTotales: m.intentosTotales,
+				eficiencia: m.eficiencia,
+				eficienciaAcumulada: Number(avgEfficiency.toFixed(1))
 			};
 		});
 	}, [matchData]);
 
-	// totales / medias (para description + footer)
 	const partidos = matchData.length;
-	const totalGoalsH = matchData.reduce((sum, m) => sum + m.goles, 0);
-	const totalMisses = matchData.reduce((sum, m) => sum + m.fallos, 0);
-	const totalAttempts = totalGoalsH + totalMisses;
-	const overallEfficiency = totalAttempts > 0 ? Math.round((totalGoalsH / totalAttempts) * 100) : 0;
-	const avgGoalsPerMatch = partidos > 0 ? (totalGoalsH / partidos).toFixed(1) : "0.0";
-	const avgMissesPerMatch = partidos > 0 ? (totalMisses / partidos).toFixed(1) : "0.0";
-	const maxAttempts = Math.max(...matchData.map((m) => m.total), 1);
+	const totalGolesSup = matchData.reduce((sum, m) => sum + m.golesSup, 0);
+	const totalPaloSup = matchData.reduce((sum, m) => sum + m.golesPaloSup, 0);
+	const totalGoles = matchData.reduce((sum, m) => sum + m.golesTotales, 0);
+	const totalFallos = matchData.reduce((sum, m) => sum + m.fallosSup, 0);
+	const totalIntentos = totalGoles + totalFallos;
+
+	const overallEfficiency = totalIntentos > 0 ? Math.round((totalGoles / totalIntentos) * 100) : 0;
+	const avgGoalsPerMatch = partidos > 0 ? (totalGoles / partidos).toFixed(1) : "0.0";
+	const avgMissesPerMatch = partidos > 0 ? (totalFallos / partidos).toFixed(1) : "0.0";
+	const maxAttempts = Math.max(...matchData.map((m) => m.intentosTotales), 1);
 
 	const getEfficiencyColor = (eff: number) => {
-		if (eff >= 60) return "bg-green-500";
-		if (eff >= 40) return "bg-yellow-500";
-		return "bg-red-500";
+		if (eff >= 60) return "bg-emerald-500";
+		if (eff >= 40) return "bg-amber-500";
+		return "bg-rose-500";
 	};
 
 	if (!matchData.length) return null;
@@ -96,18 +108,20 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 	return (
 		<ExpandableChartCard
 			title="Eficiencia en Superioridad"
-			description={`Últimos ${partidos} · Media: ${overallEfficiency}% · ${totalGoalsH}/${totalAttempts} intentos`}
+			description={`Últimos ${partidos} · Media: ${overallEfficiency}% · ${totalGoles}/${totalIntentos} intentos`}
 			icon={<TrendingUp className="w-5 h-5" />}
-			className="bg-gradient-to-br from-blue-500/5 to-cyan-500/15 h-full"
+			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{overallEfficiency}%</span>}
 			renderChart={({ compact }) => (
 				<ChartContainer
 					config={{
-						goles: { label: "Goles", color: "hsla(0, 0%, 89%, 1.00)" },
-						fallos: { label: "Fallos", color: "hsla(0, 76%, 50%, 1.00)" },
-						eficienciaAcumulada: { label: "Eficiencia Acumulada %", color: "hsl(217 91% 60%)" }
+						golesSup: { label: "Gol Sup.+", color: "hsla(145, 63%, 42%, 1.00)" },
+						golesPaloSup: { label: "Gol del palo", color: "hsla(42, 96%, 55%, 1.00)" },
+						fallosSup: { label: "Fallos Sup.+", color: "hsla(0, 84%, 60%, 1.00)" },
+						eficiencia: { label: "Eficiencia %", color: "hsla(190, 95%, 45%, 1.00)" },
+						eficienciaAcumulada: { label: "Eficiencia acumulada %", color: "hsla(221, 83%, 53%, 1.00)" }
 					}}
-					className={`w-full ${compact ? "h-[190px]" : "h-[420px]"}`}
+					className={`w-full ${compact ? "h-[260px]" : "h-[360px] lg:h-[420px]"}`}
 				>
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={chartData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
@@ -142,25 +156,53 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 										labelFormatter={(label, payload) => {
 											const p = payload?.[0]?.payload;
 											if (!p) return String(label);
-											return `${label} · vs ${p.rival} · ${p.fullDate} · Efic: ${p.eficiencia}%`;
+											return `${label} · vs ${p.rival} · ${p.fullDate}`;
 										}}
 									/>
 								}
 							/>
 
-							<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
+							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
 
-							<Bar yAxisId="left" dataKey="goles" name="Goles" fill="var(--color-goles)" radius={[4, 4, 0, 0]} />
+							<Bar
+								yAxisId="left"
+								dataKey="golesSup"
+								name="Gol Sup.+"
+								stackId="sup"
+								fill="var(--color-golesSup)"
+								radius={[4, 4, 0, 0]}
+							/>
 
-							<Bar yAxisId="left" dataKey="fallos" name="Fallos" fill="var(--color-fallos)" radius={[4, 4, 0, 0]} />
+							<Bar
+								yAxisId="left"
+								dataKey="golesPaloSup"
+								name="Gol del palo"
+								stackId="sup"
+								fill="var(--color-golesPaloSup)"
+								radius={[4, 4, 0, 0]}
+							/>
+
+							<Bar yAxisId="left" dataKey="fallosSup" name="Fallos Sup.+" fill="var(--color-fallosSup)" radius={[4, 4, 0, 0]} />
+
+							<Line
+								yAxisId="right"
+								type="monotone"
+								dataKey="eficiencia"
+								name="Eficiencia %"
+								stroke="var(--color-eficiencia)"
+								strokeWidth={2.5}
+								dot={false}
+								activeDot={{ r: 4 }}
+							/>
 
 							<Line
 								yAxisId="right"
 								type="monotone"
 								dataKey="eficienciaAcumulada"
-								name="Eficiencia Acumulada %"
+								name="Eficiencia acumulada %"
 								stroke="var(--color-eficienciaAcumulada)"
-								strokeWidth={5}
+								strokeWidth={3.5}
+								strokeDasharray="6 4"
 								dot={false}
 								activeDot={{ r: 4 }}
 							/>
@@ -172,11 +214,13 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
 						<div className="max-h-[520px] overflow-y-auto">
-							<Table className="min-w-[920px]">
+							<Table className="min-w-[1040px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
 										<TableHead className="w-[90px]">Jornada</TableHead>
 										<TableHead>Rival</TableHead>
+										<TableHead className="text-right">Gol Sup.+</TableHead>
+										<TableHead className="text-right">Gol palo</TableHead>
 										<TableHead className="text-right">Anotados</TableHead>
 										<TableHead className="text-right">Fallados</TableHead>
 										<TableHead className="text-right">Total</TableHead>
@@ -187,8 +231,8 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 
 								<TableBody>
 									{matchData.map((m, idx) => {
-										const pct = Math.round((m.total / maxAttempts) * 100);
-										const dot = m.eficiencia >= 60 ? "bg-green-500" : m.eficiencia >= 40 ? "bg-yellow-500" : "bg-red-500";
+										const pct = Math.round((m.intentosTotales / maxAttempts) * 100);
+										const dot = m.eficiencia >= 60 ? "bg-emerald-500" : m.eficiencia >= 40 ? "bg-amber-500" : "bg-rose-500";
 
 										return (
 											<TableRow
@@ -210,35 +254,37 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 												</TableCell>
 
 												<TableCell className="text-right tabular-nums">
-													<div className="flex flex-col items-end gap-1">
-														<Badge className="bg-green-500 text-white hover:bg-green-500 tabular-nums">+{m.goles}</Badge>
+													<Badge className="bg-emerald-500 text-white hover:bg-emerald-500 tabular-nums">
+														{m.golesSup}
+													</Badge>
+												</TableCell>
 
-														{(m.goles_normales > 0 || m.goles_palo > 0) && (
-															<div className="text-[11px] text-muted-foreground leading-tight">
-																{m.goles_normales > 0 && <span>G: {m.goles_normales}</span>}
-																{m.goles_normales > 0 && m.goles_palo > 0 && <span className="mx-1">·</span>}
-																{m.goles_palo > 0 && <span>Gol del palo: {m.goles_palo}</span>}
-															</div>
-														)}
-													</div>
+												<TableCell className="text-right tabular-nums">
+													<Badge className="bg-amber-500 text-white hover:bg-amber-500 tabular-nums">
+														{m.golesPaloSup}
+													</Badge>
+												</TableCell>
+
+												<TableCell className="text-right tabular-nums">
+													<Badge className="bg-cyan-600 text-white hover:bg-cyan-600 tabular-nums">{m.golesTotales}</Badge>
 												</TableCell>
 
 												<TableCell className="text-right tabular-nums">
 													<Badge variant="destructive" className="tabular-nums">
-														−{m.fallos}
+														{m.fallosSup}
 													</Badge>
 												</TableCell>
 
 												<TableCell className="text-right tabular-nums">
 													<div className="flex items-end justify-end gap-3">
 														<Badge variant="secondary" className="tabular-nums">
-															{m.total}
+															{m.intentosTotales}
 														</Badge>
 
 														<div className="hidden md:block w-20">
 															<div className="h-2 rounded-full bg-muted overflow-hidden">
 																<div
-																	className="h-2 rounded-full bg-blue-600 dark:bg-blue-400 transition-all"
+																	className="h-2 rounded-full bg-cyan-500 transition-all"
 																	style={{ width: `${pct}%` }}
 																/>
 															</div>
@@ -261,7 +307,6 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 						</div>
 					</div>
 
-					{/* ✅ footer igual que Goalkeeper */}
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
@@ -270,15 +315,21 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 
 							<div className="flex flex-wrap gap-2">
 								<span className="rounded-md border bg-card px-2 py-1">
-									Anotados: <span className="font-semibold text-foreground">{totalGoalsH}</span>{" "}
+									Gol Sup.+: <span className="font-semibold text-foreground">{totalGolesSup}</span>
+								</span>
+								<span className="rounded-md border bg-card px-2 py-1">
+									Gol palo: <span className="font-semibold text-foreground">{totalPaloSup}</span>
+								</span>
+								<span className="rounded-md border bg-card px-2 py-1">
+									Anotados: <span className="font-semibold text-foreground">{totalGoles}</span>{" "}
 									<span className="text-muted-foreground">({avgGoalsPerMatch}/p)</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Fallados: <span className="font-semibold text-foreground">{totalMisses}</span>{" "}
+									Fallados: <span className="font-semibold text-foreground">{totalFallos}</span>{" "}
 									<span className="text-muted-foreground">({avgMissesPerMatch}/p)</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Total: <span className="font-semibold text-foreground">{totalAttempts}</span>
+									Total: <span className="font-semibold text-foreground">{totalIntentos}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
 									Media %: <span className="font-semibold text-foreground">{overallEfficiency}%</span>
