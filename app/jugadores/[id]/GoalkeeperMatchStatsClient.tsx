@@ -13,6 +13,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 import { Loader2, TrendingUp } from "lucide-react";
 
+import { GOALKEEPER_CATEGORY_HINTS, GOALKEEPER_CATEGORY_TITLES } from "@/lib/stats/goalkeeperStatsConfig";
+import { getGoalkeeperDerived, getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
+
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
 }
@@ -31,64 +34,6 @@ function computeWeightedScore(row: Record<string, any>, weights: Record<string, 
 
 	return Math.round(score);
 }
-
-type StatItem = { label: string; key: string };
-type StatGroup = { title: string; stats: StatItem[] };
-
-/** ✅ Catálogo de campos del portero */
-const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
-	{
-		title: "Goles encajados",
-		stats: [
-			{ label: "Boya/Parada", key: "portero_goles_boya_parada" },
-			{ label: "Inferioridad -", key: "portero_goles_hombre_menos" },
-			{ label: "+6m", key: "portero_goles_dir_mas_5m" },
-			{ label: "Contraataque", key: "portero_goles_contraataque" },
-			{ label: "Penalti", key: "portero_goles_penalti" },
-			{ label: "Lanzamiento", key: "portero_goles_lanzamiento" },
-			{ label: "Boya", key: "portero_goles_boya" },
-			{ label: "Gol del palo (Inf.-)", key: "portero_gol_palo" }
-		]
-	},
-	{
-		title: "Paradas",
-		stats: [
-			{ label: "Totales", key: "portero_paradas_totales" },
-			{ label: "Parada + Recup", key: "portero_tiros_parada_recup" },
-			{ label: "Fuera (parada)", key: "portero_paradas_fuera" },
-			{ label: "Penalti parado", key: "portero_paradas_penalti_parado" },
-			{ label: "Inferioridad - (parada)", key: "portero_paradas_hombre_menos" },
-
-			// ✅ NUEVO: tiros del rival (cuentan como tiros recibidos, NO como paradas)
-			{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" },
-			{ label: "Lanz. al palo", key: "portero_lanz_palo" },
-
-			// ✅ NUEVO: inferioridad (tiros recibidos H- que NO son paradas ni goles)
-			{ label: "Inf.- Fuera", key: "portero_inferioridad_fuera" },
-			{ label: "Inf.- Bloqueo", key: "portero_inferioridad_bloqueo" }
-		]
-	},
-	{
-		title: "Acciones",
-		stats: [
-			{ label: "Asistencias", key: "acciones_asistencias" },
-			{ label: "Recuperación", key: "acciones_recuperacion" },
-			{ label: "Pérdida posesión", key: "portero_acciones_perdida_pos" },
-			{ label: "Exp. provocada", key: "acciones_exp_provocada" }
-		]
-	},
-	{
-		title: "Ataque (portero)",
-		stats: [
-			{ label: "Gol", key: "portero_gol" },
-			{ label: "Tiro Fallado", key: "tiro_fallado_portero" },
-			{ label: "Gol superioridad", key: "portero_gol_superioridad" },
-			{ label: "Fallo superioridad", key: "portero_fallo_superioridad" }
-		]
-	}
-];
-
-const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
 	if (!matchStats?.length) {
@@ -120,10 +65,17 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 		</div>
 	);
 
-	const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-		<div className="space-y-2">
-			<h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h4>
-			<div className="grid grid-cols-2 gap-2">{children}</div>
+	const Section = ({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) => (
+		<div className="rounded-2xl border bg-card/40">
+			<div className="flex items-start justify-between gap-3 px-4 py-3 border-b">
+				<div className="min-w-0">
+					<h4 className="text-sm font-semibold leading-tight">{title}</h4>
+					{hint ? <p className="text-xs text-muted-foreground mt-0.5">{hint}</p> : null}
+				</div>
+			</div>
+			<div className="p-2">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-1">{children}</div>
+			</div>
 		</div>
 	);
 
@@ -146,14 +98,16 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 					}
 				}}
 				className={[
-					"flex items-center justify-between rounded-lg px-3 py-2 border transition-colors select-none",
+					"flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors select-none",
 					"cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30",
-					isFav ? "bg-yellow-500/20 border-yellow-500/20 hover:bg-yellow-500/25" : "bg-muted/50 border-transparent hover:bg-muted/70"
+					isFav
+						? "bg-yellow-500/20 border border-yellow-500/20 hover:bg-yellow-500/25"
+						: "bg-muted/40 border border-transparent hover:bg-muted/55"
 				].join(" ")}
 				aria-label={`${label}: ${isFav ? "favorita" : "no favorita"}`}
 				title="Pulsa para marcar/desmarcar como favorita"
 			>
-				<span className="text-sm text-muted-foreground">{label}</span>
+				<span className="text-sm text-muted-foreground min-w-0 truncate">{label}</span>
 
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-semibold tabular-nums">{value}</span>
@@ -176,6 +130,13 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 			</div>
 		);
 	};
+
+	const goalItems = getGoalkeeperStatsByCategory("goles");
+	const saveItems = getGoalkeeperStatsByCategory("paradas");
+	const penaltyItems = getGoalkeeperStatsByCategory("paradas_penalti");
+	const otherShotItems = getGoalkeeperStatsByCategory("otros_tiros");
+	const actionItems = getGoalkeeperStatsByCategory("acciones");
+	const attackItems = getGoalkeeperStatsByCategory("ataque");
 
 	const defaultOpen = `match-${matchStats[0]?.id}`;
 
@@ -203,43 +164,7 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 			<Accordion type="single" collapsible className="w-full space-y-4" defaultValue={defaultOpen}>
 				{matchStats.map((stat) => {
 					const match = stat.matches;
-
-					// ✅ goles recibidos (incluye gol_palo y lanzamiento)
-					const golesRecibidosPortero =
-						(stat as any).portero_goles_totales ??
-						n((stat as any).portero_goles_boya_parada) +
-							n((stat as any).portero_goles_hombre_menos) +
-							n((stat as any).portero_goles_dir_mas_5m) +
-							n((stat as any).portero_goles_contraataque) +
-							n((stat as any).portero_goles_penalti) +
-							n((stat as any).portero_goles_lanzamiento) +
-							n((stat as any).portero_goles_boya) +
-							n((stat as any).portero_gol_palo);
-
-					// ✅ paradas (si tienes totales ya, úsalos; si no, suma categorías)
-					const paradasRaw = n((stat as any).portero_paradas_totales);
-					const paradasFallback =
-						n((stat as any).portero_tiros_parada_recup) +
-						n((stat as any).portero_paradas_fuera) +
-						n((stat as any).portero_paradas_penalti_parado) +
-						n((stat as any).portero_paradas_hombre_menos);
-
-					const paradas = paradasRaw > 0 ? paradasRaw : paradasFallback;
-
-					// ✅ tiros del rival que cuentan como tiros recibidos, pero NO como paradas
-					const fuera = n((stat as any).lanz_recibido_fuera);
-					const palo = n((stat as any).portero_lanz_palo);
-
-					// ✅ inferioridad (tiros recibidos H- que NO son paradas ni goles)
-					const infFuera = n((stat as any).portero_inferioridad_fuera);
-					const infBloq = n((stat as any).portero_inferioridad_bloqueo);
-
-					// ✅ tiros recibidos totales: TODO lo que haya (paradas + goles + fuera + palo + H- fuera/bloq)
-					const tirosRecibidos = paradas + golesRecibidosPortero + fuera + palo + infFuera + infBloq;
-
-					// ✅ eficiencia basada en tiros recibidos
-					const eficiencia = tirosRecibidos > 0 ? ((paradas / tirosRecibidos) * 100).toFixed(1) : "0.0";
-
+					const derived = getGoalkeeperDerived(stat as any);
 					const score = hasWeights ? computeWeightedScore(stat as any, weights) : null;
 
 					return (
@@ -297,37 +222,74 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 
 								<AccordionContent className="p-0">
 									<CardContent className="space-y-4">
-										<div className="grid grid-cols-4 md:grid-cols-4 gap-3">
+										<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 											<KpiBox
 												label="Paradas"
-												value={paradas}
+												value={derived.saves}
 												className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
 											/>
 											<KpiBox
 												label="Goles Recibidos"
-												value={golesRecibidosPortero}
+												value={derived.goalsConceded}
 												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
 											/>
 											<KpiBox
 												label="Eficiencia"
-												value={`${eficiencia}%`}
+												value={`${derived.savePct}%`}
 												className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
 											/>
 											<KpiBox
 												label="Tiros Totales"
-												value={tirosRecibidos}
+												value={derived.shotsReceived}
 												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
 											/>
 										</div>
 
-										<div className="grid gap-3 grid-cols-2">
-											{GOALKEEPER_GROUPS_ALL.map((group) => (
-												<Section key={group.title} title={group.title}>
-													{group.stats.map((it) => (
-														<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
-													))}
-												</Section>
-											))}
+										<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+											<Section title={GOALKEEPER_CATEGORY_TITLES.goles} hint={GOALKEEPER_CATEGORY_HINTS.goles ?? "Partido"}>
+												{goalItems.map((it) => (
+													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+												))}
+											</Section>
+
+											<Section title={GOALKEEPER_CATEGORY_TITLES.paradas} hint={GOALKEEPER_CATEGORY_HINTS.paradas ?? "Partido"}>
+												{saveItems.map((it) => (
+													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+												))}
+											</Section>
+
+											<Section
+												title={GOALKEEPER_CATEGORY_TITLES.paradas_penalti}
+												hint={GOALKEEPER_CATEGORY_HINTS.paradas_penalti ?? "Partido"}
+											>
+												{penaltyItems.map((it) => (
+													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+												))}
+											</Section>
+
+											<Section
+												title={GOALKEEPER_CATEGORY_TITLES.otros_tiros}
+												hint={GOALKEEPER_CATEGORY_HINTS.otros_tiros ?? "Partido"}
+											>
+												{otherShotItems.map((it) => (
+													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+												))}
+											</Section>
+
+											<Section
+												title={GOALKEEPER_CATEGORY_TITLES.acciones}
+												hint={GOALKEEPER_CATEGORY_HINTS.acciones ?? "Partido"}
+											>
+												{actionItems.map((it) => (
+													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+												))}
+											</Section>
+
+											<Section title={GOALKEEPER_CATEGORY_TITLES.ataque} hint={GOALKEEPER_CATEGORY_HINTS.ataque ?? "Partido"}>
+												{attackItems.map((it) => (
+													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+												))}
+											</Section>
 										</div>
 									</CardContent>
 								</AccordionContent>

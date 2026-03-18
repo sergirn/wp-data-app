@@ -1,67 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { usePlayerFavorites } from "@/hooks/usePlayerFavorites";
-
-type StatItem = { label: string; key: string };
-type StatGroup = { title: string; stats: StatItem[] };
-
-export const GOALKEEPER_GROUPS_ALL: StatGroup[] = [
-	{
-		title: "Goles encajados",
-		stats: [
-			{ label: "Boya/Parada", key: "portero_goles_boya_parada" },
-			{ label: "Inferioridad -", key: "portero_goles_hombre_menos" },
-			{ label: "+6m", key: "portero_goles_dir_mas_5m" },
-			{ label: "Contraataque", key: "portero_goles_contraataque" },
-			{ label: "Penalti", key: "portero_goles_penalti" },
-			{ label: "Lanzamiento", key: "portero_goles_lanzamiento" },
-			{ label: "Boya", key: "portero_goles_boya" },
-			{ label: "Gol del palo (Inf.-)", key: "portero_gol_palo" }
-		]
-	},
-	{
-		title: "Paradas",
-		stats: [
-			{ label: "Totales", key: "portero_paradas_totales" },
-			{ label: "Parada + Recup", key: "portero_tiros_parada_recup" },
-			{ label: "Fuera (parada)", key: "portero_paradas_fuera" },
-			{ label: "Penalti parado", key: "portero_paradas_penalti_parado" },
-			{ label: "Inferioridad - (parada)", key: "portero_paradas_hombre_menos" },
-
-			// tiros rival (cuentan como recibidos, no paradas)
-			{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" },
-			{ label: "Lanz. al palo", key: "portero_lanz_palo" },
-
-			// inferioridad (recibidos H- no paradas ni goles)
-			{ label: "Inf.- Fuera", key: "portero_inferioridad_fuera" },
-			{ label: "Inf.- Bloqueo", key: "portero_inferioridad_bloqueo" }
-		]
-	},
-	{
-		title: "Acciones",
-		stats: [
-			{ label: "Asistencias", key: "acciones_asistencias" },
-			{ label: "Recuperación", key: "acciones_recuperacion" },
-			{ label: "Pérdida posesión", key: "portero_acciones_perdida_pos" },
-			{ label: "Exp. provocada", key: "acciones_exp_provocada" }
-		]
-	},
-	{
-		title: "Ataque (portero)",
-		stats: [
-			{ label: "Gol", key: "portero_gol" },
-			{ label: "Tiro Fallado", key: "tiro_fallado_portero" },
-
-			{ label: "Gol superioridad", key: "portero_gol_superioridad" },
-			{ label: "Fallo superioridad", key: "portero_fallo_superioridad" }
-		]
-	}
-];
-
-const n = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { getGoalkeeperDerived, getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
+import { GOALKEEPER_CATEGORY_HINTS, GOALKEEPER_CATEGORY_TITLES, type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
 
 export function GoalkeeperTotalsCard({
 	stats,
@@ -99,11 +42,12 @@ export function GoalkeeperTotalsCard({
 					{hint ? <p className="text-xs text-muted-foreground mt-0.5">{hint}</p> : null}
 				</div>
 			</div>
-			<div className="p-2">{children}</div>
+			<div className="p-2">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-1">{children}</div>
+			</div>
 		</div>
 	);
 
-	// ✅ Favoritos (igual que tu ejemplo)
 	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId);
 
 	const FavRow = ({ label, value, statKey }: { label: string; value: React.ReactNode; statKey: string }) => {
@@ -156,17 +100,12 @@ export function GoalkeeperTotalsCard({
 		);
 	};
 
-	// ✅ KPIs top (portero)
-	const paradas = n(stats?.portero_paradas_totales);
-	const golesRecibidos = n(stats?.goles_recibidos_reales); // viene de tu calculateGoalkeeperStats
-	const totalShots = paradas + golesRecibidos;
-	const savePercentage = totalShots > 0 ? ((paradas / totalShots) * 100).toFixed(1) : "0.0";
+	const derived = getGoalkeeperDerived(stats);
 
-	const asist = n(stats?.acciones_asistencias);
+	const orderedCategories: GoalkeeperStatCategory[] = ["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"];
 
 	return (
 		<div className="space-y-4">
-			{/* ✅ barra sticky de guardado */}
 			{dirty ? (
 				<div className="sticky top-2 z-20">
 					<div className="rounded-xl border bg-background/60 backdrop-blur px-3 py-2 flex items-center justify-between gap-3">
@@ -188,25 +127,35 @@ export function GoalkeeperTotalsCard({
 
 			<div className="overflow-hidden">
 				<div className="space-y-5">
-					{/* KPIs top */}
-					<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-						<KpiBox label="Paradas" value={paradas} />
-						<KpiBox label="Goles recibidos" value={golesRecibidos} subtle />
-						<KpiBox label="Save %" value={`${savePercentage}%`} />
-						<KpiBox label="Tiros (P+G)" value={totalShots} subtle />
+					<div className="flex items-center justify-between gap-3">
+						<div className="min-w-0">
+							<h3 className="text-lg font-semibold truncate">{title}</h3>
+						</div>
+
+						{typeof matchCount === "number" ? <StatPill>{matchCount} partidos</StatPill> : null}
 					</div>
 
-					{/* Secciones + filas favoritas */}
+					<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+						<KpiBox label="Paradas" value={derived.saves} />
+						<KpiBox label="Goles recibidos" value={derived.goalsConceded} subtle />
+						<KpiBox label="Save %" value={`${derived.savePct}%`} />
+						<KpiBox label="Tiros recibidos" value={derived.shotsReceived} subtle />
+					</div>
+
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-						{GOALKEEPER_GROUPS_ALL.map((group) => (
-							<Section key={group.title} title={group.title} hint="Totales">
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-									{group.stats.map((it) => (
+						{orderedCategories.map((category) => {
+							const items = getGoalkeeperStatsByCategory(category);
+
+							if (!items.length) return null;
+
+							return (
+								<Section key={category} title={GOALKEEPER_CATEGORY_TITLES[category]} hint={GOALKEEPER_CATEGORY_HINTS[category]}>
+									{items.map((it) => (
 										<FavRow key={it.key} statKey={it.key} label={it.label} value={(stats?.[it.key] ?? 0) as number} />
 									))}
-								</div>
-							</Section>
-						))}
+								</Section>
+							);
+						})}
 					</div>
 				</div>
 			</div>

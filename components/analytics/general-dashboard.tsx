@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Target, Shield, Activity } from "lucide-react";
 import { MatchResultsChart } from "../match-results-chart";
+import { buildGeneralDashboardAnalytics } from "@/lib/helpers/generalDashboardHelper";
 
 interface GeneralDashboardProps {
 	matches: any[];
@@ -13,103 +13,7 @@ interface GeneralDashboardProps {
 
 export function GeneralDashboard({ matches, stats, players }: GeneralDashboardProps) {
 	const analytics = useMemo(() => {
-		const totalMatches = matches?.length ?? 0;
-		if (totalMatches === 0) return null;
-
-		// ===== Totales globales =====
-		const totalGoalsFor = (stats ?? []).reduce((sum, s) => sum + (s.goles_totales || 0), 0);
-		const totalGoalsAgainst = (matches ?? []).reduce((sum, m) => sum + (m.away_score || 0), 0);
-		const totalShots = (stats ?? []).reduce((sum, s) => sum + (s.tiros_totales || 0), 0);
-		const totalAssists = (stats ?? []).reduce((sum, s) => sum + (s.acciones_asistencias || 0), 0);
-		const totalBlocks = (stats ?? []).reduce((sum, s) => sum + (s.acciones_bloqueo || 0), 0);
-		const totalRecoveries = (stats ?? []).reduce((sum, s) => sum + (s.acciones_recuperacion || 0), 0);
-		const totalTurnovers = (stats ?? []).reduce((sum, s) => sum + (s.acciones_perdida_poco || 0), 0);
-
-		// Superioridad
-		const goalsSuperiority = (stats ?? []).reduce((sum, s) => sum + (s.goles_hombre_mas || 0), 0);
-		const shotsSuperiority = (stats ?? []).reduce((sum, s) => sum + (s.tiros_hombre_mas || 0), 0);
-
-		// Inferioridad (porteros)
-		const goalkeeperStats = (stats ?? []).filter((s) => {
-			const player = (players ?? []).find((p) => p.id === s.player_id);
-			return player?.is_goalkeeper;
-		});
-		const savesInferiority = goalkeeperStats.reduce((sum, s) => sum + (s.portero_paradas_hombre_menos || 0), 0);
-		const goalsAgainstInferiority = goalkeeperStats.reduce((sum, s) => sum + (s.portero_goles_hombre_menos || 0), 0);
-		const totalShotsInferiority = savesInferiority + goalsAgainstInferiority;
-
-		// Faltas
-		const totalFouls = (stats ?? []).reduce(
-			(sum, s) =>
-				sum +
-				(s.faltas_contrafaltas || 0) +
-				(s.faltas_exp_20_1c1 || 0) +
-				(s.faltas_exp_20_boya || 0) +
-				(s.faltas_exp_3_bruta || 0) +
-				(s.faltas_exp_3_int || 0) +
-				(s.exp_trans_def || 0) +
-				(s.faltas_exp_simple || 0),
-			0
-		);
-
-		const exclusions = (stats ?? []).reduce(
-			(sum, s) => sum + (s.faltas_exp_20_1c1 || 0) + (s.faltas_exp_20_boya || 0) + (s.faltas_exp_3_bruta || 0) + (s.faltas_exp_simple || 0),
-			0
-		);
-
-		// Porteros (global)
-		const totalSaves = goalkeeperStats.reduce((sum, s) => sum + (s.portero_paradas_totales || 0), 0);
-		const totalShotsAgainst = totalSaves + totalGoalsAgainst;
-
-		// Eficiencias
-		const shootingEfficiency = totalShots > 0 ? ((totalGoalsFor / totalShots) * 100).toFixed(1) : "0.0";
-		const superiorityEfficiency = shotsSuperiority > 0 ? ((goalsSuperiority / shotsSuperiority) * 100).toFixed(1) : "0.0";
-		const inferiorityEfficiency = totalShotsInferiority > 0 ? ((savesInferiority / totalShotsInferiority) * 100).toFixed(1) : "0.0";
-		const goalkeeperEfficiency = totalShotsAgainst > 0 ? ((totalSaves / totalShotsAgainst) * 100).toFixed(1) : "0.0";
-
-		// Medias por partido
-		const avgGoalsFor = (totalGoalsFor / totalMatches).toFixed(1);
-		const avgGoalsAgainst = (totalGoalsAgainst / totalMatches).toFixed(1);
-		const avgShots = (totalShots / totalMatches).toFixed(1);
-		const avgAssists = (totalAssists / totalMatches).toFixed(1);
-		const avgBlocks = (totalBlocks / totalMatches).toFixed(1);
-		const avgFouls = (totalFouls / totalMatches).toFixed(1);
-
-		// Diferencia de goles
-		const goalDifference = totalGoalsFor - totalGoalsAgainst;
-
-		return {
-			totalMatches,
-
-			shootingEfficiency,
-			superiorityEfficiency,
-			inferiorityEfficiency,
-			goalkeeperEfficiency,
-
-			avgGoalsFor,
-			avgGoalsAgainst,
-			avgShots,
-			avgAssists,
-			avgBlocks,
-			avgFouls,
-
-			goalDifference,
-
-			totalGoalsFor,
-			totalGoalsAgainst,
-			totalShots,
-			totalAssists,
-			totalBlocks,
-			totalRecoveries,
-			totalTurnovers,
-			totalFouls,
-			exclusions,
-			totalSaves,
-			goalsSuperiority,
-			shotsSuperiority,
-			savesInferiority,
-			goalsAgainstInferiority
-		};
+		return buildGeneralDashboardAnalytics(matches, stats, players);
 	}, [matches, stats, players]);
 
 	if (!analytics) {
@@ -149,30 +53,26 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 		}[accent];
 
 		return (
-			<Card className={`hidden sm:block relative overflow-hidden ring-1 ${ringMap}`}>
+			<div className={`hidden sm:block relative overflow-hidden rounded-xl border ring-1 ${ringMap}`}>
 				<div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accentMap}`} />
-
-				<CardHeader className="relative pb-3">
-					<CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground/90">
+				<div className="relative p-4">
+					<div className="text-sm font-medium flex items-center gap-2 text-foreground/90">
 						<span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-background/70 ring-1 ring-border">{icon}</span>
 						<span className="truncate">{title}</span>
-					</CardTitle>
-				</CardHeader>
+					</div>
 
-				<CardContent className="relative">
-					<div className="flex items-end gap-1.5">
+					<div className="mt-3 flex items-end gap-1.5">
 						<div className="text-3xl font-bold tracking-tight">{value}</div>
 						{unit ? <div className="pb-1 text-sm font-medium text-muted-foreground">{unit}</div> : null}
 					</div>
 					{subline ? <p className="mt-1 text-xs text-muted-foreground">{subline}</p> : null}
-				</CardContent>
-			</Card>
+				</div>
+			</div>
 		);
 	};
 
 	return (
 		<div className="space-y-6">
-			{/* Layout principal: Chart izquierda / Contenido derecha (en línea en desktop) */}
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="min-w-0">
 					<p className="text-sm text-muted-foreground truncate">
@@ -180,17 +80,13 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 					</p>
 				</div>
 			</div>
+
 			<div className="grid gap-6 lg:grid-cols-[minmax(320px,1fr)_2fr] lg:items-start">
-				{/* IZQUIERDA: Chart */}
 				<div className="order-2 lg:order-1">
 					<MatchResultsChart matches={matches || []} />
 				</div>
 
-				{/* DERECHA: Todo lo demás */}
 				<div className="order-1 lg:order-2 space-y-7">
-					{/* ===== Header mini (contexto) ===== */}
-
-					{/* ===== KPIs (Eficiencias) ===== */}
 					<div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-2">
 						<MetricCard
 							title="Eficiencia de tiro"
@@ -206,7 +102,7 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 							icon={<TrendingUp className="h-4 w-4 text-green-600 dark:text-green-300" />}
 							value={analytics.superiorityEfficiency}
 							unit="%"
-							subline={`${analytics.goalsSuperiority} goles / ${analytics.shotsSuperiority} tiros`}
+							subline={`${analytics.goalsSuperiority} goles / ${analytics.shotsSuperiority} intentos`}
 							accent="green"
 						/>
 
@@ -215,7 +111,7 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 							icon={<TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-300" />}
 							value={analytics.inferiorityEfficiency}
 							unit="%"
-							subline={`${analytics.savesInferiority} paradas / ${analytics.savesInferiority + analytics.goalsAgainstInferiority} tiros`}
+							subline={`${analytics.savesInferiority} evitadas / ${analytics.savesInferiority + analytics.goalsAgainstInferiority} intentos`}
 							accent="orange"
 						/>
 
@@ -229,16 +125,15 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 						/>
 					</div>
 
-					{/* ===== Medias por partido ===== */}
 					<div className="overflow-hidden">
 						<div className="pb-3">
-							<CardTitle className="flex items-center gap-2">
+							<div className="flex items-center gap-2 font-semibold">
 								<Activity className="h-5 w-5 text-muted-foreground" />
 								Medias por Partido
-							</CardTitle>
+							</div>
 						</div>
 
-						<div className="grid gap-3 grid-cols-3 sm:grid-cols-3 lg:grid-cols-6">
+						<div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgGoalsFor}</div>
 								<p className="text-xs text-muted-foreground">Goles a favor</p>
@@ -255,18 +150,48 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
-								<div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{analytics.avgAssists}</div>
+								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgAssists}</div>
 								<p className="text-xs text-muted-foreground">Asistencias</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
-								<div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{analytics.avgBlocks}</div>
+								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgBlocks}</div>
 								<p className="text-xs text-muted-foreground">Bloqueos</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
-								<div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{analytics.avgFouls}</div>
+								<div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.avgFouls}</div>
 								<p className="text-xs text-muted-foreground">Faltas</p>
+							</div>
+
+							<div className="rounded-lg border bg-card p-3 text-center">
+								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgRecoveries}</div>
+								<p className="text-xs text-muted-foreground">Recuperaciones</p>
+							</div>
+
+							<div className="rounded-lg border bg-card p-3 text-center">
+								<div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.avgTurnovers}</div>
+								<p className="text-xs text-muted-foreground">Pérdidas</p>
+							</div>
+
+							<div className="rounded-lg border bg-card p-3 text-center">
+								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgSaves}</div>
+								<p className="text-xs text-muted-foreground">Paradas</p>
+							</div>
+
+							<div className="rounded-lg border bg-card p-3 text-center">
+								<div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.avgExclusions}</div>
+								<p className="text-xs text-muted-foreground">Exclusiones</p>
+							</div>
+
+							<div className="rounded-lg border bg-card p-3 text-center">
+								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgGoalsSuperiority}</div>
+								<p className="text-xs text-muted-foreground">Goles Sup.+</p>
+							</div>
+
+							<div className="rounded-lg border bg-card p-3 text-center">
+								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgShotsSuperiority}</div>
+								<p className="text-xs text-muted-foreground">Intentos Sup.+</p>
 							</div>
 						</div>
 					</div>

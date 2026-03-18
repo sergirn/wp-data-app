@@ -327,30 +327,6 @@ export default function AnalyticsPage() {
 						</section>
 					</TabsContent>
 
-					{/* ===== TAB: PARTIDO ===== */}
-					{/* <TabsContent value="match" className="mt-4 space-y-10">
-						<section>
-							<h2 className="text-xl font-bold mb-4">Dinámica del partido</h2>
-
-							<div className="md:hidden">
-								<ChartSwipeCarousel
-									className="w-full"
-									items={[
-										<QuarterGoalsChart key="q" matches={quarterMatches || []} />,
-										<GoalDifferenceEvolutionChart key="gd" matches={matches || []} />,
-										<SprintEfficiencyChart key="sp" matches={matches || []} players={players || []} />
-									]}
-								/>
-							</div>
-
-							<div className="hidden md:grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-								<QuarterGoalsChart matches={quarterMatches || []} />
-								<GoalDifferenceEvolutionChart matches={matches || []} />
-								<SprintEfficiencyChart matches={matches || []} players={players || []} />
-							</div>
-						</section>
-					</TabsContent> */}
-
 					{/* ===== TAB: ATAQUE ===== */}
 					<TabsContent value="attack" className="mt-4 space-y-10">
 						<section>

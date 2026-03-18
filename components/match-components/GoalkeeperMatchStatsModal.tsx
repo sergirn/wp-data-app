@@ -6,7 +6,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlayerHeroHeader } from "@/app/jugadores/[id]/playerHeader";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GoalkeeperStatsSections } from "@/components/analytics-goalkeeper/GoalkeeperStatsSections";
 
 type Props = {
 	open: boolean;
@@ -16,7 +16,7 @@ type Props = {
 	derived: {
 		paradas: number;
 		golesRecibidos: number;
-		tirosRecibidos: number; // ✅ debe incluir lanz_recibido_fuera + portero_lanz_palo
+		tirosRecibidos: number;
 		savePercentage: string;
 		lanzRecibidoFuera?: number;
 	};
@@ -142,13 +142,6 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 		</div>
 	);
 
-	const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-		<div className="space-y-2">
-			<h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h4>
-			<div className="grid grid-cols-2 gap-2">{children}</div>
-		</div>
-	);
-
 	const KV = ({ label, value, statKey }: { label: string; value: React.ReactNode; statKey: string }) => {
 		const isFav = favSet.has(statKey);
 		const onToggle = () => toggleLocal(statKey);
@@ -196,48 +189,6 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 		);
 	};
 
-	// ✅ Paradas / tiros rivales NO a puerta (incluye portero_lanz_palo como tiro recibido, NO como parada)
-	const savesItems = [
-		{ label: "Parada + Recup", key: "portero_tiros_parada_recup" },
-		{ label: "Fuera", key: "portero_paradas_fuera" },
-		{ label: "Lanz. recibido fuera", key: "lanz_recibido_fuera" },
-		{ label: "Penalti parado", key: "portero_paradas_penalti_parado" },
-		{ label: "Inferioridad -", key: "portero_paradas_hombre_menos" },
-		{ label: "Lanz. al palo", key: "portero_lanz_palo" } // ✅ cuenta como tiro recibido
-	] as const;
-
-	// ✅ Goles encajados (incluye gol de palo + gol de lanzamiento)
-	const goalsItems = [
-		{ label: "Boya/Parada", key: "portero_goles_boya_parada" },
-		{ label: "Inferioridad -", key: "portero_goles_hombre_menos" },
-		{ label: "+6m", key: "portero_goles_dir_mas_5m" },
-		{ label: "Contraataque", key: "portero_goles_contraataque" },
-		{ label: "Penalti", key: "portero_goles_penalti" },
-		{ label: "Gol de palo", key: "portero_gol_palo" },
-		{ label: "Gol de lanzamiento", key: "portero_goles_lanzamiento" }
-	] as const;
-
-	// ✅ Inferioridad (H-)
-	const inferioridadItems = [
-		{ label: "Goles Inferioridad -", key: "portero_goles_hombre_menos" },
-		{ label: "Paradas Inferioridad -", key: "portero_paradas_hombre_menos" },
-		{ label: "Fuera (Inf.-)", key: "portero_inferioridad_fuera" },
-		{ label: "Bloqueo (Inf.-)", key: "portero_inferioridad_bloqueo" }
-	] as const;
-
-	// ✅ Acciones
-	const accionesItems = [
-		{ label: "Asistencias", key: "acciones_asistencias" },
-		{ label: "Recuperación", key: "acciones_recuperacion" },
-		{ label: "Pérdida posesión", key: "portero_acciones_perdida_pos" },
-		{ label: "Expulsión provocada", key: "acciones_exp_provocada" },
-		{ label: "Gol", key: "portero_gol" },
-		{ label: "Tiro Fallado", key: "tiro_fallado_portero" },
-		{ label: "Gol superioridad", key: "portero_gol_superioridad" },
-		{ label: "Fallo superioridad", key: "portero_fallo_superioridad" }
-	] as const;
-
-	// ✅ eficiencia H- (paradas/(paradas+goles))
 	const hmGoles = Number(stat?.portero_goles_hombre_menos ?? 0);
 	const hmParadas = Number(stat?.portero_paradas_hombre_menos ?? 0);
 	const hmTotal = hmGoles + hmParadas;
@@ -274,7 +225,6 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 						/>
 					</div>
 
-					{/* ✅ Barra Guardar/Descartar */}
 					{dirty ? (
 						<div className="sticky top-0 z-20 px-4 pb-2 bg-background/60 backdrop-blur">
 							<div className="rounded-xl border bg-background/80 backdrop-blur px-3 py-2 flex items-center justify-between gap-3">
@@ -297,7 +247,6 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 					)}
 
 					<div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
-						{/* ✅ KPI: tiros recibidos ya viene calculado incluyendo lanz_recibido_fuera + portero_lanz_palo */}
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 							<KpiBox label="Paradas" value={derived.paradas} className="bg-blue-500/5 border-blue-500/10" />
 							<KpiBox label="GC" value={derived.golesRecibidos} className="bg-white/5 border-blue-500/20" />
@@ -305,89 +254,16 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 							<KpiBox label="Tiros" value={derived.tirosRecibidos} className="bg-white/5 border-blue-500/20" />
 						</div>
 
-						{/* ✅ Tabs (Goles / Paradas / Inferioridad / Acciones) */}
-						<Tabs defaultValue="goles" className="w-full">
-							<TabsList className="grid w-full grid-cols-4 h-auto">
-								<TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-									Goles
-								</TabsTrigger>
-								<TabsTrigger value="paradas" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-									Paradas
-								</TabsTrigger>
-								<TabsTrigger value="inferioridad" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-									<span className="sm:hidden block truncate">Inf.</span>
-									<span className="hidden sm:inline block truncate">Inferioridad</span>
-								</TabsTrigger>
-								<TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-									Acciones
-								</TabsTrigger>
-							</TabsList>
-
-							<TabsContent value="goles" className="space-y-3 mt-4">
-								<Section title="Goles encajados por tipo">
-									{goalsItems.map((it) => (
-										<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-									))}
-								</Section>
-							</TabsContent>
-
-							<TabsContent value="paradas" className="space-y-3 mt-4">
-								<Section title="Paradas / tiros por tipo">
-									{savesItems.map((it) => (
-										<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-									))}
-								</Section>
-							</TabsContent>
-
-							<TabsContent value="inferioridad" className="space-y-3 mt-4">
-								<Section title="Inferioridad (H-)">
-									{inferioridadItems.map((it) => (
-										<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-									))}
-								</Section>
-
-								<div className="rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground">
-									Eficiencia H-: <span className="font-semibold text-foreground tabular-nums">{hmEficiencia}%</span>
-								</div>
-							</TabsContent>
-
-							<TabsContent value="acciones" className="space-y-3 mt-4">
-								<Section title="Acciones">
-									{accionesItems.map((it) => (
-										<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-									))}
-								</Section>
-							</TabsContent>
-						</Tabs>
-
-						{/* ✅ Resumen compacto (mantengo tu card) */}
-						<Card className="bg-muted/20">
-							<CardContent className="pt-4">
-								<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-										<span className="text-sm text-muted-foreground">Paradas inf.</span>
-										<span className="text-sm font-semibold tabular-nums">{stat?.portero_paradas_hombre_menos ?? 0}</span>
-									</div>
-									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-										<span className="text-sm text-muted-foreground">Pen. parados</span>
-										<span className="text-sm font-semibold tabular-nums">{stat?.portero_paradas_penalti_parado ?? 0}</span>
-									</div>
-									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-										<span className="text-sm text-muted-foreground">Fuera</span>
-										<span className="text-sm font-semibold tabular-nums">{stat?.portero_paradas_fuera ?? 0}</span>
-									</div>
-									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-										<span className="text-sm text-muted-foreground">Lanz. fuera</span>
-										<span className="text-sm font-semibold tabular-nums">{stat?.lanz_recibido_fuera ?? 0}</span>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
+						<GoalkeeperStatsSections
+							stats={stat}
+							mode="match"
+							categories={["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"]}
+							renderRow={({ label, value, statKey }) => <KV key={statKey} label={label} value={value} statKey={statKey} />}
+						/>
 					</div>
 				</DialogContent>
 			</Dialog>
 
-			{/* ✅ Confirm modal */}
 			<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 				<DialogContent className="sm:max-w-[480px]">
 					<DialogTitle>¿Salir sin guardar?</DialogTitle>

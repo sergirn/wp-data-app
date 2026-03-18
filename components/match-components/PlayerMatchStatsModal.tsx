@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlayerHeroHeader } from "@/app/jugadores/[id]/playerHeader";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
+import { PlayerStatsSections } from "../analytics-player/PlayerStatsSections";
 
 type Props = {
 	open: boolean;
@@ -77,13 +78,11 @@ function usePlayerFavorites(playerId?: number, open?: boolean) {
 		const prev = new Set(initialKeys);
 		const next = new Set(draftKeys);
 
-		// keys a togglear para dejar la BBDD como "next"
 		const toToggle: string[] = [];
 		for (const k of prev) if (!next.has(k)) toToggle.push(k);
 		for (const k of next) if (!prev.has(k)) toToggle.push(k);
 
 		try {
-			// Aplica toggles en serie (más seguro con RLS / rate limits)
 			for (const statKey of toToggle) {
 				const res = await fetch("/api/favorites", {
 					method: "POST",
@@ -93,11 +92,9 @@ function usePlayerFavorites(playerId?: number, open?: boolean) {
 				if (!res.ok) throw new Error("save_failed");
 			}
 
-			// Actualiza baseline
 			setInitialKeys(draftKeys);
 		} catch {
 			setError("No se pudieron guardar los cambios");
-			// Re-sync desde servidor para no quedarnos inconsistentes
 			await load();
 		} finally {
 			setSaving(false);
@@ -112,12 +109,10 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 
 	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId, open);
 
-	// ✅ confirm al cerrar si hay cambios sin guardar
 	const [confirmOpen, setConfirmOpen] = React.useState(false);
 	const pendingCloseRef = React.useRef<boolean | null>(null);
 
 	const requestClose = React.useCallback(() => {
-		// cierre real
 		onOpenChange(false);
 	}, [onOpenChange]);
 
@@ -127,7 +122,6 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 			return;
 		}
 
-		// intenta cerrar
 		if (dirty && !saving) {
 			pendingCloseRef.current = false;
 			setConfirmOpen(true);
@@ -139,14 +133,12 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 	const confirmCloseWithoutSaving = () => {
 		setConfirmOpen(false);
 		pendingCloseRef.current = null;
-		discard(); // opcional: vuelve al baseline para no arrastrar estados
+		discard();
 		requestClose();
 	};
 
 	const confirmSaveAndClose = async () => {
 		await save();
-		// si tras guardar ya no hay dirty y no hubo error => cierra
-		// (si falló save, dirty probablemente seguirá o habrá error)
 		setConfirmOpen(false);
 		pendingCloseRef.current = null;
 		requestClose();
@@ -163,13 +155,6 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 		<div className={`rounded-xl p-4 text-center border ${className}`}>
 			<p className="text-2xl font-bold tabular-nums">{value}</p>
 			<p className="text-xs text-muted-foreground mt-1">{label}</p>
-		</div>
-	);
-
-	const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-		<div className="space-y-2">
-			<h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h4>
-			<div className="grid grid-cols-2 gap-2">{children}</div>
 		</div>
 	);
 
@@ -219,47 +204,6 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 		);
 	};
 
-	const goalsItems = [
-		{ label: "Boya/Jugada", key: "goles_boya_jugada" },
-		{ label: "Gol (Sup.+)", key: "goles_hombre_mas" },
-		{ label: "Gol del palo (Sup.+)", key: "gol_del_palo_sup" },
-		{ label: "Lanzamiento", key: "goles_lanzamiento" },
-		{ label: "+6m", key: "goles_dir_mas_5m" },
-		{ label: "Contraataque", key: "goles_contraataque" },
-		{ label: "Penalti", key: "goles_penalti_anotado" }
-	] as const;
-
-	const missesItems = [
-		{ label: "Fallo (Sup.+)", key: "tiros_hombre_mas" },
-		{ label: "Penalti", key: "tiros_penalti_fallado" },
-		{ label: "Corner", key: "tiros_corner" },
-		{ label: "Fuera", key: "tiros_fuera" },
-		{ label: "Parados", key: "tiros_parados" },
-		{ label: "Bloqueados", key: "tiros_bloqueado" },
-		{ label: "Palo", key: "tiro_palo" }
-	] as const;
-
-	const foulsItems = [
-		{ label: 'Exp 20" 1c1', key: "faltas_exp_20_1c1" },
-		{ label: 'Exp 20" Boya', key: "faltas_exp_20_boya" },
-		{ label: "Exp Simple", key: "faltas_exp_simple" },
-		{ label: "Exp trans. def.", key: "exp_trans_def" },
-		{ label: "Penalti", key: "faltas_penalti" },
-		{ label: "Contrafaltas", key: "faltas_contrafaltas" }
-	] as const;
-
-	const actionsItems = [
-		{ label: "Asistencias", key: "acciones_asistencias" },
-		{ label: "Bloqueos", key: "acciones_bloqueo" },
-		{ label: "Recuperaciones", key: "acciones_recuperacion" },
-		{ label: "Rebotes", key: "acciones_rebote" },
-		{ label: "Exp. Prov.", key: "acciones_exp_provocada" },
-		{ label: "Pen. Prov.", key: "acciones_penalti_provocado" },
-		{ label: "Gol recibido", key: "acciones_recibir_gol" },
-		{ label: "Pase al boya", key: "pase_boya" },
-		{ label: "Pase boya fallado", key: "pase_boya_fallado" }
-	] as const;
-
 	return (
 		<>
 			<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -279,7 +223,6 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 						<DialogTitle>{player?.name ?? "Estadísticas del jugador"}</DialogTitle>
 					</VisuallyHidden>
 
-					{/* Header player */}
 					<div className="p-2">
 						<PlayerHeroHeader
 							player={{
@@ -292,7 +235,6 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 						/>
 					</div>
 
-					{/* ✅ Barra Guardar (sticky dentro del modal) */}
 					{dirty ? (
 						<div className="sticky top-0 z-20 px-4 pb-2 bg-background/60 backdrop-blur">
 							<div className="rounded-xl border bg-background/80 backdrop-blur px-3 py-2 flex items-center justify-between gap-3">
@@ -311,11 +253,9 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 							</div>
 						</div>
 					) : (
-						// pequeño separador para que el scroll no quede pegado
 						<div />
 					)}
 
-					{/* Body */}
 					<div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 							<KpiBox label="Goles" value={stat?.goles_totales ?? 0} className="bg-blue-500/5 border-blue-500/10" />
@@ -324,31 +264,11 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 							<KpiBox label="Asistencias" value={stat?.acciones_asistencias ?? 0} className="bg-white/5 border-blue-500/20" />
 						</div>
 
-						<div className="grid md:grid-cols-2 gap-4">
-							<Section title="Goles por tipo">
-								{goalsItems.map((it) => (
-									<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-								))}
-							</Section>
-
-							<Section title="Tiros fallados">
-								{missesItems.map((it) => (
-									<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-								))}
-							</Section>
-
-							<Section title="Faltas">
-								{foulsItems.map((it) => (
-									<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-								))}
-							</Section>
-
-							<Section title="Acciones">
-								{actionsItems.map((it) => (
-									<KV key={it.key} label={it.label} value={stat?.[it.key] ?? 0} statKey={it.key} />
-								))}
-							</Section>
-						</div>
+						<PlayerStatsSections
+							stats={stat}
+							mode="match"
+							renderRow={({ label, value, statKey }) => <KV key={statKey} label={label} value={value} statKey={statKey} />}
+						/>
 
 						<Card className="bg-muted/20">
 							<CardContent className="pt-4">
@@ -376,7 +296,6 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 				</DialogContent>
 			</Dialog>
 
-			{/* ✅ Confirm modal (si intentas cerrar con cambios sin guardar) */}
 			<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 				<DialogContent className="sm:max-w-[480px]">
 					<DialogTitle>¿Salir sin guardar?</DialogTitle>

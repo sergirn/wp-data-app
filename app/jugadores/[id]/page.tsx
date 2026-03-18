@@ -1,16 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
 import type { Player, MatchStats, Match } from "@/lib/types";
-
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import { ArrowLeft } from "lucide-react";
-
-import { StatsCharts6x6 } from "@/components/analytics-player/summary-components/StatsChartsPlayer";
-import { StatsChartsGoalkeeper } from "@/components/analytics-goalkeeper/summary-components/StatsChartsGoalkeeper";
 import { PlayerHeroHeader } from "./playerHeader";
 import { BlocksVsGoalsChart } from "@/components/analytics-player/evolution-component/BlocksVsGoalsChart";
 import { PerformanceEvolutionChart } from "@/components/analytics-player/evolution-component/PerformanceEvolutionChart";
@@ -23,6 +17,9 @@ import { GoalkeeperMatchStatsClient } from "./GoalkeeperMatchStatsClient";
 import { ChartSwipeCarousel } from "@/components/chartCarousel";
 import { FieldPlayerTotalsCard } from "@/components/analytics-player/total-stats-player/PlayerTotals";
 import { GoalkeeperTotalsCard } from "@/components/analytics-goalkeeper/total-stats-goalkeeper/GoalkeeperTotals";
+
+import { accumulatePlayerStats, getPlayerDerived } from "@/lib/stats/playerStatsHelpers";
+import { accumulateGoalkeeperStats, getGoalkeeperDerived, n as gkN } from "@/lib/stats/goalkeeperStatsHelpers";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -41,13 +38,8 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 		.eq("player_id", id)
 		.order("matches(match_date)", { ascending: false });
 
-	// ✅ tiros del portero (solo si es portero)
 	const { data: goalkeeperShots } = player.is_goalkeeper
-		? await supabase
-				.from("goalkeeper_shots") // <-- cambia si tu tabla se llama distinto
-				.select("*")
-				.eq("goalkeeper_player_id", id)
-				.order("shot_index", { ascending: true })
+		? await supabase.from("goalkeeper_shots").select("*").eq("goalkeeper_player_id", id).order("shot_index", { ascending: true })
 		: { data: [] as any[] };
 
 	if (player.is_goalkeeper) {
@@ -71,7 +63,7 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 					</Link>
 				</Button>
 
-				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats as unknown as Record<string, number>} />
+				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats as Record<string, number>} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
@@ -110,91 +102,7 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 }
 
 function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
-	return matchStats.reduce(
-		(acc, stat) => {
-			return {
-				// Goles
-				goles_totales: acc.goles_totales + (stat.goles_totales || 0),
-				goles_boya_jugada: acc.goles_boya_jugada + (stat.goles_boya_jugada || 0),
-				goles_hombre_mas: acc.goles_hombre_mas + (stat.goles_hombre_mas || 0),
-				goles_lanzamiento: acc.goles_lanzamiento + (stat.goles_lanzamiento || 0),
-				goles_dir_mas_5m: acc.goles_dir_mas_5m + (stat.goles_dir_mas_5m || 0),
-				goles_contraataque: acc.goles_contraataque + (stat.goles_contraataque || 0),
-				goles_penalti_anotado: acc.goles_penalti_anotado + (stat.goles_penalti_anotado || 0),
-				gol_del_palo_sup: acc.gol_del_palo_sup + (stat.gol_del_palo_sup || 0),
-
-				// Tiros
-				tiros_totales: acc.tiros_totales + (stat.tiros_totales || 0),
-				tiros_hombre_mas: acc.tiros_hombre_mas + (stat.tiros_hombre_mas || 0),
-				tiros_penalti_fallado: acc.tiros_penalti_fallado + (stat.tiros_penalti_fallado || 0),
-				tiros_corner: acc.tiros_corner + (stat.tiros_corner || 0),
-				tiros_fuera: acc.tiros_fuera + (stat.tiros_fuera || 0),
-				tiros_parados: acc.tiros_parados + (stat.tiros_parados || 0),
-				tiros_bloqueado: acc.tiros_bloqueado + (stat.tiros_bloqueado || 0),
-				tiro_palo: acc.tiro_palo + (stat.tiro_palo || 0),
-
-				// Faltas
-				faltas_exp_20_1c1: acc.faltas_exp_20_1c1 + (stat.faltas_exp_20_1c1 || 0),
-				faltas_exp_20_boya: acc.faltas_exp_20_boya + (stat.faltas_exp_20_boya || 0),
-				faltas_penalti: acc.faltas_penalti + (stat.faltas_penalti || 0),
-				faltas_contrafaltas: acc.faltas_contrafaltas + (stat.faltas_contrafaltas || 0),
-				faltas_exp_simple: acc.faltas_exp_simple + (stat.faltas_exp_simple || 0),
-				exp_trans_def: acc.exp_trans_def + (stat.exp_trans_def || 0),
-
-				// Acciones
-				acciones_bloqueo: acc.acciones_bloqueo + (stat.acciones_bloqueo || 0),
-				acciones_asistencias: acc.acciones_asistencias + (stat.acciones_asistencias || 0),
-				acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
-				acciones_rebote: acc.acciones_rebote + (stat.acciones_rebote || 0),
-				acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
-				acciones_penalti_provocado: acc.acciones_penalti_provocado + (stat.acciones_penalti_provocado || 0),
-				acciones_recibir_gol: acc.acciones_recibir_gol + (stat.acciones_recibir_gol || 0),
-				acciones_perdida_poco: acc.acciones_perdida_poco + (stat.acciones_perdida_poco || 0),
-
-				// Nuevas métricas para el cálculo de las nuevas cards
-				faltas_exp_3_bruta: acc.faltas_exp_3_bruta + (stat.faltas_exp_3_bruta || 0),
-				faltas_exp_3_int: acc.faltas_exp_3_int + (stat.faltas_exp_3_int || 0),
-				rebote_recup_hombre_mas: acc.rebote_recup_hombre_mas + (stat.rebote_recup_hombre_mas || 0),
-				rebote_perd_hombre_mas: acc.rebote_perd_hombre_mas + (stat.rebote_perd_hombre_mas || 0)
-			};
-		},
-		{
-			goles_totales: 0,
-			goles_boya_jugada: 0,
-			goles_hombre_mas: 0,
-			goles_lanzamiento: 0,
-			goles_dir_mas_5m: 0,
-			goles_contraataque: 0,
-			goles_penalti_anotado: 0,
-			gol_del_palo_sup: 0,
-			tiro_palo: 0,
-			tiros_totales: 0,
-			tiros_hombre_mas: 0,
-			tiros_penalti_fallado: 0,
-			tiros_corner: 0,
-			tiros_fuera: 0,
-			tiros_parados: 0,
-			tiros_bloqueado: 0,
-			faltas_exp_20_1c1: 0,
-			faltas_exp_20_boya: 0,
-			faltas_exp_simple: 0,
-			exp_trans_def: 0,
-			faltas_penalti: 0,
-			faltas_contrafaltas: 0,
-			acciones_bloqueo: 0,
-			acciones_asistencias: 0,
-			acciones_recuperacion: 0,
-			acciones_rebote: 0,
-			acciones_exp_provocada: 0,
-			acciones_penalti_provocado: 0,
-			acciones_recibir_gol: 0,
-			acciones_perdida_poco: 0,
-			faltas_exp_3_bruta: 0,
-			faltas_exp_3_int: 0,
-			rebote_recup_hombre_mas: 0,
-			rebote_perd_hombre_mas: 0
-		}
-	);
+	return accumulatePlayerStats(matchStats as Array<Record<string, any>>);
 }
 
 function FieldPlayerSummary({
@@ -203,27 +111,29 @@ function FieldPlayerSummary({
 	matchStats,
 	playerId
 }: {
-	stats: any;
+	stats: Record<string, any>;
 	matchCount: number;
 	matchStats: MatchStatsWithMatch[];
 	playerId: number;
 }) {
-	const golesPerMatch = matchCount > 0 ? (stats.goles_totales / matchCount).toFixed(1) : "0.0";
-	const tirosPerMatch = matchCount > 0 ? (stats.tiros_totales / matchCount).toFixed(1) : "0.0";
-	const eficienciaGeneral = stats.tiros_totales > 0 ? ((stats.goles_totales / stats.tiros_totales) * 100).toFixed(1) : "0.0";
-	const asistPerMatch = matchCount > 0 ? (stats.acciones_asistencias / matchCount).toFixed(1) : "0.0";
+	const derived = getPlayerDerived(stats);
+
+	const golesPerMatch = matchCount > 0 ? (derived.goals / matchCount).toFixed(1) : "0.0";
+	const tirosPerMatch = matchCount > 0 ? (derived.shots / matchCount).toFixed(1) : "0.0";
+	const eficienciaGeneral = derived.efficiency.toFixed(1);
+	const asistPerMatch = matchCount > 0 ? (derived.assists / matchCount).toFixed(1) : "0.0";
 
 	const totalExclusiones =
-		stats.faltas_exp_20_1c1 +
-		stats.faltas_exp_20_boya +
+		(stats.faltas_exp_20_1c1 || 0) +
+		(stats.faltas_exp_20_boya || 0) +
 		(stats.faltas_exp_3_bruta || 0) +
 		(stats.faltas_exp_3_int || 0) +
 		(stats.faltas_exp_simple || 0) +
 		(stats.exp_trans_def || 0);
 
 	const totalRebotes = (stats.rebote_recup_hombre_mas || 0) + (stats.rebote_perd_hombre_mas || 0);
-	const totalPenaltis = stats.goles_penalti_anotado + stats.tiros_penalti_fallado;
-	const eficienciaPenaltis = totalPenaltis > 0 ? ((stats.goles_penalti_anotado / totalPenaltis) * 100).toFixed(1) : "0.0";
+	const totalPenaltis = (stats.goles_penalti_anotado || 0) + (stats.tiros_penalti_fallado || 0);
+	const eficienciaPenaltis = totalPenaltis > 0 ? (((stats.goles_penalti_anotado || 0) / totalPenaltis) * 100).toFixed(1) : "0.0";
 
 	const matches = Array.isArray(matchStats)
 		? matchStats
@@ -236,9 +146,7 @@ function FieldPlayerSummary({
 
 	return (
 		<div className="space-y-6 mb-6">
-			{/* <KpiGrid items={items} /> */}
 			<FieldPlayerTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} />
-			<StatsCharts6x6 matches={matches} stats={statsPerMatch} />
 		</div>
 	);
 }
@@ -265,7 +173,7 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 					</Link>
 				</Button>
 
-				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats as unknown as Record<string, number>} />
+				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats as Record<string, number>} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
@@ -304,71 +212,18 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 }
 
 function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
-	return matchStats.reduce(
-		(acc, stat) => {
-			const match = stat.matches;
-			// Real goals received from match score
-			const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0;
+	const base = accumulateGoalkeeperStats(matchStats as Array<Record<string, any>>);
 
-			return {
-				// Goles encajados
-				portero_goles_boya_parada: acc.portero_goles_boya_parada + (stat.portero_goles_boya_parada || 0),
-				portero_goles_hombre_menos: acc.portero_goles_hombre_menos + (stat.portero_goles_hombre_menos || 0),
-				portero_goles_dir_mas_5m: acc.portero_goles_dir_mas_5m + (stat.portero_goles_dir_mas_5m || 0),
-				portero_goles_contraataque: acc.portero_goles_contraataque + (stat.portero_goles_contraataque || 0),
-				portero_goles_penalti: acc.portero_goles_penalti + (stat.portero_goles_penalti || 0),
-				portero_gol: acc.portero_gol + (stat.portero_gol || 0),
-				portero_gol_superioridad: acc.portero_gol_superioridad + (stat.portero_gol_superioridad || 0),
-				portero_fallo_superioridad: acc.portero_fallo_superioridad + (stat.portero_fallo_superioridad || 0),
-				portero_gol_palo: acc.portero_gol_palo + (stat.portero_gol_palo || 0),
+	const goles_recibidos_reales = matchStats.reduce((acc, stat) => {
+		const match = stat.matches;
+		const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0;
+		return acc + gkN(rivalGoals);
+	}, 0);
 
-				// Paradas
-				portero_paradas_totales: acc.portero_paradas_totales + (stat.portero_paradas_totales || 0),
-				portero_tiros_parada_recup: acc.portero_tiros_parada_recup + (stat.portero_tiros_parada_recup || 0),
-				portero_paradas_fuera: acc.portero_paradas_fuera + (stat.portero_paradas_fuera || 0),
-				portero_paradas_penalti_parado: acc.portero_paradas_penalti_parado + (stat.portero_paradas_penalti_parado || 0),
-				portero_paradas_hombre_menos: acc.portero_paradas_hombre_menos + (stat.portero_paradas_hombre_menos || 0),
-
-				lanz_recibido_fuera: acc.lanz_recibido_fuera + (stat.lanz_recibido_fuera || 0),
-
-				// Acciones
-				acciones_asistencias: acc.acciones_asistencias + (stat.acciones_asistencias || 0),
-				acciones_recuperacion: acc.acciones_recuperacion + (stat.acciones_recuperacion || 0),
-				portero_acciones_perdida_pos: acc.portero_acciones_perdida_pos + (stat.portero_acciones_perdida_pos || 0),
-				acciones_exp_provocada: acc.acciones_exp_provocada + (stat.acciones_exp_provocada || 0),
-				tiro_fallado_portero: acc.tiro_fallado_portero + (stat.tiro_fallado_portero || 0),
-
-				// Goles recibidos reales del marcador del partido
-				goles_recibidos_reales: acc.goles_recibidos_reales + rivalGoals
-			};
-		},
-		{
-			portero_goles_boya_parada: 0,
-			portero_goles_hombre_menos: 0,
-			portero_goles_dir_mas_5m: 0,
-			portero_goles_contraataque: 0,
-			portero_goles_penalti: 0,
-			portero_gol: 0,
-			portero_gol_superioridad: 0,
-			portero_fallo_superioridad: 0,
-			portero_gol_palo: 0,
-
-			portero_paradas_totales: 0,
-			portero_tiros_parada_recup: 0,
-			portero_paradas_fuera: 0,
-			portero_paradas_penalti_parado: 0,
-			portero_paradas_hombre_menos: 0,
-			lanz_recibido_fuera: 0,
-
-			acciones_asistencias: 0,
-			acciones_recuperacion: 0,
-			portero_acciones_perdida_pos: 0,
-			acciones_exp_provocada: 0,
-
-			goles_recibidos_reales: 0,
-			tiro_fallado_portero: 0
-		}
-	);
+	return {
+		...base,
+		goles_recibidos_reales
+	};
 }
 
 function GoalkeeperSummary({
@@ -377,18 +232,19 @@ function GoalkeeperSummary({
 	matchStats,
 	playerId
 }: {
-	stats: any;
+	stats: Record<string, any>;
 	matchCount: number;
 	matchStats: MatchStatsWithMatch[];
 	playerId: number;
 }) {
-	const totalShots = stats.portero_paradas_totales + stats.goles_recibidos_reales;
-	const savePercentage = totalShots > 0 ? ((stats.portero_paradas_totales / totalShots) * 100).toFixed(1) : "0.0";
-	const paradasPerMatch = matchCount > 0 ? (stats.portero_paradas_totales / matchCount).toFixed(1) : "0.0";
-	const golesPerMatch = matchCount > 0 ? (stats.goles_recibidos_reales / matchCount).toFixed(1) : "0.0";
+	const derived = getGoalkeeperDerived(stats);
 
-	const penaltiesAttempted = stats.portero_paradas_penalti_parado + stats.portero_goles_penalti;
-	const penaltySaveRate = penaltiesAttempted > 0 ? ((stats.portero_paradas_penalti_parado / penaltiesAttempted) * 100).toFixed(1) : "0.0";
+	const totalShots = derived.shotsReceived;
+	const savePercentage = derived.savePct.toFixed(1);
+	const paradasPerMatch = matchCount > 0 ? (derived.saves / matchCount).toFixed(1) : "0.0";
+	const golesPerMatch = matchCount > 0 ? (derived.goalsConceded / matchCount).toFixed(1) : "0.0";
+	const penaltiesAttempted = derived.penaltyAttempts;
+	const penaltySaveRate = derived.penaltySavePct.toFixed(1);
 
 	const matches = Array.isArray(matchStats)
 		? matchStats
@@ -402,7 +258,6 @@ function GoalkeeperSummary({
 	return (
 		<div className="space-y-6 mb-6">
 			<GoalkeeperTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} />
-			<StatsChartsGoalkeeper matches={matches} stats={statsPerMatch} />
 		</div>
 	);
 }

@@ -11,10 +11,9 @@ import Image from "next/image";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-import { AlertCircle, Calendar, ChevronDown, ChevronRight, ChevronUp, PlusCircle, Target, Trophy, TrendingUp, Users } from "lucide-react";
+import { AlertCircle, Calendar, ChevronDown, ChevronRight, ChevronUp, PlusCircle, Target, Trophy, Users } from "lucide-react";
 
 type MatchRow = {
 	id: string;
@@ -113,13 +112,13 @@ export default function HomePage() {
 	const { profile, loading: profileLoading } = useProfile();
 
 	const [matches, setMatches] = useState<MatchRow[]>([]);
+	const [allMatches, setAllMatches] = useState<MatchRow[]>([]);
 	const [players, setPlayers] = useState<PlayerRow[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	const [connectionError, setConnectionError] = useState(false);
 	const [tablesNotFound, setTablesNotFound] = useState(false);
 
-	// ✅ Mobile accordion state for players
 	const [showAllPlayersMobile, setShowAllPlayersMobile] = useState(false);
 
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
@@ -145,25 +144,29 @@ export default function HomePage() {
 					return;
 				}
 
-				const { data: matchesData, error: matchesError } = await supabase
-					.from("matches")
-					.select("*")
-					.eq("club_id", currentClub.id)
-					.order("match_date", { ascending: false })
-					.limit(6);
+				const [
+					{ data: matchesPreviewData, error: matchesPreviewError },
+					{ data: allMatchesData, error: allMatchesError },
+					{ data: playersData, error: playersError }
+				] = await Promise.all([
+					supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false }).limit(6),
+					supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false }),
+					supabase.from("players").select("*").eq("club_id", currentClub.id).order("number")
+				]);
 
-				if (matchesError) {
-					if (matchesError.message?.includes("Could not find the table")) setTablesNotFound(true);
-					else throw matchesError;
+				if (matchesPreviewError) {
+					if (matchesPreviewError.message?.includes("Could not find the table")) setTablesNotFound(true);
+					else throw matchesPreviewError;
 				} else {
-					setMatches(((matchesData || []) as MatchRow[]) ?? []);
+					setMatches(((matchesPreviewData || []) as MatchRow[]) ?? []);
 				}
 
-				const { data: playersData, error: playersError } = await supabase
-					.from("players")
-					.select("*")
-					.eq("club_id", currentClub.id)
-					.order("number");
+				if (allMatchesError) {
+					if (allMatchesError.message?.includes("Could not find the table")) setTablesNotFound(true);
+					else throw allMatchesError;
+				} else {
+					setAllMatches(((allMatchesData || []) as MatchRow[]) ?? []);
+				}
 
 				if (playersError) {
 					if (playersError.message?.includes("Could not find the table")) setTablesNotFound(true);
@@ -183,19 +186,22 @@ export default function HomePage() {
 	}, [currentClub, profile, profileLoading]);
 
 	const derived = useMemo(() => {
-		const totalMatches = matches.length;
-		const wins = matches.filter((m) => m.home_score > m.away_score).length;
+		const totalMatches = allMatches.length;
+
+		const wins = allMatches.filter((m) => {
+			const outcome = getOutcome(m);
+			return outcome.status === "W";
+		}).length;
+
 		const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0;
 
 		const previewMatches = matches.slice(0, 3);
 		const recentForm = previewMatches.map((m) => getOutcome(m).status);
 
-		// Desktop/tablet preview
 		const previewPlayers = players.slice(0, 22);
 
-		// Mobile: show first 6 by default (accordion reveals the rest)
 		const mobileFirst = players.slice(0, 8);
-		const mobileRest = players.slice(6);
+		const mobileRest = players.slice(8);
 
 		const primaryCta = canEdit
 			? { href: "/nuevo-partido", label: "Nuevo partido", icon: <PlusCircle className="mr-2 h-4 w-4" /> }
@@ -212,9 +218,8 @@ export default function HomePage() {
 			mobileRest,
 			primaryCta
 		};
-	}, [matches, players, canEdit]);
+	}, [allMatches, matches, players, canEdit]);
 
-	// If players change (e.g. switch club), collapse accordion on mobile
 	useEffect(() => {
 		setShowAllPlayersMobile(false);
 	}, [currentClub?.id]);
@@ -226,7 +231,6 @@ export default function HomePage() {
 		<main className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
 			<div className="container mx-auto px-4 py-4 sm:py-10">
 				<div className="space-y-8">
-					{/* HERO */}
 					<section className="relative overflow-hidden rounded-3xl border bg-background/60 p-6 sm:p-8">
 						<div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10" />
 
@@ -246,30 +250,7 @@ export default function HomePage() {
 							</div>
 
 							<div className="mt-6 flex flex-wrap gap-2">
-								<Button asChild className="rounded-xl" disabled={tablesNotFound || connectionError}>
-									<Link href={derived.primaryCta.href}>
-										{derived.primaryCta.icon}
-										{derived.primaryCta.label}
-									</Link>
-								</Button>
-
-								<Button asChild variant="secondary" className="rounded-xl" disabled={tablesNotFound || connectionError}>
-									<Link href="/jugadores">
-										<Users className="mr-2 h-4 w-4" />
-										Jugadores
-									</Link>
-								</Button>
-
-								<Button asChild variant="ghost" className="rounded-xl" disabled={tablesNotFound || connectionError}>
-									<Link href="/analytics">
-										<Target className="mr-2 h-4 w-4" />
-										Análisis
-									</Link>
-								</Button>
-							</div>
-
-							<div className="mt-6 flex flex-wrap gap-2">
-								<MetricPill icon={<Trophy className="h-4 w-4" />} label="Partidos (preview)" value={derived.totalMatches} />
+								<MetricPill icon={<Trophy className="h-4 w-4" />} label="Partidos jugados" value={derived.totalMatches} />
 								<MetricPill icon={<Target className="h-4 w-4" />} label="Rendimiento" value={`${derived.winRate}%`} />
 								<MetricPill icon={<Users className="h-4 w-4" />} label="Jugadores" value={players.length} />
 
@@ -287,7 +268,6 @@ export default function HomePage() {
 						</div>
 					</section>
 
-					{/* Alerts */}
 					{tablesNotFound && (
 						<Alert variant="destructive" className="rounded-2xl">
 							<AlertCircle className="h-4 w-4" />
@@ -315,7 +295,6 @@ export default function HomePage() {
 					)}
 
 					<section className="space-y-8">
-						{/* Matches */}
 						<div>
 							<div className="flex items-center justify-between gap-3">
 								<CardTitle className="text-lg sm:text-xl">Últimos partidos</CardTitle>
@@ -345,7 +324,6 @@ export default function HomePage() {
 							)}
 						</div>
 
-						{/* Players */}
 						<Card className="rounded-3xl border ">
 							<CardHeader className="pb-3">
 								<div className="flex items-center justify-between gap-3">
@@ -365,13 +343,11 @@ export default function HomePage() {
 							<CardContent className="space-y-4">
 								{players.length > 0 ? (
 									<>
-										{/* ✅ Mobile accordion (only on mobile) */}
 										<div className="sm:hidden space-y-3">
 											<PlayerPhotoGridResponsive players={derived.mobileFirst} />
 
 											{derived.mobileRest.length > 0 && (
 												<>
-													{/* Collapsible area */}
 													<div
 														className={[
 															"grid transition-[max-height,opacity] duration-300 ease-out",
@@ -406,7 +382,6 @@ export default function HomePage() {
 											)}
 										</div>
 
-										{/* ✅ Tablet/Desktop (no accordion, show a nice amount) */}
 										<div className="hidden sm:block">
 											<PlayerPhotoGridResponsive players={derived.previewPlayers} />
 										</div>
@@ -423,6 +398,7 @@ export default function HomePage() {
 						</Card>
 					</section>
 				</div>
+
 				<div className="mt-6 flex flex-col items-center gap-2 text-center">
 					<p className="text-xs text-muted-foreground">
 						POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>

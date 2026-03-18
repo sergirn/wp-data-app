@@ -405,6 +405,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		tiros_dir_mas_5m: 0,
 		tiros_contraataque: 0,
 		tiros_penalti_juego: 0,
+		portero_paradas_superioridad: 0,
+		jugador_superioridad_bloqueo: 0,
 
 		faltas_exp_3_int: 0,
 		faltas_exp_3_bruta: 0,
@@ -431,6 +433,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		portero_gol_palo: 0,
 		portero_lanz_palo: 0,
 		tiro_fallado_portero: 0,
+		portero_penalti_palo: 0,
+		portero_penalti_fuera: 0,
+		portero_acciones_exp_provocada: 0,
+		portero_acciones_asistencias: 0,
 
 		rebote_recup_hombre_mas: 0,
 		rebote_perd_hombre_mas: 0
@@ -844,13 +850,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		const { homeGoals, awayGoals } = calculateScores(stats, playersById);
 
 		const isTied = homeGoals === awayGoals;
-		const isZeroZero = homeGoals === 0 && awayGoals === 0;
 
-		if (isTied && !isZeroZero) {
+		const hasAnyPenaltyData = penaltyHomeScore !== null || penaltyAwayScore !== null || penaltyShooters.length > 0 || rivalPenalties.length > 0;
+
+		if (hasAnyPenaltyData) {
 			if (penaltyHomeScore === null || penaltyAwayScore === null) {
-				alert("El partido está empatado. Debes registrar el resultado de los penaltis.");
+				alert("Si registras penaltis, debes indicar el resultado de la tanda.");
 				return;
 			}
+
 			if (penaltyHomeScore === penaltyAwayScore) {
 				alert("La tanda de penaltis no puede terminar en empate. Debe haber un ganador.");
 				return;
@@ -1958,20 +1966,37 @@ function FieldPlayerStatsDialog({
 						value={safeNumber(stats.gol_del_palo_sup)}
 						onChange={(v) => onUpdate("gol_del_palo_sup", v)}
 					/>
-					<StatField label="Fallos Sup.+" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
+
 					<StatField
 						label="Eficiencia %"
 						value={(() => {
 							const g = safeNumber(stats.goles_hombre_mas);
 							const gp = safeNumber(stats.gol_del_palo_sup);
-							const t = safeNumber(stats.tiros_hombre_mas);
-							const goals = g + gp;
-							const attempts = goals + t;
-							return attempts > 0 ? Math.round((goals / attempts) * 100) : 0;
+							const fuera = safeNumber(stats.tiros_hombre_mas);
+							const paradas = safeNumber(stats.portero_paradas_superioridad);
+							const bloqueos = safeNumber(stats.jugador_superioridad_bloqueo);
+
+							const aciertos = g + gp;
+							const intentos = aciertos + fuera + paradas + bloqueos;
+
+							return intentos > 0 ? Math.round((aciertos / intentos) * 100) : 0;
 						})()}
 						onChange={() => {}}
 						readOnly
 						suffix="%"
+					/>
+				</Group>
+				<Group title="Ofensiva (Fallado)">
+					<StatField label="Fuera Sup.+" value={safeNumber(stats.tiros_hombre_mas)} onChange={(v) => onUpdate("tiros_hombre_mas", v)} />
+					<StatField
+						label="Paradas Sup.+"
+						value={safeNumber(stats.portero_paradas_superioridad)}
+						onChange={(v) => onUpdate("portero_paradas_superioridad", v)}
+					/>
+					<StatField
+						label="Bloqueo Sup.+"
+						value={safeNumber(stats.jugador_superioridad_bloqueo)}
+						onChange={(v) => onUpdate("jugador_superioridad_bloqueo", v)}
 					/>
 				</Group>
 
@@ -2104,8 +2129,7 @@ function GoalkeeperStatsDialog({
 			</TabsList>
 
 			<TabsContent value="goles" className="space-y-4 mt-4">
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-					<StatField label="Totales" value={totalGoalsConceded} onChange={() => {}} readOnly />
+				<Group title="Goles Recibidos">
 					<StatField
 						label="Boya"
 						value={safeNumber(stats.portero_goles_boya_parada)}
@@ -2131,12 +2155,51 @@ function GoalkeeperStatsDialog({
 						value={safeNumber(stats.portero_goles_lanzamiento)}
 						onChange={(v) => onUpdate("portero_goles_lanzamiento", v)}
 					/>
-				</div>
+				</Group>
+				<Group title="Otros">
+					<StatField label="Totales" value={totalGoalsConceded} onChange={() => {}} readOnly />
+				</Group>
 				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
 			</TabsContent>
 
 			<TabsContent value="paradas" className="space-y-4 mt-4">
-				<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+				<Group title="Paradas">
+					<StatField
+						label="Parada Recup"
+						value={safeNumber(stats.portero_tiros_parada_recup)}
+						onChange={(v) => onUpdate("portero_tiros_parada_recup", v)}
+					/>
+					<StatField
+						label="Parada Corner"
+						value={safeNumber(stats.portero_paradas_fuera)}
+						onChange={(v) => onUpdate("portero_paradas_fuera", v)}
+					/>
+
+					<StatField
+						label="Lanz. recibido fuera"
+						value={safeNumber(stats.lanz_recibido_fuera)}
+						onChange={(v) => onUpdate("lanz_recibido_fuera", v)}
+					/>
+					<StatField label="Lanz. al palo" value={safeNumber(stats.portero_lanz_palo)} onChange={(v) => onUpdate("portero_lanz_palo", v)} />
+				</Group>
+				<Group title="Paradas Penalti">
+					<StatField
+						label="Parada (*penalti)"
+						value={safeNumber(stats.portero_paradas_penalti_parado)}
+						onChange={(v) => onUpdate("portero_paradas_penalti_parado", v)}
+					/>
+					<StatField
+						label="Palo (*penalti)"
+						value={safeNumber(stats.portero_penalti_palo)}
+						onChange={(v) => onUpdate("portero_penalti_palo", v)}
+					/>
+					<StatField
+						label="Fuera (*penalti)"
+						value={safeNumber(stats.portero_penalti_fuera)}
+						onChange={(v) => onUpdate("portero_penalti_fuera", v)}
+					/>
+				</Group>
+				<Group title="Otros">
 					<StatField
 						label="Totales"
 						value={
@@ -2148,29 +2211,7 @@ function GoalkeeperStatsDialog({
 						onChange={() => {}}
 						readOnly
 					/>
-
-					<StatField
-						label="Parada Recup"
-						value={safeNumber(stats.portero_tiros_parada_recup)}
-						onChange={(v) => onUpdate("portero_tiros_parada_recup", v)}
-					/>
-					<StatField
-						label="Parada Corner"
-						value={safeNumber(stats.portero_paradas_fuera)}
-						onChange={(v) => onUpdate("portero_paradas_fuera", v)}
-					/>
-					<StatField
-						label="Penalti Parado"
-						value={safeNumber(stats.portero_paradas_penalti_parado)}
-						onChange={(v) => onUpdate("portero_paradas_penalti_parado", v)}
-					/>
-					<StatField
-						label="Lanz. recibido fuera"
-						value={safeNumber(stats.lanz_recibido_fuera)}
-						onChange={(v) => onUpdate("lanz_recibido_fuera", v)}
-					/>
-					<StatField label="Lanz. al palo" value={safeNumber(stats.portero_lanz_palo)} onChange={(v) => onUpdate("portero_lanz_palo", v)} />
-				</div>
+				</Group>
 				<GoalkeeperSavesRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
 			</TabsContent>
 
@@ -2226,8 +2267,8 @@ function GoalkeeperStatsDialog({
 				<Group title="Ofensiva">
 					<StatField
 						label="Asistencias"
-						value={safeNumber(stats.acciones_asistencias)}
-						onChange={(v) => onUpdate("acciones_asistencias", v)}
+						value={safeNumber(stats.portero_acciones_asistencias)}
+						onChange={(v) => onUpdate("portero_acciones_asistencias", v)}
 					/>
 					<StatField label="Gol" value={safeNumber(stats.portero_gol)} onChange={(v) => onUpdate("portero_gol", v)} />
 					<StatField
@@ -2250,8 +2291,8 @@ function GoalkeeperStatsDialog({
 				<Group title="Defensiva">
 					<StatField
 						label="Recuperación"
-						value={safeNumber(stats.acciones_recuperacion)}
-						onChange={(v) => onUpdate("acciones_recuperacion", v)}
+						value={safeNumber(stats.portero_acciones_exp_provocada)}
+						onChange={(v) => onUpdate("portero_acciones_exp_provocada", v)}
 					/>
 					<StatField
 						label="Pérdida Posesión"

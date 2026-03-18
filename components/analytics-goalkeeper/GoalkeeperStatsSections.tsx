@@ -1,0 +1,71 @@
+"use client";
+
+import * as React from "react";
+import { GOALKEEPER_CATEGORY_HINTS, GOALKEEPER_CATEGORY_TITLES, type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
+
+type RowRendererProps = {
+	label: string;
+	value: React.ReactNode;
+	statKey: string;
+};
+
+type Props = {
+	stats: Record<string, any> | null | undefined;
+	renderRow: (props: RowRendererProps) => React.ReactNode;
+	mode?: "totals" | "match" | "team";
+	categories?: GoalkeeperStatCategory[];
+};
+
+const DEFAULT_CATEGORIES: GoalkeeperStatCategory[] = ["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"];
+
+function Section({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
+	return (
+		<div className="rounded-2xl border bg-card/40">
+			<div className="flex items-start justify-between gap-3 px-4 py-3 border-b">
+				<div className="min-w-0">
+					<h4 className="text-sm font-semibold leading-tight">{title}</h4>
+					{hint ? <p className="text-xs text-muted-foreground mt-0.5">{hint}</p> : null}
+				</div>
+			</div>
+			<div className="p-2">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-1">{children}</div>
+			</div>
+		</div>
+	);
+}
+
+export function GoalkeeperStatsSections({ stats, renderRow, mode = "totals", categories = DEFAULT_CATEGORIES }: Props) {
+	return (
+		<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+			{categories.map((category) => {
+				const items = getGoalkeeperStatsByCategory(category);
+				const title = GOALKEEPER_CATEGORY_TITLES[category];
+				const baseHint = GOALKEEPER_CATEGORY_HINTS[category];
+
+				const hint =
+					mode === "match"
+						? baseHint
+							? `${baseHint} · Partido`
+							: "Partido"
+						: mode === "team"
+							? baseHint
+								? `${baseHint} · Equipo`
+								: "Equipo"
+							: (baseHint ?? "Totales");
+
+				return (
+					<Section key={category} title={title} hint={hint}>
+						{items.map((it) =>
+							renderRow({
+								label: it.label,
+								value: stats?.[it.key] ?? 0,
+								statKey: it.key
+							})
+						)}
+					</Section>
+				);
+			})}
+		</div>
+	);
+}

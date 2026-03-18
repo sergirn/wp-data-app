@@ -69,6 +69,8 @@ export interface MatchStats {
 	tiros_bloqueado: number; // Shots blocked
 	tiros_eficiencia: number; // Auto-calculated: goals / (goals + shots) * 100
 	tiro_palo: number;
+	portero_paradas_superioridad: number;
+	jugador_superioridad_bloqueo: number;
 
 	// Legacy shot fields (keeping for backward compatibility)
 	tiros_boya_cada: number;
@@ -120,6 +122,8 @@ export interface MatchStats {
 	portero_paradas_penalti_parado: number;
 	portero_paradas_hombre_menos: number; // Added man down saves
 	lanz_recibido_fuera: number;
+	portero_penalti_palo: number;
+	portero_penalti_fuera: number;
 
 	portero_acciones_asistencias: number; // Updated field name
 	portero_acciones_recuperacion: number; // Updated field name
