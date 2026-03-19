@@ -10,6 +10,7 @@ interface TopScorersTableProps {
 	players: Player[];
 	title?: string;
 	className?: string;
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -43,7 +44,28 @@ function PlayerRowMini({ player }: { player: Player | null }) {
 	);
 }
 
-export function TopScorersTable({ matches, stats, players, title = "Máximos goleadores", className }: TopScorersTableProps) {
+export function TopScorersTable({ matches, stats, players, title = "Máximos goleadores", className, hiddenStats = [] }: TopScorersTableProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const showBoya = !hiddenSet.has("goles_boya_jugada");
+	const showLanzamiento = !hiddenSet.has("goles_lanzamiento");
+	const showDir5m = !hiddenSet.has("goles_dir_mas_5m");
+	const showContra = !hiddenSet.has("goles_contraataque");
+	const showPenalti = !hiddenSet.has("goles_penalti_anotado");
+	const showSupGoles = !hiddenSet.has("goles_hombre_mas");
+	const showSupPalo = !hiddenSet.has("gol_del_palo_sup");
+	const showSup = showSupGoles || showSupPalo;
+
+	const showTirosPenaltiFallado = !hiddenSet.has("tiros_penalti_fallado");
+	const showTirosCorner = !hiddenSet.has("tiros_corner");
+	const showTirosFuera = !hiddenSet.has("tiros_fuera");
+	const showTirosParados = !hiddenSet.has("tiros_parados");
+	const showTirosBloqueado = !hiddenSet.has("tiros_bloqueado");
+	const showTiroPalo = !hiddenSet.has("tiro_palo");
+	const showTirosHM = !hiddenSet.has("tiros_hombre_mas");
+	const showParadasSup = !hiddenSet.has("portero_paradas_superioridad");
+	const showBloqueoSup = !hiddenSet.has("jugador_superioridad_bloqueo");
+
 	const playersById = useMemo(() => {
 		const map = new Map<number, Player>();
 		(players ?? []).forEach((p) => map.set(Number(p.id), p));
@@ -71,16 +93,29 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 			const pid = Number(s.player_id);
 			if (!pid) return;
 
-			const boya = toNum(s.goles_boya_jugada);
-			const lanzamiento = toNum(s.goles_lanzamiento);
-			const dir5m = toNum(s.goles_dir_mas_5m);
-			const contra = toNum(s.goles_contraataque);
-			const penalti = toNum(s.goles_penalti_anotado);
-			const sup = toNum(s.goles_hombre_mas) + toNum(s.gol_del_palo_sup);
-			const tiros = toNum(s.tiros_totales);
+			const boya = showBoya ? toNum(s.goles_boya_jugada) : 0;
+			const lanzamiento = showLanzamiento ? toNum(s.goles_lanzamiento) : 0;
+			const dir5m = showDir5m ? toNum(s.goles_dir_mas_5m) : 0;
+			const contra = showContra ? toNum(s.goles_contraataque) : 0;
+			const penalti = showPenalti ? toNum(s.goles_penalti_anotado) : 0;
+			const sup = (showSupGoles ? toNum(s.goles_hombre_mas) : 0) + (showSupPalo ? toNum(s.gol_del_palo_sup) : 0);
 
-			const total = boya + lanzamiento + dir5m + contra + penalti + sup;
-			if (total <= 0 && tiros <= 0) return;
+			const golesVisibles = boya + lanzamiento + dir5m + contra + penalti + sup;
+
+			const fallosVisibles =
+				(showTirosPenaltiFallado ? toNum(s.tiros_penalti_fallado) : 0) +
+				(showTirosCorner ? toNum(s.tiros_corner) : 0) +
+				(showTirosFuera ? toNum(s.tiros_fuera) : 0) +
+				(showTirosParados ? toNum(s.tiros_parados) : 0) +
+				(showTirosBloqueado ? toNum(s.tiros_bloqueado) : 0) +
+				(showTiroPalo ? toNum(s.tiro_palo) : 0) +
+				(showTirosHM ? toNum(s.tiros_hombre_mas) : 0) +
+				(showParadasSup ? toNum(s.portero_paradas_superioridad) : 0) +
+				(showBloqueoSup ? toNum(s.jugador_superioridad_bloqueo) : 0);
+
+			const tirosVisibles = golesVisibles + fallosVisibles;
+
+			if (golesVisibles <= 0 && tirosVisibles <= 0) return;
 
 			const prev = map.get(pid) ?? {
 				player: playersById.get(pid) ?? null,
@@ -95,8 +130,8 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 				sup: 0
 			};
 
-			prev.goles += total;
-			prev.tiros += tiros;
+			prev.goles += golesVisibles;
+			prev.tiros += tirosVisibles;
 			prev.boya += boya;
 			prev.lanzamiento += lanzamiento;
 			prev.dir5m += dir5m;
@@ -117,7 +152,26 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 				if (b.eficiencia !== a.eficiencia) return b.eficiencia - a.eficiencia;
 				return b.tiros - a.tiros;
 			});
-	}, [stats, playersById]);
+	}, [
+		stats,
+		playersById,
+		showBoya,
+		showLanzamiento,
+		showDir5m,
+		showContra,
+		showPenalti,
+		showSupGoles,
+		showSupPalo,
+		showTirosPenaltiFallado,
+		showTirosCorner,
+		showTirosFuera,
+		showTirosParados,
+		showTirosBloqueado,
+		showTiroPalo,
+		showTirosHM,
+		showParadasSup,
+		showBloqueoSup
+	]);
 
 	const leader = ranking[0] ?? null;
 	const totalGoals = ranking.reduce((sum, r) => sum + r.goles, 0);
@@ -147,12 +201,12 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 								<TableHead className="text-right">Goles</TableHead>
 								<TableHead className="text-right">Tiros</TableHead>
 								<TableHead className="text-right">Eficiencia</TableHead>
-								<TableHead className="text-right">Boya</TableHead>
-								<TableHead className="text-right">Lanz.</TableHead>
-								<TableHead className="text-right">Dir +6m</TableHead>
-								<TableHead className="text-right">Contra</TableHead>
-								<TableHead className="text-right">Pen.</TableHead>
-								<TableHead className="text-right">Sup.</TableHead>
+								{showBoya && <TableHead className="text-right">Boya</TableHead>}
+								{showLanzamiento && <TableHead className="text-right">Lanz.</TableHead>}
+								{showDir5m && <TableHead className="text-right">Dir +6m</TableHead>}
+								{showContra && <TableHead className="text-right">Contra</TableHead>}
+								{showPenalti && <TableHead className="text-right">Pen.</TableHead>}
+								{showSup && <TableHead className="text-right">Sup.</TableHead>}
 							</TableRow>
 						</UITableHeader>
 
@@ -169,12 +223,12 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 									<TableCell className="text-right tabular-nums font-semibold">{r.goles}</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">{r.tiros}</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">{r.eficiencia}%</TableCell>
-									<TableCell className="text-right tabular-nums">{r.boya}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.lanzamiento}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.dir5m}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.contra}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.penalti}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.sup}</TableCell>
+									{showBoya && <TableCell className="text-right tabular-nums">{r.boya}</TableCell>}
+									{showLanzamiento && <TableCell className="text-right tabular-nums">{r.lanzamiento}</TableCell>}
+									{showDir5m && <TableCell className="text-right tabular-nums">{r.dir5m}</TableCell>}
+									{showContra && <TableCell className="text-right tabular-nums">{r.contra}</TableCell>}
+									{showPenalti && <TableCell className="text-right tabular-nums">{r.penalti}</TableCell>}
+									{showSup && <TableCell className="text-right tabular-nums">{r.sup}</TableCell>}
 								</TableRow>
 							))}
 						</TableBody>

@@ -10,12 +10,14 @@ export function FieldPlayerTotalsCard({
 	stats,
 	matchCount,
 	title = "Totales",
-	playerId
+	playerId,
+	hiddenStats
 }: {
 	stats: any;
 	matchCount?: number;
 	title?: string;
 	playerId: number;
+	hiddenStats?: string[] | Set<string>;
 }) {
 	const StatPill = ({ children }: { children: React.ReactNode }) => (
 		<span className="inline-flex items-center rounded-full border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">{children}</span>
@@ -100,12 +102,12 @@ export function FieldPlayerTotalsCard({
 		);
 	};
 
-	const derived = getPlayerDerived(stats);
+	const derived = getPlayerDerived(stats, hiddenStats);
 
-	const goalsItems = getPlayerStatsByCategory("goles");
-	const missesItems = getPlayerStatsByCategory("fallos");
-	const foulsItems = getPlayerStatsByCategory("faltas");
-	const actionsItems = getPlayerStatsByCategory("acciones");
+	const goalsItems = getPlayerStatsByCategory("goles", hiddenStats);
+	const missesItems = getPlayerStatsByCategory("fallos", hiddenStats);
+	const foulsItems = getPlayerStatsByCategory("faltas", hiddenStats);
+	const actionsItems = getPlayerStatsByCategory("acciones", hiddenStats);
 
 	return (
 		<div className="space-y-4">

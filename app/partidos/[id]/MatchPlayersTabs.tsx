@@ -3,8 +3,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
 
-import { PlayerStatsCard } from "@/components/match-components/PlayerStatsAccordion";
-import { GoalkeeperStatsCard } from "@/components/match-components/GoalkeeperStatsCard";
+import { PlayerStatsCard } from "@/components/match-components/players-match-cards/PlayerStatsCard";
+import { GoalkeeperStatsCard } from "@/components/match-components/players-match-cards/GoalkeeperStatsCard";
 
 import { MatchSuperiorityChart } from "@/components/match-components/match-superiority-chart";
 import { MatchInferiorityChart } from "@/components/match-components/match-inferiority-chart";
@@ -18,6 +18,7 @@ import { accumulatePlayerStats, getPlayerSummary } from "@/lib/stats/playerStats
 import { accumulateGoalkeeperStats, getGoalkeeperSummary } from "@/lib/stats/goalkeeperStatsHelpers";
 import { MatchGoalkeeperGoalsAgainstChart } from "@/components/match-components/GoalkeeperGoalsByTypeMatch";
 import { MatchGoalkeeperSavesBreakdownChart } from "@/components/match-components/GoalkeeperSavesByTypeMatch";
+import { MatchAttackTotals, MatchDefenseTotals, MatchGoalkeeperTotals } from "@/components/match-components/total-stats-match/MatchTotals";
 
 type PlayerLite = {
 	id: number;
@@ -46,6 +47,7 @@ type Props = {
 	allGoalkeeperShots: any[];
 	goalkeeperId: number | null;
 	players: PlayerLite[];
+	hiddenStats?: string[];
 };
 
 function Pill({ children }: { children: React.ReactNode }) {
@@ -87,16 +89,17 @@ export function MatchPlayersTabs({
 	blocksStats,
 	allGoalkeeperShots,
 	goalkeeperId,
-	players
+	players,
+	hiddenStats = []
 }: Props) {
 	const hasGoalkeepers = (goalkeepersStats?.length ?? 0) > 0;
 	const canShowGoalkeeperShots = Boolean(goalkeeperId) && (allGoalkeeperShots?.length ?? 0) > 0;
 
-	const playerTotals = accumulatePlayerStats(matchStats ?? []);
-	const playerSummary = getPlayerSummary(playerTotals);
+	const playerTotals = accumulatePlayerStats(matchStats ?? [], hiddenStats);
+	const playerSummary = getPlayerSummary(playerTotals, hiddenStats);
 
-	const goalkeeperTotals = accumulateGoalkeeperStats(matchStats ?? []);
-	const goalkeeperSummary = getGoalkeeperSummary(goalkeeperTotals);
+	const goalkeeperTotals = accumulateGoalkeeperStats(matchStats ?? [], hiddenStats);
+	const goalkeeperSummary = getGoalkeeperSummary(goalkeeperTotals, hiddenStats);
 
 	const goals = playerSummary.goals;
 	const attempts = playerSummary.shots;
@@ -191,9 +194,9 @@ export function MatchPlayersTabs({
 					<div className="space-y-3">
 						<p className="text-sm font-semibold text-muted-foreground">Jugadores de campo</p>
 
-						<div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6">
+						<div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-4">
 							{fieldPlayersStats?.map((stat: any) => (
-								<PlayerStatsCard key={stat.id} stat={stat} player={stat.players} />
+								<PlayerStatsCard key={stat.id} stat={stat} player={stat.players} hiddenStats={hiddenStats} />
 							))}
 						</div>
 					</div>
@@ -205,9 +208,9 @@ export function MatchPlayersTabs({
 								<div className="h-px flex-1 bg-border/60" />
 							</div>
 
-							<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+							<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
 								{goalkeepersStats.map((stat: any) => (
-									<GoalkeeperStatsCard key={stat.id} stat={stat} player={stat.players} />
+									<GoalkeeperStatsCard key={stat.id} stat={stat} player={stat.players} hiddenStats={hiddenStats} />
 								))}
 							</div>
 						</div>
@@ -216,6 +219,12 @@ export function MatchPlayersTabs({
 
 				<TabsContent value="attack" className="mt-4 space-y-8">
 					<SectionBlock title="Ataque" description="Producción ofensiva y eficiencia del equipo en este partido.">
+						<MatchAttackTotals stats={matchStats} hiddenStats={hiddenStats} />
+
+						<div className="flex items-center gap-2">
+							<div className="h-px flex-1 bg-border/90" />
+						</div>
+
 						<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 							<div className="h-full">
 								<MatchSuperiorityChart matchStats={matchStats} />
@@ -230,6 +239,12 @@ export function MatchPlayersTabs({
 
 				<TabsContent value="defense" className="mt-4 space-y-8">
 					<SectionBlock title="Defensa" description="Inferioridad, bloqueos y acciones defensivas del equipo.">
+						<MatchDefenseTotals stats={matchStats} hiddenStats={hiddenStats} />
+
+						<div className="flex items-center gap-2">
+							<div className="h-px flex-1 bg-border/90" />
+						</div>
+
 						<div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6 items-stretch">
 							<div className="h-full">
 								<MatchInferiorityChart matchStats={matchStats} />
@@ -238,6 +253,7 @@ export function MatchPlayersTabs({
 							<div className="h-full">
 								<MatchBlocksChart stats={blocksStats} matchStats={matchStats} clubName={clubName} />
 							</div>
+
 							<div className="h-full">
 								<MatchPossessionChart stats={matchStats} rival={opponentName} matchDateLabel={matchDateLabel} size="sm" />
 							</div>
@@ -247,6 +263,12 @@ export function MatchPlayersTabs({
 
 				<TabsContent value="goalkeeper" className="mt-4 space-y-8">
 					<SectionBlock title="Portero" description="Rendimiento del portero y detalle de tiros recibidos.">
+						<MatchGoalkeeperTotals stats={matchStats} hiddenStats={hiddenStats} />
+
+						<div className="flex items-center gap-2">
+							<div className="h-px flex-1 bg-border/90" />
+						</div>
+
 						<div className="grid grid-cols-1 sm:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 							<div className="rounded-2xl border bg-card/40 p-3">
 								<div className="mb-3 flex flex-wrap gap-2">
@@ -279,12 +301,14 @@ export function MatchPlayersTabs({
 								)}
 							</div>
 						</div>
-						<div className="grid grid-cols-1 sm:grid-cols-1 gap-4 lg:gap-6 items-stretch">
+
+						<div className="grid grid-cols-1 gap-4 lg:gap-6 items-stretch">
 							<div className="h-full">
 								<MatchGoalkeepersPieChart stats={matchStats} match={match} />
 							</div>
 						</div>
-						<div className="grid grid-cols-2 sm:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 							<div className="h-full">
 								<MatchGoalkeeperGoalsAgainstChart stats={matchStats} match={match} players={players} />
 							</div>

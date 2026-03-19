@@ -7,12 +7,14 @@ import { PlayerHeroHeader } from "@/app/jugadores/[id]/playerHeader";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { PlayerStatsSections } from "../analytics-player/PlayerStatsSections";
+import { getPlayerDerived } from "@/lib/stats/playerStatsHelpers";
 
 type Props = {
 	open: boolean;
 	onOpenChange: (v: boolean) => void;
 	player: any;
 	stat: any;
+	hiddenStats?: string[];
 	derived: {
 		totalShots: number;
 		shootingEfficiency: string;
@@ -104,7 +106,7 @@ function usePlayerFavorites(playerId?: number, open?: boolean) {
 	return { favSet, toggleLocal, dirty, save, discard, saving, error, reload: load };
 }
 
-export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derived }: Props) {
+export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derived, hiddenStats = [] }: Props) {
 	const playerId: number | undefined = player?.id ?? stat?.player_id;
 
 	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId, open);
@@ -144,12 +146,7 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 		requestClose();
 	};
 
-	const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }) : "—");
-
-	const match = stat?.matches;
-	const opponent = match?.opponent ?? "—";
-	const date = formatDate(match?.match_date);
-	const score = `${match?.home_score ?? 0} - ${match?.away_score ?? 0}`;
+	const modalDerived = React.useMemo(() => getPlayerDerived(stat, hiddenStats), [stat, hiddenStats]);
 
 	const KpiBox = ({ label, value, className }: { label: string; value: React.ReactNode; className: string }) => (
 		<div className={`rounded-xl p-4 text-center border ${className}`}>
@@ -258,15 +255,16 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 
 					<div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-							<KpiBox label="Goles" value={stat?.goles_totales ?? 0} className="bg-blue-500/5 border-blue-500/10" />
-							<KpiBox label="Tiros" value={stat?.tiros_totales ?? 0} className="bg-white/5 border-blue-500/20" />
-							<KpiBox label="Eficiencia" value={`${derived.shootingEfficiency}%`} className="bg-blue-500/5 border-blue-500/10" />
-							<KpiBox label="Asistencias" value={stat?.acciones_asistencias ?? 0} className="bg-white/5 border-blue-500/20" />
+							<KpiBox label="Goles" value={modalDerived.goals} className="bg-blue-500/5 border-blue-500/10" />
+							<KpiBox label="Tiros" value={modalDerived.shots} className="bg-white/5 border-blue-500/20" />
+							<KpiBox label="Eficiencia" value={`${modalDerived.efficiency}%`} className="bg-blue-500/5 border-blue-500/10" />
+							<KpiBox label="Asistencias" value={modalDerived.assists} className="bg-white/5 border-blue-500/20" />
 						</div>
 
 						<PlayerStatsSections
 							stats={stat}
 							mode="match"
+							hiddenStats={hiddenStats}
 							renderRow={({ label, value, statKey }) => <KV key={statKey} label={label} value={value} statKey={statKey} />}
 						/>
 
@@ -275,19 +273,19 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 								<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
 										<span className="text-sm text-muted-foreground">Total acciones</span>
-										<span className="text-sm font-semibold tabular-nums">{derived.totalActions}</span>
+										<span className="text-sm font-semibold tabular-nums">{modalDerived.totalActions}</span>
 									</div>
 									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
 										<span className="text-sm text-muted-foreground">Faltas totales</span>
-										<span className="text-sm font-semibold tabular-nums">{derived.totalFouls}</span>
+										<span className="text-sm font-semibold tabular-nums">{modalDerived.totalFouls}</span>
 									</div>
 									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
 										<span className="text-sm text-muted-foreground">Sup. goles</span>
-										<span className="text-sm font-semibold tabular-nums">{derived.superiorityGoals}</span>
+										<span className="text-sm font-semibold tabular-nums">{modalDerived.superiorityGoals}</span>
 									</div>
 									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
 										<span className="text-sm text-muted-foreground">Sup. eficiencia</span>
-										<span className="text-sm font-semibold tabular-nums">{derived.superiorityEfficiency}%</span>
+										<span className="text-sm font-semibold tabular-nums">{modalDerived.superiorityEfficiency}%</span>
 									</div>
 								</div>
 							</CardContent>

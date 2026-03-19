@@ -13,6 +13,7 @@ interface GoalkeeperInferiorityEfficiencyChartProps {
 	matches: Match[];
 	stats: MatchStats[];
 	players: Player[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -20,7 +21,19 @@ const toNum = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: GoalkeeperInferiorityEfficiencyChartProps) {
+export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenStats = [] }: GoalkeeperInferiorityEfficiencyChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const showGoalsHM = !hiddenSet.has("portero_goles_hombre_menos");
+	const showGoalPostHM = !hiddenSet.has("portero_gol_palo");
+	const showSavesHM = !hiddenSet.has("portero_paradas_hombre_menos");
+	const showOutsideHM = !hiddenSet.has("portero_inferioridad_fuera");
+	const showBlocksHM = !hiddenSet.has("portero_inferioridad_bloqueo");
+
+	const visibleReceived = (showGoalsHM ? 1 : 0) + (showGoalPostHM ? 1 : 0);
+
+	const visiblePrevented = (showSavesHM ? 1 : 0) + (showOutsideHM ? 1 : 0) + (showBlocksHM ? 1 : 0);
+
 	const matchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
 			const aj = a?.jornada ?? 9999;
@@ -29,36 +42,47 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: Goalkee
 			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
 		});
 
-		return sorted.slice(-15).map((match: any, idx: number) => {
-			const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
+		return sorted
+			.slice(-15)
+			.map((match: any, idx: number) => {
+				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
-			const golesRecibidos =
-				ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_hombre_menos), 0) +
-				ms.reduce((sum: number, s: any) => sum + toNum(s.portero_gol_palo), 0);
+				const golesHM = showGoalsHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_hombre_menos), 0) : 0;
 
-			const paradasInf = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_hombre_menos), 0);
-			const fueraInf = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_fuera), 0);
+				const golPaloHM = showGoalPostHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_gol_palo), 0) : 0;
 
-			const evitados = paradasInf + fueraInf;
-			const totalAcciones = golesRecibidos + evitados;
-			const eficacia = totalAcciones > 0 ? Math.round((evitados / totalAcciones) * 100) : 0;
+				const golesRecibidos = golesHM + golPaloHM;
 
-			const jornadaNumber = match.jornada ?? idx + 1;
+				const paradasInf = showSavesHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_hombre_menos), 0) : 0;
 
-			return {
-				matchId: match.id,
-				jornada: `J${jornadaNumber}`,
-				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
-				golesRecibidos,
-				paradasInf,
-				fueraInf,
-				evitados,
-				totalAcciones,
-				eficacia
-			};
-		});
-	}, [matches, stats]);
+				const fueraInf = showOutsideHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_fuera), 0) : 0;
+
+				const bloqueoInf = showBlocksHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_bloqueo), 0) : 0;
+
+				const evitados = paradasInf + fueraInf + bloqueoInf;
+				const totalAcciones = golesRecibidos + evitados;
+				const eficacia = totalAcciones > 0 ? Math.round((evitados / totalAcciones) * 100) : 0;
+
+				const jornadaNumber = match.jornada ?? idx + 1;
+
+				return {
+					matchId: match.id,
+					jornada: `J${jornadaNumber}`,
+					rival: match.opponent,
+					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					golesHM,
+					golPaloHM,
+					golesRecibidos,
+					paradasInf,
+					fueraInf,
+					bloqueoInf,
+					evitados,
+					totalAcciones,
+					eficacia
+				};
+			})
+			.filter((row) => row.totalAcciones > 0);
+	}, [matches, stats, showGoalsHM, showGoalPostHM, showSavesHM, showOutsideHM, showBlocksHM]);
 
 	const chartData = useMemo(() => {
 		return matchData.map((m, index) => {
@@ -77,7 +101,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: Goalkee
 	const totalAcciones = totalGC + totalEvitados;
 	const overall = totalAcciones > 0 ? Math.round((totalEvitados / totalAcciones) * 100) : 0;
 
-	if (!matchData.length) return null;
+	if (!matchData.length || (visibleReceived === 0 && visiblePrevented === 0)) return null;
 
 	return (
 		<ExpandableChartCard
@@ -92,6 +116,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: Goalkee
 						golesRecibidos: { label: "Goles recibidos", color: "hsla(0, 84%, 60%, 1.00)" },
 						paradasInf: { label: "Paradas Inf.-", color: "hsla(145, 63%, 42%, 1.00)" },
 						fueraInf: { label: "Fuera Inf.-", color: "hsla(42, 96%, 55%, 1.00)" },
+						bloqueoInf: { label: "Bloqueo Inf.-", color: "hsla(270, 75%, 60%, 1.00)" },
 						eficacia: { label: "Evitados %", color: "hsla(190, 95%, 45%, 1.00)" },
 						eficaciaAcum: { label: "Evitados acum. %", color: "hsla(221, 83%, 53%, 1.00)" }
 					}}
@@ -131,13 +156,32 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: Goalkee
 								}
 							/>
 							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
-							<Bar yAxisId="left" dataKey="golesRecibidos" fill="var(--color-golesRecibidos)" radius={[4, 4, 0, 0]} />
-							<Bar yAxisId="left" dataKey="paradasInf" fill="var(--color-paradasInf)" radius={[4, 4, 0, 0]} />
-							<Bar yAxisId="left" dataKey="fueraInf" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
+
+							<Bar
+								yAxisId="left"
+								dataKey="golesRecibidos"
+								name="Goles recibidos"
+								fill="var(--color-golesRecibidos)"
+								radius={[4, 4, 0, 0]}
+							/>
+
+							{showSavesHM ? (
+								<Bar yAxisId="left" dataKey="paradasInf" name="Paradas Inf.-" fill="var(--color-paradasInf)" radius={[4, 4, 0, 0]} />
+							) : null}
+
+							{showOutsideHM ? (
+								<Bar yAxisId="left" dataKey="fueraInf" name="Fuera Inf.-" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
+							) : null}
+
+							{showBlocksHM ? (
+								<Bar yAxisId="left" dataKey="bloqueoInf" name="Bloqueo Inf.-" fill="var(--color-bloqueoInf)" radius={[4, 4, 0, 0]} />
+							) : null}
+
 							<Line
 								yAxisId="right"
 								type="monotone"
 								dataKey="eficacia"
+								name="Evitados %"
 								stroke="var(--color-eficacia)"
 								strokeWidth={2.5}
 								dot={false}
@@ -147,6 +191,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: Goalkee
 								yAxisId="right"
 								type="monotone"
 								dataKey="eficaciaAcum"
+								name="Evitados acum. %"
 								stroke="var(--color-eficaciaAcum)"
 								strokeWidth={3.5}
 								strokeDasharray="6 4"
@@ -167,8 +212,11 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: Goalkee
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
 										<TableHead className="text-right">Recibidos</TableHead>
-										<TableHead className="text-right">Paradas</TableHead>
-										<TableHead className="text-right">Fuera</TableHead>
+
+										{showSavesHM ? <TableHead className="text-right">Paradas</TableHead> : null}
+										{showOutsideHM ? <TableHead className="text-right">Fuera</TableHead> : null}
+										{showBlocksHM ? <TableHead className="text-right">Bloqueo</TableHead> : null}
+
 										<TableHead className="text-right">Evitados</TableHead>
 										<TableHead className="text-right">Efic.</TableHead>
 									</TableRow>
@@ -179,12 +227,21 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats }: Goalkee
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
 											<TableCell className="text-right tabular-nums font-semibold">{m.golesRecibidos}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.paradasInf}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.fueraInf}</TableCell>
+
+											{showSavesHM ? <TableCell className="text-right tabular-nums">{m.paradasInf}</TableCell> : null}
+											{showOutsideHM ? <TableCell className="text-right tabular-nums">{m.fueraInf}</TableCell> : null}
+											{showBlocksHM ? <TableCell className="text-right tabular-nums">{m.bloqueoInf}</TableCell> : null}
+
 											<TableCell className="text-right tabular-nums font-semibold">{m.evitados}</TableCell>
 											<TableCell className="text-right">
 												<Badge
-													className={`${m.eficacia >= 60 ? "bg-emerald-500 hover:bg-emerald-500" : m.eficacia >= 40 ? "bg-amber-500 hover:bg-amber-500" : "bg-rose-500 hover:bg-rose-500"} text-white`}
+													className={`${
+														m.eficacia >= 60
+															? "bg-emerald-500 hover:bg-emerald-500"
+															: m.eficacia >= 40
+																? "bg-amber-500 hover:bg-amber-500"
+																: "bg-rose-500 hover:bg-rose-500"
+													} text-white`}
 												>
 													{m.eficacia}%
 												</Badge>

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Target, Shield, Activity } from "lucide-react";
-import { MatchResultsChart } from "../match-results-chart";
+import { MatchResultsChart } from "../../match-results-chart";
 import { buildGeneralDashboardAnalytics } from "@/lib/helpers/generalDashboardHelper";
 
 interface GeneralDashboardProps {

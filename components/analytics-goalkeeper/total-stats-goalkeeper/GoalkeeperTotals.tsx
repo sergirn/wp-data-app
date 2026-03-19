@@ -10,12 +10,14 @@ export function GoalkeeperTotalsCard({
 	stats,
 	matchCount,
 	title = "Totales",
-	playerId
+	playerId,
+	hiddenStats
 }: {
 	stats: any;
 	matchCount?: number;
 	title?: string;
 	playerId: number;
+	hiddenStats?: string[] | Set<string>;
 }) {
 	const StatPill = ({ children }: { children: React.ReactNode }) => (
 		<span className="inline-flex items-center rounded-full border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">{children}</span>
@@ -100,7 +102,7 @@ export function GoalkeeperTotalsCard({
 		);
 	};
 
-	const derived = getGoalkeeperDerived(stats);
+	const derived = getGoalkeeperDerived(stats, hiddenStats);
 
 	const orderedCategories: GoalkeeperStatCategory[] = ["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"];
 
@@ -144,7 +146,7 @@ export function GoalkeeperTotalsCard({
 
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 						{orderedCategories.map((category) => {
-							const items = getGoalkeeperStatsByCategory(category);
+							const items = getGoalkeeperStatsByCategory(category, hiddenStats);
 
 							if (!items.length) return null;
 

@@ -12,6 +12,7 @@ interface DefenseFoulsByMatchChartProps {
 	matches: Match[];
 	stats: MatchStats[];
 	players: Player[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -19,7 +20,63 @@ const toNum = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-export function DefenseFoulsByMatchChart({ matches, stats }: DefenseFoulsByMatchChartProps) {
+type FoulDef = {
+	key: keyof MatchStats | string;
+	dataKey: string;
+	label: string;
+	color: string;
+};
+
+const FOUL_DEFS: FoulDef[] = [
+	{
+		key: "faltas_exp_20_1c1",
+		dataKey: "exp1c1",
+		label: 'Exp 18" 1c1',
+		color: "hsla(0, 84%, 60%, 1.00)"
+	},
+	{
+		key: "faltas_exp_20_boya",
+		dataKey: "expBoya",
+		label: 'Exp 18" Boya',
+		color: "hsla(25, 95%, 53%, 1.00)"
+	},
+	{
+		key: "faltas_penalti",
+		dataKey: "penalti",
+		label: "Penalti",
+		color: "hsla(330, 78%, 58%, 1.00)"
+	},
+	{
+		key: "faltas_exp_simple",
+		dataKey: "expSimple",
+		label: "Exp simple",
+		color: "hsla(270, 75%, 60%, 1.00)"
+	},
+	{
+		key: "exp_trans_def",
+		dataKey: "expTrans",
+		label: "Exp trans.",
+		color: "hsla(205, 90%, 55%, 1.00)"
+	},
+	{
+		key: "faltas_exp_3_int",
+		dataKey: "exp3Int",
+		label: 'Exp 3" Int',
+		color: "hsla(190, 95%, 45%, 1.00)"
+	},
+	{
+		key: "faltas_exp_3_bruta",
+		dataKey: "exp3Bruta",
+		label: 'Exp 3" Bruta',
+		color: "hsla(42, 96%, 55%, 1.00)"
+	}
+];
+
+export function DefenseFoulsByMatchChart({ matches, stats, hiddenStats = [] }: DefenseFoulsByMatchChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const visibleDefs = useMemo(() => FOUL_DEFS.filter((def) => !hiddenSet.has(String(def.key))), [hiddenSet]);
+
 	const matchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
 			const aj = a?.jornada ?? 9999;
@@ -28,39 +85,49 @@ export function DefenseFoulsByMatchChart({ matches, stats }: DefenseFoulsByMatch
 			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
 		});
 
-		return sorted.slice(-15).map((match: any, index: number) => {
-			const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
+		return sorted
+			.slice(-15)
+			.map((match: any, index: number) => {
+				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
-			const exp1c1 = ms.reduce((sum: number, s: any) => sum + toNum(s.faltas_exp_20_1c1), 0);
-			const expBoya = ms.reduce((sum: number, s: any) => sum + toNum(s.faltas_exp_20_boya), 0);
-			const penalti = ms.reduce((sum: number, s: any) => sum + toNum(s.faltas_penalti), 0);
-			const expSimple = ms.reduce((sum: number, s: any) => sum + toNum(s.faltas_exp_simple), 0);
-			const expTrans = ms.reduce((sum: number, s: any) => sum + toNum(s.exp_trans_def), 0);
-			const exp3Int = ms.reduce((sum: number, s: any) => sum + toNum(s.faltas_exp_3_int), 0);
-			const exp3Bruta = ms.reduce((sum: number, s: any) => sum + toNum(s.faltas_exp_3_bruta), 0);
+				const values = Object.fromEntries(
+					FOUL_DEFS.map((def) => {
+						const value = hiddenSet.has(String(def.key)) ? 0 : ms.reduce((sum: number, s: any) => sum + toNum(s[def.key]), 0);
 
-			const total = exp1c1 + expBoya + penalti + expSimple + expTrans + exp3Int + exp3Bruta;
-			const jornadaNumber = match.jornada ?? index + 1;
+						return [def.dataKey, value];
+					})
+				) as Record<string, number>;
 
-			return {
-				matchId: match.id,
-				jornada: `J${jornadaNumber}`,
-				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
-				exp1c1,
-				expBoya,
-				penalti,
-				expSimple,
-				expTrans,
-				exp3Int,
-				exp3Bruta,
-				total
-			};
-		});
-	}, [matches, stats]);
+				const total = visibleDefs.reduce((sum, def) => sum + toNum(values[def.dataKey]), 0);
+				const jornadaNumber = match.jornada ?? index + 1;
 
-	const total = matchData.reduce((sum, m) => sum + m.total, 0);
-	if (!matchData.length) return null;
+				return {
+					matchId: match.id,
+					jornada: `J${jornadaNumber}`,
+					rival: match.opponent,
+					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					...values,
+					total
+				};
+			})
+			.filter((row) => row.total > 0);
+	}, [matches, stats, hiddenSet, visibleDefs]);
+
+	const total = useMemo(() => matchData.reduce((sum, m) => sum + m.total, 0), [matchData]);
+
+	const chartConfig = useMemo(() => {
+		return Object.fromEntries(
+			visibleDefs.map((def) => [
+				def.dataKey,
+				{
+					label: def.label,
+					color: def.color
+				}
+			])
+		);
+	}, [visibleDefs]);
+
+	if (!visibleDefs.length || !matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
@@ -70,18 +137,7 @@ export function DefenseFoulsByMatchChart({ matches, stats }: DefenseFoulsByMatch
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{total}</span>}
 			renderChart={({ compact }) => (
-				<ChartContainer
-					config={{
-						exp1c1: { label: 'Exp 18" 1c1', color: "hsla(0, 84%, 60%, 1.00)" },
-						expBoya: { label: 'Exp 18" Boya', color: "hsla(25, 95%, 53%, 1.00)" },
-						penalti: { label: "Penalti", color: "hsla(330, 78%, 58%, 1.00)" },
-						expSimple: { label: "Exp simple", color: "hsla(270, 75%, 60%, 1.00)" },
-						expTrans: { label: "Exp trans.", color: "hsla(205, 90%, 55%, 1.00)" },
-						exp3Int: { label: 'Exp 3" Int', color: "hsla(190, 95%, 45%, 1.00)" },
-						exp3Bruta: { label: 'Exp 3" Bruta', color: "hsla(42, 96%, 55%, 1.00)" }
-					}}
-					className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}
-				>
+				<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}>
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={matchData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
@@ -106,13 +162,17 @@ export function DefenseFoulsByMatchChart({ matches, stats }: DefenseFoulsByMatch
 								}
 							/>
 							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
-							<Bar dataKey="exp1c1" stackId="f" fill="var(--color-exp1c1)" radius={[4, 4, 0, 0]} />
-							<Bar dataKey="expBoya" stackId="f" fill="var(--color-expBoya)" />
-							<Bar dataKey="penalti" stackId="f" fill="var(--color-penalti)" />
-							<Bar dataKey="expSimple" stackId="f" fill="var(--color-expSimple)" />
-							<Bar dataKey="expTrans" stackId="f" fill="var(--color-expTrans)" />
-							<Bar dataKey="exp3Int" stackId="f" fill="var(--color-exp3Int)" />
-							<Bar dataKey="exp3Bruta" stackId="f" fill="var(--color-exp3Bruta)" />
+
+							{visibleDefs.map((def, index) => (
+								<Bar
+									key={def.dataKey}
+									dataKey={def.dataKey}
+									stackId="f"
+									name={def.label}
+									fill={`var(--color-${def.dataKey})`}
+									radius={index === 0 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+								/>
+							))}
 						</ComposedChart>
 					</ResponsiveContainer>
 				</ChartContainer>
@@ -126,28 +186,43 @@ export function DefenseFoulsByMatchChart({ matches, stats }: DefenseFoulsByMatch
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">1c1</TableHead>
-										<TableHead className="text-right">Boya</TableHead>
-										<TableHead className="text-right">Pen.</TableHead>
-										<TableHead className="text-right">Simple</TableHead>
-										<TableHead className="text-right">Trans.</TableHead>
-										<TableHead className="text-right">3&quot; Int</TableHead>
-										<TableHead className="text-right">3&quot; Bruta</TableHead>
+
+										{visibleDefs.map((def) => (
+											<TableHead key={def.dataKey} className="text-right">
+												{def.dataKey === "exp1c1"
+													? "1c1"
+													: def.dataKey === "expBoya"
+														? "Boya"
+														: def.dataKey === "penalti"
+															? "Pen."
+															: def.dataKey === "expSimple"
+																? "Simple"
+																: def.dataKey === "expTrans"
+																	? "Trans."
+																	: def.dataKey === "exp3Int"
+																		? '3" Int'
+																		: def.dataKey === "exp3Bruta"
+																			? '3" Bruta'
+																			: def.label}
+											</TableHead>
+										))}
+
 										<TableHead className="text-right">Total</TableHead>
 									</TableRow>
 								</UITableHeader>
+
 								<TableBody>
 									{matchData.map((m, idx) => (
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.exp1c1}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.expBoya}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.penalti}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.expSimple}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.expTrans}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.exp3Int}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.exp3Bruta}</TableCell>
+
+											{visibleDefs.map((def) => (
+												<TableCell key={def.dataKey} className="text-right tabular-nums">
+													{toNum((m as Record<string, unknown>)[def.dataKey])}
+												</TableCell>
+											))}
+
 											<TableCell className="text-right tabular-nums font-semibold">{m.total}</TableCell>
 										</TableRow>
 									))}

@@ -13,6 +13,7 @@ interface AttackBoyaFlowChartProps {
 	matches: Match[];
 	stats: MatchStats[];
 	players: Player[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -20,7 +21,18 @@ const toNum = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-export function AttackBoyaFlowChart({ matches, stats }: AttackBoyaFlowChartProps) {
+const sumVisible = (rows: Record<string, any>[], key: string, hiddenSet: Set<string>) => {
+	if (hiddenSet.has(key)) return 0;
+	return rows.reduce((sum, row) => sum + toNum(row?.[key]), 0);
+};
+
+export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: AttackBoyaFlowChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const showPaseBoya = !hiddenSet.has("pase_boya");
+	const showPaseBoyaFallado = !hiddenSet.has("pase_boya_fallado");
+	const showGolesBoya = !hiddenSet.has("goles_boya_jugada");
+
 	const sortedMatches = useMemo(() => {
 		return [...(matches ?? [])].sort((a: any, b: any) => {
 			const aj = a?.jornada ?? 9999;
@@ -36,9 +48,9 @@ export function AttackBoyaFlowChart({ matches, stats }: AttackBoyaFlowChartProps
 		return sortedMatches.slice(-15).map((match: any, index: number) => {
 			const ms = statsArr.filter((s: any) => String(s.match_id) === String(match.id));
 
-			const paseBoya = ms.reduce((sum: number, s: any) => sum + toNum(s.pase_boya), 0);
-			const paseBoyaFallado = ms.reduce((sum: number, s: any) => sum + toNum(s.pase_boya_fallado), 0);
-			const golesBoya = ms.reduce((sum: number, s: any) => sum + toNum(s.goles_boya_jugada), 0);
+			const paseBoya = sumVisible(ms, "pase_boya", hiddenSet);
+			const paseBoyaFallado = sumVisible(ms, "pase_boya_fallado", hiddenSet);
+			const golesBoya = sumVisible(ms, "goles_boya_jugada", hiddenSet);
 
 			const intentosBoya = paseBoya + paseBoyaFallado;
 			const conversionBoya = intentosBoya > 0 ? Number(((golesBoya / intentosBoya) * 100).toFixed(1)) : 0;
@@ -60,7 +72,7 @@ export function AttackBoyaFlowChart({ matches, stats }: AttackBoyaFlowChartProps
 				exitoPaseBoya
 			};
 		});
-	}, [sortedMatches, stats]);
+	}, [sortedMatches, stats, hiddenSet]);
 
 	const partidos = matchData.length;
 
@@ -167,9 +179,9 @@ export function AttackBoyaFlowChart({ matches, stats }: AttackBoyaFlowChartProps
 									<TableRow className="hover:bg-transparent">
 										<TableHead className="w-[90px]">Jornada</TableHead>
 										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">Pase boya</TableHead>
-										<TableHead className="text-right">P. boya fall.</TableHead>
-										<TableHead className="text-right">Gol boya</TableHead>
+										{showPaseBoya && <TableHead className="text-right">Pase boya</TableHead>}
+										{showPaseBoyaFallado && <TableHead className="text-right">P. boya fall.</TableHead>}
+										{showGolesBoya && <TableHead className="text-right">Gol boya</TableHead>}
 										<TableHead className="text-right">Intentos</TableHead>
 										<TableHead className="text-right">Éxito pase</TableHead>
 										<TableHead className="text-right">Conversión</TableHead>
@@ -187,9 +199,11 @@ export function AttackBoyaFlowChart({ matches, stats }: AttackBoyaFlowChartProps
 													<p className="text-xs text-muted-foreground sm:hidden">{m.fullDate}</p>
 												</div>
 											</TableCell>
-											<TableCell className="text-right tabular-nums">{m.paseBoya}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.paseBoyaFallado}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.golesBoya}</TableCell>
+
+											{showPaseBoya && <TableCell className="text-right tabular-nums">{m.paseBoya}</TableCell>}
+											{showPaseBoyaFallado && <TableCell className="text-right tabular-nums">{m.paseBoyaFallado}</TableCell>}
+											{showGolesBoya && <TableCell className="text-right tabular-nums">{m.golesBoya}</TableCell>}
+
 											<TableCell className="text-right tabular-nums">{m.intentosBoya}</TableCell>
 											<TableCell className="text-right">
 												<Badge className="bg-blue-600 text-white hover:bg-blue-600 tabular-nums">{m.exitoPaseBoya}%</Badge>
@@ -211,14 +225,23 @@ export function AttackBoyaFlowChart({ matches, stats }: AttackBoyaFlowChartProps
 								<span className="font-medium text-foreground">{partidos}</span> partidos
 							</span>
 							<div className="flex flex-wrap gap-2">
+								{showPaseBoya && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Pase boya: <span className="font-semibold text-foreground">{totals.paseBoya}</span>
+									</span>
+								)}
+								{showPaseBoyaFallado && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										P. boya fallado: <span className="font-semibold text-foreground">{totals.paseBoyaFallado}</span>
+									</span>
+								)}
+								{showGolesBoya && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Gol boya: <span className="font-semibold text-foreground">{totals.golesBoya}</span>
+									</span>
+								)}
 								<span className="rounded-md border bg-card px-2 py-1">
-									Pase boya: <span className="font-semibold text-foreground">{totals.paseBoya}</span>
-								</span>
-								<span className="rounded-md border bg-card px-2 py-1">
-									P. boya fallado: <span className="font-semibold text-foreground">{totals.paseBoyaFallado}</span>
-								</span>
-								<span className="rounded-md border bg-card px-2 py-1">
-									Gol boya: <span className="font-semibold text-foreground">{totals.golesBoya}</span>
+									Intentos: <span className="font-semibold text-foreground">{totals.intentosBoya}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
 									Éxito pase: <span className="font-semibold text-foreground">{totals.exitoPaseBoya}%</span>

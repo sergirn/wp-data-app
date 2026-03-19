@@ -12,6 +12,7 @@ interface GoalkeeperGoalsByTypeChartProps {
 	matches: Match[];
 	stats: MatchStats[];
 	players: Player[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -19,7 +20,77 @@ const toNum = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-export function GoalkeeperGoalsByTypeChart({ matches, stats }: GoalkeeperGoalsByTypeChartProps) {
+const GOAL_DEFS = [
+	{
+		key: "boya",
+		statKey: "portero_goles_boya_parada",
+		label: "Boya",
+		shortLabel: "Boya",
+		color: "hsla(145, 63%, 42%, 1.00)"
+	},
+	{
+		key: "hm",
+		statKey: "portero_goles_hombre_menos",
+		label: "Inferioridad",
+		shortLabel: "Inf.",
+		color: "hsla(42, 96%, 55%, 1.00)"
+	},
+	{
+		key: "dir",
+		statKey: "portero_goles_dir_mas_5m",
+		label: "Dir +6m",
+		shortLabel: "Dir +6m",
+		color: "hsla(221, 83%, 53%, 1.00)"
+	},
+	{
+		key: "contra",
+		statKey: "portero_goles_contraataque",
+		label: "Contraataque",
+		shortLabel: "Contra",
+		color: "hsla(190, 95%, 45%, 1.00)"
+	},
+	{
+		key: "penalti",
+		statKey: "portero_goles_penalti",
+		label: "Penalti",
+		shortLabel: "Pen.",
+		color: "hsla(330, 78%, 58%, 1.00)"
+	},
+	{
+		key: "lanz",
+		statKey: "portero_goles_lanzamiento",
+		label: "Lanzamiento",
+		shortLabel: "Lanz.",
+		color: "hsla(0, 84%, 60%, 1.00)"
+	},
+	{
+		key: "palo",
+		statKey: "portero_gol_palo",
+		label: "Palo",
+		shortLabel: "Palo",
+		color: "hsla(270, 75%, 60%, 1.00)"
+	}
+] as const;
+
+export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }: GoalkeeperGoalsByTypeChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const visibleDefs = useMemo(() => {
+		return GOAL_DEFS.filter((def) => !hiddenSet.has(def.statKey));
+	}, [hiddenSet]);
+
+	const chartConfig = useMemo(() => {
+		return Object.fromEntries(
+			visibleDefs.map((def) => [
+				def.key,
+				{
+					label: def.label,
+					color: def.color
+				}
+			])
+		);
+	}, [visibleDefs]);
+
 	const matchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
 			const aj = a?.jornada ?? 9999;
@@ -28,38 +99,39 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats }: GoalkeeperGoalsBy
 			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
 		});
 
-		return sorted.slice(-15).map((match: any, index: number) => {
-			const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
+		return sorted
+			.slice(-15)
+			.map((match: any, index: number) => {
+				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
-			const boya = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_boya_parada), 0);
-			const hm = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_hombre_menos), 0);
-			const dir = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_dir_mas_5m), 0);
-			const contra = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_contraataque), 0);
-			const penalti = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_penalti), 0);
-			const lanz = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_lanzamiento), 0);
-			const palo = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_gol_palo), 0);
+				const values = Object.fromEntries(
+					GOAL_DEFS.map((def) => {
+						const value = hiddenSet.has(def.statKey) ? 0 : ms.reduce((sum: number, s: any) => sum + toNum(s?.[def.statKey]), 0);
 
-			const jornadaNumber = match.jornada ?? index + 1;
+						return [def.key, value];
+					})
+				) as Record<string, number>;
 
-			return {
-				matchId: match.id,
-				jornada: `J${jornadaNumber}`,
-				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
-				boya,
-				hm,
-				dir,
-				contra,
-				penalti,
-				lanz,
-				palo,
-				total: boya + hm + dir + contra + penalti + lanz + palo
-			};
-		});
-	}, [matches, stats]);
+				const total = visibleDefs.reduce((acc, def) => acc + toNum(values[def.key]), 0);
+				const jornadaNumber = match.jornada ?? index + 1;
 
-	const total = matchData.reduce((sum, m) => sum + m.total, 0);
-	if (!matchData.length) return null;
+				return {
+					matchId: match.id,
+					jornada: `J${jornadaNumber}`,
+					rival: match.opponent,
+					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					...values,
+					total
+				};
+			})
+			.filter((row) => row.total > 0);
+	}, [matches, stats, hiddenSet, visibleDefs]);
+
+	const total = useMemo(() => {
+		return matchData.reduce((sum, m) => sum + m.total, 0);
+	}, [matchData]);
+
+	if (!visibleDefs.length || !matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
@@ -69,18 +141,7 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats }: GoalkeeperGoalsBy
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{total}</span>}
 			renderChart={({ compact }) => (
-				<ChartContainer
-					config={{
-						boya: { label: "Boya", color: "hsla(145, 63%, 42%, 1.00)" },
-						hm: { label: "Inferioridad", color: "hsla(42, 96%, 55%, 1.00)" },
-						dir: { label: "Dir +6m", color: "hsla(221, 83%, 53%, 1.00)" },
-						contra: { label: "Contraataque", color: "hsla(190, 95%, 45%, 1.00)" },
-						penalti: { label: "Penalti", color: "hsla(330, 78%, 58%, 1.00)" },
-						lanz: { label: "Lanzamiento", color: "hsla(0, 84%, 60%, 1.00)" },
-						palo: { label: "Palo", color: "hsla(270, 75%, 60%, 1.00)" }
-					}}
-					className="w-full h-full"
-				>
+				<ChartContainer config={chartConfig} className="w-full h-full">
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={matchData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
@@ -105,13 +166,17 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats }: GoalkeeperGoalsBy
 								}
 							/>
 							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
-							<Bar dataKey="boya" stackId="g" fill="var(--color-boya)" radius={[4, 4, 0, 0]} />
-							<Bar dataKey="hm" stackId="g" fill="var(--color-hm)" />
-							<Bar dataKey="dir" stackId="g" fill="var(--color-dir)" />
-							<Bar dataKey="contra" stackId="g" fill="var(--color-contra)" />
-							<Bar dataKey="penalti" stackId="g" fill="var(--color-penalti)" />
-							<Bar dataKey="lanz" stackId="g" fill="var(--color-lanz)" />
-							<Bar dataKey="palo" stackId="g" fill="var(--color-palo)" />
+
+							{visibleDefs.map((def, index) => (
+								<Bar
+									key={def.key}
+									dataKey={def.key}
+									name={def.label}
+									stackId="g"
+									fill={`var(--color-${def.key})`}
+									radius={index === 0 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+								/>
+							))}
 						</ComposedChart>
 					</ResponsiveContainer>
 				</ChartContainer>
@@ -125,28 +190,29 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats }: GoalkeeperGoalsBy
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">Boya</TableHead>
-										<TableHead className="text-right">Inf.</TableHead>
-										<TableHead className="text-right">Dir +6m</TableHead>
-										<TableHead className="text-right">Contra</TableHead>
-										<TableHead className="text-right">Pen.</TableHead>
-										<TableHead className="text-right">Lanz.</TableHead>
-										<TableHead className="text-right">Palo</TableHead>
+
+										{visibleDefs.map((def) => (
+											<TableHead key={def.key} className="text-right">
+												{def.shortLabel}
+											</TableHead>
+										))}
+
 										<TableHead className="text-right">Total</TableHead>
 									</TableRow>
 								</UITableHeader>
+
 								<TableBody>
 									{matchData.map((m, idx) => (
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.boya}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.hm}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.dir}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.contra}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.penalti}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.lanz}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.palo}</TableCell>
+
+											{visibleDefs.map((def) => (
+												<TableCell key={def.key} className="text-right tabular-nums">
+													{toNum((m as Record<string, unknown>)[def.key])}
+												</TableCell>
+											))}
+
 											<TableCell className="text-right tabular-nums font-semibold">{m.total}</TableCell>
 										</TableRow>
 									))}

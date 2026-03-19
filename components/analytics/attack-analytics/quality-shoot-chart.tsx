@@ -17,6 +17,7 @@ interface ShotMistakesDonutChartProps {
 	matches: any[];
 	stats: any[];
 	players: PlayerLite[];
+	hiddenStats?: string[];
 }
 
 function playerLabelShort(p: { id: number; name: string; number?: number | null; photo_url?: string | null } | null, value: number) {
@@ -31,7 +32,9 @@ function playerLabelFull(p: { id: number; name: string; number?: number | null; 
 	return `${num} ${p.name} (${value})`;
 }
 
-export function ShotMistakesDonutChart({ matches, stats, players }: ShotMistakesDonutChartProps) {
+export function ShotMistakesDonutChart({ matches, stats, players, hiddenStats = [] }: ShotMistakesDonutChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
 	const playersById = useMemo(() => {
 		const m = new Map<number, { id: number; name: string; number?: number | null; photo_url?: string | null }>();
 
@@ -49,7 +52,14 @@ export function ShotMistakesDonutChart({ matches, stats, players }: ShotMistakes
 		return m;
 	}, [players]);
 
-	const data = useMemo(() => buildShotMistakesSeasonData(matches ?? [], stats ?? [], playersById), [matches, stats, playersById]);
+	const data = useMemo(
+		() =>
+			buildShotMistakesSeasonData(matches ?? [], stats ?? [], playersById, {
+				hiddenStats,
+				hiddenSet
+			}),
+		[matches, stats, playersById, hiddenStats, hiddenSet]
+	);
 
 	if (!data?.summary?.total) return null;
 

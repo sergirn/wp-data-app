@@ -19,10 +19,18 @@ interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
 }
 
-function computeWeightedScore(row: Record<string, any>, weights: Record<string, number>): number {
+function isHiddenStat(statKey: string, hiddenStats?: string[] | Set<string>) {
+	if (!hiddenStats) return false;
+	if (hiddenStats instanceof Set) return hiddenStats.has(statKey);
+	return hiddenStats.includes(statKey);
+}
+
+function computeWeightedScore(row: Record<string, any>, weights: Record<string, number>, hiddenStats?: string[] | Set<string>): number {
 	let score = 0;
 
 	for (const [key, weightRaw] of Object.entries(weights)) {
+		if (isHiddenStat(key, hiddenStats)) continue;
+
 		const weight = Number(weightRaw);
 		const value = Number(row?.[key] ?? 0);
 
@@ -34,7 +42,15 @@ function computeWeightedScore(row: Record<string, any>, weights: Record<string, 
 	return Math.round(score);
 }
 
-export function FieldPlayerMatchStatsClient({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
+export function FieldPlayerMatchStatsClient({
+	matchStats,
+	player,
+	hiddenStats
+}: {
+	matchStats: MatchStatsWithMatch[];
+	player: Player;
+	hiddenStats?: string[] | Set<string>;
+}) {
 	if (!matchStats?.length) {
 		return (
 			<Card className="mb-6">
@@ -130,10 +146,10 @@ export function FieldPlayerMatchStatsClient({ matchStats, player }: { matchStats
 		);
 	};
 
-	const goalsItems = getPlayerStatsByCategory("goles");
-	const missesItems = getPlayerStatsByCategory("fallos");
-	const foulsItems = getPlayerStatsByCategory("faltas");
-	const actionsItems = getPlayerStatsByCategory("acciones");
+	const goalsItems = getPlayerStatsByCategory("goles", hiddenStats);
+	const missesItems = getPlayerStatsByCategory("fallos", hiddenStats);
+	const foulsItems = getPlayerStatsByCategory("faltas", hiddenStats);
+	const actionsItems = getPlayerStatsByCategory("acciones", hiddenStats);
 
 	const defaultOpen = `match-${matchStats[0]?.id}`;
 
@@ -161,8 +177,8 @@ export function FieldPlayerMatchStatsClient({ matchStats, player }: { matchStats
 			<Accordion type="single" collapsible className="w-full space-y-4" defaultValue={defaultOpen}>
 				{matchStats.map((stat) => {
 					const match = stat.matches;
-					const derived = getPlayerDerived(stat as any);
-					const score = hasWeights ? computeWeightedScore(stat as any, weights) : null;
+					const derived = getPlayerDerived(stat as any, hiddenStats);
+					const score = hasWeights ? computeWeightedScore(stat as any, weights, hiddenStats) : null;
 
 					return (
 						<AccordionItem key={stat.id} value={`match-${stat.id}`} className="border-0">

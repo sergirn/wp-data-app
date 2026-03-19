@@ -12,6 +12,7 @@ interface GoalkeeperSavesMixChartProps {
 	matches: Match[];
 	stats: MatchStats[];
 	players: Player[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -21,29 +22,76 @@ const toNum = (v: unknown) => {
 
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
-export function GoalkeeperSavesMixChart({ matches, stats }: GoalkeeperSavesMixChartProps) {
+type SavePartDef = {
+	key: "recup" | "fuera" | "pen" | "hm";
+	label: string;
+	statKey: string;
+	color: string;
+	shortLabel: string;
+};
+
+const SAVE_PART_DEFS: SavePartDef[] = [
+	{
+		key: "recup",
+		label: "Parada recup.",
+		shortLabel: "Recup.",
+		statKey: "portero_tiros_parada_recup",
+		color: "hsla(145, 63%, 42%, 1.00)"
+	},
+	{
+		key: "fuera",
+		label: "Parada fuera",
+		shortLabel: "Fuera",
+		statKey: "portero_paradas_fuera",
+		color: "hsla(221, 83%, 53%, 1.00)"
+	},
+	{
+		key: "pen",
+		label: "Penalti parado",
+		shortLabel: "Pen.",
+		statKey: "portero_paradas_penalti_parado",
+		color: "hsla(330, 78%, 58%, 1.00)"
+	},
+	{
+		key: "hm",
+		label: "Parada Inf.-",
+		shortLabel: "Inf.",
+		statKey: "portero_paradas_hombre_menos",
+		color: "hsla(42, 96%, 55%, 1.00)"
+	}
+];
+
+export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: GoalkeeperSavesMixChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const visibleDefs = useMemo(() => SAVE_PART_DEFS.filter((def) => !hiddenSet.has(def.statKey)), [hiddenSet]);
+
 	const summary = useMemo(() => {
 		const all = stats ?? [];
 
-		const recup = all.reduce((sum: number, s: any) => sum + toNum(s.portero_tiros_parada_recup), 0);
-		const fuera = all.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_fuera), 0);
-		const pen = all.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_penalti_parado), 0);
-		const hm = all.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_hombre_menos), 0);
+		const rawValues = Object.fromEntries(
+			SAVE_PART_DEFS.map((def) => [
+				def.key,
+				hiddenSet.has(def.statKey) ? 0 : all.reduce((sum: number, s: any) => sum + toNum(s?.[def.statKey]), 0)
+			])
+		) as Record<SavePartDef["key"], number>;
 
-		const total = recup + fuera + pen + hm;
+		const total = Object.values(rawValues).reduce((sum, v) => sum + v, 0);
 		const pct = (x: number) => (total > 0 ? (x / total) * 100 : 0);
 
-		const parts = [
-			{ key: "recup", label: "Parada recup.", value: recup, pct: pct(recup), color: "hsla(145, 63%, 42%, 1.00)" },
-			{ key: "fuera", label: "Parada fuera", value: fuera, pct: pct(fuera), color: "hsla(221, 83%, 53%, 1.00)" },
-			{ key: "pen", label: "Penalti parado", value: pen, pct: pct(pen), color: "hsla(330, 78%, 58%, 1.00)" },
-			{ key: "hm", label: "Parada Inf.-", value: hm, pct: pct(hm), color: "hsla(42, 96%, 55%, 1.00)" }
-		];
+		const parts = SAVE_PART_DEFS.filter((def) => !hiddenSet.has(def.statKey)).map((def) => ({
+			key: def.key,
+			label: def.label,
+			shortLabel: def.shortLabel,
+			value: rawValues[def.key],
+			pct: pct(rawValues[def.key]),
+			color: def.color
+		}));
 
 		const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;
 
 		return { parts, total, topType, totalMatches: (matches ?? []).length || 0 };
-	}, [matches, stats]);
+	}, [matches, stats, hiddenSet]);
 
 	const perMatch = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -53,31 +101,33 @@ export function GoalkeeperSavesMixChart({ matches, stats }: GoalkeeperSavesMixCh
 			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
 		});
 
-		return sorted.slice(-15).map((match: any, idx: number) => {
-			const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
+		return sorted
+			.slice(-15)
+			.map((match: any, idx: number) => {
+				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
-			const recup = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_tiros_parada_recup), 0);
-			const fuera = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_fuera), 0);
-			const pen = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_penalti_parado), 0);
-			const hm = ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_hombre_menos), 0);
+				const values = Object.fromEntries(
+					SAVE_PART_DEFS.map((def) => [
+						def.key,
+						hiddenSet.has(def.statKey) ? 0 : ms.reduce((sum: number, s: any) => sum + toNum(s?.[def.statKey]), 0)
+					])
+				) as Record<SavePartDef["key"], number>;
 
-			const jornadaNumber = match.jornada ?? idx + 1;
+				const jornadaNumber = match.jornada ?? idx + 1;
 
-			return {
-				matchId: match.id,
-				jornada: `J${jornadaNumber}`,
-				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
-				recup,
-				fuera,
-				pen,
-				hm,
-				total: recup + fuera + pen + hm
-			};
-		});
-	}, [matches, stats]);
+				return {
+					matchId: match.id,
+					jornada: `J${jornadaNumber}`,
+					rival: match.opponent,
+					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					...values,
+					total: Object.values(values).reduce((sum, v) => sum + v, 0)
+				};
+			})
+			.filter((row) => row.total > 0);
+	}, [matches, stats, hiddenSet]);
 
-	if (!summary.totalMatches) return null;
+	if (!summary.totalMatches || visibleDefs.length === 0 || summary.total === 0) return null;
 
 	return (
 		<ExpandableChartCard
@@ -163,10 +213,13 @@ export function GoalkeeperSavesMixChart({ matches, stats }: GoalkeeperSavesMixCh
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">Recup.</TableHead>
-										<TableHead className="text-right">Fuera</TableHead>
-										<TableHead className="text-right">Pen.</TableHead>
-										<TableHead className="text-right">Inf.</TableHead>
+
+										{visibleDefs.map((def) => (
+											<TableHead key={def.key} className="text-right">
+												{def.shortLabel}
+											</TableHead>
+										))}
+
 										<TableHead className="text-right">Total</TableHead>
 									</TableRow>
 								</UITableHeader>
@@ -175,10 +228,13 @@ export function GoalkeeperSavesMixChart({ matches, stats }: GoalkeeperSavesMixCh
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.recup}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.fuera}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.pen}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.hm}</TableCell>
+
+											{visibleDefs.map((def) => (
+												<TableCell key={def.key} className="text-right tabular-nums">
+													{toNum((m as Record<string, unknown>)[def.key])}
+												</TableCell>
+											))}
+
 											<TableCell className="text-right tabular-nums font-semibold">{m.total}</TableCell>
 										</TableRow>
 									))}

@@ -10,9 +10,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, T
 interface ShootingEfficiencyChartProps {
 	matches: any[];
 	stats: any[];
+	hiddenStats?: string[];
 }
 
-export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyChartProps) {
+const toNum = (v: unknown) => {
+	const n = Number(v);
+	return Number.isFinite(n) ? n : 0;
+};
+
+const sumVisibleKeys = (rows: any[], keys: string[], hiddenSet: Set<string>) => {
+	return rows.reduce((total, row) => {
+		return (
+			total +
+			keys.reduce((acc, key) => {
+				if (hiddenSet.has(key)) return acc;
+				return acc + toNum(row?.[key]);
+			}, 0)
+		);
+	}, 0);
+};
+
+export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: ShootingEfficiencyChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
 	const data = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a, b) => {
 			const aj = a?.jornada ?? 9999;
@@ -24,19 +44,51 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 		return sorted.slice(-15).map((match, idx) => {
 			const matchStats = (stats ?? []).filter((s) => String(s.match_id) === String(match.id));
 
-			// ===== GENERAL =====
-			const totalGoals = matchStats.reduce((sum, s) => sum + (s.goles_totales || 0), 0);
-			const totalShots = matchStats.reduce((sum, s) => sum + (s.tiros_totales || 0), 0);
+			// ===== GENERAL (respetando ocultos) =====
+			const generalGoalKeys = [
+				"goles_boya_jugada",
+				"goles_hombre_mas",
+				"goles_lanzamiento",
+				"goles_dir_mas_5m",
+				"goles_contraataque",
+				"goles_penalti_anotado",
+				"gol_del_palo_sup"
+			];
+
+			const generalMissKeys = [
+				"tiros_penalti_fallado",
+				"tiros_corner",
+				"tiros_fuera",
+				"tiros_parados",
+				"tiros_bloqueado",
+				"tiro_palo",
+				"tiros_hombre_mas",
+				"portero_paradas_superioridad",
+				"jugador_superioridad_bloqueo"
+			];
+
+			const totalGoals = sumVisibleKeys(matchStats, generalGoalKeys, hiddenSet);
+			const totalMisses = sumVisibleKeys(matchStats, generalMissKeys, hiddenSet);
+			const totalShots = totalGoals + totalMisses;
 			const general = totalShots > 0 ? (totalGoals / totalShots) * 100 : 0;
 
-			// ===== SUPERIORIDAD =====
-			const golesSup = matchStats.reduce((sum, s) => sum + (s.goles_hombre_mas || 0), 0);
-			const paloSup = matchStats.reduce((sum, s) => sum + (s.gol_del_palo_sup || 0), 0);
-			const fallosSup = matchStats.reduce((sum, s) => sum + (s.tiros_hombre_mas || 0), 0);
+			// ===== SUPERIORIDAD (respetando ocultos) =====
+			const golesSup = hiddenSet.has("goles_hombre_mas") ? 0 : sumVisibleKeys(matchStats, ["goles_hombre_mas"], hiddenSet);
+
+			const paloSup = hiddenSet.has("gol_del_palo_sup") ? 0 : sumVisibleKeys(matchStats, ["gol_del_palo_sup"], hiddenSet);
+
+			const fallosSupFuera = hiddenSet.has("tiros_hombre_mas") ? 0 : sumVisibleKeys(matchStats, ["tiros_hombre_mas"], hiddenSet);
+
+			const fallosSupParada = hiddenSet.has("portero_paradas_superioridad")
+				? 0
+				: sumVisibleKeys(matchStats, ["portero_paradas_superioridad"], hiddenSet);
+
+			const fallosSupBloqueo = hiddenSet.has("jugador_superioridad_bloqueo")
+				? 0
+				: sumVisibleKeys(matchStats, ["jugador_superioridad_bloqueo"], hiddenSet);
 
 			const golesSupTotal = golesSup + paloSup;
-			const intentosSup = golesSupTotal + fallosSup;
-
+			const intentosSup = golesSupTotal + fallosSupFuera + fallosSupParada + fallosSupBloqueo;
 			const superiority = intentosSup > 0 ? (golesSupTotal / intentosSup) * 100 : 0;
 
 			const jornadaNumber = match.jornada ?? idx + 1;
@@ -52,10 +104,13 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 				superiority: Number(superiority.toFixed(1)),
 
 				goles: totalGoals,
-				tiros: totalShots
+				tiros: totalShots,
+
+				golesSup: golesSupTotal,
+				tirosSup: intentosSup
 			};
 		});
-	}, [matches, stats]);
+	}, [matches, stats, hiddenSet]);
 
 	const avgGeneral = useMemo(() => {
 		if (!data.length) return "0.0";
@@ -76,7 +131,7 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 			icon={<Target className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{avgGeneral}%</span>}
-			renderChart={({ compact }) => (
+			renderChart={() => (
 				<ChartContainer
 					config={{
 						general: { label: "Eficiencia General (%)", color: "hsla(0, 91%, 60%, 1.00)" },
@@ -154,7 +209,7 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
 						<div className="max-h-[520px] overflow-y-auto">
-							<Table className="min-w-[860px]">
+							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
 										<TableHead className="w-[90px]">Jornada</TableHead>
@@ -163,6 +218,8 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 										<TableHead className="text-right">Sup.</TableHead>
 										<TableHead className="text-right">Goles</TableHead>
 										<TableHead className="text-right">Tiros</TableHead>
+										<TableHead className="text-right">Goles Sup.</TableHead>
+										<TableHead className="text-right">Tiros Sup.</TableHead>
 										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
 									</TableRow>
 								</UITableHeader>
@@ -189,6 +246,8 @@ export function ShootingEfficiencyChart({ matches, stats }: ShootingEfficiencyCh
 
 											<TableCell className="text-right tabular-nums">{m.goles}</TableCell>
 											<TableCell className="text-right tabular-nums">{m.tiros}</TableCell>
+											<TableCell className="text-right tabular-nums">{m.golesSup}</TableCell>
+											<TableCell className="text-right tabular-nums">{m.tirosSup}</TableCell>
 
 											<TableCell className="text-right text-muted-foreground hidden lg:table-cell">{m.fullDate}</TableCell>
 										</TableRow>

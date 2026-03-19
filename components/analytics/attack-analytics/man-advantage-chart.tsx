@@ -13,6 +13,7 @@ interface ManAdvantageChartProps {
 	matches: Match[];
 	stats: MatchStats[];
 	players: Player[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -20,7 +21,21 @@ const toNum = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChartProps) {
+const sumVisible = (rows: Record<string, any>[], keys: string[], hiddenSet: Set<string>) => {
+	return rows.reduce((total, row) => {
+		return (
+			total +
+			keys.reduce((acc, key) => {
+				if (hiddenSet.has(key)) return acc;
+				return acc + toNum(row?.[key]);
+			}, 0)
+		);
+	}, 0);
+};
+
+export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }: ManAdvantageChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
 	const sortedMatches = useMemo(() => {
 		return [...(matches ?? [])].sort((a: any, b: any) => {
 			const aj = a?.jornada ?? 9999;
@@ -36,14 +51,24 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 		return sortedMatches.map((match: any, index: number) => {
 			const ms = statsArr.filter((s: any) => String(s.match_id) === String(match.id));
 
-			const golesSup = ms.reduce((sum: number, s: any) => sum + toNum(s.goles_hombre_mas), 0);
-			const golesPaloSup = ms.reduce((sum: number, s: any) => sum + toNum(s.gol_del_palo_sup), 0);
-			const fallosSup = ms.reduce((sum: number, s: any) => sum + toNum(s.tiros_hombre_mas), 0);
+			const golesSup = hiddenSet.has("goles_hombre_mas") ? 0 : sumVisible(ms as any[], ["goles_hombre_mas"], hiddenSet);
+
+			const golesPaloSup = hiddenSet.has("gol_del_palo_sup") ? 0 : sumVisible(ms as any[], ["gol_del_palo_sup"], hiddenSet);
+
+			const fallosFueraSup = hiddenSet.has("tiros_hombre_mas") ? 0 : sumVisible(ms as any[], ["tiros_hombre_mas"], hiddenSet);
+
+			const fallosParadaSup = hiddenSet.has("portero_paradas_superioridad")
+				? 0
+				: sumVisible(ms as any[], ["portero_paradas_superioridad"], hiddenSet);
+
+			const fallosBloqueoSup = hiddenSet.has("jugador_superioridad_bloqueo")
+				? 0
+				: sumVisible(ms as any[], ["jugador_superioridad_bloqueo"], hiddenSet);
 
 			const golesTotales = golesSup + golesPaloSup;
-			const intentosTotales = golesTotales + fallosSup;
+			const fallosTotales = fallosFueraSup + fallosParadaSup + fallosBloqueoSup;
+			const intentosTotales = golesTotales + fallosTotales;
 
-			// corregido: antes se sumaba golesPaloSup dos veces
 			const eficiencia = intentosTotales > 0 ? Math.round((golesTotales / intentosTotales) * 100) : 0;
 
 			const jornadaNumber = match.jornada ?? index + 1;
@@ -54,15 +79,21 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
 				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+
 				golesSup,
 				golesPaloSup,
 				golesTotales,
-				fallosSup,
+
+				fallosFueraSup,
+				fallosParadaSup,
+				fallosBloqueoSup,
+				fallosSup: fallosTotales,
+
 				intentosTotales,
 				eficiencia
 			};
 		});
-	}, [sortedMatches, stats]);
+	}, [sortedMatches, stats, hiddenSet]);
 
 	const chartData = useMemo(() => {
 		return matchData.map((m, index) => {
@@ -74,10 +105,16 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 				jornada: m.jornada,
 				rival: m.rival,
 				fullDate: m.fullDate,
+
 				golesSup: m.golesSup,
 				golesPaloSup: m.golesPaloSup,
 				golesTotales: m.golesTotales,
+
+				fallosFueraSup: m.fallosFueraSup,
+				fallosParadaSup: m.fallosParadaSup,
+				fallosBloqueoSup: m.fallosBloqueoSup,
 				fallosSup: m.fallosSup,
+
 				intentosTotales: m.intentosTotales,
 				eficiencia: m.eficiencia,
 				eficienciaAcumulada: Number(avgEfficiency.toFixed(1))
@@ -89,7 +126,12 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 	const totalGolesSup = matchData.reduce((sum, m) => sum + m.golesSup, 0);
 	const totalPaloSup = matchData.reduce((sum, m) => sum + m.golesPaloSup, 0);
 	const totalGoles = matchData.reduce((sum, m) => sum + m.golesTotales, 0);
+
+	const totalFallosFuera = matchData.reduce((sum, m) => sum + m.fallosFueraSup, 0);
+	const totalFallosParada = matchData.reduce((sum, m) => sum + m.fallosParadaSup, 0);
+	const totalFallosBloqueo = matchData.reduce((sum, m) => sum + m.fallosBloqueoSup, 0);
 	const totalFallos = matchData.reduce((sum, m) => sum + m.fallosSup, 0);
+
 	const totalIntentos = totalGoles + totalFallos;
 
 	const overallEfficiency = totalIntentos > 0 ? Math.round((totalGoles / totalIntentos) * 100) : 0;
@@ -117,7 +159,9 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 					config={{
 						golesSup: { label: "Gol Sup.+", color: "hsla(145, 63%, 42%, 1.00)" },
 						golesPaloSup: { label: "Gol del palo", color: "hsla(42, 96%, 55%, 1.00)" },
-						fallosSup: { label: "Fallos Sup.+", color: "hsla(0, 84%, 60%, 1.00)" },
+						fallosFueraSup: { label: "Fuera Sup.+", color: "hsla(0, 84%, 60%, 1.00)" },
+						fallosParadaSup: { label: "Parada rival", color: "hsla(350, 75%, 55%, 1.00)" },
+						fallosBloqueoSup: { label: "Bloqueo rival", color: "hsla(8, 70%, 52%, 1.00)" },
 						eficiencia: { label: "Eficiencia %", color: "hsla(190, 95%, 45%, 1.00)" },
 						eficienciaAcumulada: { label: "Eficiencia acumulada %", color: "hsla(221, 83%, 53%, 1.00)" }
 					}}
@@ -182,7 +226,32 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 								radius={[4, 4, 0, 0]}
 							/>
 
-							<Bar yAxisId="left" dataKey="fallosSup" name="Fallos Sup.+" fill="var(--color-fallosSup)" radius={[4, 4, 0, 0]} />
+							<Bar
+								yAxisId="left"
+								dataKey="fallosFueraSup"
+								name="Fuera Sup.+"
+								stackId="fallos"
+								fill="var(--color-fallosFueraSup)"
+								radius={[4, 4, 0, 0]}
+							/>
+
+							<Bar
+								yAxisId="left"
+								dataKey="fallosParadaSup"
+								name="Parada rival"
+								stackId="fallos"
+								fill="var(--color-fallosParadaSup)"
+								radius={[4, 4, 0, 0]}
+							/>
+
+							<Bar
+								yAxisId="left"
+								dataKey="fallosBloqueoSup"
+								name="Bloqueo rival"
+								stackId="fallos"
+								fill="var(--color-fallosBloqueoSup)"
+								radius={[4, 4, 0, 0]}
+							/>
 
 							<Line
 								yAxisId="right"
@@ -214,13 +283,16 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
 						<div className="max-h-[520px] overflow-y-auto">
-							<Table className="min-w-[1040px]">
+							<Table className="min-w-[1180px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
 										<TableHead className="w-[90px]">Jornada</TableHead>
 										<TableHead>Rival</TableHead>
 										<TableHead className="text-right">Gol Sup.+</TableHead>
 										<TableHead className="text-right">Gol palo</TableHead>
+										<TableHead className="text-right">Fuera</TableHead>
+										<TableHead className="text-right">Parada</TableHead>
+										<TableHead className="text-right">Bloqueo</TableHead>
 										<TableHead className="text-right">Anotados</TableHead>
 										<TableHead className="text-right">Fallados</TableHead>
 										<TableHead className="text-right">Total</TableHead>
@@ -264,6 +336,10 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 														{m.golesPaloSup}
 													</Badge>
 												</TableCell>
+
+												<TableCell className="text-right tabular-nums">{m.fallosFueraSup}</TableCell>
+												<TableCell className="text-right tabular-nums">{m.fallosParadaSup}</TableCell>
+												<TableCell className="text-right tabular-nums">{m.fallosBloqueoSup}</TableCell>
 
 												<TableCell className="text-right tabular-nums">
 													<Badge className="bg-cyan-600 text-white hover:bg-cyan-600 tabular-nums">{m.golesTotales}</Badge>
@@ -319,6 +395,15 @@ export function ManAdvantageChartExpandable({ matches, stats }: ManAdvantageChar
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
 									Gol palo: <span className="font-semibold text-foreground">{totalPaloSup}</span>
+								</span>
+								<span className="rounded-md border bg-card px-2 py-1">
+									Fuera: <span className="font-semibold text-foreground">{totalFallosFuera}</span>
+								</span>
+								<span className="rounded-md border bg-card px-2 py-1">
+									Parada: <span className="font-semibold text-foreground">{totalFallosParada}</span>
+								</span>
+								<span className="rounded-md border bg-card px-2 py-1">
+									Bloqueo: <span className="font-semibold text-foreground">{totalFallosBloqueo}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
 									Anotados: <span className="font-semibold text-foreground">{totalGoles}</span>{" "}

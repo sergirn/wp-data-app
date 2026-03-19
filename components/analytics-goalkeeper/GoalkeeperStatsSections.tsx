@@ -15,6 +15,7 @@ type Props = {
 	renderRow: (props: RowRendererProps) => React.ReactNode;
 	mode?: "totals" | "match" | "team";
 	categories?: GoalkeeperStatCategory[];
+	hiddenStats?: string[];
 };
 
 const DEFAULT_CATEGORIES: GoalkeeperStatCategory[] = ["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"];
@@ -35,11 +36,15 @@ function Section({ title, children, hint }: { title: string; children: React.Rea
 	);
 }
 
-export function GoalkeeperStatsSections({ stats, renderRow, mode = "totals", categories = DEFAULT_CATEGORIES }: Props) {
+export function GoalkeeperStatsSections({ stats, renderRow, mode = "totals", categories = DEFAULT_CATEGORIES, hiddenStats = [] }: Props) {
+	const isVisible = (statKey: string) => !hiddenStats.includes(statKey);
+
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 			{categories.map((category) => {
-				const items = getGoalkeeperStatsByCategory(category);
+				const items = getGoalkeeperStatsByCategory(category).filter((it) => isVisible(it.key));
+				if (!items.length) return null;
+
 				const title = GOALKEEPER_CATEGORY_TITLES[category];
 				const baseHint = GOALKEEPER_CATEGORY_HINTS[category];
 

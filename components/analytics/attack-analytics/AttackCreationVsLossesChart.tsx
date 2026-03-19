@@ -13,6 +13,7 @@ interface AttackCreationVsLossesChartProps {
 	matches: Match[];
 	stats: MatchStats[];
 	players: Player[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
@@ -20,7 +21,23 @@ const toNum = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVsLossesChartProps) {
+const sumVisible = (rows: Record<string, any>[], key: string, hiddenSet: Set<string>) => {
+	if (hiddenSet.has(key)) return 0;
+	return rows.reduce((sum, row) => sum + toNum(row?.[key]), 0);
+};
+
+export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }: AttackCreationVsLossesChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const showAsistencias = !hiddenSet.has("acciones_asistencias");
+	const showExpProvocada = !hiddenSet.has("acciones_exp_provocada");
+	const showPenaltiProvocado = !hiddenSet.has("acciones_penalti_provocado");
+	const showPaseBoya = !hiddenSet.has("pase_boya");
+
+	const showPaseBoyaFallado = !hiddenSet.has("pase_boya_fallado");
+	const showPerdidas = !hiddenSet.has("acciones_perdida_poco");
+	const showContrafaltas = !hiddenSet.has("faltas_contrafaltas");
+
 	const sortedMatches = useMemo(() => {
 		return [...(matches ?? [])].sort((a: any, b: any) => {
 			const aj = a?.jornada ?? 9999;
@@ -36,14 +53,14 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 		return sortedMatches.slice(-15).map((match: any, index: number) => {
 			const ms = statsArr.filter((s: any) => String(s.match_id) === String(match.id));
 
-			const asistencias = ms.reduce((sum: number, s: any) => sum + toNum(s.acciones_asistencias), 0);
-			const expProvocada = ms.reduce((sum: number, s: any) => sum + toNum(s.acciones_exp_provocada), 0);
-			const penaltiProvocado = ms.reduce((sum: number, s: any) => sum + toNum(s.acciones_penalti_provocado), 0);
-			const paseBoya = ms.reduce((sum: number, s: any) => sum + toNum(s.pase_boya), 0);
+			const asistencias = sumVisible(ms, "acciones_asistencias", hiddenSet);
+			const expProvocada = sumVisible(ms, "acciones_exp_provocada", hiddenSet);
+			const penaltiProvocado = sumVisible(ms, "acciones_penalti_provocado", hiddenSet);
+			const paseBoya = sumVisible(ms, "pase_boya", hiddenSet);
 
-			const paseBoyaFallado = ms.reduce((sum: number, s: any) => sum + toNum(s.pase_boya_fallado), 0);
-			const perdidas = ms.reduce((sum: number, s: any) => sum + toNum(s.acciones_perdida_poco), 0);
-			const contrafaltas = ms.reduce((sum: number, s: any) => sum + toNum(s.faltas_contrafaltas), 0);
+			const paseBoyaFallado = sumVisible(ms, "pase_boya_fallado", hiddenSet);
+			const perdidas = sumVisible(ms, "acciones_perdida_poco", hiddenSet);
+			const contrafaltas = sumVisible(ms, "faltas_contrafaltas", hiddenSet);
 
 			const positivas = asistencias + expProvocada + penaltiProvocado + paseBoya;
 			const negativas = paseBoyaFallado + perdidas + contrafaltas;
@@ -57,20 +74,23 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
 				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+
 				asistencias,
 				expProvocada,
 				penaltiProvocado,
 				paseBoya,
+
 				paseBoyaFallado,
 				perdidas,
 				contrafaltas,
+
 				positivas,
 				negativas,
 				negativasView: -negativas,
 				balance
 			};
 		});
-	}, [sortedMatches, stats]);
+	}, [sortedMatches, stats, hiddenSet]);
 
 	const partidos = matchData.length;
 
@@ -79,9 +99,11 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 		const expProvocada = matchData.reduce((sum, m) => sum + m.expProvocada, 0);
 		const penaltiProvocado = matchData.reduce((sum, m) => sum + m.penaltiProvocado, 0);
 		const paseBoya = matchData.reduce((sum, m) => sum + m.paseBoya, 0);
+
 		const paseBoyaFallado = matchData.reduce((sum, m) => sum + m.paseBoyaFallado, 0);
 		const perdidas = matchData.reduce((sum, m) => sum + m.perdidas, 0);
 		const contrafaltas = matchData.reduce((sum, m) => sum + m.contrafaltas, 0);
+
 		const positivas = matchData.reduce((sum, m) => sum + m.positivas, 0);
 		const negativas = matchData.reduce((sum, m) => sum + m.negativas, 0);
 		const balance = positivas - negativas;
@@ -100,12 +122,20 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 		};
 	}, [matchData]);
 
+	const chartConfig = {
+		positivas: { label: "Positivas", color: "hsla(160, 84%, 39%, 1.00)" },
+		negativasView: { label: "Negativas", color: "hsla(0, 84%, 60%, 1.00)" },
+		balance: { label: "Balance", color: "hsla(221, 83%, 53%, 1.00)" }
+	};
+
 	if (!matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
 			title="Creación vs pérdidas ofensivas"
-			description={`Últimos ${partidos} · Positivas: ${totals.positivas} · Negativas: ${totals.negativas} · Balance: ${totals.balance >= 0 ? "+" : ""}${totals.balance}`}
+			description={`Últimos ${partidos} · Positivas: ${totals.positivas} · Negativas: ${totals.negativas} · Balance: ${
+				totals.balance >= 0 ? "+" : ""
+			}${totals.balance}`}
 			icon={<Scale className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={
@@ -115,14 +145,7 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 				</span>
 			}
 			renderChart={({ compact }) => (
-				<ChartContainer
-					config={{
-						positivas: { label: "Positivas", color: "hsla(160, 84%, 39%, 1.00)" },
-						negativasView: { label: "Negativas", color: "hsla(0, 84%, 60%, 1.00)" },
-						balance: { label: "Balance", color: "hsla(221, 83%, 53%, 1.00)" }
-					}}
-					className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}
-				>
+				<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}>
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={matchData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
@@ -177,13 +200,13 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 									<TableRow className="hover:bg-transparent">
 										<TableHead className="w-[90px]">Jornada</TableHead>
 										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">Asist.</TableHead>
-										<TableHead className="text-right">Exp. Prov.</TableHead>
-										<TableHead className="text-right">Pen. Prov.</TableHead>
-										<TableHead className="text-right">Pase boya</TableHead>
-										<TableHead className="text-right">P. boya fall.</TableHead>
-										<TableHead className="text-right">Pérdidas</TableHead>
-										<TableHead className="text-right">Contraf.</TableHead>
+										{showAsistencias && <TableHead className="text-right">Asist.</TableHead>}
+										{showExpProvocada && <TableHead className="text-right">Exp. Prov.</TableHead>}
+										{showPenaltiProvocado && <TableHead className="text-right">Pen. Prov.</TableHead>}
+										{showPaseBoya && <TableHead className="text-right">Pase boya</TableHead>}
+										{showPaseBoyaFallado && <TableHead className="text-right">P. boya fall.</TableHead>}
+										{showPerdidas && <TableHead className="text-right">Pérdidas</TableHead>}
+										{showContrafaltas && <TableHead className="text-right">Contraf.</TableHead>}
 										<TableHead className="text-right">Balance</TableHead>
 										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
 									</TableRow>
@@ -199,21 +222,26 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 													<p className="text-xs text-muted-foreground sm:hidden">{m.fullDate}</p>
 												</div>
 											</TableCell>
-											<TableCell className="text-right tabular-nums">{m.asistencias}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.expProvocada}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.penaltiProvocado}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.paseBoya}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.paseBoyaFallado}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.perdidas}</TableCell>
-											<TableCell className="text-right tabular-nums">{m.contrafaltas}</TableCell>
+
+											{showAsistencias && <TableCell className="text-right tabular-nums">{m.asistencias}</TableCell>}
+											{showExpProvocada && <TableCell className="text-right tabular-nums">{m.expProvocada}</TableCell>}
+											{showPenaltiProvocado && <TableCell className="text-right tabular-nums">{m.penaltiProvocado}</TableCell>}
+											{showPaseBoya && <TableCell className="text-right tabular-nums">{m.paseBoya}</TableCell>}
+											{showPaseBoyaFallado && <TableCell className="text-right tabular-nums">{m.paseBoyaFallado}</TableCell>}
+											{showPerdidas && <TableCell className="text-right tabular-nums">{m.perdidas}</TableCell>}
+											{showContrafaltas && <TableCell className="text-right tabular-nums">{m.contrafaltas}</TableCell>}
+
 											<TableCell className="text-right">
 												<Badge
-													className={`${m.balance >= 0 ? "bg-emerald-500 hover:bg-emerald-500" : "bg-rose-500 hover:bg-rose-500"} text-white tabular-nums`}
+													className={`${
+														m.balance >= 0 ? "bg-emerald-500 hover:bg-emerald-500" : "bg-rose-500 hover:bg-rose-500"
+													} text-white tabular-nums`}
 												>
 													{m.balance >= 0 ? "+" : ""}
 													{m.balance}
 												</Badge>
 											</TableCell>
+
 											<TableCell className="text-right text-muted-foreground hidden lg:table-cell">{m.fullDate}</TableCell>
 										</TableRow>
 									))}
@@ -227,7 +255,44 @@ export function AttackCreationVsLossesChart({ matches, stats }: AttackCreationVs
 							<span>
 								<span className="font-medium text-foreground">{partidos}</span> partidos
 							</span>
+
 							<div className="flex flex-wrap gap-2">
+								{showAsistencias && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Asist.: <span className="font-semibold text-foreground">{totals.asistencias}</span>
+									</span>
+								)}
+								{showExpProvocada && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Exp. Prov.: <span className="font-semibold text-foreground">{totals.expProvocada}</span>
+									</span>
+								)}
+								{showPenaltiProvocado && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Pen. Prov.: <span className="font-semibold text-foreground">{totals.penaltiProvocado}</span>
+									</span>
+								)}
+								{showPaseBoya && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Pase boya: <span className="font-semibold text-foreground">{totals.paseBoya}</span>
+									</span>
+								)}
+								{showPaseBoyaFallado && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										P. boya fall.: <span className="font-semibold text-foreground">{totals.paseBoyaFallado}</span>
+									</span>
+								)}
+								{showPerdidas && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Pérdidas: <span className="font-semibold text-foreground">{totals.perdidas}</span>
+									</span>
+								)}
+								{showContrafaltas && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Contraf.: <span className="font-semibold text-foreground">{totals.contrafaltas}</span>
+									</span>
+								)}
+
 								<span className="rounded-md border bg-card px-2 py-1">
 									Positivas: <span className="font-semibold text-foreground">{totals.positivas}</span>
 								</span>

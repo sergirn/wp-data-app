@@ -13,6 +13,7 @@ interface GoalMixChartProps {
 	matches: any[];
 	stats: any[];
 	players: PlayerLite[];
+	hiddenStats?: string[];
 }
 
 const toNum = (v: any) => {
@@ -23,18 +24,20 @@ const toNum = (v: any) => {
 const fmtPct = (v: number) => `${(Number.isFinite(v) ? v : 0).toFixed(1)}%`;
 
 function playerLabelShort(p: PlayerLite | null, value: number) {
-	if (!p) return "—";
+	if (!p || value <= 0) return "—";
 	const num = p.number != null ? `#${p.number}` : "#-";
 	return `${num} (${value})`;
 }
 
 function playerLabelFull(p: PlayerLite | null, value: number) {
-	if (!p) return "—";
+	if (!p || value <= 0) return "—";
 	const num = p.number != null ? `#${p.number}` : "#-";
 	return `${num} ${p.name} (${value})`;
 }
 
-export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
+export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: GoalMixChartProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
 	const playersById = useMemo(() => {
 		const m = new Map<number, PlayerLite>();
 		(players ?? []).forEach((p) => m.set(p.id, p));
@@ -44,17 +47,31 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 	const summary = useMemo(() => {
 		const all = stats ?? [];
 
-		const boya = all.reduce((sum: number, s: any) => sum + toNum(s.goles_boya_jugada), 0);
-		const lanzamiento = all.reduce((sum: number, s: any) => sum + toNum(s.goles_lanzamiento), 0);
-		const dir5m = all.reduce((sum: number, s: any) => sum + toNum(s.goles_dir_mas_5m), 0);
-		const contra = all.reduce((sum: number, s: any) => sum + toNum(s.goles_contraataque), 0);
-		const penalti = all.reduce((sum: number, s: any) => sum + toNum(s.goles_penalti_anotado), 0);
-		const sup = all.reduce((sum: number, s: any) => sum + toNum(s.goles_hombre_mas) + toNum(s.gol_del_palo_sup), 0);
+		const boya = hiddenSet.has("goles_boya_jugada") ? 0 : all.reduce((sum: number, s: any) => sum + toNum(s.goles_boya_jugada), 0);
+
+		const lanzamiento = hiddenSet.has("goles_lanzamiento") ? 0 : all.reduce((sum: number, s: any) => sum + toNum(s.goles_lanzamiento), 0);
+
+		const dir5m = hiddenSet.has("goles_dir_mas_5m") ? 0 : all.reduce((sum: number, s: any) => sum + toNum(s.goles_dir_mas_5m), 0);
+
+		const contra = hiddenSet.has("goles_contraataque") ? 0 : all.reduce((sum: number, s: any) => sum + toNum(s.goles_contraataque), 0);
+
+		const penalti = hiddenSet.has("goles_penalti_anotado") ? 0 : all.reduce((sum: number, s: any) => sum + toNum(s.goles_penalti_anotado), 0);
+
+		const sup =
+			hiddenSet.has("goles_hombre_mas") && hiddenSet.has("gol_del_palo_sup")
+				? 0
+				: all.reduce(
+						(sum: number, s: any) =>
+							sum +
+							(hiddenSet.has("goles_hombre_mas") ? 0 : toNum(s.goles_hombre_mas)) +
+							(hiddenSet.has("gol_del_palo_sup") ? 0 : toNum(s.gol_del_palo_sup)),
+						0
+					);
 
 		const total = boya + lanzamiento + dir5m + contra + penalti + sup;
 		const pct = (x: number) => (total > 0 ? (x / total) * 100 : 0);
 
-		const parts = [
+		const rawParts = [
 			{ key: "boya", label: "Boya/Jugada", value: boya, pct: pct(boya), color: "hsla(140, 70%, 45%, 1.00)" },
 			{ key: "lanzamiento", label: "Lanzamiento", value: lanzamiento, pct: pct(lanzamiento), color: "hsla(12, 85%, 60%, 1.00)" },
 			{ key: "dir5m", label: "Dir +6m", value: dir5m, pct: pct(dir5m), color: "hsla(220, 80%, 62%, 1.00)" },
@@ -63,15 +80,17 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 			{ key: "sup", label: "Superioridad", value: sup, pct: pct(sup), color: "hsla(59, 85%, 45%, 1.00)" }
 		];
 
-		const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;
+		const parts = rawParts.filter((p) => p.value > 0);
+		const topType = [...rawParts].sort((a, b) => b.value - a.value)[0] ?? null;
 
 		return {
 			parts,
+			rawParts,
 			total,
-			topType,
+			topType: topType && topType.value > 0 ? topType : null,
 			totalMatches: (matches ?? []).length || 0
 		};
-	}, [matches, stats]);
+	}, [matches, stats, hiddenSet]);
 
 	const topPlayers = useMemo(() => {
 		const sumByPlayer = (getValue: (s: any) => number) => {
@@ -97,14 +116,21 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 		};
 
 		return {
-			boya: sumByPlayer((s) => toNum(s.goles_boya_jugada)),
-			lanzamiento: sumByPlayer((s) => toNum(s.goles_lanzamiento)),
-			dir5m: sumByPlayer((s) => toNum(s.goles_dir_mas_5m)),
-			contra: sumByPlayer((s) => toNum(s.goles_contraataque)),
-			penalti: sumByPlayer((s) => toNum(s.goles_penalti_anotado)),
-			sup: sumByPlayer((s) => toNum(s.goles_hombre_mas) + toNum(s.gol_del_palo_sup))
+			boya: hiddenSet.has("goles_boya_jugada") ? { player: null, value: 0 } : sumByPlayer((s) => toNum(s.goles_boya_jugada)),
+			lanzamiento: hiddenSet.has("goles_lanzamiento") ? { player: null, value: 0 } : sumByPlayer((s) => toNum(s.goles_lanzamiento)),
+			dir5m: hiddenSet.has("goles_dir_mas_5m") ? { player: null, value: 0 } : sumByPlayer((s) => toNum(s.goles_dir_mas_5m)),
+			contra: hiddenSet.has("goles_contraataque") ? { player: null, value: 0 } : sumByPlayer((s) => toNum(s.goles_contraataque)),
+			penalti: hiddenSet.has("goles_penalti_anotado") ? { player: null, value: 0 } : sumByPlayer((s) => toNum(s.goles_penalti_anotado)),
+			sup:
+				hiddenSet.has("goles_hombre_mas") && hiddenSet.has("gol_del_palo_sup")
+					? { player: null, value: 0 }
+					: sumByPlayer(
+							(s) =>
+								(hiddenSet.has("goles_hombre_mas") ? 0 : toNum(s.goles_hombre_mas)) +
+								(hiddenSet.has("gol_del_palo_sup") ? 0 : toNum(s.gol_del_palo_sup))
+						)
 		};
-	}, [stats, playersById]);
+	}, [stats, playersById, hiddenSet]);
 
 	const perMatch = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a, b) => {
@@ -117,12 +143,30 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 		return sorted.slice(-15).map((match, idx) => {
 			const matchStats = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
-			const boya = matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_boya_jugada), 0);
-			const lanzamiento = matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_lanzamiento), 0);
-			const dir5m = matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_dir_mas_5m), 0);
-			const contra = matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_contraataque), 0);
-			const penalti = matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_penalti_anotado), 0);
-			const sup = matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_hombre_mas) + toNum(s.gol_del_palo_sup), 0);
+			const boya = hiddenSet.has("goles_boya_jugada") ? 0 : matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_boya_jugada), 0);
+
+			const lanzamiento = hiddenSet.has("goles_lanzamiento")
+				? 0
+				: matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_lanzamiento), 0);
+
+			const dir5m = hiddenSet.has("goles_dir_mas_5m") ? 0 : matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_dir_mas_5m), 0);
+
+			const contra = hiddenSet.has("goles_contraataque") ? 0 : matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_contraataque), 0);
+
+			const penalti = hiddenSet.has("goles_penalti_anotado")
+				? 0
+				: matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_penalti_anotado), 0);
+
+			const sup =
+				hiddenSet.has("goles_hombre_mas") && hiddenSet.has("gol_del_palo_sup")
+					? 0
+					: matchStats.reduce(
+							(sum: number, s: any) =>
+								sum +
+								(hiddenSet.has("goles_hombre_mas") ? 0 : toNum(s.goles_hombre_mas)) +
+								(hiddenSet.has("gol_del_palo_sup") ? 0 : toNum(s.gol_del_palo_sup)),
+							0
+						);
 
 			const total = boya + lanzamiento + dir5m + contra + penalti + sup;
 			const pct = (x: number) => (total > 0 ? (x / total) * 100 : 0);
@@ -150,33 +194,28 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 				supPct: Number(pct(sup).toFixed(1))
 			};
 		});
-	}, [matches, stats]);
+	}, [matches, stats, hiddenSet]);
 
-	if (!summary.totalMatches) return null;
+	if (!summary.totalMatches || summary.total <= 0) return null;
 
-	const topLineCompact =
-		summary.total > 0
-			? `Boya ${playerLabelShort(topPlayers.boya.player, topPlayers.boya.value)} · Lanz ${playerLabelShort(
-					topPlayers.lanzamiento.player,
-					topPlayers.lanzamiento.value
-				)} · Contra ${playerLabelShort(topPlayers.contra.player, topPlayers.contra.value)}`
-			: "Sin datos";
+	const topLineCompactParts = [
+		topPlayers.boya.value > 0 ? `Boya ${playerLabelShort(topPlayers.boya.player, topPlayers.boya.value)}` : null,
+		topPlayers.lanzamiento.value > 0 ? `Lanz ${playerLabelShort(topPlayers.lanzamiento.player, topPlayers.lanzamiento.value)}` : null,
+		topPlayers.contra.value > 0 ? `Contra ${playerLabelShort(topPlayers.contra.player, topPlayers.contra.value)}` : null
+	].filter(Boolean);
 
-	const topLineFull =
-		summary.total > 0
-			? `Top (temporada): Boya ${playerLabelFull(topPlayers.boya.player, topPlayers.boya.value)} · Lanzamiento ${playerLabelFull(
-					topPlayers.lanzamiento.player,
-					topPlayers.lanzamiento.value
-				)} · Dir +6m ${playerLabelFull(topPlayers.dir5m.player, topPlayers.dir5m.value)} · Contraataque ${playerLabelFull(
-					topPlayers.contra.player,
-					topPlayers.contra.value
-				)} · Penalti ${playerLabelFull(topPlayers.penalti.player, topPlayers.penalti.value)} · Superioridad ${playerLabelFull(
-					topPlayers.sup.player,
-					topPlayers.sup.value
-				)}`
-			: "Top (temporada): —";
+	const topLineCompact = topLineCompactParts.length ? topLineCompactParts.join(" · ") : "Sin datos";
 
-	const mostFrequentText = summary.total > 0 && summary.topType ? `${summary.topType.label}` : "Sin datos";
+	const topLineFullParts = [
+		topPlayers.boya.value > 0 ? `Boya ${playerLabelFull(topPlayers.boya.player, topPlayers.boya.value)}` : null,
+		topPlayers.lanzamiento.value > 0 ? `Lanzamiento ${playerLabelFull(topPlayers.lanzamiento.player, topPlayers.lanzamiento.value)}` : null,
+		topPlayers.dir5m.value > 0 ? `Dir +6m ${playerLabelFull(topPlayers.dir5m.player, topPlayers.dir5m.value)}` : null,
+		topPlayers.contra.value > 0 ? `Contraataque ${playerLabelFull(topPlayers.contra.player, topPlayers.contra.value)}` : null,
+		topPlayers.penalti.value > 0 ? `Penalti ${playerLabelFull(topPlayers.penalti.player, topPlayers.penalti.value)}` : null,
+		topPlayers.sup.value > 0 ? `Superioridad ${playerLabelFull(topPlayers.sup.player, topPlayers.sup.value)}` : null
+	].filter(Boolean);
+
+	const topLineFull = topLineFullParts.length ? `Top (temporada): ${topLineFullParts.join(" · ")}` : "Top (temporada): —";
 
 	return (
 		<ExpandableChartCard
@@ -184,7 +223,7 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 			description={` ${topLineCompact}`}
 			icon={<Target className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
-			rightHeader={<span className="text-xs text-muted-foreground">{summary.total ? (summary.topType?.label ?? "—") : "—"}</span>}
+			rightHeader={<span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
 			renderChart={({ compact }) => {
 				const outer = compact ? 88 : 108;
 				const inner = compact ? 54 : 68;
@@ -193,14 +232,9 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 					<div className="w-full h-full min-h-0 flex flex-col">
 						<div className="space-y-3 sm:space-y-4 h-full min-h-0 flex flex-col">
 							<ChartContainer
-								config={{
-									boya: { label: "Boya/Jugada", color: summary.parts[0].color },
-									lanzamiento: { label: "Lanzamiento", color: summary.parts[1].color },
-									dir5m: { label: "Dir +6m", color: summary.parts[2].color },
-									contra: { label: "Contraataque", color: summary.parts[3].color },
-									penalti: { label: "Penalti", color: summary.parts[4].color },
-									sup: { label: "Superioridad", color: summary.parts[5].color }
-								}}
+								config={Object.fromEntries(
+									summary.rawParts.filter((p) => p.value > 0).map((p) => [p.key, { label: p.label, color: p.color }])
+								)}
 								className="w-full h-full min-h-0"
 							>
 								<div className="w-full h-full min-h-[240px] sm:min-h-[260px] lg:min-h-[300px] flex-1">
@@ -283,12 +317,14 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 									<TableRow className="hover:bg-transparent">
 										<TableHead className="w-[90px]">Jornada</TableHead>
 										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">Boya</TableHead>
-										<TableHead className="text-right">Lanz.</TableHead>
-										<TableHead className="text-right">Dir +6m</TableHead>
-										<TableHead className="text-right">Contra</TableHead>
-										<TableHead className="text-right">Penalti</TableHead>
-										<TableHead className="text-right">Sup.</TableHead>
+										{!hiddenSet.has("goles_boya_jugada") && <TableHead className="text-right">Boya</TableHead>}
+										{!hiddenSet.has("goles_lanzamiento") && <TableHead className="text-right">Lanz.</TableHead>}
+										{!hiddenSet.has("goles_dir_mas_5m") && <TableHead className="text-right">Dir +6m</TableHead>}
+										{!hiddenSet.has("goles_contraataque") && <TableHead className="text-right">Contra</TableHead>}
+										{!hiddenSet.has("goles_penalti_anotado") && <TableHead className="text-right">Penalti</TableHead>}
+										{(!hiddenSet.has("goles_hombre_mas") || !hiddenSet.has("gol_del_palo_sup")) && (
+											<TableHead className="text-right">Sup.</TableHead>
+										)}
 										<TableHead className="text-right">Total</TableHead>
 										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
 									</TableRow>
@@ -306,29 +342,42 @@ export function GoalMixChart({ matches, stats, players }: GoalMixChartProps) {
 												</div>
 											</TableCell>
 
-											<TableCell className="text-right tabular-nums">
-												{m.boya} <span className="text-xs text-muted-foreground">({fmtPct(m.boyaPct)})</span>
-											</TableCell>
+											{!hiddenSet.has("goles_boya_jugada") && (
+												<TableCell className="text-right tabular-nums">
+													{m.boya} <span className="text-xs text-muted-foreground">({fmtPct(m.boyaPct)})</span>
+												</TableCell>
+											)}
 
-											<TableCell className="text-right tabular-nums">
-												{m.lanzamiento} <span className="text-xs text-muted-foreground">({fmtPct(m.lanzamientoPct)})</span>
-											</TableCell>
+											{!hiddenSet.has("goles_lanzamiento") && (
+												<TableCell className="text-right tabular-nums">
+													{m.lanzamiento}{" "}
+													<span className="text-xs text-muted-foreground">({fmtPct(m.lanzamientoPct)})</span>
+												</TableCell>
+											)}
 
-											<TableCell className="text-right tabular-nums">
-												{m.dir5m} <span className="text-xs text-muted-foreground">({fmtPct(m.dir5mPct)})</span>
-											</TableCell>
+											{!hiddenSet.has("goles_dir_mas_5m") && (
+												<TableCell className="text-right tabular-nums">
+													{m.dir5m} <span className="text-xs text-muted-foreground">({fmtPct(m.dir5mPct)})</span>
+												</TableCell>
+											)}
 
-											<TableCell className="text-right tabular-nums">
-												{m.contra} <span className="text-xs text-muted-foreground">({fmtPct(m.contraPct)})</span>
-											</TableCell>
+											{!hiddenSet.has("goles_contraataque") && (
+												<TableCell className="text-right tabular-nums">
+													{m.contra} <span className="text-xs text-muted-foreground">({fmtPct(m.contraPct)})</span>
+												</TableCell>
+											)}
 
-											<TableCell className="text-right tabular-nums">
-												{m.penalti} <span className="text-xs text-muted-foreground">({fmtPct(m.penaltiPct)})</span>
-											</TableCell>
+											{!hiddenSet.has("goles_penalti_anotado") && (
+												<TableCell className="text-right tabular-nums">
+													{m.penalti} <span className="text-xs text-muted-foreground">({fmtPct(m.penaltiPct)})</span>
+												</TableCell>
+											)}
 
-											<TableCell className="text-right tabular-nums">
-												{m.sup} <span className="text-xs text-muted-foreground">({fmtPct(m.supPct)})</span>
-											</TableCell>
+											{(!hiddenSet.has("goles_hombre_mas") || !hiddenSet.has("gol_del_palo_sup")) && (
+												<TableCell className="text-right tabular-nums">
+													{m.sup} <span className="text-xs text-muted-foreground">({fmtPct(m.supPct)})</span>
+												</TableCell>
+											)}
 
 											<TableCell className="text-right tabular-nums font-semibold">{m.total}</TableCell>
 											<TableCell className="text-right text-muted-foreground hidden lg:table-cell">{m.fullDate}</TableCell>

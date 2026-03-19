@@ -10,12 +10,47 @@ interface TopDefendersTableProps {
 	players: Player[];
 	title?: string;
 	className?: string;
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
 	const n = Number(v);
 	return Number.isFinite(n) ? n : 0;
 };
+
+type MetricDef = {
+	key: keyof MatchStats | string;
+	dataKey: "bloqueos" | "recuperaciones" | "rebotes" | "recibeGol";
+	label: string;
+	group: "positive" | "negative";
+};
+
+const METRIC_DEFS: MetricDef[] = [
+	{
+		key: "acciones_bloqueo",
+		dataKey: "bloqueos",
+		label: "Bloqueos",
+		group: "positive"
+	},
+	{
+		key: "acciones_recuperacion",
+		dataKey: "recuperaciones",
+		label: "Recup.",
+		group: "positive"
+	},
+	{
+		key: "acciones_rebote",
+		dataKey: "rebotes",
+		label: "Rebotes",
+		group: "positive"
+	},
+	{
+		key: "acciones_recibir_gol",
+		dataKey: "recibeGol",
+		label: "Recibe gol",
+		group: "negative"
+	}
+];
 
 function getPlayerLabel(player: Player | null) {
 	if (!player) return "Jugador";
@@ -43,7 +78,22 @@ function PlayerRowMini({ player }: { player: Player | null }) {
 	);
 }
 
-export function TopDefendersTable({ matches, stats, players, title = "Jugadores que más defienden", className }: TopDefendersTableProps) {
+export function TopDefendersTable({
+	matches,
+	stats,
+	players,
+	title = "Jugadores que más defienden",
+	className,
+	hiddenStats = []
+}: TopDefendersTableProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const visibleDefs = useMemo(() => METRIC_DEFS.filter((def) => !hiddenSet.has(String(def.key))), [hiddenSet]);
+
+	const positiveDefs = useMemo(() => visibleDefs.filter((def) => def.group === "positive"), [visibleDefs]);
+
+	const negativeDefs = useMemo(() => visibleDefs.filter((def) => def.group === "negative"), [visibleDefs]);
+
 	const playersById = useMemo(() => {
 		const map = new Map<number, Player>();
 		(players ?? []).forEach((p) => map.set(Number(p.id), p));
@@ -68,10 +118,10 @@ export function TopDefendersTable({ matches, stats, players, title = "Jugadores 
 			const pid = Number(s.player_id);
 			if (!pid) return;
 
-			const bloqueos = toNum(s.acciones_bloqueo);
-			const recuperaciones = toNum(s.acciones_recuperacion);
-			const rebotes = toNum(s.acciones_rebote);
-			const recibeGol = toNum(s.acciones_recibir_gol);
+			const bloqueos = hiddenSet.has("acciones_bloqueo") ? 0 : toNum(s.acciones_bloqueo);
+			const recuperaciones = hiddenSet.has("acciones_recuperacion") ? 0 : toNum(s.acciones_recuperacion);
+			const rebotes = hiddenSet.has("acciones_rebote") ? 0 : toNum(s.acciones_rebote);
+			const recibeGol = hiddenSet.has("acciones_recibir_gol") ? 0 : toNum(s.acciones_recibir_gol);
 
 			const accionesDefensivas = bloqueos + recuperaciones + rebotes;
 			const balance = accionesDefensivas - recibeGol;
@@ -101,14 +151,20 @@ export function TopDefendersTable({ matches, stats, players, title = "Jugadores 
 		return Array.from(map.values()).sort((a, b) => {
 			if (b.accionesDefensivas !== a.accionesDefensivas) return b.accionesDefensivas - a.accionesDefensivas;
 			if (b.balance !== a.balance) return b.balance - a.balance;
-			return b.bloqueos - a.bloqueos;
+
+			for (const def of positiveDefs) {
+				const diff = toNum((b as Record<string, unknown>)[def.dataKey]) - toNum((a as Record<string, unknown>)[def.dataKey]);
+				if (diff !== 0) return diff;
+			}
+
+			return 0;
 		});
-	}, [stats, playersById]);
+	}, [stats, playersById, hiddenSet, positiveDefs]);
 
 	const leader = ranking[0] ?? null;
 	const totalActions = ranking.reduce((sum, r) => sum + r.accionesDefensivas, 0);
 
-	if (!ranking.length) return null;
+	if (!visibleDefs.length || !ranking.length) return null;
 
 	return (
 		<div className={`rounded-xl border overflow-hidden bg-card w-full ${className ?? ""}`}>
@@ -132,10 +188,12 @@ export function TopDefendersTable({ matches, stats, players, title = "Jugadores 
 								<TableHead>Jugador</TableHead>
 								<TableHead className="text-right">Acciones Def.</TableHead>
 								<TableHead className="text-right">Balance</TableHead>
-								<TableHead className="text-right">Bloqueos</TableHead>
-								<TableHead className="text-right">Recup.</TableHead>
-								<TableHead className="text-right">Rebotes</TableHead>
-								<TableHead className="text-right">Recibe gol</TableHead>
+
+								{visibleDefs.map((def) => (
+									<TableHead key={def.dataKey} className="text-right">
+										{def.label}
+									</TableHead>
+								))}
 							</TableRow>
 						</UITableHeader>
 
@@ -153,10 +211,12 @@ export function TopDefendersTable({ matches, stats, players, title = "Jugadores 
 									<TableCell className="text-right tabular-nums font-semibold">
 										{r.balance > 0 ? `+${r.balance}` : r.balance}
 									</TableCell>
-									<TableCell className="text-right tabular-nums">{r.bloqueos}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.recuperaciones}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.rebotes}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.recibeGol}</TableCell>
+
+									{visibleDefs.map((def) => (
+										<TableCell key={def.dataKey} className="text-right tabular-nums">
+											{toNum((r as Record<string, unknown>)[def.dataKey])}
+										</TableCell>
+									))}
 								</TableRow>
 							))}
 						</TableBody>

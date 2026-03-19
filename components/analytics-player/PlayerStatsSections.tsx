@@ -15,6 +15,7 @@ type Props = {
 	renderRow: (props: RowRendererProps) => React.ReactNode;
 	mode?: "totals" | "match" | "team";
 	categories?: PlayerStatCategory[];
+	hiddenStats?: string[];
 };
 
 const DEFAULT_CATEGORIES: PlayerStatCategory[] = ["goles", "fallos", "faltas", "acciones"];
@@ -35,11 +36,15 @@ function Section({ title, children, hint }: { title: string; children: React.Rea
 	);
 }
 
-export function PlayerStatsSections({ stats, renderRow, mode = "totals", categories = DEFAULT_CATEGORIES }: Props) {
+export function PlayerStatsSections({ stats, renderRow, mode = "totals", categories = DEFAULT_CATEGORIES, hiddenStats = [] }: Props) {
+	const isVisible = (statKey: string) => !hiddenStats.includes(statKey);
+
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 			{categories.map((category) => {
-				const items = getPlayerStatsByCategory(category);
+				const items = getPlayerStatsByCategory(category).filter((it) => isVisible(it.key));
+				if (!items.length) return null;
+
 				const title = PLAYER_CATEGORY_TITLES[category];
 				const baseHint = PLAYER_CATEGORY_HINTS[category];
 

@@ -3,31 +3,28 @@
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GoalDifferenceEvolutionChart } from "@/components/goal-difference-evolution-chart";
 import { useClub } from "@/lib/club-context";
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { MatchComparison } from "@/components/match-comparer";
 import { PlayerComparison } from "@/components/playerComparison";
-import { QuarterGoalsChart } from "@/components/QuarterGoalsChart";
 import type { MatchWithQuarterScores } from "@/lib/types";
 import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard";
-import { GeneralDashboard } from "@/components/analytics/general-dashboard";
-import { ShootingEfficiencyChart } from "@/components/analytics/shoot-analytics/shooting-efficiency-chart";
+import { GeneralDashboard } from "@/components/analytics/general-analytics/general-dashboard";
+import { ShootingEfficiencyChart } from "@/components/analytics/attack-analytics/shooting-efficiency-chart";
 import { GoalkeeperPerformanceChart } from "@/components/analytics/goalkeeper-analytics/goalkeeper-performance-chart";
-import { ManAdvantageChartExpandable } from "@/components/analytics/shoot-analytics/man-advantage-chart";
-import { PlayerMatchCompare } from "@/components/analytics/PlayerMatchCompare";
-import { SprintEfficiencyChart } from "@/components/analytics/SprintEfficiencyChart";
+import { ManAdvantageChartExpandable } from "@/components/analytics/attack-analytics/man-advantage-chart";
+import { PlayerMatchCompare } from "@/components/analytics/general-analytics/PlayerMatchCompare";
 import { GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/GoalkeeperShotsGoalChart";
-import { ShotMistakesDonutChart } from "@/components/analytics/shoot-analytics/quality-shoot-chart";
-import { GoalMixChart } from "@/components/analytics/shoot-analytics/offensive-shoot-chart";
+import { ShotMistakesDonutChart } from "@/components/analytics/attack-analytics/quality-shoot-chart";
+import { GoalMixChart } from "@/components/analytics/attack-analytics/offensive-shoot-chart";
 import { ChartSwipeCarousel } from "@/components/chartCarousel";
-import { SeasonAttackTotals, SeasonDefenseTotals, SeasonGoalkeeperTotals } from "@/components/analytics/SeassonTotalsTabs";
-import { AttackGoalTypesByMatchChart } from "@/components/analytics/shoot-analytics/AttackGoalTypesByMatchChart";
-import { AttackMistakeTypesByMatchChart } from "@/components/analytics/shoot-analytics/AttackMistakeTypesByMatchChart";
-import { AttackCreationVsLossesChart } from "@/components/analytics/shoot-analytics/AttackCreationVsLossesChart";
-import { AttackBoyaFlowChart } from "@/components/analytics/shoot-analytics/AttackBoyaFlowChart";
-import { TopScorersTable } from "@/components/analytics/shoot-analytics/TopScorersTable";
+import { SeasonAttackTotals, SeasonDefenseTotals, SeasonGoalkeeperTotals } from "@/components/analytics/general-analytics/SeassonTotalsTabs";
+import { AttackGoalTypesByMatchChart } from "@/components/analytics/attack-analytics/AttackGoalTypesByMatchChart";
+import { AttackMistakeTypesByMatchChart } from "@/components/analytics/attack-analytics/AttackMistakeTypesByMatchChart";
+import { AttackCreationVsLossesChart } from "@/components/analytics/attack-analytics/AttackCreationVsLossesChart";
+import { AttackBoyaFlowChart } from "@/components/analytics/attack-analytics/AttackBoyaFlowChart";
+import { TopScorersTable } from "@/components/analytics/attack-analytics/TopScorersTable";
 import { DefenseFoulsMixChart } from "@/components/analytics/defense-analytics/DefenseFoulsMixChart";
 import { DefenseInferiorityMixChart } from "@/components/analytics/defense-analytics/DefenseInferiorityMixChart";
 import { DefenseFoulsByMatchChart } from "@/components/analytics/defense-analytics/DefenseFoulsByMatchChart";
@@ -39,9 +36,9 @@ import { GoalkeeperGoalsMixChart } from "@/components/analytics/goalkeeper-analy
 import { GoalkeeperSavesMixChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperSavesMixChart";
 import { GoalkeeperInferiorityEfficiencyChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperInferiorityEfficiencyChart";
 import { GoalkeeperGoalsByTypeChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperGoalsByTypeChart";
-import { GoalkeeperBallImpactChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperBallImpactChart";
 import { GoalkeeperRankingTable } from "@/components/analytics/goalkeeper-analytics/TopGoalkeepersTable";
 import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
+import { useHiddenStats } from "@/hooks/useHiddenStats";
 
 export default function AnalyticsPage() {
 	const { currentClub } = useClub();
@@ -55,8 +52,12 @@ export default function AnalyticsPage() {
 	const [allStats, setAllStats] = useState<any[]>([]);
 	const [playerStats, setPlayerStats] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
-	const quarterMatches = matches as MatchWithQuarterScores[];
 	const [goalkeeperShotsRows, setGoalkeeperShotsRows] = useState<any[]>([]);
+
+	const hiddenStatsState = useHiddenStats();
+	const hiddenStats = useMemo(() => Object.keys(hiddenStatsState.hiddenStats), [hiddenStatsState.hiddenStats]);
+
+	const quarterMatches = matches as MatchWithQuarterScores[];
 
 	useEffect(() => {
 		const abortController = new AbortController();
@@ -221,7 +222,7 @@ export default function AnalyticsPage() {
 		});
 	}, [goalkeeperShotsRows, matchesById]);
 
-	if (loading) {
+	if (loading || !hiddenStatsState.loaded) {
 		return (
 			<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
 				<div className="text-center py-12">
@@ -243,9 +244,7 @@ export default function AnalyticsPage() {
 			</div>
 
 			<section className="mb-8">
-				{/* ✅ NUEVA ESTRUCTURA DE TABS */}
 				<Tabs defaultValue="overview">
-					{/* TabsList scrollable para móvil */}
 					<TabsList className="flex w-full max-w-full items-stretch justify-start gap-2 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-2xl bg-muted/30 p-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 						<TabsTrigger
 							value="overview"
@@ -288,7 +287,6 @@ export default function AnalyticsPage() {
 						</TabsTrigger>
 					</TabsList>
 
-					{/* ===== TAB: RESUMEN ===== */}
 					<TabsContent value="overview" className="mt-4 space-y-10">
 						<section>
 							<GeneralDashboard matches={matches || []} stats={allStats || []} players={players || []} />
@@ -327,7 +325,6 @@ export default function AnalyticsPage() {
 						</section>
 					</TabsContent>
 
-					{/* ===== TAB: ATAQUE ===== */}
 					<TabsContent value="attack" className="mt-4 space-y-10">
 						<section>
 							<div className="mb-4">
@@ -337,14 +334,13 @@ export default function AnalyticsPage() {
 								</p>
 							</div>
 
-							<SeasonAttackTotals stats={allStats || []} />
+							<SeasonAttackTotals stats={allStats || []} hiddenStats={hiddenStats} />
 
 							<div className="flex items-center gap-2 mt-4 mb-4">
 								<div className="h-px flex-1 bg-border/90" />
 							</div>
 
 							<div className="space-y-8">
-								{/* BLOQUE 1 */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Eficiencia y resumen ofensivo</h2>
@@ -355,30 +351,41 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
 										<div className="lg:col-span-2 h-full">
-											<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} />
+											<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} hiddenStats={hiddenStats} />
 										</div>
 
 										<div className="lg:col-span-1 h-full">
 											<ChartSwipeCarousel
 												items={[
-													<GoalMixChart key="mix" matches={matches || []} stats={allStats || []} players={players || []} />,
+													<GoalMixChart
+														key="mix"
+														matches={matches || []}
+														stats={allStats || []}
+														players={players || []}
+														hiddenStats={hiddenStats}
+													/>,
 													<ShotMistakesDonutChart
 														key="mistakes"
 														matches={matches || []}
 														stats={allStats || []}
 														players={players || []}
+														hiddenStats={hiddenStats}
 													/>
 												]}
 											/>
 										</div>
 
 										<div className="lg:col-span-3">
-											<ManAdvantageChartExpandable matches={matches || []} stats={allStats || []} players={players || []} />
+											<ManAdvantageChartExpandable
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
 
-								{/* BLOQUE 2 */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Eficienca por jornada</h2>
@@ -387,16 +394,25 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
-											<AttackGoalTypesByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<AttackGoalTypesByMatchChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 
 										<div className="h-full">
-											<AttackMistakeTypesByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<AttackMistakeTypesByMatchChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
 
-								{/* BLOQUE 3 */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Construcción ofensiva</h2>
@@ -407,14 +423,25 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
-											<AttackCreationVsLossesChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<AttackCreationVsLossesChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 
 										<div className="h-full">
-											<AttackBoyaFlowChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<AttackBoyaFlowChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
+
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Ranking ofensivo</h2>
@@ -425,7 +452,12 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
-											<TopScorersTable matches={matches || []} stats={allStats || []} players={players || []} />
+											<TopScorersTable
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
@@ -433,7 +465,6 @@ export default function AnalyticsPage() {
 						</section>
 					</TabsContent>
 
-					{/* ===== TAB: DEFENSA ===== */}
 					<TabsContent value="defense" className="mt-4 space-y-10">
 						<section>
 							<div className="mb-4">
@@ -443,14 +474,13 @@ export default function AnalyticsPage() {
 								</p>
 							</div>
 
-							<SeasonDefenseTotals stats={allStats || []} />
+							<SeasonDefenseTotals stats={allStats || []} hiddenStats={hiddenStats} />
 
 							<div className="flex items-center gap-2 mt-4 mb-4">
 								<div className="h-px flex-1 bg-border/90" />
 							</div>
 
 							<div className="space-y-8">
-								{/* BLOQUE 1 */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Resumen defensivo</h2>
@@ -461,10 +491,14 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
 										<div className="lg:col-span-2 h-full">
-											<DefenseActionsByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<DefenseActionsByMatchChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 
-										{/* Carousel lateral */}
 										<div className="lg:col-span-1 h-full">
 											<ChartSwipeCarousel
 												items={[
@@ -473,12 +507,14 @@ export default function AnalyticsPage() {
 														matches={matches || []}
 														stats={allStats || []}
 														players={players || []}
+														hiddenStats={hiddenStats}
 													/>,
 													<DefenseInferiorityMixChart
 														key="def-inf-mix"
 														matches={matches || []}
 														stats={allStats || []}
 														players={players || []}
+														hiddenStats={hiddenStats}
 													/>
 												]}
 											/>
@@ -486,7 +522,6 @@ export default function AnalyticsPage() {
 									</div>
 								</div>
 
-								{/* BLOQUE 2 */}
 								<div className="space-y-4">
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
@@ -494,12 +529,12 @@ export default function AnalyticsPage() {
 												matches={matches || []}
 												stats={allStats || []}
 												players={players || []}
+												hiddenStats={hiddenStats}
 											/>
 										</div>
 									</div>
 								</div>
 
-								{/* BLOQUE 3 */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Acciones defensivas</h2>
@@ -510,13 +545,24 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
-											<DefenseFoulsByMatchChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<DefenseFoulsByMatchChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 										<div className="h-full">
-											<DefenseBalanceChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<DefenseBalanceChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
+
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Ranking defensivo</h2>
@@ -525,7 +571,12 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
-											<TopDefendersTable matches={matches || []} stats={allStats || []} players={players || []} />
+											<TopDefendersTable
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
@@ -533,8 +584,6 @@ export default function AnalyticsPage() {
 						</section>
 					</TabsContent>
 
-					{/* ===== TAB: PORTERO ===== */}
-					{/* ===== TAB: PORTERO ===== */}
 					<TabsContent value="goalkeeper" className="mt-4 space-y-10">
 						<section>
 							<div className="mb-4">
@@ -544,14 +593,13 @@ export default function AnalyticsPage() {
 								</p>
 							</div>
 
-							<SeasonGoalkeeperTotals stats={allStats || []} />
+							<SeasonGoalkeeperTotals stats={allStats || []} hiddenStats={hiddenStats} />
 
 							<div className="flex items-center gap-2 mt-4 mb-4">
 								<div className="h-px flex-1 bg-border/90" />
 							</div>
 
 							<div className="space-y-8">
-								{/* BLOQUE 1 */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Resumen del portero</h2>
@@ -562,7 +610,7 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
 										<div className="lg:col-span-2 h-full">
-											<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} />
+											<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} hiddenStats={hiddenStats} />
 										</div>
 
 										<div className="lg:col-span-1 h-full">
@@ -573,12 +621,14 @@ export default function AnalyticsPage() {
 														matches={matches || []}
 														stats={allStats || []}
 														players={players || []}
+														hiddenStats={hiddenStats}
 													/>,
 													<GoalkeeperSavesMixChart
 														key="gk-saves-mix"
 														matches={matches || []}
 														stats={allStats || []}
 														players={players || []}
+														hiddenStats={hiddenStats}
 													/>
 												]}
 											/>
@@ -586,7 +636,6 @@ export default function AnalyticsPage() {
 									</div>
 								</div>
 
-								{/* BLOQUE 2 */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Rendimiento específico</h2>
@@ -601,32 +650,21 @@ export default function AnalyticsPage() {
 												matches={matches || []}
 												stats={allStats || []}
 												players={players || []}
+												hiddenStats={hiddenStats}
 											/>
 										</div>
 
 										<div className="h-full">
-											<GoalkeeperGoalsByTypeChart matches={matches || []} stats={allStats || []} players={players || []} />
+											<GoalkeeperGoalsByTypeChart
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
 
-								{/* BLOQUE 3 */}
-								<div className="space-y-4">
-									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Juego con balón</h2>
-										<p className="text-sm text-muted-foreground">
-											Aportación ofensiva del portero, balance de acciones positivas y pérdidas.
-										</p>
-									</div>
-
-									<div className="grid grid-cols-1 gap-4 lg:gap-6 items-stretch">
-										<div className="h-full">
-											<GoalkeeperBallImpactChart matches={matches || []} stats={allStats || []} players={players || []} />
-										</div>
-									</div>
-								</div>
-
-								{/* BLOQUE 4 - SIEMPRE AL FINAL */}
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Detalle de lanzamientos</h2>
@@ -641,6 +679,7 @@ export default function AnalyticsPage() {
 										</div>
 									</div>
 								</div>
+
 								<div className="space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">Ranking en porteria</h2>
@@ -649,7 +688,12 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
-											<GoalkeeperRankingTable matches={matches || []} stats={allStats || []} players={players || []} />
+											<GoalkeeperRankingTable
+												matches={matches || []}
+												stats={allStats || []}
+												players={players || []}
+												hiddenStats={hiddenStats}
+											/>
 										</div>
 									</div>
 								</div>
@@ -658,6 +702,7 @@ export default function AnalyticsPage() {
 					</TabsContent>
 				</Tabs>
 			</section>
+
 			<div className="mt-6 flex flex-col items-center gap-2 text-center">
 				<p className="text-xs text-muted-foreground">
 					POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>

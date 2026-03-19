@@ -9,7 +9,6 @@ import { getCurrentProfile } from "@/lib/auth";
 import Image from "next/image";
 import logo from "@/public/images/lewaterpolo_bg.png";
 import { MatchPeriodsAndPenaltiesCard } from "@/components/match-components/MatchPeriodsAndPenaltiesCard";
-import { TeamTotalsOverviewCard } from "@/components/match-components/TotalMatchStats";
 import { MatchPlayersTabs } from "./MatchPlayersTabs";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +36,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	if (error || !match) {
 		notFound();
 	}
+
+	const hiddenStats =
+		profile?.id != null
+			? ((await supabase.from("profile_hidden_stats").select("stat_key").eq("profile_id", profile.id)).data?.map((row) => row.stat_key) ?? [])
+			: [];
 
 	const { data: penaltyRows } = await supabase
 		.from("penalty_shootout_players")
@@ -113,7 +117,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	let resultColor: string;
 
 	if (hasPenalties) {
-		// Determine winner by penalties
 		result = match.penalty_home_score! > match.penalty_away_score! ? "Victoria (Penaltis)" : "Derrota (Penaltis)";
 		resultColor =
 			match.penalty_home_score! > match.penalty_away_score!
@@ -138,15 +141,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 		.sort((a: any, b: any) => a.players.number - b.players.number);
 
 	const superioridadStats = calculateSuperioridadStats(match.match_stats);
-	const inferioridadStats = calculateInferioridadStats(match.match_stats); // Added
+	const inferioridadStats = calculateInferioridadStats(match.match_stats);
 	const blocksStats = calculateBlocksStats(match.match_stats, match.away_score);
 	const players = match.match_stats.map((s: any) => s.players);
 
-	const stats = match.match_stats; // Rename for clarity in the block section
+	const stats = match.match_stats;
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
 	const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo";
 	const matchDate = new Date(match.match_date);
-	const matchStats = match.match_stats;
 	const competitionImage = match.competitions?.image_url?.trim() || null;
 
 	const { data: gkShots, error: gkShotsErr } = await supabase
@@ -182,7 +184,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				</Button>
 
 				<Card className="relative overflow-hidden border-2 rounded-xl p-0">
-					{/* Glow + imagen competición (en toda la card) */}
 					<div className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[420px]">
 						<div className="relative h-full w-full">
 							<div className={`absolute inset-10 rounded-full bg-gradient-to-br ${logoGlow} blur-3xl`} />
@@ -196,13 +197,10 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 						</div>
 					</div>
 
-					{/* Overlay en toda la card */}
 					<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/30" />
 
-					{/* Contenido (controlas tú el padding) */}
 					<div className="relative p-4 sm:p-6">
 						<div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-							{/* IZQ */}
 							<div className="flex-1 min-w-0">
 								<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
 									<h2 className="text-xl sm:text-2xl font-bold truncate">
@@ -227,7 +225,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 								</div>
 							</div>
 
-							{/* DER / MARCADOR */}
 							<div className="flex flex-col items-center justify-center gap-2 w-full md:w-auto">
 								<div className="flex items-center gap-4 sm:gap-6">
 									<div className="text-center">
@@ -254,7 +251,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 							</div>
 						</div>
 
-						{/* NOTAS (dentro del mismo “hero”, sin márgenes extra) */}
 						{match.notes && (
 							<div className="mt-4 pt-4 border-t border-border/40">
 								<p className="text-sm text-muted-foreground">
@@ -277,10 +273,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				rivalPenaltyShots={rivalPenaltyShots}
 			/>
 
-			<div className="grid gap- mb-8">
-				<TeamTotalsOverviewCard stats={match.match_stats} />
-			</div>
-
 			<MatchPlayersTabs
 				fieldPlayersStats={fieldPlayersStats}
 				goalkeepersStats={goalkeepersStats}
@@ -296,6 +288,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				allGoalkeeperShots={allGoalkeeperShots}
 				goalkeeperId={goalkeeperId}
 				players={players}
+				hiddenStats={hiddenStats}
 			/>
 
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
@@ -312,12 +305,12 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					{canEdit && (
 						<div className="flex items-center gap-2 bg-muted rounded-md">
 							<DeleteMatchButton matchId={match.id} />
-
 							<span className="hidden sm:inline text-sm text-red-600 dark:text-red-400">Eliminar Partido</span>
 						</div>
 					)}
 				</div>
 			</div>
+
 			<div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
 				<span>POWERED BY</span>
 
@@ -330,7 +323,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				/>
 
 				<span>&amp;</span>
-				<span></span>
 
 				<Image src="/images/logo-sponsor/bwmf.svg" alt="BWMF" width={86} height={38} className="h-[30px] w-auto" />
 			</div>
@@ -367,8 +359,6 @@ function calculateInferioridadStats(stats: any[]) {
 	const bloqueo = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_bloqueo ?? 0), 0);
 
 	const evitados = paradas + fuera + bloqueo;
-
-	// ✅ ahora incluye gol_palo como "recibido"
 	const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos ?? 0) + (stat.portero_gol_palo ?? 0), 0);
 
 	const total = evitados + recibidos;

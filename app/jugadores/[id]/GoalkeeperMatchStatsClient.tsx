@@ -20,10 +20,18 @@ interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
 }
 
-function computeWeightedScore(row: Record<string, any>, weights: Record<string, number>): number {
+function isHiddenStat(statKey: string, hiddenStats?: string[] | Set<string>) {
+	if (!hiddenStats) return false;
+	if (hiddenStats instanceof Set) return hiddenStats.has(statKey);
+	return hiddenStats.includes(statKey);
+}
+
+function computeWeightedScore(row: Record<string, any>, weights: Record<string, number>, hiddenStats?: string[] | Set<string>): number {
 	let score = 0;
 
 	for (const [key, weightRaw] of Object.entries(weights)) {
+		if (isHiddenStat(key, hiddenStats)) continue;
+
 		const weight = Number(weightRaw);
 		const value = Number(row?.[key] ?? 0);
 
@@ -35,7 +43,15 @@ function computeWeightedScore(row: Record<string, any>, weights: Record<string, 
 	return Math.round(score);
 }
 
-export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
+export function GoalkeeperMatchStatsClient({
+	matchStats,
+	player,
+	hiddenStats
+}: {
+	matchStats: MatchStatsWithMatch[];
+	player: Player;
+	hiddenStats?: string[] | Set<string>;
+}) {
 	if (!matchStats?.length) {
 		return (
 			<Card className="mb-6">
@@ -131,12 +147,13 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 		);
 	};
 
-	const goalItems = getGoalkeeperStatsByCategory("goles");
-	const saveItems = getGoalkeeperStatsByCategory("paradas");
-	const penaltyItems = getGoalkeeperStatsByCategory("paradas_penalti");
-	const otherShotItems = getGoalkeeperStatsByCategory("otros_tiros");
-	const actionItems = getGoalkeeperStatsByCategory("acciones");
-	const attackItems = getGoalkeeperStatsByCategory("ataque");
+	const goalItems = getGoalkeeperStatsByCategory("goles", hiddenStats);
+	const saveItems = getGoalkeeperStatsByCategory("paradas", hiddenStats);
+	const penaltyItems = getGoalkeeperStatsByCategory("paradas_penalti", hiddenStats);
+	const otherShotItems = getGoalkeeperStatsByCategory("otros_tiros", hiddenStats);
+	const inferiorityItems = getGoalkeeperStatsByCategory("inferioridad", hiddenStats);
+	const actionItems = getGoalkeeperStatsByCategory("acciones", hiddenStats);
+	const attackItems = getGoalkeeperStatsByCategory("ataque", hiddenStats);
 
 	const defaultOpen = `match-${matchStats[0]?.id}`;
 
@@ -164,8 +181,8 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 			<Accordion type="single" collapsible className="w-full space-y-4" defaultValue={defaultOpen}>
 				{matchStats.map((stat) => {
 					const match = stat.matches;
-					const derived = getGoalkeeperDerived(stat as any);
-					const score = hasWeights ? computeWeightedScore(stat as any, weights) : null;
+					const derived = getGoalkeeperDerived(stat as any, hiddenStats);
+					const score = hasWeights ? computeWeightedScore(stat as any, weights, hiddenStats) : null;
 
 					return (
 						<AccordionItem key={stat.id} value={`match-${stat.id}`} className="border-0">
@@ -272,6 +289,15 @@ export function GoalkeeperMatchStatsClient({ matchStats, player }: { matchStats:
 												hint={GOALKEEPER_CATEGORY_HINTS.otros_tiros ?? "Partido"}
 											>
 												{otherShotItems.map((it) => (
+													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+												))}
+											</Section>
+
+											<Section
+												title={GOALKEEPER_CATEGORY_TITLES.inferioridad}
+												hint={GOALKEEPER_CATEGORY_HINTS.inferioridad ?? "Partido"}
+											>
+												{inferiorityItems.map((it) => (
 													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
