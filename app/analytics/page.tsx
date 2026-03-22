@@ -50,7 +50,6 @@ export default function AnalyticsPage() {
 	const [matches, setMatches] = useState<any[]>([]);
 	const [players, setPlayers] = useState<any[]>([]);
 	const [allStats, setAllStats] = useState<any[]>([]);
-	const [playerStats, setPlayerStats] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [goalkeeperShotsRows, setGoalkeeperShotsRows] = useState<any[]>([]);
 
@@ -99,8 +98,7 @@ export default function AnalyticsPage() {
 						.select("*")
 						.in(
 							"match_id",
-							(await supabase.from("matches").select("id").eq("club_id", currentClub.id).eq("season", season)).data?.map((m) => m.id) ||
-								[]
+							(await supabase.from("matches").select("id").eq("club_id", currentClub.id).eq("season", season)).data?.map((m) => m.id) || []
 						)
 				]);
 
@@ -120,71 +118,6 @@ export default function AnalyticsPage() {
 				setPlayers(playersResult.data || []);
 				setAllStats(statsResult.data || []);
 				setGoalkeeperShotsRows(gkShotsData || []);
-
-				const calculatedPlayerStats = playersResult.data?.map((player) => {
-					const stats = statsResult.data?.filter((s) => s.player_id === player.id) || [];
-
-					const goles_totales = stats.reduce((sum, s) => sum + (s.goles_totales || 0), 0);
-					const tiros_totales = stats.reduce((sum, s) => sum + (s.tiros_totales || 0), 0);
-					const acciones_asistencias = stats.reduce((sum, s) => sum + (s.acciones_asistencias || 0), 0);
-					const acciones_bloqueo = stats.reduce((sum, s) => sum + (s.acciones_bloqueo || 0), 0);
-					const acciones_recuperacion = stats.reduce((sum, s) => sum + (s.acciones_recuperacion || 0), 0);
-					const acciones_rebote = stats.reduce((sum, s) => sum + (s.acciones_rebote || 0), 0);
-
-					const faltas_exp_3_bruta = stats.reduce((sum, s) => sum + (s.faltas_exp_3_bruta || 0), 0);
-					const faltas_exp_3_int = stats.reduce((sum, s) => sum + (s.faltas_exp_3_int || 0), 0);
-					const faltas_exp_20_1c1 = stats.reduce((sum, s) => sum + (s.faltas_exp_20_1c1 || 0), 0);
-					const faltas_exp_20_boya = stats.reduce((sum, s) => sum + (s.faltas_exp_20_boya || 0), 0);
-					const faltas_penalti = stats.reduce((sum, s) => sum + (s.faltas_penalti || 0), 0);
-
-					const goles_penalti_anotado = stats.reduce((sum, s) => sum + (s.goles_penalti_anotado || 0), 0);
-					const tiros_penalti_fallado = stats.reduce((sum, s) => sum + (s.tiros_penalti_fallado || 0), 0);
-
-					const totalPerdidas = stats.reduce((sum, s) => sum + (s.acciones_perdida_poco || 0) + (s.portero_acciones_perdida_pos || 0), 0);
-					const eficiencia = tiros_totales > 0 ? Math.round((goles_totales / tiros_totales) * 100) : 0;
-
-					const portero_paradas_totales = stats.reduce((sum, s) => sum + (s.portero_paradas_totales || 0), 0);
-					const portero_paradas_penalti_parado = stats.reduce((sum, s) => sum + (s.portero_paradas_penalti_parado || 0), 0);
-					const portero_goles_totales = stats.reduce((sum, s) => sum + (s.portero_goles_totales || 0), 0);
-					const portero_paradas_hombre_menos = stats.reduce((sum, s) => sum + (s.portero_paradas_hombre_menos || 0), 0);
-					const portero_goles_hombre_menos = stats.reduce((sum, s) => sum + (s.portero_goles_hombre_menos || 0), 0);
-					const portero_inferioridad_fuera = stats.reduce((sum, s) => sum + (s.portero_inferioridad_fuera || 0), 0);
-					const portero_inferioridad_bloqueo = stats.reduce((sum, s) => sum + (s.portero_inferioridad_bloqueo || 0), 0);
-
-					return {
-						...player,
-						goles_totales,
-						tiros_totales,
-						acciones_asistencias,
-						acciones_bloqueo,
-						acciones_recuperacion,
-						acciones_rebote,
-						faltas_exp_3_bruta,
-						faltas_exp_3_int,
-						faltas_exp_20_1c1,
-						faltas_exp_20_boya,
-						faltas_penalti,
-						goles_penalti_anotado,
-						tiros_penalti_fallado,
-						totalGoles: goles_totales,
-						totalTiros: tiros_totales,
-						totalAsistencias: acciones_asistencias,
-						totalBloqueos: acciones_bloqueo,
-						totalPerdidas,
-						eficiencia,
-						matchesPlayed: stats.length,
-						partidos: stats.length,
-						portero_paradas_totales,
-						portero_paradas_penalti_parado,
-						portero_goles_totales,
-						portero_paradas_hombre_menos,
-						portero_goles_hombre_menos,
-						portero_inferioridad_fuera,
-						portero_inferioridad_bloqueo
-					};
-				});
-
-				if (isMounted) setPlayerStats(calculatedPlayerStats || []);
 			} catch (error) {
 				if (!abortController.signal.aborted) console.error("Error fetching analytics:", error);
 			} finally {
@@ -200,14 +133,95 @@ export default function AnalyticsPage() {
 		};
 	}, [currentClub, seasonParam]);
 
-	const matchesById = useMemo(() => {
-		const m = new Map<number, any>();
-		(matches || []).forEach((x) => m.set(x.id, x));
-		return m;
+	const enabledMatches = useMemo(() => {
+		return (matches || []).filter((match) => match.stats_enabled !== false);
 	}, [matches]);
 
+	const enabledMatchIds = useMemo(() => {
+		return new Set(enabledMatches.map((match) => match.id));
+	}, [enabledMatches]);
+
+	const enabledStats = useMemo(() => {
+		return (allStats || []).filter((stat) => enabledMatchIds.has(stat.match_id));
+	}, [allStats, enabledMatchIds]);
+
+	const enabledGoalkeeperShotsRows = useMemo(() => {
+		return (goalkeeperShotsRows || []).filter((row) => enabledMatchIds.has(row.match_id));
+	}, [goalkeeperShotsRows, enabledMatchIds]);
+
+	const enabledPlayerStats = useMemo(() => {
+		return (players || []).map((player) => {
+			const stats = enabledStats.filter((s) => s.player_id === player.id);
+
+			const goles_totales = stats.reduce((sum, s) => sum + (s.goles_totales || 0), 0);
+			const tiros_totales = stats.reduce((sum, s) => sum + (s.tiros_totales || 0), 0);
+			const acciones_asistencias = stats.reduce((sum, s) => sum + (s.acciones_asistencias || 0), 0);
+			const acciones_bloqueo = stats.reduce((sum, s) => sum + (s.acciones_bloqueo || 0), 0);
+			const acciones_recuperacion = stats.reduce((sum, s) => sum + (s.acciones_recuperacion || 0), 0);
+			const acciones_rebote = stats.reduce((sum, s) => sum + (s.acciones_rebote || 0), 0);
+
+			const faltas_exp_3_bruta = stats.reduce((sum, s) => sum + (s.faltas_exp_3_bruta || 0), 0);
+			const faltas_exp_3_int = stats.reduce((sum, s) => sum + (s.faltas_exp_3_int || 0), 0);
+			const faltas_exp_20_1c1 = stats.reduce((sum, s) => sum + (s.faltas_exp_20_1c1 || 0), 0);
+			const faltas_exp_20_boya = stats.reduce((sum, s) => sum + (s.faltas_exp_20_boya || 0), 0);
+			const faltas_penalti = stats.reduce((sum, s) => sum + (s.faltas_penalti || 0), 0);
+
+			const goles_penalti_anotado = stats.reduce((sum, s) => sum + (s.goles_penalti_anotado || 0), 0);
+			const tiros_penalti_fallado = stats.reduce((sum, s) => sum + (s.tiros_penalti_fallado || 0), 0);
+
+			const totalPerdidas = stats.reduce((sum, s) => sum + (s.acciones_perdida_poco || 0) + (s.portero_acciones_perdida_pos || 0), 0);
+			const eficiencia = tiros_totales > 0 ? Math.round((goles_totales / tiros_totales) * 100) : 0;
+
+			const portero_paradas_totales = stats.reduce((sum, s) => sum + (s.portero_paradas_totales || 0), 0);
+			const portero_paradas_penalti_parado = stats.reduce((sum, s) => sum + (s.portero_paradas_penalti_parado || 0), 0);
+			const portero_goles_totales = stats.reduce((sum, s) => sum + (s.portero_goles_totales || 0), 0);
+			const portero_paradas_hombre_menos = stats.reduce((sum, s) => sum + (s.portero_paradas_hombre_menos || 0), 0);
+			const portero_goles_hombre_menos = stats.reduce((sum, s) => sum + (s.portero_goles_hombre_menos || 0), 0);
+			const portero_inferioridad_fuera = stats.reduce((sum, s) => sum + (s.portero_inferioridad_fuera || 0), 0);
+			const portero_inferioridad_bloqueo = stats.reduce((sum, s) => sum + (s.portero_inferioridad_bloqueo || 0), 0);
+
+			return {
+				...player,
+				goles_totales,
+				tiros_totales,
+				acciones_asistencias,
+				acciones_bloqueo,
+				acciones_recuperacion,
+				acciones_rebote,
+				faltas_exp_3_bruta,
+				faltas_exp_3_int,
+				faltas_exp_20_1c1,
+				faltas_exp_20_boya,
+				faltas_penalti,
+				goles_penalti_anotado,
+				tiros_penalti_fallado,
+				totalGoles: goles_totales,
+				totalTiros: tiros_totales,
+				totalAsistencias: acciones_asistencias,
+				totalBloqueos: acciones_bloqueo,
+				totalPerdidas,
+				eficiencia,
+				matchesPlayed: stats.length,
+				partidos: stats.length,
+				portero_paradas_totales,
+				portero_paradas_penalti_parado,
+				portero_goles_totales,
+				portero_paradas_hombre_menos,
+				portero_goles_hombre_menos,
+				portero_inferioridad_fuera,
+				portero_inferioridad_bloqueo
+			};
+		});
+	}, [players, enabledStats]);
+
+	const matchesById = useMemo(() => {
+		const m = new Map<number, any>();
+		(enabledMatches || []).forEach((x) => m.set(x.id, x));
+		return m;
+	}, [enabledMatches]);
+
 	const shots = useMemo(() => {
-		return (goalkeeperShotsRows || []).map((s) => {
+		return (enabledGoalkeeperShotsRows || []).map((s) => {
 			const match = matchesById.get(s.match_id);
 			return {
 				id: s.id,
@@ -220,7 +234,7 @@ export default function AnalyticsPage() {
 				result: s.result as "goal" | "save"
 			};
 		});
-	}, [goalkeeperShotsRows, matchesById]);
+	}, [enabledGoalkeeperShotsRows, matchesById]);
 
 	if (loading || !hiddenStatsState.loaded) {
 		return (
@@ -289,11 +303,11 @@ export default function AnalyticsPage() {
 
 					<TabsContent value="overview" className="mt-4 space-y-10">
 						<section>
-							<GeneralDashboard matches={matches || []} stats={allStats || []} players={players || []} />
+							<GeneralDashboard matches={enabledMatches} stats={enabledStats} players={players || []} />
 						</section>
 
 						<section>
-							<TeamDashboard teamStats={playerStats} />
+							<TeamDashboard teamStats={enabledPlayerStats} />
 						</section>
 
 						<section>
@@ -311,15 +325,15 @@ export default function AnalyticsPage() {
 								</TabsList>
 
 								<TabsContent value="compare">
-									<MatchComparison matches={matches || []} stats={allStats || []} />
+									<MatchComparison matches={enabledMatches} stats={enabledStats} />
 								</TabsContent>
 
 								<TabsContent value="players-compare">
-									<PlayerComparison players={players || []} stats={allStats || []} />
+									<PlayerComparison players={players || []} stats={enabledStats} />
 								</TabsContent>
 
 								<TabsContent value="players-jornada-compare">
-									<PlayerMatchCompare players={players || []} matches={matches || []} stats={allStats || []} maxSelections={12} />
+									<PlayerMatchCompare players={players || []} matches={enabledMatches} stats={enabledStats} maxSelections={12} />
 								</TabsContent>
 							</Tabs>
 						</section>
@@ -334,7 +348,7 @@ export default function AnalyticsPage() {
 								</p>
 							</div>
 
-							<SeasonAttackTotals stats={allStats || []} hiddenStats={hiddenStats} />
+							<SeasonAttackTotals stats={enabledStats} hiddenStats={hiddenStats} />
 
 							<div className="flex items-center gap-2 mt-4 mb-4">
 								<div className="h-px flex-1 bg-border/90" />
@@ -351,7 +365,7 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
 										<div className="lg:col-span-2 h-full">
-											<ShootingEfficiencyChart matches={matches || []} stats={allStats || []} hiddenStats={hiddenStats} />
+											<ShootingEfficiencyChart matches={enabledMatches} stats={enabledStats} hiddenStats={hiddenStats} />
 										</div>
 
 										<div className="lg:col-span-1 h-full">
@@ -359,15 +373,15 @@ export default function AnalyticsPage() {
 												items={[
 													<GoalMixChart
 														key="mix"
-														matches={matches || []}
-														stats={allStats || []}
+														matches={enabledMatches}
+														stats={enabledStats}
 														players={players || []}
 														hiddenStats={hiddenStats}
 													/>,
 													<ShotMistakesDonutChart
 														key="mistakes"
-														matches={matches || []}
-														stats={allStats || []}
+														matches={enabledMatches}
+														stats={enabledStats}
 														players={players || []}
 														hiddenStats={hiddenStats}
 													/>
@@ -377,8 +391,8 @@ export default function AnalyticsPage() {
 
 										<div className="lg:col-span-3">
 											<ManAdvantageChartExpandable
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -395,8 +409,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<AttackGoalTypesByMatchChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -404,8 +418,8 @@ export default function AnalyticsPage() {
 
 										<div className="h-full">
 											<AttackMistakeTypesByMatchChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -424,8 +438,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<AttackCreationVsLossesChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -433,8 +447,8 @@ export default function AnalyticsPage() {
 
 										<div className="h-full">
 											<AttackBoyaFlowChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -453,8 +467,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<TopScorersTable
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -474,7 +488,7 @@ export default function AnalyticsPage() {
 								</p>
 							</div>
 
-							<SeasonDefenseTotals stats={allStats || []} hiddenStats={hiddenStats} />
+							<SeasonDefenseTotals stats={enabledStats} hiddenStats={hiddenStats} />
 
 							<div className="flex items-center gap-2 mt-4 mb-4">
 								<div className="h-px flex-1 bg-border/90" />
@@ -492,8 +506,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
 										<div className="lg:col-span-2 h-full">
 											<DefenseActionsByMatchChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -504,15 +518,15 @@ export default function AnalyticsPage() {
 												items={[
 													<DefenseFoulsMixChart
 														key="def-fouls-mix"
-														matches={matches || []}
-														stats={allStats || []}
+														matches={enabledMatches}
+														stats={enabledStats}
 														players={players || []}
 														hiddenStats={hiddenStats}
 													/>,
 													<DefenseInferiorityMixChart
 														key="def-inf-mix"
-														matches={matches || []}
-														stats={allStats || []}
+														matches={enabledMatches}
+														stats={enabledStats}
 														players={players || []}
 														hiddenStats={hiddenStats}
 													/>
@@ -526,8 +540,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<DefenseInferiorityEfficiencyChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -546,16 +560,16 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<DefenseFoulsByMatchChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
 										</div>
 										<div className="h-full">
 											<DefenseBalanceChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -572,8 +586,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<TopDefendersTable
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -593,7 +607,7 @@ export default function AnalyticsPage() {
 								</p>
 							</div>
 
-							<SeasonGoalkeeperTotals stats={allStats || []} hiddenStats={hiddenStats} />
+							<SeasonGoalkeeperTotals stats={enabledStats} hiddenStats={hiddenStats} />
 
 							<div className="flex items-center gap-2 mt-4 mb-4">
 								<div className="h-px flex-1 bg-border/90" />
@@ -610,7 +624,7 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
 										<div className="lg:col-span-2 h-full">
-											<GoalkeeperPerformanceChart matches={matches || []} stats={allStats || []} hiddenStats={hiddenStats} />
+											<GoalkeeperPerformanceChart matches={enabledMatches} stats={enabledStats} hiddenStats={hiddenStats} />
 										</div>
 
 										<div className="lg:col-span-1 h-full">
@@ -618,15 +632,15 @@ export default function AnalyticsPage() {
 												items={[
 													<GoalkeeperGoalsMixChart
 														key="gk-goals-mix"
-														matches={matches || []}
-														stats={allStats || []}
+														matches={enabledMatches}
+														stats={enabledStats}
 														players={players || []}
 														hiddenStats={hiddenStats}
 													/>,
 													<GoalkeeperSavesMixChart
 														key="gk-saves-mix"
-														matches={matches || []}
-														stats={allStats || []}
+														matches={enabledMatches}
+														stats={enabledStats}
 														players={players || []}
 														hiddenStats={hiddenStats}
 													/>
@@ -647,8 +661,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<GoalkeeperInferiorityEfficiencyChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -656,8 +670,8 @@ export default function AnalyticsPage() {
 
 										<div className="h-full">
 											<GoalkeeperGoalsByTypeChart
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>
@@ -675,7 +689,7 @@ export default function AnalyticsPage() {
 
 									<div className="grid grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
-											<GoalkeeperShotsGoalChart rows={goalkeeperShotsRows} matches={matches} players={players} />
+											<GoalkeeperShotsGoalChart rows={enabledGoalkeeperShotsRows} matches={enabledMatches} players={players} />
 										</div>
 									</div>
 								</div>
@@ -689,8 +703,8 @@ export default function AnalyticsPage() {
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
 										<div className="h-full">
 											<GoalkeeperRankingTable
-												matches={matches || []}
-												stats={allStats || []}
+												matches={enabledMatches}
+												stats={enabledStats}
 												players={players || []}
 												hiddenStats={hiddenStats}
 											/>

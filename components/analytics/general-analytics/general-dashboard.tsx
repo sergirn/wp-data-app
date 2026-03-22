@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Target, Shield, Activity } from "lucide-react";
-import { MatchResultsChart } from "../../match-results-chart";
+import { MatchResultsChart } from "./match-results-chart";
 import { buildGeneralDashboardAnalytics } from "@/lib/helpers/generalDashboardHelper";
 
 interface GeneralDashboardProps {
@@ -12,16 +12,25 @@ interface GeneralDashboardProps {
 }
 
 export function GeneralDashboard({ matches, stats, players }: GeneralDashboardProps) {
+	const enabledMatches = useMemo(() => {
+		return (matches || []).filter((match) => match.stats_enabled !== false);
+	}, [matches]);
+
+	const enabledMatchIds = useMemo(() => {
+		return new Set(enabledMatches.map((match) => match.id));
+	}, [enabledMatches]);
+
+	const enabledStats = useMemo(() => {
+		return (stats || []).filter((stat) => enabledMatchIds.has(stat.match_id));
+	}, [stats, enabledMatchIds]);
+
 	const analytics = useMemo(() => {
-		return buildGeneralDashboardAnalytics(matches, stats, players);
-	}, [matches, stats, players]);
+		return buildGeneralDashboardAnalytics(enabledMatches, enabledStats, players);
+	}, [enabledMatches, enabledStats, players]);
 
 	if (!analytics) {
 		return <div className="text-center py-10 text-sm text-muted-foreground">No hay datos disponibles para mostrar estadísticas.</div>;
 	}
-
-	const gd = analytics.goalDifference;
-	const gdBadge = gd > 0 ? "bg-green-500 text-white" : gd < 0 ? "bg-red-500 text-white" : "bg-muted text-foreground";
 
 	const MetricCard = ({
 		title,
@@ -83,7 +92,7 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 
 			<div className="grid gap-6 lg:grid-cols-[minmax(320px,1fr)_2fr] lg:items-start">
 				<div className="order-2 lg:order-1">
-					<MatchResultsChart matches={matches || []} />
+					<MatchResultsChart matches={enabledMatches} />
 				</div>
 
 				<div className="order-1 lg:order-2 space-y-7">

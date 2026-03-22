@@ -87,7 +87,11 @@ export function buildGeneralDashboardAnalytics(
 	const goalsAgainstInferiority = goalkeeperDerived.inferiorityGoals;
 
 	const totalSaves = goalkeeperDerived.saves;
-	const totalGoalsAgainst = goalkeeperDerived.goalsConceded;
+
+	// Goles recibidos calculados desde los resultados de los partidos
+	const totalGoalsAgainst = (matches ?? []).reduce((sum, match) => {
+		return sum + n(match.away_score);
+	}, 0);
 
 	const shootingEfficiency = totalShots > 0 ? ((totalGoalsFor / totalShots) * 100).toFixed(1) : "0.0";
 	const superiorityEfficiency = shotsSuperiority > 0 ? ((goalsSuperiority / shotsSuperiority) * 100).toFixed(1) : "0.0";
