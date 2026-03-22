@@ -324,8 +324,8 @@ export default function HomePage() {
 							)}
 						</div>
 
-						<Card className="rounded-3xl border ">
-							<CardHeader className="pb-3">
+						<div className="rounded-3xl ">
+							<div className="mb-4">
 								<div className="flex items-center justify-between gap-3">
 									<div className="min-w-0">
 										<CardTitle className="text-lg sm:text-xl">Plantilla</CardTitle>
@@ -338,9 +338,9 @@ export default function HomePage() {
 										</Link>
 									</Button>
 								</div>
-							</CardHeader>
+							</div>
 
-							<CardContent className="space-y-4">
+							<div className="space-y-4">
 								{players.length > 0 ? (
 									<>
 										<div className="sm:hidden space-y-3">
@@ -394,8 +394,8 @@ export default function HomePage() {
 										cta={{ href: "/jugadores", label: "Ir a jugadores" }}
 									/>
 								)}
-							</CardContent>
-						</Card>
+							</div>
+						</div>
 					</section>
 				</div>
 

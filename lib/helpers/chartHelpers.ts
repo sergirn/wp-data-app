@@ -125,7 +125,7 @@ export function buildBlocksChartData(stats: unknown, matchStats: unknown): Match
 		.filter((row) => n((row as any)?.acciones_bloqueo) > 0)
 		.sort((a, b) => n((b as any)?.acciones_bloqueo) - n((a as any)?.acciones_bloqueo));
 
-	const top3 = playersWithBlocks.slice(0, 3);
+	const top3 = playersWithBlocks.slice(0, 1);
 
 	return {
 		ok,

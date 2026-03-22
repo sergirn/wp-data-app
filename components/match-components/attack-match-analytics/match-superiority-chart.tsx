@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Target } from "lucide-react";
 import { buildSuperiorityConversionData } from "@/lib/helpers/chartHelpers";
-import { MatchConversionChartTemplate } from "../templates/charts/MatchConversionChartTemplate";
+import { MatchConversionChartTemplate } from "../../templates/charts/MatchConversionChartTemplate";
 
 export function MatchSuperiorityChart({ matchStats }: { matchStats: any[] }) {
 	const data = useMemo(() => buildSuperiorityConversionData(matchStats ?? []), [matchStats]);

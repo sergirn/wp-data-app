@@ -63,9 +63,9 @@ export function MatchBlocksChart({ stats, matchStats, clubName = "Equipo" }: { s
 				computed.top3.length > 0 ? (
 					<div className="rounded-2xl border bg-card/40 p-3">
 						<div className="flex items-center justify-between gap-2">
-							<p className="text-xs font-semibold text-muted-foreground">Top bloqueadores</p>
+							<p className="text-xs font-semibold text-muted-foreground">Top bloqueador</p>
 							<Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
-								top {Math.min(3, computed.playersCount)}
+								top {Math.min(1, computed.playersCount)}
 							</Badge>
 						</div>
 
