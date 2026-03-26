@@ -448,6 +448,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		portero_recibir_gol: 0,
 		portero_inferioridad_fuera: 0,
 		portero_inferioridad_bloqueo: 0,
+		portero_lanz_palo_inf: 0,
+		portero_parada_fuera_inf: 0,
 		lanz_recibido_fuera: 0,
 		portero_gol_palo: 0,
 		portero_lanz_palo: 0,
@@ -479,7 +481,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			"portero_tiros_parada_recup",
 			"portero_paradas_fuera",
 			"portero_paradas_penalti_parado",
-			"portero_paradas_hombre_menos"
+			"portero_paradas_hombre_menos",
+			"portero_parada_fuera_inf"
 		]);
 	};
 
@@ -677,7 +680,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					"portero_tiros_parada_recup",
 					"portero_paradas_fuera",
 					"portero_paradas_penalti_parado",
-					"portero_paradas_hombre_menos"
+					"portero_paradas_hombre_menos",
+					"portero_parada_fuera_inf"
 				];
 
 				if (saveFields.includes(field)) {
@@ -2364,7 +2368,8 @@ function GoalkeeperStatsDialog({
 							(isStatVisible("portero_tiros_parada_recup") ? safeNumber(stats.portero_tiros_parada_recup) : 0) +
 							(isStatVisible("portero_paradas_fuera") ? safeNumber(stats.portero_paradas_fuera) : 0) +
 							(isStatVisible("portero_paradas_penalti_parado") ? safeNumber(stats.portero_paradas_penalti_parado) : 0) +
-							(isStatVisible("portero_paradas_hombre_menos") ? safeNumber(stats.portero_paradas_hombre_menos) : 0)
+							(isStatVisible("portero_paradas_hombre_menos") ? safeNumber(stats.portero_paradas_hombre_menos) : 0) +
+							(isStatVisible("portero_parada_fuera_inf") ? safeNumber(stats.portero_parada_fuera_inf) : 0)
 						}
 						onChange={() => {}}
 						readOnly
@@ -2395,11 +2400,17 @@ function GoalkeeperStatsDialog({
 					<VisibleStatField
 						statKey="portero_paradas_hombre_menos"
 						isStatVisible={isStatVisible}
-						label="Paradas Inf.-"
+						label="Parada Recup Inf.-"
 						value={safeNumber(stats.portero_paradas_hombre_menos)}
 						onChange={(v) => onUpdate("portero_paradas_hombre_menos", v)}
 					/>
-
+					<VisibleStatField
+						statKey="portero_parada_fuera_inf"
+						isStatVisible={isStatVisible}
+						label="Parada Corner Inf.-"
+						value={safeNumber(stats.portero_parada_fuera_inf)}
+						onChange={(v) => onUpdate("portero_parada_fuera_inf", v)}
+					/>
 					<VisibleStatField
 						statKey="portero_inferioridad_fuera"
 						isStatVisible={isStatVisible}
@@ -2407,7 +2418,13 @@ function GoalkeeperStatsDialog({
 						value={safeNumber(stats.portero_inferioridad_fuera)}
 						onChange={(v) => onUpdate("portero_inferioridad_fuera", v)}
 					/>
-
+					<VisibleStatField
+						statKey="portero_lanz_palo_inf"
+						isStatVisible={isStatVisible}
+						label="Lanz. al palo inf-"
+						value={safeNumber(stats.portero_lanz_palo_inf)}
+						onChange={(v) => onUpdate("portero_lanz_palo_inf", v)}
+					/>
 					<VisibleStatField
 						statKey="portero_inferioridad_bloqueo"
 						isStatVisible={isStatVisible}
@@ -2427,6 +2444,8 @@ function GoalkeeperStatsDialog({
 
 							const evitados =
 								(isStatVisible("portero_paradas_hombre_menos") ? safeNumber(stats.portero_paradas_hombre_menos) : 0) +
+								(isStatVisible("portero_parada_fuera_inf") ? safeNumber(stats.portero_parada_fuera_inf) : 0) +
+								(isStatVisible("portero_lanz_palo_inf") ? safeNumber(stats.portero_lanz_palo_inf) : 0) +
 								(isStatVisible("portero_inferioridad_fuera") ? safeNumber(stats.portero_inferioridad_fuera) : 0) +
 								(isStatVisible("portero_inferioridad_bloqueo") ? safeNumber(stats.portero_inferioridad_bloqueo) : 0);
 							const total = goles + evitados;

@@ -27,10 +27,13 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 	const showGolesInf = !hiddenSet.has("portero_goles_hombre_menos");
 	const showGolPaloInf = !hiddenSet.has("portero_gol_palo");
 	const showParadasInf = !hiddenSet.has("portero_paradas_hombre_menos");
+	const showParadaFueraInf = !hiddenSet.has("portero_parada_fuera_inf");
+	const showLanzPaloInf = !hiddenSet.has("portero_lanz_palo_inf");
 	const showFueraInf = !hiddenSet.has("portero_inferioridad_fuera");
 	const showBloqueoInf = !hiddenSet.has("portero_inferioridad_bloqueo");
 
-	const hasVisibleInferiorityStats = showGolesInf || showGolPaloInf || showParadasInf || showFueraInf || showBloqueoInf;
+	const hasVisibleInferiorityStats =
+		showGolesInf || showGolPaloInf || showParadasInf || showParadaFueraInf || showLanzPaloInf || showFueraInf || showBloqueoInf;
 
 	const matchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -53,11 +56,15 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 
 				const paradasInf = showParadasInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_hombre_menos), 0) : 0;
 
+				const paradaFueraInf = showParadaFueraInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_parada_fuera_inf), 0) : 0;
+
+				const lanzPaloInf = showLanzPaloInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_lanz_palo_inf), 0) : 0;
+
 				const fueraInf = showFueraInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_fuera), 0) : 0;
 
 				const bloqueoInf = showBloqueoInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_bloqueo), 0) : 0;
 
-				const evitados = paradasInf + fueraInf + bloqueoInf;
+				const evitados = paradasInf + paradaFueraInf + lanzPaloInf + fueraInf + bloqueoInf;
 				const totalAcciones = golesRecibidos + evitados;
 				const efic = totalAcciones > 0 ? Math.round((evitados / totalAcciones) * 100) : 0;
 
@@ -74,6 +81,8 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 					golesRecibidos,
 
 					paradasInf,
+					paradaFueraInf,
+					lanzPaloInf,
 					fueraInf,
 					bloqueoInf,
 
@@ -83,7 +92,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 				};
 			})
 			.filter((row) => row.totalAcciones > 0);
-	}, [matches, stats, showGolesInf, showGolPaloInf, showParadasInf, showFueraInf, showBloqueoInf]);
+	}, [matches, stats, showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf]);
 
 	const chartData = useMemo(() => {
 		return matchData.map((m, index) => {
@@ -101,6 +110,8 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 	const totalGolPaloInf = matchData.reduce((sum, m) => sum + m.golPaloInf, 0);
 	const totalGolesRecibidos = matchData.reduce((sum, m) => sum + m.golesRecibidos, 0);
 	const totalParadas = matchData.reduce((sum, m) => sum + m.paradasInf, 0);
+	const totalParadaFueraInf = matchData.reduce((sum, m) => sum + m.paradaFueraInf, 0);
+	const totalLanzPaloInf = matchData.reduce((sum, m) => sum + m.lanzPaloInf, 0);
 	const totalFuera = matchData.reduce((sum, m) => sum + m.fueraInf, 0);
 	const totalBloqueo = matchData.reduce((sum, m) => sum + m.bloqueoInf, 0);
 
@@ -117,6 +128,12 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 		if (showParadasInf) {
 			entries.paradasInf = { label: "Paradas Inf.-", color: "hsla(145, 63%, 42%, 1.00)" };
 		}
+		if (showParadaFueraInf) {
+			entries.paradaFueraInf = { label: "Parada corner Inf.-", color: "hsla(160, 70%, 38%, 1.00)" };
+		}
+		if (showLanzPaloInf) {
+			entries.lanzPaloInf = { label: "Palo Inf.-", color: "hsla(280, 70%, 52%, 1.00)" };
+		}
 		if (showFueraInf) {
 			entries.fueraInf = { label: "Fuera Inf.-", color: "hsla(42, 96%, 55%, 1.00)" };
 		}
@@ -128,7 +145,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 		entries.eficAcum = { label: "Evitados acum. %", color: "hsla(221, 83%, 53%, 1.00)" };
 
 		return entries;
-	}, [showGolesInf, showGolPaloInf, showParadasInf, showFueraInf, showBloqueoInf]);
+	}, [showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf]);
 
 	if (!hasVisibleInferiorityStats || !matchData.length) return null;
 
@@ -194,6 +211,20 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 								<Bar yAxisId="left" dataKey="paradasInf" name="Paradas Inf.-" fill="var(--color-paradasInf)" radius={[4, 4, 0, 0]} />
 							)}
 
+							{showParadaFueraInf && (
+								<Bar
+									yAxisId="left"
+									dataKey="paradaFueraInf"
+									name="Parada corner Inf.-"
+									fill="var(--color-paradaFueraInf)"
+									radius={[4, 4, 0, 0]}
+								/>
+							)}
+
+							{showLanzPaloInf && (
+								<Bar yAxisId="left" dataKey="lanzPaloInf" name="Palo Inf.-" fill="var(--color-lanzPaloInf)" radius={[4, 4, 0, 0]} />
+							)}
+
 							{showFueraInf && (
 								<Bar yAxisId="left" dataKey="fueraInf" name="Fuera Inf.-" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
 							)}
@@ -239,6 +270,8 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 										<TableHead>Rival</TableHead>
 										{(showGolesInf || showGolPaloInf) && <TableHead className="text-right">Recibidos</TableHead>}
 										{showParadasInf && <TableHead className="text-right">Paradas</TableHead>}
+										{showParadaFueraInf && <TableHead className="text-right">P. corner</TableHead>}
+										{showLanzPaloInf && <TableHead className="text-right">Palo</TableHead>}
 										{showFueraInf && <TableHead className="text-right">Fuera</TableHead>}
 										{showBloqueoInf && <TableHead className="text-right">Bloqueo</TableHead>}
 										<TableHead className="text-right">Total</TableHead>
@@ -258,6 +291,8 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 											)}
 
 											{showParadasInf && <TableCell className="text-right tabular-nums">{m.paradasInf}</TableCell>}
+											{showParadaFueraInf && <TableCell className="text-right tabular-nums">{m.paradaFueraInf}</TableCell>}
+											{showLanzPaloInf && <TableCell className="text-right tabular-nums">{m.lanzPaloInf}</TableCell>}
 											{showFueraInf && <TableCell className="text-right tabular-nums">{m.fueraInf}</TableCell>}
 											{showBloqueoInf && <TableCell className="text-right tabular-nums">{m.bloqueoInf}</TableCell>}
 
@@ -313,6 +348,18 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 								{showParadasInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
 										Paradas: <span className="font-semibold text-foreground">{totalParadas}</span>
+									</span>
+								)}
+
+								{showParadaFueraInf && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										P. corner: <span className="font-semibold text-foreground">{totalParadaFueraInf}</span>
+									</span>
+								)}
+
+								{showLanzPaloInf && (
+									<span className="rounded-md border bg-card px-2 py-1">
+										Palo: <span className="font-semibold text-foreground">{totalLanzPaloInf}</span>
 									</span>
 								)}
 

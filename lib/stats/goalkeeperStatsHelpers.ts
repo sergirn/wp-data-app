@@ -66,6 +66,7 @@ export function getGoalkeeperDerived(stats: Record<string, any> | null | undefin
 	const savesByCategory = sumGoalkeeperCategory(stats, "paradas", hiddenStats);
 	const penaltySavesCategory = sumGoalkeeperCategory(stats, "paradas_penalti", hiddenStats);
 	const otherShots = sumGoalkeeperCategory(stats, "otros_tiros", hiddenStats);
+	const inferiorityCategory = sumGoalkeeperCategory(stats, "inferioridad", hiddenStats);
 	const actions = sumGoalkeeperCategory(stats, "acciones", hiddenStats);
 	const attack = sumGoalkeeperCategory(stats, "ataque", hiddenStats);
 
@@ -73,12 +74,16 @@ export function getGoalkeeperDerived(stats: Record<string, any> | null | undefin
 		(isVisibleStat("portero_goles_hombre_menos", hiddenStats) ? n(stats?.portero_goles_hombre_menos) : 0) +
 		(isVisibleStat("portero_gol_palo", hiddenStats) ? n(stats?.portero_gol_palo) : 0);
 
-	const inferioritySaves = isVisibleStat("portero_paradas_hombre_menos", hiddenStats) ? n(stats?.portero_paradas_hombre_menos) : 0;
+	const inferioritySaves =
+		(isVisibleStat("portero_paradas_hombre_menos", hiddenStats) ? n(stats?.portero_paradas_hombre_menos) : 0) +
+		(isVisibleStat("portero_parada_fuera_inf", hiddenStats) ? n(stats?.portero_parada_fuera_inf) : 0);
+
+	const inferiorityPost = isVisibleStat("portero_lanz_palo_inf", hiddenStats) ? n(stats?.portero_lanz_palo_inf) : 0;
 	const inferiorityOutside = isVisibleStat("portero_inferioridad_fuera", hiddenStats) ? n(stats?.portero_inferioridad_fuera) : 0;
 	const inferiorityBlocks = isVisibleStat("portero_inferioridad_bloqueo", hiddenStats) ? n(stats?.portero_inferioridad_bloqueo) : 0;
 
-	const inferiorityAttempts = inferiorityGoals + inferioritySaves + inferiorityOutside + inferiorityBlocks;
-	const inferiorityResolved = inferioritySaves + inferiorityOutside + inferiorityBlocks;
+	const inferiorityAttempts = inferiorityGoals + inferioritySaves + inferiorityPost + inferiorityOutside + inferiorityBlocks;
+	const inferiorityResolved = inferioritySaves + inferiorityPost + inferiorityOutside + inferiorityBlocks;
 	const inferiorityEfficiency = inferiorityAttempts > 0 ? Number(((inferiorityResolved / inferiorityAttempts) * 100).toFixed(1)) : 0;
 
 	return {
@@ -94,11 +99,13 @@ export function getGoalkeeperDerived(stats: Record<string, any> | null | undefin
 		savesByCategory,
 		penaltySavesCategory,
 		otherShots,
+		inferiorityCategory,
 		actions,
 		attack,
 
 		inferiorityGoals,
 		inferioritySaves,
+		inferiorityPost,
 		inferiorityOutside,
 		inferiorityBlocks,
 		inferiorityAttempts,
@@ -126,6 +133,7 @@ export function getGoalkeeperSummary(stats: Record<string, any> | null | undefin
 		inferiority: {
 			goals: derived.inferiorityGoals,
 			saves: derived.inferioritySaves,
+			post: derived.inferiorityPost,
 			outside: derived.inferiorityOutside,
 			blocks: derived.inferiorityBlocks,
 			attempts: derived.inferiorityAttempts,

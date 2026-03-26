@@ -64,7 +64,7 @@ export const GOALKEEPER_STATS: GoalkeeperStatDef[] = [
 	},
 	{
 		key: "portero_paradas_fuera",
-		label: "Fuera (parada)",
+		label: "Parada + Corner",
 		category: "paradas",
 		countsAsSave: true,
 		countsAsShotReceived: true
@@ -97,13 +97,13 @@ export const GOALKEEPER_STATS: GoalkeeperStatDef[] = [
 	// OTROS TIROS RECIBIDOS
 	{
 		key: "lanz_recibido_fuera",
-		label: "Lanz. recibido fuera",
+		label: "Lanzamiento recibido fuera",
 		category: "otros_tiros",
 		countsAsShotReceived: true
 	},
 	{
 		key: "portero_lanz_palo",
-		label: "Lanz. al palo",
+		label: "Lanzamiento al palo",
 		category: "otros_tiros",
 		countsAsShotReceived: true
 	},
@@ -125,7 +125,21 @@ export const GOALKEEPER_STATS: GoalkeeperStatDef[] = [
 	},
 	{
 		key: "portero_paradas_hombre_menos",
-		label: "Paradas Inferioridad -",
+		label: "Parada + recup Inferioridad -",
+		category: "inferioridad",
+		countsAsSave: true,
+		countsAsShotReceived: true
+	},
+	{
+		key: "portero_parada_fuera_inf",
+		label: "Parada + Corner Inferioridad -",
+		category: "inferioridad",
+		countsAsSave: true,
+		countsAsShotReceived: true
+	},
+	{
+		key: "portero_lanz_palo_inf",
+		label: "Lanzamiento al palo Inferioridad -",
 		category: "inferioridad",
 		countsAsSave: true,
 		countsAsShotReceived: true

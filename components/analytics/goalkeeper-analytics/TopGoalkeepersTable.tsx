@@ -23,7 +23,8 @@ const SAVE_DEFS = [
 	{ key: "paradasRecup", statKey: "portero_tiros_parada_recup", label: "P. Recup" },
 	{ key: "paradasFuera", statKey: "portero_paradas_fuera", label: "P. Fuera" },
 	{ key: "paradasPenalti", statKey: "portero_paradas_penalti_parado", label: "P. Pen." },
-	{ key: "paradasInf", statKey: "portero_paradas_hombre_menos", label: "P. Inf." }
+	{ key: "paradasInf", statKey: "portero_paradas_hombre_menos", label: "P. Inf." },
+	{ key: "paradasCornerInf", statKey: "portero_parada_fuera_inf", label: "P. Córner Inf." }
 ] as const;
 
 const GOAL_DEFS = [
@@ -93,10 +94,13 @@ export function GoalkeeperRankingTable({
 				player: Player | null;
 				paradas: number;
 				golesConcedidos: number;
+				accionesExtra: number;
 				paradasRecup: number;
 				paradasFuera: number;
 				paradasPenalti: number;
 				paradasInf: number;
+				paradasCornerInf: number;
+				lanzPaloInf: number;
 				gcBoya: number;
 				gcHm: number;
 				gcDir: number;
@@ -115,6 +119,8 @@ export function GoalkeeperRankingTable({
 			const paradasFuera = hiddenSet.has("portero_paradas_fuera") ? 0 : toNum(s.portero_paradas_fuera);
 			const paradasPenalti = hiddenSet.has("portero_paradas_penalti_parado") ? 0 : toNum(s.portero_paradas_penalti_parado);
 			const paradasInf = hiddenSet.has("portero_paradas_hombre_menos") ? 0 : toNum(s.portero_paradas_hombre_menos);
+			const paradasCornerInf = hiddenSet.has("portero_parada_fuera_inf") ? 0 : toNum(s.portero_parada_fuera_inf);
+			const lanzPaloInf = hiddenSet.has("portero_lanz_palo_inf") ? 0 : toNum(s.portero_lanz_palo_inf);
 
 			const gcBoya = hiddenSet.has("portero_goles_boya_parada") ? 0 : toNum(s.portero_goles_boya_parada);
 			const gcHm = hiddenSet.has("portero_goles_hombre_menos") ? 0 : toNum(s.portero_goles_hombre_menos);
@@ -124,19 +130,23 @@ export function GoalkeeperRankingTable({
 			const gcLanz = hiddenSet.has("portero_goles_lanzamiento") ? 0 : toNum(s.portero_goles_lanzamiento);
 			const gcPalo = hiddenSet.has("portero_gol_palo") ? 0 : toNum(s.portero_gol_palo);
 
-			const paradas = paradasRecup + paradasFuera + paradasPenalti + paradasInf;
+			const paradas = paradasRecup + paradasFuera + paradasPenalti + paradasInf + paradasCornerInf;
 			const golesConcedidos = gcBoya + gcHm + gcDir + gcContra + gcPen + gcLanz + gcPalo;
+			const accionesExtra = lanzPaloInf;
 
-			if (paradas <= 0 && golesConcedidos <= 0) return;
+			if (paradas <= 0 && golesConcedidos <= 0 && accionesExtra <= 0) return;
 
 			const prev = map.get(pid) ?? {
 				player: playersById.get(pid) ?? null,
 				paradas: 0,
 				golesConcedidos: 0,
+				accionesExtra: 0,
 				paradasRecup: 0,
 				paradasFuera: 0,
 				paradasPenalti: 0,
 				paradasInf: 0,
+				paradasCornerInf: 0,
+				lanzPaloInf: 0,
 				gcBoya: 0,
 				gcHm: 0,
 				gcDir: 0,
@@ -148,11 +158,14 @@ export function GoalkeeperRankingTable({
 
 			prev.paradas += paradas;
 			prev.golesConcedidos += golesConcedidos;
+			prev.accionesExtra += accionesExtra;
 
 			prev.paradasRecup += paradasRecup;
 			prev.paradasFuera += paradasFuera;
 			prev.paradasPenalti += paradasPenalti;
 			prev.paradasInf += paradasInf;
+			prev.paradasCornerInf += paradasCornerInf;
+			prev.lanzPaloInf += lanzPaloInf;
 
 			prev.gcBoya += gcBoya;
 			prev.gcHm += gcHm;
@@ -167,7 +180,7 @@ export function GoalkeeperRankingTable({
 
 		return Array.from(map.values())
 			.map((r) => {
-				const acciones = r.paradas + r.golesConcedidos;
+				const acciones = r.paradas + r.golesConcedidos + r.accionesExtra;
 				const pctParadas = acciones > 0 ? Number(((r.paradas / acciones) * 100).toFixed(1)) : 0;
 				const balance = r.paradas - r.golesConcedidos;
 

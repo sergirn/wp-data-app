@@ -27,12 +27,15 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 	const showGoalsHM = !hiddenSet.has("portero_goles_hombre_menos");
 	const showGoalPostHM = !hiddenSet.has("portero_gol_palo");
 	const showSavesHM = !hiddenSet.has("portero_paradas_hombre_menos");
+	const showSaveCornerHM = !hiddenSet.has("portero_parada_fuera_inf");
+	const showPostHM = !hiddenSet.has("portero_lanz_palo_inf");
 	const showOutsideHM = !hiddenSet.has("portero_inferioridad_fuera");
 	const showBlocksHM = !hiddenSet.has("portero_inferioridad_bloqueo");
 
 	const visibleReceived = (showGoalsHM ? 1 : 0) + (showGoalPostHM ? 1 : 0);
 
-	const visiblePrevented = (showSavesHM ? 1 : 0) + (showOutsideHM ? 1 : 0) + (showBlocksHM ? 1 : 0);
+	const visiblePrevented =
+		(showSavesHM ? 1 : 0) + (showSaveCornerHM ? 1 : 0) + (showPostHM ? 1 : 0) + (showOutsideHM ? 1 : 0) + (showBlocksHM ? 1 : 0);
 
 	const matchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -55,11 +58,15 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 
 				const paradasInf = showSavesHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_hombre_menos), 0) : 0;
 
+				const paradaCornerInf = showSaveCornerHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_parada_fuera_inf), 0) : 0;
+
+				const paloInf = showPostHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_lanz_palo_inf), 0) : 0;
+
 				const fueraInf = showOutsideHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_fuera), 0) : 0;
 
 				const bloqueoInf = showBlocksHM ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_bloqueo), 0) : 0;
 
-				const evitados = paradasInf + fueraInf + bloqueoInf;
+				const evitados = paradasInf + paradaCornerInf + paloInf + fueraInf + bloqueoInf;
 				const totalAcciones = golesRecibidos + evitados;
 				const eficacia = totalAcciones > 0 ? Math.round((evitados / totalAcciones) * 100) : 0;
 
@@ -74,6 +81,8 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 					golPaloHM,
 					golesRecibidos,
 					paradasInf,
+					paradaCornerInf,
+					paloInf,
 					fueraInf,
 					bloqueoInf,
 					evitados,
@@ -82,7 +91,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 				};
 			})
 			.filter((row) => row.totalAcciones > 0);
-	}, [matches, stats, showGoalsHM, showGoalPostHM, showSavesHM, showOutsideHM, showBlocksHM]);
+	}, [matches, stats, showGoalsHM, showGoalPostHM, showSavesHM, showSaveCornerHM, showPostHM, showOutsideHM, showBlocksHM]);
 
 	const chartData = useMemo(() => {
 		return matchData.map((m, index) => {
@@ -115,6 +124,8 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 					config={{
 						golesRecibidos: { label: "Goles recibidos", color: "hsla(0, 84%, 60%, 1.00)" },
 						paradasInf: { label: "Paradas Inf.-", color: "hsla(145, 63%, 42%, 1.00)" },
+						paradaCornerInf: { label: "Parada corner Inf.-", color: "hsla(160, 70%, 38%, 1.00)" },
+						paloInf: { label: "Palo Inf.-", color: "hsla(285, 70%, 52%, 1.00)" },
 						fueraInf: { label: "Fuera Inf.-", color: "hsla(42, 96%, 55%, 1.00)" },
 						bloqueoInf: { label: "Bloqueo Inf.-", color: "hsla(270, 75%, 60%, 1.00)" },
 						eficacia: { label: "Evitados %", color: "hsla(190, 95%, 45%, 1.00)" },
@@ -169,6 +180,20 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 								<Bar yAxisId="left" dataKey="paradasInf" name="Paradas Inf.-" fill="var(--color-paradasInf)" radius={[4, 4, 0, 0]} />
 							) : null}
 
+							{showSaveCornerHM ? (
+								<Bar
+									yAxisId="left"
+									dataKey="paradaCornerInf"
+									name="Parada corner Inf.-"
+									fill="var(--color-paradaCornerInf)"
+									radius={[4, 4, 0, 0]}
+								/>
+							) : null}
+
+							{showPostHM ? (
+								<Bar yAxisId="left" dataKey="paloInf" name="Palo Inf.-" fill="var(--color-paloInf)" radius={[4, 4, 0, 0]} />
+							) : null}
+
 							{showOutsideHM ? (
 								<Bar yAxisId="left" dataKey="fueraInf" name="Fuera Inf.-" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
 							) : null}
@@ -214,6 +239,8 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 										<TableHead className="text-right">Recibidos</TableHead>
 
 										{showSavesHM ? <TableHead className="text-right">Paradas</TableHead> : null}
+										{showSaveCornerHM ? <TableHead className="text-right">P. corner</TableHead> : null}
+										{showPostHM ? <TableHead className="text-right">Palo</TableHead> : null}
 										{showOutsideHM ? <TableHead className="text-right">Fuera</TableHead> : null}
 										{showBlocksHM ? <TableHead className="text-right">Bloqueo</TableHead> : null}
 
@@ -229,6 +256,8 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 											<TableCell className="text-right tabular-nums font-semibold">{m.golesRecibidos}</TableCell>
 
 											{showSavesHM ? <TableCell className="text-right tabular-nums">{m.paradasInf}</TableCell> : null}
+											{showSaveCornerHM ? <TableCell className="text-right tabular-nums">{m.paradaCornerInf}</TableCell> : null}
+											{showPostHM ? <TableCell className="text-right tabular-nums">{m.paloInf}</TableCell> : null}
 											{showOutsideHM ? <TableCell className="text-right tabular-nums">{m.fueraInf}</TableCell> : null}
 											{showBlocksHM ? <TableCell className="text-right tabular-nums">{m.bloqueoInf}</TableCell> : null}
 

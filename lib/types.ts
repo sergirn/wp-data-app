@@ -125,6 +125,7 @@ export interface MatchStats {
 	lanz_recibido_fuera: number;
 	portero_penalti_palo: number;
 	portero_penalti_fuera: number;
+	portero_parada_fuera_inf: number;
 
 	portero_acciones_asistencias: number; // Updated field name
 	portero_acciones_recuperacion: number; // Updated field name
@@ -132,6 +133,7 @@ export interface MatchStats {
 	portero_acciones_exp_provocada: number; // Updated field name
 	portero_gol_palo: number;
 	portero_lanz_palo: number;
+	portero_lanz_palo_inf: number;
 
 	portero_goles_boya_parada: number;
 	portero_goles_lanzamiento: number;

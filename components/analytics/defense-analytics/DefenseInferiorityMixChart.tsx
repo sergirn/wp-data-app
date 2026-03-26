@@ -50,6 +50,20 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 					color: "hsla(145, 63%, 42%, 1.00)"
 				},
 				{
+					key: "paradaFueraInf",
+					statKey: "portero_parada_fuera_inf",
+					label: "Parada corner inferioridad",
+					shortLabel: "P. corner",
+					color: "hsla(160, 70%, 38%, 1.00)"
+				},
+				{
+					key: "paloInf",
+					statKey: "portero_lanz_palo_inf",
+					label: "Palo inferioridad",
+					shortLabel: "Palo",
+					color: "hsla(280, 70%, 52%, 1.00)"
+				},
+				{
 					key: "fuera",
 					statKey: "portero_inferioridad_fuera",
 					label: "Fuera",
@@ -93,6 +107,8 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 
 		const resolved =
 			(partsWithPct.find((p) => p.key === "paradas")?.value ?? 0) +
+			(partsWithPct.find((p) => p.key === "paradaFueraInf")?.value ?? 0) +
+			(partsWithPct.find((p) => p.key === "paloInf")?.value ?? 0) +
 			(partsWithPct.find((p) => p.key === "fuera")?.value ?? 0) +
 			(partsWithPct.find((p) => p.key === "bloqueo")?.value ?? 0);
 
@@ -125,7 +141,9 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 				) as Record<string, number>;
 
 				const total = Object.values(values).reduce((sum: number, v) => sum + toNum(v), 0);
-				const resolved = toNum(values.paradas) + toNum(values.fuera) + toNum(values.bloqueo);
+				const resolved =
+					toNum(values.paradas) + toNum(values.paradaFueraInf) + toNum(values.paloInf) + toNum(values.fuera) + toNum(values.bloqueo);
+
 				const efficiency = total > 0 ? Math.round((resolved / total) * 100) : 0;
 				const jornadaNumber = match?.jornada ?? idx + 1;
 

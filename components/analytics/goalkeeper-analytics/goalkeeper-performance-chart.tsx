@@ -30,6 +30,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 			save_fuera: isVisible(hiddenSet, "portero_paradas_fuera"),
 			save_penalti: isVisible(hiddenSet, "portero_paradas_penalti_parado"),
 			save_inf: isVisible(hiddenSet, "portero_paradas_hombre_menos"),
+			save_fuera_inf: isVisible(hiddenSet, "portero_parada_fuera_inf"),
 
 			// goles encajados
 			goal_boya: isVisible(hiddenSet, "portero_goles_boya_parada"),
@@ -45,6 +46,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 			shot_penalti_fuera: isVisible(hiddenSet, "portero_penalti_fuera"),
 			shot_recibido_fuera: isVisible(hiddenSet, "lanz_recibido_fuera"),
 			shot_lanz_palo: isVisible(hiddenSet, "portero_lanz_palo"),
+			shot_inf_palo: isVisible(hiddenSet, "portero_lanz_palo_inf"),
 			shot_inf_fuera: isVisible(hiddenSet, "portero_inferioridad_fuera"),
 			shot_inf_bloqueo: isVisible(hiddenSet, "portero_inferioridad_bloqueo")
 		}),
@@ -68,19 +70,23 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 						s.portero_paradas_fuera != null ||
 						s.portero_paradas_penalti_parado != null ||
 						s.portero_paradas_hombre_menos != null ||
+						s.portero_parada_fuera_inf != null ||
 						s.portero_goles_boya_parada != null ||
 						s.portero_goles_dir_mas_5m != null ||
 						s.portero_goles_contraataque != null ||
 						s.portero_goles_penalti != null ||
 						s.portero_goles_lanzamiento != null ||
-						s.portero_goles_hombre_menos != null)
+						s.portero_goles_hombre_menos != null ||
+						s.portero_lanz_palo_inf != null)
 			);
 
 			const savesNormal =
 				(visibility.save_parada_recup ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_tiros_parada_recup), 0) : 0) +
 				(visibility.save_fuera ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_paradas_fuera), 0) : 0);
 
-			const savesInferiority = visibility.save_inf ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_paradas_hombre_menos), 0) : 0;
+			const savesInferiority =
+				(visibility.save_inf ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_paradas_hombre_menos), 0) : 0) +
+				(visibility.save_fuera_inf ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_parada_fuera_inf), 0) : 0);
 
 			const penaltiesSaved = visibility.save_penalti
 				? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_paradas_penalti_parado), 0)
@@ -102,6 +108,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 				(visibility.shot_penalti_fuera ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_penalti_fuera), 0) : 0) +
 				(visibility.shot_recibido_fuera ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.lanz_recibido_fuera), 0) : 0) +
 				(visibility.shot_lanz_palo ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_lanz_palo), 0) : 0) +
+				(visibility.shot_inf_palo ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_lanz_palo_inf), 0) : 0) +
 				(visibility.shot_inf_fuera ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_inferioridad_fuera), 0) : 0) +
 				(visibility.shot_inf_bloqueo ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_inferioridad_bloqueo), 0) : 0);
 
@@ -141,9 +148,13 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 		!hiddenSet.has("portero_tiros_parada_recup") ||
 		!hiddenSet.has("portero_paradas_fuera") ||
 		!hiddenSet.has("portero_paradas_penalti_parado") ||
-		!hiddenSet.has("portero_paradas_hombre_menos");
-	const showSavesInf = !hiddenSet.has("portero_paradas_hombre_menos");
+		!hiddenSet.has("portero_paradas_hombre_menos") ||
+		!hiddenSet.has("portero_parada_fuera_inf");
+
+	const showSavesInf = !hiddenSet.has("portero_paradas_hombre_menos") || !hiddenSet.has("portero_parada_fuera_inf");
+
 	const showPensSaved = !hiddenSet.has("portero_paradas_penalti_parado");
+
 	const showGoalsAgainst =
 		!hiddenSet.has("portero_goles_boya_parada") ||
 		!hiddenSet.has("portero_goles_dir_mas_5m") ||
@@ -152,6 +163,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 		!hiddenSet.has("portero_goles_lanzamiento") ||
 		!hiddenSet.has("portero_goles_hombre_menos") ||
 		!hiddenSet.has("portero_gol_palo");
+
 	const showShotsAgainst =
 		showSaves ||
 		showGoalsAgainst ||
@@ -159,6 +171,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 		!hiddenSet.has("portero_penalti_fuera") ||
 		!hiddenSet.has("lanz_recibido_fuera") ||
 		!hiddenSet.has("portero_lanz_palo") ||
+		!hiddenSet.has("portero_lanz_palo_inf") ||
 		!hiddenSet.has("portero_inferioridad_fuera") ||
 		!hiddenSet.has("portero_inferioridad_bloqueo");
 

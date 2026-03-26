@@ -23,7 +23,7 @@ const toNum = (v: unknown) => {
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
 type SavePartDef = {
-	key: "recup" | "fuera" | "pen" | "hm";
+	key: "recup" | "fuera" | "pen" | "hm" | "hmFuera";
 	label: string;
 	statKey: string;
 	color: string;
@@ -58,6 +58,13 @@ const SAVE_PART_DEFS: SavePartDef[] = [
 		shortLabel: "Inf.",
 		statKey: "portero_paradas_hombre_menos",
 		color: "hsla(42, 96%, 55%, 1.00)"
+	},
+	{
+		key: "hmFuera",
+		label: "Parada corner Inf.-",
+		shortLabel: "Inf. corner",
+		statKey: "portero_parada_fuera_inf",
+		color: "hsla(160, 70%, 38%, 1.00)"
 	}
 ];
 
@@ -191,7 +198,7 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 								))}
 							</div>
 
-							<div className="grid grid-cols-2 sm:grid-cols-2 gap-1.5 sm:gap-2">
+							<div className="grid grid-cols-3 sm:grid-cols-3 gap-1.5 sm:gap-2">
 								{summary.parts.map((p) => (
 									<div key={p.key} className="rounded-md border px-2 py-2 text-center" style={{ backgroundColor: `${p.color}10` }}>
 										<p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">{p.label}</p>
