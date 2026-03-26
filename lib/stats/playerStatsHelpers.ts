@@ -77,7 +77,7 @@ export function getPlayerDerived(stats: Record<string, any> | null | undefined, 
 		(isVisibleStat("faltas_exp_20_boya", hiddenStats) ? n(stats?.faltas_exp_20_boya) : 0) +
 		(isVisibleStat("faltas_exp_simple", hiddenStats) ? n(stats?.faltas_exp_simple) : 0) +
 		(isVisibleStat("faltas_penalti", hiddenStats) ? n(stats?.faltas_penalti) : 0) +
-		(isVisibleStat("faltas_contrafaltas", hiddenStats) ? n(stats?.faltas_contrafaltas) : 0) +
+		// (isVisibleStat("faltas_contrafaltas", hiddenStats) ? n(stats?.faltas_contrafaltas) : 0) +
 		(isVisibleStat("faltas_exp_3_int", hiddenStats) ? n(stats?.faltas_exp_3_int) : 0) +
 		(isVisibleStat("faltas_exp_3_bruta", hiddenStats) ? n(stats?.faltas_exp_3_bruta) : 0) +
 		(isVisibleStat("exp_trans_def", hiddenStats) ? n(stats?.exp_trans_def) : 0);
