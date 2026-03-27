@@ -35,33 +35,24 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 	const hasVisibleInferiorityStats =
 		showGolesInf || showGolPaloInf || showParadasInf || showParadaFueraInf || showLanzPaloInf || showFueraInf || showBloqueoInf;
 
-	const matchData = useMemo(() => {
+	const allMatchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 
 		return sorted
-			.slice(-15)
 			.map((match: any, idx: number) => {
 				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
 				const golesInf = showGolesInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_goles_hombre_menos), 0) : 0;
-
 				const golPaloInf = showGolPaloInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_gol_palo), 0) : 0;
 
 				const golesRecibidos = golesInf + golPaloInf;
 
 				const paradasInf = showParadasInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_paradas_hombre_menos), 0) : 0;
-
 				const paradaFueraInf = showParadaFueraInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_parada_fuera_inf), 0) : 0;
-
 				const lanzPaloInf = showLanzPaloInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_lanz_palo_inf), 0) : 0;
-
 				const fueraInf = showFueraInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_fuera), 0) : 0;
-
 				const bloqueoInf = showBloqueoInf ? ms.reduce((sum: number, s: any) => sum + toNum(s.portero_inferioridad_bloqueo), 0) : 0;
 
 				const evitados = paradasInf + paradaFueraInf + lanzPaloInf + fueraInf + bloqueoInf;
@@ -72,6 +63,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 
 				return {
 					matchId: match.id,
+					xLabel: `${match.id}-${idx}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
 					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
@@ -94,9 +86,11 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 			.filter((row) => row.totalAcciones > 0);
 	}, [matches, stats, showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf]);
 
-	const chartData = useMemo(() => {
-		return matchData.map((m, index) => {
-			const prev = matchData.slice(0, index + 1);
+	const compactMatchData = useMemo(() => allMatchData.slice(-15), [allMatchData]);
+
+	const buildChartData = (data: typeof allMatchData) =>
+		data.map((m, index) => {
+			const prev = data.slice(0, index + 1);
 			const avg = prev.reduce((sum, x) => sum + x.efic, 0) / (index + 1);
 
 			return {
@@ -104,19 +98,21 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 				eficAcum: Number(avg.toFixed(1))
 			};
 		});
-	}, [matchData]);
 
-	const totalGolesInf = matchData.reduce((sum, m) => sum + m.golesInf, 0);
-	const totalGolPaloInf = matchData.reduce((sum, m) => sum + m.golPaloInf, 0);
-	const totalGolesRecibidos = matchData.reduce((sum, m) => sum + m.golesRecibidos, 0);
-	const totalParadas = matchData.reduce((sum, m) => sum + m.paradasInf, 0);
-	const totalParadaFueraInf = matchData.reduce((sum, m) => sum + m.paradaFueraInf, 0);
-	const totalLanzPaloInf = matchData.reduce((sum, m) => sum + m.lanzPaloInf, 0);
-	const totalFuera = matchData.reduce((sum, m) => sum + m.fueraInf, 0);
-	const totalBloqueo = matchData.reduce((sum, m) => sum + m.bloqueoInf, 0);
+	const allChartData = useMemo(() => buildChartData(allMatchData), [allMatchData]);
+	const compactChartData = useMemo(() => buildChartData(compactMatchData), [compactMatchData]);
 
-	const totalEvitados = matchData.reduce((sum, m) => sum + m.evitados, 0);
-	const totalAcciones = matchData.reduce((sum, m) => sum + m.totalAcciones, 0);
+	const totalGolesInf = allMatchData.reduce((sum, m) => sum + m.golesInf, 0);
+	const totalGolPaloInf = allMatchData.reduce((sum, m) => sum + m.golPaloInf, 0);
+	const totalGolesRecibidos = allMatchData.reduce((sum, m) => sum + m.golesRecibidos, 0);
+	const totalParadas = allMatchData.reduce((sum, m) => sum + m.paradasInf, 0);
+	const totalParadaFueraInf = allMatchData.reduce((sum, m) => sum + m.paradaFueraInf, 0);
+	const totalLanzPaloInf = allMatchData.reduce((sum, m) => sum + m.lanzPaloInf, 0);
+	const totalFuera = allMatchData.reduce((sum, m) => sum + m.fueraInf, 0);
+	const totalBloqueo = allMatchData.reduce((sum, m) => sum + m.bloqueoInf, 0);
+
+	const totalEvitados = allMatchData.reduce((sum, m) => sum + m.evitados, 0);
+	const totalAcciones = allMatchData.reduce((sum, m) => sum + m.totalAcciones, 0);
 	const overall = totalAcciones > 0 ? Math.round((totalEvitados / totalAcciones) * 100) : 0;
 
 	const chartConfig = useMemo(() => {
@@ -147,118 +143,142 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 		return entries;
 	}, [showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf]);
 
-	if (!hasVisibleInferiorityStats || !matchData.length) return null;
+	if (!hasVisibleInferiorityStats || !allMatchData.length) return null;
 
 	return (
 		<ExpandableChartCard
 			title="Inferioridad: recibidos vs evitados"
-			description={`Últimos ${matchData.length} · Evitados ${overall}% · ${totalEvitados}/${totalAcciones}`}
+			description={`Jornadas registradas ${allMatchData.length} · Evitados ${overall}% · ${totalEvitados}/${totalAcciones}`}
 			icon={<Shield className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{overall}%</span>}
-			renderChart={({ compact }) => (
-				<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}>
-					<ResponsiveContainer width="100%" height="100%">
-						<ComposedChart data={chartData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
+			renderChart={({ compact }) => {
+				const chartData = compact ? compactChartData : allChartData;
+				const jornadaByXLabel = new Map(chartData.map((item) => [item.xLabel, item.jornada]));
 
-							<XAxis
-								dataKey="jornada"
-								fontSize={12}
-								tickMargin={8}
-								axisLine={false}
-								tickLine={false}
-								interval="preserveStartEnd"
-								minTickGap={18}
-							/>
+				return (
+					<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}>
+						<ResponsiveContainer width="100%" height="100%">
+							<ComposedChart data={chartData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
+								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
-							<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
-							<YAxis
-								yAxisId="right"
-								orientation="right"
-								domain={[0, 100]}
-								fontSize={12}
-								width={40}
-								tickMargin={6}
-								axisLine={false}
-								tickLine={false}
-							/>
+								<XAxis
+									dataKey="xLabel"
+									fontSize={12}
+									tickMargin={8}
+									axisLine={false}
+									tickLine={false}
+									interval="preserveStartEnd"
+									minTickGap={18}
+									tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
+								/>
 
-							<ChartTooltip
-								content={
-									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
-											const p = payload?.[0]?.payload;
-											return p ? `${label} · vs ${p.rival} · ${p.fullDate} · Evitados ${p.efic}%` : String(label);
-										}}
+								<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+								<YAxis
+									yAxisId="right"
+									orientation="right"
+									domain={[0, 100]}
+									fontSize={12}
+									width={40}
+									tickMargin={6}
+									axisLine={false}
+									tickLine={false}
+								/>
+
+								<ChartTooltip
+									content={
+										<ChartTooltipContent
+											labelFormatter={(_, payload) => {
+												const p = payload?.[0]?.payload;
+												return p ? `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Evitados ${p.efic}%` : "";
+											}}
+										/>
+									}
+								/>
+
+								<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+
+								{(showGolesInf || showGolPaloInf) && (
+									<Bar
+										yAxisId="left"
+										dataKey="golesRecibidos"
+										name="Goles recibidos"
+										fill="var(--color-golesRecibidos)"
+										radius={[4, 4, 0, 0]}
 									/>
-								}
-							/>
+								)}
 
-							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+								{showParadasInf && (
+									<Bar
+										yAxisId="left"
+										dataKey="paradasInf"
+										name="Paradas Inf.-"
+										fill="var(--color-paradasInf)"
+										radius={[4, 4, 0, 0]}
+									/>
+								)}
 
-							{(showGolesInf || showGolPaloInf) && (
-								<Bar
-									yAxisId="left"
-									dataKey="golesRecibidos"
-									name="Goles recibidos"
-									fill="var(--color-golesRecibidos)"
-									radius={[4, 4, 0, 0]}
+								{showParadaFueraInf && (
+									<Bar
+										yAxisId="left"
+										dataKey="paradaFueraInf"
+										name="Parada corner Inf.-"
+										fill="var(--color-paradaFueraInf)"
+										radius={[4, 4, 0, 0]}
+									/>
+								)}
+
+								{showLanzPaloInf && (
+									<Bar
+										yAxisId="left"
+										dataKey="lanzPaloInf"
+										name="Palo Inf.-"
+										fill="var(--color-lanzPaloInf)"
+										radius={[4, 4, 0, 0]}
+									/>
+								)}
+
+								{showFueraInf && (
+									<Bar yAxisId="left" dataKey="fueraInf" name="Fuera Inf.-" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
+								)}
+
+								{showBloqueoInf && (
+									<Bar
+										yAxisId="left"
+										dataKey="bloqueoInf"
+										name="Bloqueo Inf.-"
+										fill="var(--color-bloqueoInf)"
+										radius={[4, 4, 0, 0]}
+									/>
+								)}
+
+								<Line
+									yAxisId="right"
+									type="monotone"
+									dataKey="efic"
+									name="Evitados %"
+									stroke="var(--color-efic)"
+									strokeWidth={2.5}
+									dot={false}
+									activeDot={{ r: 4 }}
 								/>
-							)}
 
-							{showParadasInf && (
-								<Bar yAxisId="left" dataKey="paradasInf" name="Paradas Inf.-" fill="var(--color-paradasInf)" radius={[4, 4, 0, 0]} />
-							)}
-
-							{showParadaFueraInf && (
-								<Bar
-									yAxisId="left"
-									dataKey="paradaFueraInf"
-									name="Parada corner Inf.-"
-									fill="var(--color-paradaFueraInf)"
-									radius={[4, 4, 0, 0]}
+								<Line
+									yAxisId="right"
+									type="monotone"
+									dataKey="eficAcum"
+									name="Evitados acum. %"
+									stroke="var(--color-eficAcum)"
+									strokeWidth={3.5}
+									strokeDasharray="6 4"
+									dot={false}
+									activeDot={{ r: 4 }}
 								/>
-							)}
-
-							{showLanzPaloInf && (
-								<Bar yAxisId="left" dataKey="lanzPaloInf" name="Palo Inf.-" fill="var(--color-lanzPaloInf)" radius={[4, 4, 0, 0]} />
-							)}
-
-							{showFueraInf && (
-								<Bar yAxisId="left" dataKey="fueraInf" name="Fuera Inf.-" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
-							)}
-
-							{showBloqueoInf && (
-								<Bar yAxisId="left" dataKey="bloqueoInf" name="Bloqueo Inf.-" fill="var(--color-bloqueoInf)" radius={[4, 4, 0, 0]} />
-							)}
-
-							<Line
-								yAxisId="right"
-								type="monotone"
-								dataKey="efic"
-								name="Evitados %"
-								stroke="var(--color-efic)"
-								strokeWidth={2.5}
-								dot={false}
-								activeDot={{ r: 4 }}
-							/>
-
-							<Line
-								yAxisId="right"
-								type="monotone"
-								dataKey="eficAcum"
-								name="Evitados acum. %"
-								stroke="var(--color-eficAcum)"
-								strokeWidth={3.5}
-								strokeDasharray="6 4"
-								dot={false}
-								activeDot={{ r: 4 }}
-							/>
-						</ComposedChart>
-					</ResponsiveContainer>
-				</ChartContainer>
-			)}
+							</ComposedChart>
+						</ResponsiveContainer>
+					</ChartContainer>
+				);
+			}}
 			renderTable={() => (
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
@@ -268,6 +288,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
+										<TableHead>Fecha</TableHead>
 										{(showGolesInf || showGolPaloInf) && <TableHead className="text-right">Recibidos</TableHead>}
 										{showParadasInf && <TableHead className="text-right">Paradas</TableHead>}
 										{showParadaFueraInf && <TableHead className="text-right">P. corner</TableHead>}
@@ -276,15 +297,15 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 										{showBloqueoInf && <TableHead className="text-right">Bloqueo</TableHead>}
 										<TableHead className="text-right">Total</TableHead>
 										<TableHead className="text-right">Evitados</TableHead>
-										<TableHead className="text-right">Fecha</TableHead>
 									</TableRow>
 								</UITableHeader>
 
 								<TableBody>
-									{matchData.map((m, idx) => (
+									{allMatchData.map((m, idx) => (
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
+											<TableCell className="text-muted-foreground">{m.fullDate}</TableCell>
 
 											{(showGolesInf || showGolPaloInf) && (
 												<TableCell className="text-right tabular-nums font-semibold">{m.golesRecibidos}</TableCell>
@@ -311,8 +332,6 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 													{m.efic}%
 												</Badge>
 											</TableCell>
-
-											<TableCell className="text-right text-muted-foreground">{m.fullDate}</TableCell>
 										</TableRow>
 									))}
 								</TableBody>
@@ -323,7 +342,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{matchData.length}</span> partidos
+								<span className="font-medium text-foreground">{allMatchData.length}</span> partidos
 							</span>
 
 							<div className="flex flex-wrap gap-2">

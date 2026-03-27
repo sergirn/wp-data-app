@@ -91,16 +91,12 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 		);
 	}, [visibleDefs]);
 
-	const matchData = useMemo(() => {
+	const allMatchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 
 		return sorted
-			.slice(-15)
 			.map((match: any, index: number) => {
 				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
@@ -117,6 +113,7 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 
 				return {
 					matchId: match.id,
+					xLabel: `${match.id}-${index}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
 					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
@@ -127,69 +124,80 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 			.filter((row) => row.total > 0);
 	}, [matches, stats, hiddenSet, visibleDefs]);
 
-	const total = useMemo(() => {
-		return matchData.reduce((sum, m) => sum + m.total, 0);
-	}, [matchData]);
+	const compactMatchData = useMemo(() => {
+		return allMatchData.slice(-15);
+	}, [allMatchData]);
 
-	if (!visibleDefs.length || !matchData.length) return null;
+	const total = useMemo(() => {
+		return allMatchData.reduce((sum, m) => sum + m.total, 0);
+	}, [allMatchData]);
+
+	if (!visibleDefs.length || !allMatchData.length) return null;
 
 	return (
 		<ExpandableChartCard
 			title="Goles recibidos por tipo"
-			description={`Últimos ${matchData.length} · Total ${total}`}
+			description={`Jornadas registradas ${allMatchData.length} · Total ${total}`}
 			icon={<ShieldX className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{total}</span>}
-			renderChart={({ compact }) => (
-				<ChartContainer config={chartConfig} className="w-full h-full">
-					<ResponsiveContainer width="100%" height="100%">
-						<ComposedChart data={matchData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
-							<XAxis
-								dataKey="jornada"
-								fontSize={12}
-								tickMargin={8}
-								axisLine={false}
-								tickLine={false}
-								interval="preserveStartEnd"
-								minTickGap={18}
-							/>
-							<YAxis fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
-							<ChartTooltip
-								content={
-									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
-											const p = payload?.[0]?.payload;
-											return p ? `${label} · vs ${p.rival} · ${p.fullDate} · Total ${p.total}` : String(label);
-										}}
-									/>
-								}
-							/>
-							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+			renderChart={({ compact }) => {
+				const data = compact ? compactMatchData : allMatchData;
+				const jornadaByXLabel = new Map(data.map((item) => [item.xLabel, item.jornada]));
 
-							{visibleDefs.map((def, index) => (
-								<Bar
-									key={def.key}
-									dataKey={def.key}
-									name={def.label}
-									stackId="g"
-									fill={`var(--color-${def.key})`}
-									radius={index === 0 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+				return (
+					<ChartContainer config={chartConfig} className="w-full h-full">
+						<ResponsiveContainer width="100%" height="100%">
+							<ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
+								<XAxis
+									dataKey="xLabel"
+									fontSize={12}
+									tickMargin={8}
+									axisLine={false}
+									tickLine={false}
+									interval="preserveStartEnd"
+									minTickGap={18}
+									tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 								/>
-							))}
-						</ComposedChart>
-					</ResponsiveContainer>
-				</ChartContainer>
-			)}
+								<YAxis fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+								<ChartTooltip
+									content={
+										<ChartTooltipContent
+											labelFormatter={(_, payload) => {
+												const p = payload?.[0]?.payload;
+												return p ? `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Total ${p.total}` : "";
+											}}
+										/>
+									}
+								/>
+								<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+
+								{visibleDefs.map((def, index) => (
+									<Bar
+										key={def.key}
+										dataKey={def.key}
+										name={def.label}
+										stackId="g"
+										fill={`var(--color-${def.key})`}
+										radius={index === 0 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+									/>
+								))}
+							</ComposedChart>
+						</ResponsiveContainer>
+					</ChartContainer>
+				);
+			}}
 			renderTable={() => (
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
 						<div className="max-h-[520px] overflow-y-auto">
-							<Table className="min-w-[1100px]">
+							<Table className="min-w-[1200px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
+										<TableHead>Fecha</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
@@ -202,10 +210,11 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 								</UITableHeader>
 
 								<TableBody>
-									{matchData.map((m, idx) => (
+									{allMatchData.map((m, idx) => (
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
+											<TableCell>{m.fullDate}</TableCell>
 
 											{visibleDefs.map((def) => (
 												<TableCell key={def.key} className="text-right tabular-nums">

@@ -109,7 +109,6 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 		});
 
 		return sorted
-			.slice(-15)
 			.map((match: any, idx: number) => {
 				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
@@ -215,11 +214,12 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
 						<div className="max-h-[520px] overflow-y-auto">
-							<Table className="min-w-[900px]">
+							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
+										<TableHead>Fecha</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
@@ -235,6 +235,7 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
+											<TableCell>{m.fullDate}</TableCell>
 
 											{visibleDefs.map((def) => (
 												<TableCell key={def.key} className="text-right tabular-nums">

@@ -71,14 +71,10 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 
 	const matchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 
 		return sorted
-			.slice(-15)
 			.map((match: any, index: number) => {
 				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
@@ -97,6 +93,7 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 
 				return {
 					matchId: match.id,
+					xLabel: `${match.id}-${index}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
 					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
@@ -109,6 +106,10 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 			})
 			.filter((row) => row.positivas > 0 || row.negativas > 0);
 	}, [matches, stats, hiddenSet, positiveDefs, negativeDefs]);
+
+	const jornadaByXLabel = useMemo(() => {
+		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
+	}, [matchData]);
 
 	const totalPos = useMemo(() => matchData.reduce((sum, m) => sum + m.positivas, 0), [matchData]);
 	const totalNeg = useMemo(() => matchData.reduce((sum, m) => sum + m.negativas, 0), [matchData]);
@@ -153,23 +154,22 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 						<ComposedChart data={matchData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 							<XAxis
-								dataKey="jornada"
+								dataKey="xLabel"
 								fontSize={12}
 								tickMargin={8}
 								axisLine={false}
 								tickLine={false}
 								interval="preserveStartEnd"
 								minTickGap={18}
+								tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 							/>
 							<YAxis fontSize={12} width={38} tickMargin={6} axisLine={false} tickLine={false} />
 							<ChartTooltip
 								content={
 									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
+										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
-											return p
-												? `${label} · vs ${p.rival} · ${p.fullDate} · ${p.balance >= 0 ? "+" : ""}${p.balance}`
-												: String(label);
+											return p ? `${p.jornada} · vs ${p.rival} · ${p.fullDate} · ${p.balance >= 0 ? "+" : ""}${p.balance}` : "";
 										}}
 									/>
 								}

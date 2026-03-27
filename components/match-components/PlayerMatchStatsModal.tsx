@@ -276,7 +276,7 @@ export function PlayerMatchStatsModal({ open, onOpenChange, player, stat, derive
 										<span className="text-sm font-semibold tabular-nums">{modalDerived.totalActions}</span>
 									</div>
 									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-										<span className="text-sm text-muted-foreground">Faltas totales</span>
+										<span className="text-sm text-muted-foreground">Expulsiones totales</span>
 										<span className="text-sm font-semibold tabular-nums">{modalDerived.totalFouls}</span>
 									</div>
 									<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">

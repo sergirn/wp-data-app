@@ -25,14 +25,12 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 
 	const visibility = useMemo(
 		() => ({
-			// paradas
 			save_parada_recup: isVisible(hiddenSet, "portero_tiros_parada_recup"),
 			save_fuera: isVisible(hiddenSet, "portero_paradas_fuera"),
 			save_penalti: isVisible(hiddenSet, "portero_paradas_penalti_parado"),
 			save_inf: isVisible(hiddenSet, "portero_paradas_hombre_menos"),
 			save_fuera_inf: isVisible(hiddenSet, "portero_parada_fuera_inf"),
 
-			// goles encajados
 			goal_boya: isVisible(hiddenSet, "portero_goles_boya_parada"),
 			goal_dir6: isVisible(hiddenSet, "portero_goles_dir_mas_5m"),
 			goal_contra: isVisible(hiddenSet, "portero_goles_contraataque"),
@@ -41,7 +39,6 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 			goal_inf: isVisible(hiddenSet, "portero_goles_hombre_menos"),
 			goal_inf_palo: isVisible(hiddenSet, "portero_gol_palo"),
 
-			// tiros recibidos extra
 			shot_penalti_palo: isVisible(hiddenSet, "portero_penalti_palo"),
 			shot_penalti_fuera: isVisible(hiddenSet, "portero_penalti_fuera"),
 			shot_recibido_fuera: isVisible(hiddenSet, "lanz_recibido_fuera"),
@@ -53,15 +50,12 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 		[hiddenSet]
 	);
 
-	const data = useMemo(() => {
+	const allData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a, b) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 
-		return sorted.slice(-15).map((match, idx) => {
+		return sorted.map((match, idx) => {
 			const goalkeepersStats = (stats ?? []).filter(
 				(s) =>
 					String(s.match_id) === String(match.id) &&
@@ -119,6 +113,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 
 			return {
 				matchId: match.id,
+				xLabel: `${match.id}-${idx}`,
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
@@ -135,14 +130,16 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 		});
 	}, [matches, stats, visibility]);
 
-	const avgPct = useMemo(() => {
-		if (!data.length) return "0.0";
-		return (data.reduce((s, d) => s + d.percentage, 0) / data.length).toFixed(1);
-	}, [data]);
+	const compactData = useMemo(() => allData.slice(-15), [allData]);
 
-	const totalSaves = useMemo(() => data.reduce((s, d) => s + d.saves, 0), [data]);
-	const totalGoalsAgainst = useMemo(() => data.reduce((s, d) => s + d.golesRecibidos, 0), [data]);
-	const totalShotsAgainst = useMemo(() => data.reduce((s, d) => s + d.tirosRecibidos, 0), [data]);
+	const avgPctAll = useMemo(() => {
+		if (!allData.length) return "0.0";
+		return (allData.reduce((s, d) => s + d.percentage, 0) / allData.length).toFixed(1);
+	}, [allData]);
+
+	const totalSavesAll = useMemo(() => allData.reduce((s, d) => s + d.saves, 0), [allData]);
+	const totalGoalsAgainstAll = useMemo(() => allData.reduce((s, d) => s + d.golesRecibidos, 0), [allData]);
+	const totalShotsAgainstAll = useMemo(() => allData.reduce((s, d) => s + d.tirosRecibidos, 0), [allData]);
 
 	const showSaves =
 		!hiddenSet.has("portero_tiros_parada_recup") ||
@@ -175,129 +172,135 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 		!hiddenSet.has("portero_inferioridad_fuera") ||
 		!hiddenSet.has("portero_inferioridad_bloqueo");
 
-	if (!data.length || (!showSaves && !showSavesInf && !showPensSaved && !showGoalsAgainst && !showShotsAgainst)) return null;
+	if (!allData.length || (!showSaves && !showSavesInf && !showPensSaved && !showGoalsAgainst && !showShotsAgainst)) return null;
 
 	return (
 		<ExpandableChartCard
 			title="Rendimiento de Porteros"
-			description={`Últimos ${data.length} · Media: ${avgPct}% · Paradas: ${totalSaves} · GC: ${totalGoalsAgainst}`}
+			description={`Jornadas registradas ${allData.length} · Media: ${avgPctAll}% · Paradas: ${totalSavesAll} · GC: ${totalGoalsAgainstAll}`}
 			icon={<Shield className="w-5 h-5" />}
 			className="bg-gradient-to-br from-blue-500/5 to-white-500/5"
-			rightHeader={<span className="text-xs text-muted-foreground">{avgPct}%</span>}
-			renderChart={({ compact }) => (
-				<ChartContainer
-					config={{
-						...(showSaves && { saves: { label: "Paradas Totales", color: "hsl(199 95% 55%)" } }),
-						...(showSavesInf && { savesInf: { label: "Paradas en Inferioridad", color: "hsl(142 85% 45%)" } }),
-						percentage: { label: "% Efectividad", color: "hsl(34 95% 55%)" }
-					}}
-					className="w-full h-full"
-				>
-					<ResponsiveContainer width="100%" height="100%">
-						<AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-							<defs>
-								{showSaves ? (
-									<linearGradient id="fillSaves" x1="0" y1="0" x2="0" y2="1">
-										<stop offset="5%" stopColor="var(--color-saves)" stopOpacity={0.55} />
-										<stop offset="95%" stopColor="var(--color-saves)" stopOpacity={0.08} />
+			rightHeader={<span className="text-xs text-muted-foreground">{avgPctAll}%</span>}
+			renderChart={({ compact }) => {
+				const chartData = compact ? compactData : allData;
+				const jornadaByXLabel = new Map(chartData.map((item) => [item.xLabel, item.jornada]));
+
+				return (
+					<ChartContainer
+						config={{
+							...(showSaves && { saves: { label: "Paradas Totales", color: "hsl(199 95% 55%)" } }),
+							...(showSavesInf && { savesInf: { label: "Paradas en Inferioridad", color: "hsl(142 85% 45%)" } }),
+							percentage: { label: "% Efectividad", color: "hsl(34 95% 55%)" }
+						}}
+						className="w-full h-full"
+					>
+						<ResponsiveContainer width="100%" height="100%">
+							<AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+								<defs>
+									{showSaves ? (
+										<linearGradient id="fillSaves" x1="0" y1="0" x2="0" y2="1">
+											<stop offset="5%" stopColor="var(--color-saves)" stopOpacity={0.55} />
+											<stop offset="95%" stopColor="var(--color-saves)" stopOpacity={0.08} />
+										</linearGradient>
+									) : null}
+
+									{showSavesInf ? (
+										<linearGradient id="fillSavesInf" x1="0" y1="0" x2="0" y2="1">
+											<stop offset="5%" stopColor="var(--color-savesInf)" stopOpacity={0.55} />
+											<stop offset="95%" stopColor="var(--color-savesInf)" stopOpacity={0.08} />
+										</linearGradient>
+									) : null}
+
+									<linearGradient id="fillPercentage" x1="0" y1="0" x2="0" y2="1">
+										<stop offset="5%" stopColor="var(--color-percentage)" stopOpacity={0.45} />
+										<stop offset="95%" stopColor="var(--color-percentage)" stopOpacity={0.05} />
 									</linearGradient>
+								</defs>
+
+								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
+
+								<XAxis
+									dataKey="xLabel"
+									fontSize={12}
+									tickMargin={8}
+									interval="preserveStartEnd"
+									minTickGap={18}
+									axisLine={false}
+									tickLine={false}
+									tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
+								/>
+
+								<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+
+								<YAxis
+									yAxisId="right"
+									orientation="right"
+									domain={[0, 100]}
+									fontSize={12}
+									width={40}
+									tickMargin={6}
+									axisLine={false}
+									tickLine={false}
+								/>
+
+								<ChartTooltip
+									content={
+										<ChartTooltipContent
+											labelFormatter={(_, payload) => {
+												const p = payload?.[0]?.payload;
+												if (!p) return "";
+												return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · %: ${p.percentage}% · Par: ${p.saves}`;
+											}}
+										/>
+									}
+								/>
+
+								<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
+
+								{showSaves ? (
+									<Area
+										yAxisId="left"
+										type="monotone"
+										dataKey="saves"
+										name="Paradas Totales"
+										stroke="var(--color-saves)"
+										fill="url(#fillSaves)"
+										strokeWidth={2}
+										dot={false}
+										activeDot={{ r: 4 }}
+									/>
 								) : null}
 
 								{showSavesInf ? (
-									<linearGradient id="fillSavesInf" x1="0" y1="0" x2="0" y2="1">
-										<stop offset="5%" stopColor="var(--color-savesInf)" stopOpacity={0.55} />
-										<stop offset="95%" stopColor="var(--color-savesInf)" stopOpacity={0.08} />
-									</linearGradient>
+									<Area
+										yAxisId="left"
+										type="monotone"
+										dataKey="savesInf"
+										name="Paradas en Inferioridad"
+										stroke="var(--color-savesInf)"
+										fill="url(#fillSavesInf)"
+										strokeWidth={2}
+										dot={false}
+										activeDot={{ r: 4 }}
+									/>
 								) : null}
 
-								<linearGradient id="fillPercentage" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="5%" stopColor="var(--color-percentage)" stopOpacity={0.45} />
-									<stop offset="95%" stopColor="var(--color-percentage)" stopOpacity={0.05} />
-								</linearGradient>
-							</defs>
-
-							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
-
-							<XAxis
-								dataKey="jornada"
-								fontSize={12}
-								tickMargin={8}
-								interval="preserveStartEnd"
-								minTickGap={18}
-								axisLine={false}
-								tickLine={false}
-							/>
-
-							<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
-
-							<YAxis
-								yAxisId="right"
-								orientation="right"
-								domain={[0, 100]}
-								fontSize={12}
-								width={40}
-								tickMargin={6}
-								axisLine={false}
-								tickLine={false}
-							/>
-
-							<ChartTooltip
-								content={
-									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
-											const p = payload?.[0]?.payload;
-											if (!p) return String(label);
-											return `${label} · vs ${p.rival} · ${p.fullDate} · %: ${p.percentage}% · Par: ${p.saves}`;
-										}}
-									/>
-								}
-							/>
-
-							<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
-
-							{showSaves ? (
 								<Area
-									yAxisId="left"
+									yAxisId="right"
 									type="monotone"
-									dataKey="saves"
-									name="Paradas Totales"
-									stroke="var(--color-saves)"
-									fill="url(#fillSaves)"
+									dataKey="percentage"
+									name="% Efectividad"
+									stroke="var(--color-percentage)"
+									fill="url(#fillPercentage)"
 									strokeWidth={2}
 									dot={false}
 									activeDot={{ r: 4 }}
 								/>
-							) : null}
-
-							{showSavesInf ? (
-								<Area
-									yAxisId="left"
-									type="monotone"
-									dataKey="savesInf"
-									name="Paradas en Inferioridad"
-									stroke="var(--color-savesInf)"
-									fill="url(#fillSavesInf)"
-									strokeWidth={2}
-									dot={false}
-									activeDot={{ r: 4 }}
-								/>
-							) : null}
-
-							<Area
-								yAxisId="right"
-								type="monotone"
-								dataKey="percentage"
-								name="% Efectividad"
-								stroke="var(--color-percentage)"
-								fill="url(#fillPercentage)"
-								strokeWidth={2}
-								dot={false}
-								activeDot={{ r: 4 }}
-							/>
-						</AreaChart>
-					</ResponsiveContainer>
-				</ChartContainer>
-			)}
+							</AreaChart>
+						</ResponsiveContainer>
+					</ChartContainer>
+				);
+			}}
 			renderTable={() => (
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
@@ -313,12 +316,12 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 										{showGoalsAgainst ? <TableHead className="text-right">GC</TableHead> : null}
 										{showShotsAgainst ? <TableHead className="text-right">Tiros</TableHead> : null}
 										<TableHead className="text-right">% Efec.</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="text-right">Fecha</TableHead>
 									</TableRow>
 								</UITableHeader>
 
 								<TableBody>
-									{data.map((m, idx) => (
+									{allData.map((m, idx) => (
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 
@@ -339,7 +342,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 												<span className="font-semibold text-white">{m.percentage.toFixed(1)}%</span>
 											</TableCell>
 
-											<TableCell className="text-right text-muted-foreground hidden lg:table-cell">{m.fullDate}</TableCell>
+											<TableCell className="text-right text-muted-foreground">{m.fullDate}</TableCell>
 										</TableRow>
 									))}
 								</TableBody>
@@ -350,30 +353,30 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{data.length}</span> partidos
+								<span className="font-medium text-foreground">{allData.length}</span> partidos
 							</span>
 
 							<div className="flex flex-wrap gap-2">
 								{showSaves ? (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Total Paradas: <span className="font-semibold text-foreground">{totalSaves}</span>
+										Total Paradas: <span className="font-semibold text-foreground">{totalSavesAll}</span>
 									</span>
 								) : null}
 
 								{showGoalsAgainst ? (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Total GC: <span className="font-semibold text-foreground">{totalGoalsAgainst}</span>
+										Total GC: <span className="font-semibold text-foreground">{totalGoalsAgainstAll}</span>
 									</span>
 								) : null}
 
 								{showShotsAgainst ? (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Total Tiros: <span className="font-semibold text-foreground">{totalShotsAgainst}</span>
+										Total Tiros: <span className="font-semibold text-foreground">{totalShotsAgainstAll}</span>
 									</span>
 								) : null}
 
 								<span className="rounded-md border bg-card px-2 py-1">
-									Media %: <span className="font-semibold text-white">{avgPct}%</span>
+									Media %: <span className="font-semibold text-white">{avgPctAll}%</span>
 								</span>
 							</div>
 						</div>

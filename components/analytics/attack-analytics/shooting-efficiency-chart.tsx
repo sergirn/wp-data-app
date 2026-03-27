@@ -33,18 +33,14 @@ const sumVisibleKeys = (rows: any[], keys: string[], hiddenSet: Set<string>) => 
 export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: ShootingEfficiencyChartProps) {
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
-	const data = useMemo(() => {
+	const allData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a, b) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 
-		return sorted.slice(-15).map((match, idx) => {
+		return sorted.map((match, idx) => {
 			const matchStats = (stats ?? []).filter((s) => String(s.match_id) === String(match.id));
 
-			// ===== GENERAL (respetando ocultos) =====
 			const generalGoalKeys = [
 				"goles_boya_jugada",
 				"goles_hombre_mas",
@@ -72,7 +68,6 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 			const totalShots = totalGoals + totalMisses;
 			const general = totalShots > 0 ? (totalGoals / totalShots) * 100 : 0;
 
-			// ===== SUPERIORIDAD (respetando ocultos) =====
 			const golesSup = hiddenSet.has("goles_hombre_mas") ? 0 : sumVisibleKeys(matchStats, ["goles_hombre_mas"], hiddenSet);
 
 			const paloSup = hiddenSet.has("gol_del_palo_sup") ? 0 : sumVisibleKeys(matchStats, ["gol_del_palo_sup"], hiddenSet);
@@ -91,10 +86,11 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 			const intentosSup = golesSupTotal + fallosSupFuera + fallosSupParada + fallosSupBloqueo;
 			const superiority = intentosSup > 0 ? (golesSupTotal / intentosSup) * 100 : 0;
 
-			const jornadaNumber = match.jornada ?? idx + 1;
+			const jornadaNumber = match?.jornada ?? idx + 1;
 
 			return {
 				matchId: match.id,
+				xLabel: `${match.id}-${idx}`,
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
@@ -112,99 +108,107 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 		});
 	}, [matches, stats, hiddenSet]);
 
+	const compactData = useMemo(() => allData.slice(-15), [allData]);
+
 	const avgGeneral = useMemo(() => {
-		if (!data.length) return "0.0";
-		return (data.reduce((s, d) => s + d.general, 0) / data.length).toFixed(1);
-	}, [data]);
+		if (!allData.length) return "0.0";
+		return (allData.reduce((s, d) => s + d.general, 0) / allData.length).toFixed(1);
+	}, [allData]);
 
 	const avgSup = useMemo(() => {
-		if (!data.length) return "0.0";
-		return (data.reduce((s, d) => s + d.superiority, 0) / data.length).toFixed(1);
-	}, [data]);
+		if (!allData.length) return "0.0";
+		return (allData.reduce((s, d) => s + d.superiority, 0) / allData.length).toFixed(1);
+	}, [allData]);
 
-	if (!data.length) return null;
+	if (!allData.length) return null;
 
 	return (
 		<ExpandableChartCard
 			title="Eficiencia de tiros"
-			description={`Últimos ${data.length} · Media: ${avgGeneral}% (General) · ${avgSup}% (Sup.)`}
+			description={`Jornadas registradas ${allData.length} · Media: ${avgGeneral}% (General) · ${avgSup}% (Sup.)`}
 			icon={<Target className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{avgGeneral}%</span>}
-			renderChart={() => (
-				<ChartContainer
-					config={{
-						general: { label: "Eficiencia General (%)", color: "hsla(0, 91%, 60%, 1.00)" },
-						superiority: { label: "Eficiencia Superioridad (%)", color: "hsla(59, 85%, 45%, 1.00)" }
-					}}
-					className="w-full h-full"
-				>
-					<ResponsiveContainer width="100%" height="100%">
-						<AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-							<defs>
-								<linearGradient id="fillGeneral" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="5%" stopColor="var(--color-general)" stopOpacity={0.55} />
-									<stop offset="95%" stopColor="var(--color-general)" stopOpacity={0.08} />
-								</linearGradient>
-								<linearGradient id="fillSup" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="5%" stopColor="var(--color-superiority)" stopOpacity={0.55} />
-									<stop offset="95%" stopColor="var(--color-superiority)" stopOpacity={0.08} />
-								</linearGradient>
-							</defs>
+			renderChart={({ compact }) => {
+				const chartData = compact ? compactData : allData;
+				const jornadaByXLabel = new Map(chartData.map((item) => [item.xLabel, item.jornada]));
 
-							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
+				return (
+					<ChartContainer
+						config={{
+							general: { label: "Eficiencia General (%)", color: "hsla(0, 91%, 60%, 1.00)" },
+							superiority: { label: "Eficiencia Superioridad (%)", color: "hsla(59, 85%, 45%, 1.00)" }
+						}}
+						className="w-full h-full"
+					>
+						<ResponsiveContainer width="100%" height="100%">
+							<AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+								<defs>
+									<linearGradient id="fillGeneral" x1="0" y1="0" x2="0" y2="1">
+										<stop offset="5%" stopColor="var(--color-general)" stopOpacity={0.55} />
+										<stop offset="95%" stopColor="var(--color-general)" stopOpacity={0.08} />
+									</linearGradient>
+									<linearGradient id="fillSup" x1="0" y1="0" x2="0" y2="1">
+										<stop offset="5%" stopColor="var(--color-superiority)" stopOpacity={0.55} />
+										<stop offset="95%" stopColor="var(--color-superiority)" stopOpacity={0.08} />
+									</linearGradient>
+								</defs>
 
-							<XAxis
-								dataKey="jornada"
-								fontSize={12}
-								tickMargin={8}
-								interval="preserveStartEnd"
-								minTickGap={18}
-								axisLine={false}
-								tickLine={false}
-							/>
+								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
-							<YAxis fontSize={12} width={34} tickMargin={6} domain={[0, 100]} axisLine={false} tickLine={false} />
+								<XAxis
+									dataKey="xLabel"
+									fontSize={12}
+									tickMargin={8}
+									interval="preserveStartEnd"
+									minTickGap={18}
+									axisLine={false}
+									tickLine={false}
+									tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
+								/>
 
-							<ChartTooltip
-								content={
-									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
-											const p = payload?.[0]?.payload;
-											if (!p) return String(label);
-											return `${label} · vs ${p.rival} · ${p.fullDate}`;
-										}}
-									/>
-								}
-							/>
+								<YAxis fontSize={12} width={34} tickMargin={6} domain={[0, 100]} axisLine={false} tickLine={false} />
 
-							<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
+								<ChartTooltip
+									content={
+										<ChartTooltipContent
+											labelFormatter={(_, payload) => {
+												const p = payload?.[0]?.payload;
+												if (!p) return "";
+												return `${p.jornada} · vs ${p.rival} · ${p.fullDate}`;
+											}}
+										/>
+									}
+								/>
 
-							<Area
-								type="monotone"
-								dataKey="general"
-								name="Eficiencia General"
-								stroke="var(--color-general)"
-								fill="url(#fillGeneral)"
-								strokeWidth={2}
-								dot={false}
-								activeDot={{ r: 4 }}
-							/>
+								<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
 
-							<Area
-								type="monotone"
-								dataKey="superiority"
-								name="Eficiencia Superioridad"
-								stroke="var(--color-superiority)"
-								fill="url(#fillSup)"
-								strokeWidth={2}
-								dot={false}
-								activeDot={{ r: 4 }}
-							/>
-						</AreaChart>
-					</ResponsiveContainer>
-				</ChartContainer>
-			)}
+								<Area
+									type="monotone"
+									dataKey="general"
+									name="Eficiencia General"
+									stroke="var(--color-general)"
+									fill="url(#fillGeneral)"
+									strokeWidth={2}
+									dot={false}
+									activeDot={{ r: 4 }}
+								/>
+
+								<Area
+									type="monotone"
+									dataKey="superiority"
+									name="Eficiencia Superioridad"
+									stroke="var(--color-superiority)"
+									fill="url(#fillSup)"
+									strokeWidth={2}
+									dot={false}
+									activeDot={{ r: 4 }}
+								/>
+							</AreaChart>
+						</ResponsiveContainer>
+					</ChartContainer>
+				);
+			}}
 			renderTable={() => (
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
@@ -220,12 +224,12 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 										<TableHead className="text-right">Tiros</TableHead>
 										<TableHead className="text-right">Goles Sup.</TableHead>
 										<TableHead className="text-right">Tiros Sup.</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="text-right">Fecha</TableHead>
 									</TableRow>
 								</UITableHeader>
 
 								<TableBody>
-									{data.map((m, idx) => (
+									{allData.map((m, idx) => (
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 
@@ -249,7 +253,7 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 											<TableCell className="text-right tabular-nums">{m.golesSup}</TableCell>
 											<TableCell className="text-right tabular-nums">{m.tirosSup}</TableCell>
 
-											<TableCell className="text-right text-muted-foreground hidden lg:table-cell">{m.fullDate}</TableCell>
+											<TableCell className="text-right text-muted-foreground">{m.fullDate}</TableCell>
 										</TableRow>
 									))}
 								</TableBody>
@@ -260,7 +264,7 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{data.length}</span> partidos
+								<span className="font-medium text-foreground">{allData.length}</span> partidos
 							</span>
 
 							<div className="flex flex-wrap gap-2">

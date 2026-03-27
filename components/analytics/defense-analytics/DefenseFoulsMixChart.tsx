@@ -129,7 +129,6 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 		});
 
 		return sorted
-			.slice(-15)
 			.map((match: any, idx: number) => {
 				const ms = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 

@@ -140,7 +140,7 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
 		});
 
-		return sorted.slice(-15).map((match, idx) => {
+		return sorted.map((match, idx) => {
 			const matchStats = (stats ?? []).filter((s: any) => String(s.match_id) === String(match.id));
 
 			const boya = hiddenSet.has("goles_boya_jugada") ? 0 : matchStats.reduce((sum: number, s: any) => sum + toNum(s.goles_boya_jugada), 0);

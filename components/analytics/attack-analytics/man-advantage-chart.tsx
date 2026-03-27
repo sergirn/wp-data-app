@@ -38,10 +38,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 
 	const sortedMatches = useMemo(() => {
 		return [...(matches ?? [])].sort((a: any, b: any) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 	}, [matches]);
 
@@ -75,6 +72,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 
 			return {
 				matchId: match.id,
+				xLabel: `${match.id}-${index}`,
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
@@ -102,6 +100,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 
 			return {
 				matchId: m.matchId,
+				xLabel: m.xLabel,
 				jornada: m.jornada,
 				rival: m.rival,
 				fullDate: m.fullDate,
@@ -121,6 +120,10 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 			};
 		});
 	}, [matchData]);
+
+	const jornadaByXLabel = useMemo(() => {
+		return new Map(chartData.map((item) => [item.xLabel, item.jornada]));
+	}, [chartData]);
 
 	const partidos = matchData.length;
 	const totalGolesSup = matchData.reduce((sum, m) => sum + m.golesSup, 0);
@@ -172,13 +175,14 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
 							<XAxis
-								dataKey="jornada"
+								dataKey="xLabel"
 								fontSize={12}
 								tickMargin={8}
 								axisLine={false}
 								tickLine={false}
 								interval="preserveStartEnd"
 								minTickGap={18}
+								tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 							/>
 
 							<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
@@ -197,10 +201,10 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<ChartTooltip
 								content={
 									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
+										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
-											if (!p) return String(label);
-											return `${label} · vs ${p.rival} · ${p.fullDate}`;
+											if (!p) return "";
+											return `${p.jornada} · vs ${p.rival} · ${p.fullDate}`;
 										}}
 									/>
 								}

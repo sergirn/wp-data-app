@@ -132,7 +132,6 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 		});
 
 		return sorted
-			.slice(-15)
 			.map((match: any, idx: number) => {
 				const ms = (stats ?? []).filter((s: any) => String(s?.match_id) === String(match?.id));
 
@@ -247,11 +246,12 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 				<div className="rounded-xl border overflow-hidden bg-card w-full">
 					<div className="w-full overflow-x-auto">
 						<div className="max-h-[520px] overflow-y-auto">
-							<Table className="min-w-[920px]">
+							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jornada</TableHead>
 										<TableHead>Rival</TableHead>
+										<TableHead>Fecha</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
@@ -261,7 +261,6 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 
 										<TableHead className="text-right">Total</TableHead>
 										<TableHead className="text-right">Efic.</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -270,6 +269,7 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 										<TableRow key={m.matchId} className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}>
 											<TableCell className="font-semibold">{m.jornada}</TableCell>
 											<TableCell>{m.rival}</TableCell>
+											<TableCell className="text-muted-foreground">{m.fullDate}</TableCell>
 
 											{visibleDefs.map((def) => {
 												const rowValues = m as Record<string, unknown>;
@@ -283,7 +283,6 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 
 											<TableCell className="text-right tabular-nums font-semibold">{m.total}</TableCell>
 											<TableCell className="text-right tabular-nums font-semibold">{m.efficiency}%</TableCell>
-											<TableCell className="text-right hidden lg:table-cell text-muted-foreground">{m.fullDate}</TableCell>
 										</TableRow>
 									))}
 								</TableBody>

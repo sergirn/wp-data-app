@@ -35,17 +35,14 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 
 	const sortedMatches = useMemo(() => {
 		return [...(matches ?? [])].sort((a: any, b: any) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 	}, [matches]);
 
 	const matchData = useMemo(() => {
 		const statsArr = Array.isArray(stats) ? stats : [];
 
-		return sortedMatches.slice(-15).map((match: any, index: number) => {
+		return sortedMatches.map((match: any, index: number) => {
 			const ms = statsArr.filter((s: any) => String(s.match_id) === String(match.id));
 
 			const paseBoya = sumVisible(ms, "pase_boya", hiddenSet);
@@ -60,6 +57,7 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 
 			return {
 				matchId: match.id,
+				xLabel: `${match.id}-${index}`,
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
@@ -73,6 +71,10 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 			};
 		});
 	}, [sortedMatches, stats, hiddenSet]);
+
+	const jornadaByXLabel = useMemo(() => {
+		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
+	}, [matchData]);
 
 	const partidos = matchData.length;
 
@@ -111,13 +113,14 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
 							<XAxis
-								dataKey="jornada"
+								dataKey="xLabel"
 								fontSize={12}
 								tickMargin={8}
 								axisLine={false}
 								tickLine={false}
 								interval="preserveStartEnd"
 								minTickGap={18}
+								tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 							/>
 
 							<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
@@ -135,10 +138,10 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 							<ChartTooltip
 								content={
 									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
+										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
-											if (!p) return String(label);
-											return `${label} · vs ${p.rival} · ${p.fullDate} · Conv.: ${p.conversionBoya}%`;
+											if (!p) return "";
+											return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Conv.: ${p.conversionBoya}%`;
 										}}
 									/>
 								}

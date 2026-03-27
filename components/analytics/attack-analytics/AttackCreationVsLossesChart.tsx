@@ -40,17 +40,14 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 
 	const sortedMatches = useMemo(() => {
 		return [...(matches ?? [])].sort((a: any, b: any) => {
-			const aj = a?.jornada ?? 9999;
-			const bj = b?.jornada ?? 9999;
-			if (aj !== bj) return aj - bj;
-			return new Date(a.match_date).getTime() - new Date(b.match_date).getTime();
+			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
 		});
 	}, [matches]);
 
 	const matchData = useMemo(() => {
 		const statsArr = Array.isArray(stats) ? stats : [];
 
-		return sortedMatches.slice(-15).map((match: any, index: number) => {
+		return sortedMatches.map((match: any, index: number) => {
 			const ms = statsArr.filter((s: any) => String(s.match_id) === String(match.id));
 
 			const asistencias = sumVisible(ms, "acciones_asistencias", hiddenSet);
@@ -70,6 +67,7 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 
 			return {
 				matchId: match.id,
+				xLabel: `${match.id}-${index}`,
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
@@ -91,6 +89,10 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 			};
 		});
 	}, [sortedMatches, stats, hiddenSet]);
+
+	const jornadaByXLabel = useMemo(() => {
+		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
+	}, [matchData]);
 
 	const partidos = matchData.length;
 
@@ -151,13 +153,14 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
 							<XAxis
-								dataKey="jornada"
+								dataKey="xLabel"
 								fontSize={12}
 								tickMargin={8}
 								axisLine={false}
 								tickLine={false}
 								interval="preserveStartEnd"
 								minTickGap={18}
+								tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 							/>
 
 							<YAxis fontSize={12} width={38} tickMargin={6} axisLine={false} tickLine={false} />
@@ -165,10 +168,10 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 							<ChartTooltip
 								content={
 									<ChartTooltipContent
-										labelFormatter={(label, payload) => {
+										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
-											if (!p) return String(label);
-											return `${label} · vs ${p.rival} · ${p.fullDate} · Balance: ${p.balance >= 0 ? "+" : ""}${p.balance}`;
+											if (!p) return "";
+											return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Balance: ${p.balance >= 0 ? "+" : ""}${p.balance}`;
 										}}
 									/>
 								}

@@ -214,7 +214,6 @@ export function buildShotMistakesPerMatch(matches: any[], stats: any[], options?
 	});
 
 	return sorted
-		.slice(-15)
 		.map((match, idx) => {
 			const matchStats = (stats ?? []).filter((s: any) => String(s?.match_id) === String(match?.id));
 			const { pen, corner, out, palo, saved, blocked, sup, total } = getShotMistakeBuckets(matchStats, hiddenSet);
