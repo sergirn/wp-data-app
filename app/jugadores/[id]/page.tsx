@@ -19,6 +19,8 @@ import { GoalkeeperTotalsCard } from "@/components/analytics-goalkeeper/total-st
 
 import { accumulatePlayerStats, getPlayerDerived } from "@/lib/stats/playerStatsHelpers";
 import { accumulateGoalkeeperStats, getGoalkeeperDerived, n as gkN } from "@/lib/stats/goalkeeperStatsHelpers";
+import { ExportPlayerPdfButton } from "@/components/export-buttons/export-player-pdf-button";
+
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -71,12 +73,16 @@ function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; 
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
 			<div className="mb-6">
-				<Button variant="ghost" asChild className="mb-4">
-					<Link href="/jugadores">
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Volver a Jugadores
-					</Link>
-				</Button>
+				<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<Button variant="ghost" asChild>
+						<Link href="/jugadores">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Volver a Jugadores
+						</Link>
+					</Button>
+
+					<ExportPlayerPdfButton playerId={player.id} />
+				</div>
 
 				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats as Record<string, number>} />
 			</div>
@@ -172,7 +178,15 @@ function FieldPlayerSummary({
 
 	return (
 		<div className="space-y-6 mb-6">
-			<FieldPlayerTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} hiddenStats={hiddenStats} />
+			  <div className="space-y-6 mb-6">
+
+				<FieldPlayerTotalsCard
+				stats={stats}
+				matchCount={matchCount}
+				playerId={playerId}
+				hiddenStats={hiddenStats}
+				/>
+			</div>
 		</div>
 	);
 }
@@ -202,12 +216,16 @@ function GoalkeeperPage({
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
 			<div className="mb-6">
-				<Button variant="ghost" asChild className="mb-4">
-					<Link href="/jugadores">
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Volver a Jugadores
-					</Link>
-				</Button>
+				<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<Button variant="ghost" asChild>
+						<Link href="/jugadores">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Volver a Jugadores
+						</Link>
+					</Button>
+
+					<ExportPlayerPdfButton playerId={player.id} />
+				</div>
 
 				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats as Record<string, number>} />
 			</div>
@@ -303,7 +321,15 @@ function GoalkeeperSummary({
 
 	return (
 		<div className="space-y-6 mb-6">
-			<GoalkeeperTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} hiddenStats={hiddenStats} />
+			  <div className="space-y-6 mb-6">
+
+				<GoalkeeperTotalsCard
+				stats={stats}
+				matchCount={matchCount}
+				playerId={playerId}
+				hiddenStats={hiddenStats}
+				/>
+			</div>
 		</div>
 	);
 }

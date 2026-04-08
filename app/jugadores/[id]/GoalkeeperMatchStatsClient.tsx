@@ -15,6 +15,7 @@ import { Loader2, TrendingUp } from "lucide-react";
 
 import { GOALKEEPER_CATEGORY_HINTS, GOALKEEPER_CATEGORY_TITLES } from "@/lib/stats/goalkeeperStatsConfig";
 import { getGoalkeeperDerived, getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
+import { ExportPlayerMatchPdfButton } from "@/components/export-buttons/export-player-match-pdf-button";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -223,6 +224,9 @@ export function GoalkeeperMatchStatsClient({
 													{match?.home_score ?? 0} - {match?.away_score ?? 0}
 												</span>
 
+												<div className="flex items-center gap-2">
+												<ExportPlayerMatchPdfButton playerId={player.id} matchStatId={stat.id} />
+
 												<Button
 													asChild
 													variant="outline"
@@ -232,6 +236,7 @@ export function GoalkeeperMatchStatsClient({
 												>
 													<Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
 												</Button>
+												</div>
 											</div>
 										</div>
 									</CardHeader>

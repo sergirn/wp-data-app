@@ -14,6 +14,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Loader2, TrendingUp } from "lucide-react";
 import { getPlayerDerived, getPlayerStatsByCategory } from "@/lib/stats/playerStatsHelpers";
 import { PLAYER_CATEGORY_HINTS, PLAYER_CATEGORY_TITLES } from "@/lib/stats/playerStatsConfig";
+import { ExportPlayerMatchPdfButton } from "@/components/export-buttons/export-player-match-pdf-button";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -219,15 +220,19 @@ export function FieldPlayerMatchStatsClient({
 													{match?.home_score ?? 0} - {match?.away_score ?? 0}
 												</span>
 
-												<Button
-													asChild
-													variant="outline"
-													size="sm"
-													className="bg-transparent"
-													onClick={(e) => e.stopPropagation()}
-												>
-													<Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
-												</Button>
+												<div className="flex items-center gap-2">
+													<ExportPlayerMatchPdfButton playerId={player.id} matchStatId={stat.id} />
+
+													<Button
+														asChild
+														variant="outline"
+														size="sm"
+														className="bg-transparent"
+														onClick={(e) => e.stopPropagation()}
+													>
+														<Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
+													</Button>
+													</div>
 											</div>
 										</div>
 									</CardHeader>
