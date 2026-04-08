@@ -47,6 +47,7 @@
     "cmdk": "latest",
     "date-fns": "4.1.0",
     "embla-carousel-react": "latest",
+    "exceljs": "^4.4.0",
     "geist": "latest",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",

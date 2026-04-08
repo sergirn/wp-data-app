@@ -20,7 +20,7 @@ import { GoalkeeperTotalsCard } from "@/components/analytics-goalkeeper/total-st
 import { accumulatePlayerStats, getPlayerDerived } from "@/lib/stats/playerStatsHelpers";
 import { accumulateGoalkeeperStats, getGoalkeeperDerived, n as gkN } from "@/lib/stats/goalkeeperStatsHelpers";
 import { ExportPlayerPdfButton } from "@/components/export-buttons/export-player-pdf-button";
-
+import { ExportPlayerExcelButton } from "@/components/export-buttons/export-player-excel-button";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -81,7 +81,10 @@ function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; 
 						</Link>
 					</Button>
 
-					<ExportPlayerPdfButton playerId={player.id} />
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+						<ExportPlayerPdfButton playerId={player.id} />
+						<ExportPlayerExcelButton playerId={player.id} />
+					</div>
 				</div>
 
 				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats as Record<string, number>} />
@@ -178,14 +181,8 @@ function FieldPlayerSummary({
 
 	return (
 		<div className="space-y-6 mb-6">
-			  <div className="space-y-6 mb-6">
-
-				<FieldPlayerTotalsCard
-				stats={stats}
-				matchCount={matchCount}
-				playerId={playerId}
-				hiddenStats={hiddenStats}
-				/>
+			<div className="space-y-6 mb-6">
+				<FieldPlayerTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} hiddenStats={hiddenStats} />
 			</div>
 		</div>
 	);
@@ -224,7 +221,10 @@ function GoalkeeperPage({
 						</Link>
 					</Button>
 
-					<ExportPlayerPdfButton playerId={player.id} />
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+						<ExportPlayerPdfButton playerId={player.id} />
+						<ExportPlayerExcelButton playerId={player.id} />
+					</div>
 				</div>
 
 				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats as Record<string, number>} />
@@ -321,14 +321,8 @@ function GoalkeeperSummary({
 
 	return (
 		<div className="space-y-6 mb-6">
-			  <div className="space-y-6 mb-6">
-
-				<GoalkeeperTotalsCard
-				stats={stats}
-				matchCount={matchCount}
-				playerId={playerId}
-				hiddenStats={hiddenStats}
-				/>
+			<div className="space-y-6 mb-6">
+				<GoalkeeperTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} hiddenStats={hiddenStats} />
 			</div>
 		</div>
 	);

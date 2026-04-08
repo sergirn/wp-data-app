@@ -11,6 +11,7 @@ import logo from "@/public/images/lewaterpolo_bg.png";
 import { MatchPeriodsAndPenaltiesCard } from "@/components/match-components/MatchPeriodsAndPenaltiesCard";
 import { MatchPlayersTabs } from "./MatchPlayersTabs";
 import { ExportMatchPdfButton } from "@/components/export-buttons/export-match-pdf-button";
+import { ExportMatchExcelButton } from "@/components/export-buttons/export-match-excel-button";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -179,13 +180,16 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			<div className="mb-6">
 				<div className="mb-4 flex items-center justify-between gap-3">
 					<Button variant="ghost" asChild>
-					<Link href="/partidos">
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Volver a Partidos
-					</Link>
+						<Link href="/partidos">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Volver a Partidos
+						</Link>
 					</Button>
 
-					<ExportMatchPdfButton matchId={match.id} />
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+						<ExportMatchPdfButton matchId={match.id} />
+						<ExportMatchExcelButton matchId={match.id} />
+					</div>
 				</div>
 
 				<Card className="relative overflow-hidden border-2 rounded-xl p-0">
@@ -263,9 +267,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 								</p>
 							</div>
 						)}
-						
 					</div>
-					
 				</Card>
 			</div>
 
@@ -300,8 +302,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
 				<div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
-					
-					
 					{canEdit && (
 						<Button asChild>
 							<Link href={`/nuevo-partido?matchId=${match.id}`}>

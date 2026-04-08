@@ -2,44 +2,38 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2 } from "lucide-react";
+import { FileSpreadsheet, Loader2 } from "lucide-react";
 
 function getFilenameFromDisposition(disposition: string | null) {
 	if (!disposition) return null;
 
 	const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
-	if (utf8Match?.[1]) {
-		return decodeURIComponent(utf8Match[1]);
-	}
+	if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1]);
 
 	const asciiMatch = disposition.match(/filename="([^"]+)"/i);
-	if (asciiMatch?.[1]) {
-		return asciiMatch[1];
-	}
+	if (asciiMatch?.[1]) return asciiMatch[1];
 
 	return null;
 }
 
-export function ExportMatchPdfButton({ matchId }: { matchId: number | string }) {
+export function ExportMatchExcelButton({ matchId }: { matchId: number | string }) {
 	const [loading, setLoading] = useState(false);
 
 	const handleDownload = async () => {
 		try {
 			setLoading(true);
 
-			const response = await fetch(`/api/matches/${matchId}/export/pdf`, {
+			const response = await fetch(`/api/matches/${matchId}/export/excel`, {
 				method: "GET"
 			});
 
-			if (!response.ok) {
-				throw new Error("Failed to download PDF");
-			}
+			if (!response.ok) throw new Error("Failed to download Excel");
 
 			const blob = await response.blob();
 			const blobUrl = window.URL.createObjectURL(blob);
 
 			const disposition = response.headers.get("Content-Disposition");
-			const filename = getFilenameFromDisposition(disposition) || `match-${matchId}.pdf`;
+			const filename = getFilenameFromDisposition(disposition) || `match-${matchId}.xlsx`;
 
 			const link = document.createElement("a");
 			link.href = blobUrl;
@@ -60,13 +54,11 @@ export function ExportMatchPdfButton({ matchId }: { matchId: number | string }) 
 		<Button
 			onClick={handleDownload}
 			disabled={loading}
-			className="cursor-pointer bg-red-600 text-white shadow-sm hover:bg-red-700 dark:bg-red-600/30 dark:text-white dark:hover:bg-red-500/30"
+			className="cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700 dark:border-emerald-500 dark:bg-emerald-600/30 dark:text-white dark:hover:bg-emerald-500/30"
 		>
-			{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-
-			<span>{loading ? "Descargando..." : "Exportar PDF"}</span>
-
-			<span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide">PDF</span>
+			{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+			{loading ? "Descargando Excel..." : "Exportar Excel"}
+			<span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide">EXCEL</span>
 		</Button>
 	);
 }
