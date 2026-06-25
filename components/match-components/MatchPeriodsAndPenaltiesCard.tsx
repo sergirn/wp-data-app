@@ -59,11 +59,9 @@ export function MatchPeriodsAndPenaltiesCard({
     <div className="mb-6 border-0 bg-transparent">
       <div>
         <Tabs defaultValue="parciales" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${hasPenalties ? "grid-cols-2" : "grid-cols-1"}`}>
             <TabsTrigger value="parciales">Parciales</TabsTrigger>
-            <TabsTrigger value="penaltis" hidden={!hasPenalties}>
-              Tanda de Penaltis
-            </TabsTrigger>
+            {hasPenalties && <TabsTrigger value="penaltis">Tanda de Penaltis</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="parciales" className="mt-6">

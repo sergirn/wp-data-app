@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
 import { PlayerHeroHeader } from "./playerHeader";
-import { BlocksVsGoalsChart } from "@/components/analytics-player/evolution-component/BlocksVsGoalsChart";
 import { PerformanceEvolutionChart } from "@/components/analytics-player/evolution-component/PerformanceEvolutionChart";
 import {
 	GoalkeeperShotForChart,
@@ -20,6 +19,8 @@ import { GoalkeeperTotalsCard } from "@/components/analytics-goalkeeper/total-st
 
 import { accumulatePlayerStats, getPlayerDerived } from "@/lib/stats/playerStatsHelpers";
 import { accumulateGoalkeeperStats, getGoalkeeperDerived, n as gkN } from "@/lib/stats/goalkeeperStatsHelpers";
+import { ExportPlayerPdfButton } from "@/components/export-buttons/export-player-pdf-button";
+import { ExportPlayerExcelButton } from "@/components/export-buttons/export-player-excel-button";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -28,6 +29,12 @@ interface MatchStatsWithMatch extends MatchStats {
 export default async function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
 	const supabase = await createClient();
+
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+
+	const hiddenStatsSet = await getHiddenStatsSet(supabase, user?.id);
 
 	const { data: player, error: playerError } = await supabase.from("players").select("*").eq("id", id).single();
 	if (playerError || !player) notFound();
@@ -43,25 +50,42 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 		: { data: [] as any[] };
 
 	if (player.is_goalkeeper) {
-		return <GoalkeeperPage player={player} matchStats={matchStats || []} goalkeeperShots={goalkeeperShots || []} />;
+		return <GoalkeeperPage player={player} matchStats={matchStats || []} goalkeeperShots={goalkeeperShots || []} hiddenStats={hiddenStatsSet} />;
 	}
 
-	return <FieldPlayerPage player={player} matchStats={matchStats || []} />;
+	return <FieldPlayerPage player={player} matchStats={matchStats || []} hiddenStats={hiddenStatsSet} />;
 }
 
-function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: MatchStatsWithMatch[] }) {
+async function getHiddenStatsSet(supabase: Awaited<ReturnType<typeof createClient>>, profileId?: string) {
+	if (!profileId) return new Set<string>();
+
+	const { data, error } = await supabase.from("profile_hidden_stats").select("stat_key").eq("profile_id", profileId);
+
+	if (error || !data) return new Set<string>();
+
+	return new Set(data.map((row) => row.stat_key));
+}
+
+function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; matchStats: MatchStatsWithMatch[]; hiddenStats: Set<string> }) {
 	const matchCount = matchStats.length;
-	const fieldPlayerStats = calculateFieldPlayerStats(matchStats);
+	const fieldPlayerStats = calculateFieldPlayerStats(matchStats, hiddenStats);
 
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
 			<div className="mb-6">
-				<Button variant="ghost" asChild className="mb-4">
-					<Link href="/jugadores">
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Volver a Jugadores
-					</Link>
-				</Button>
+				<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<Button variant="ghost" asChild>
+						<Link href="/jugadores">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Volver a Jugadores
+						</Link>
+					</Button>
+
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+						<ExportPlayerPdfButton playerId={player.id} />
+						<ExportPlayerExcelButton playerId={player.id} />
+					</div>
+				</div>
 
 				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats as Record<string, number>} />
 			</div>
@@ -80,43 +104,45 @@ function FieldPlayerPage({ player, matchStats }: { player: Player; matchStats: M
 				</TabsList>
 
 				<TabsContent value="resumen" className="space-y-6">
-					<FieldPlayerSummary stats={fieldPlayerStats} matchCount={matchCount} matchStats={matchStats} playerId={player.id} />
-				</TabsContent>
-
-				<TabsContent value="evolucion" className="space-y-6">
-					<ChartSwipeCarousel
-						className="w-full"
-						items={[
-							<PerformanceEvolutionChart matchStats={matchStats} player={player} />,
-							<BlocksVsGoalsChart matchStats={matchStats} />
-						]}
+					<FieldPlayerSummary
+						stats={fieldPlayerStats}
+						matchCount={matchCount}
+						matchStats={matchStats}
+						playerId={player.id}
+						hiddenStats={hiddenStats}
 					/>
 				</TabsContent>
 
 				<TabsContent value="partidos" className="space-y-6">
-					<FieldPlayerMatchStatsClient matchStats={matchStats} player={player} />
+					<FieldPlayerMatchStatsClient matchStats={matchStats} player={player} hiddenStats={hiddenStats} />
+				</TabsContent>
+
+				<TabsContent value="evolucion" className="space-y-6">
+					<ChartSwipeCarousel className="w-full" items={[<PerformanceEvolutionChart matchStats={matchStats} player={player} />]} />
 				</TabsContent>
 			</Tabs>
 		</main>
 	);
 }
 
-function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[]) {
-	return accumulatePlayerStats(matchStats as Array<Record<string, any>>);
+function calculateFieldPlayerStats(matchStats: MatchStatsWithMatch[], hiddenStats: Set<string>) {
+	return accumulatePlayerStats(matchStats as Array<Record<string, any>>, hiddenStats);
 }
 
 function FieldPlayerSummary({
 	stats,
 	matchCount,
 	matchStats,
-	playerId
+	playerId,
+	hiddenStats
 }: {
 	stats: Record<string, any>;
 	matchCount: number;
 	matchStats: MatchStatsWithMatch[];
 	playerId: number;
+	hiddenStats: Set<string>;
 }) {
-	const derived = getPlayerDerived(stats);
+	const derived = getPlayerDerived(stats, hiddenStats);
 
 	const golesPerMatch = matchCount > 0 ? (derived.goals / matchCount).toFixed(1) : "0.0";
 	const tirosPerMatch = matchCount > 0 ? (derived.shots / matchCount).toFixed(1) : "0.0";
@@ -124,16 +150,25 @@ function FieldPlayerSummary({
 	const asistPerMatch = matchCount > 0 ? (derived.assists / matchCount).toFixed(1) : "0.0";
 
 	const totalExclusiones =
-		(stats.faltas_exp_20_1c1 || 0) +
-		(stats.faltas_exp_20_boya || 0) +
-		(stats.faltas_exp_3_bruta || 0) +
-		(stats.faltas_exp_3_int || 0) +
-		(stats.faltas_exp_simple || 0) +
-		(stats.exp_trans_def || 0);
+		(hiddenStats.has("faltas_exp_20_1c1") ? 0 : stats.faltas_exp_20_1c1 || 0) +
+		(hiddenStats.has("faltas_exp_20_boya") ? 0 : stats.faltas_exp_20_boya || 0) +
+		(hiddenStats.has("faltas_exp_3_bruta") ? 0 : stats.faltas_exp_3_bruta || 0) +
+		(hiddenStats.has("faltas_exp_3_int") ? 0 : stats.faltas_exp_3_int || 0) +
+		(hiddenStats.has("faltas_exp_simple") ? 0 : stats.faltas_exp_simple || 0) +
+		(hiddenStats.has("exp_trans_def") ? 0 : stats.exp_trans_def || 0);
 
-	const totalRebotes = (stats.rebote_recup_hombre_mas || 0) + (stats.rebote_perd_hombre_mas || 0);
-	const totalPenaltis = (stats.goles_penalti_anotado || 0) + (stats.tiros_penalti_fallado || 0);
-	const eficienciaPenaltis = totalPenaltis > 0 ? (((stats.goles_penalti_anotado || 0) / totalPenaltis) * 100).toFixed(1) : "0.0";
+	const totalRebotes =
+		(hiddenStats.has("rebote_recup_hombre_mas") ? 0 : stats.rebote_recup_hombre_mas || 0) +
+		(hiddenStats.has("rebote_perd_hombre_mas") ? 0 : stats.rebote_perd_hombre_mas || 0);
+
+	const totalPenaltis =
+		(hiddenStats.has("goles_penalti_anotado") ? 0 : stats.goles_penalti_anotado || 0) +
+		(hiddenStats.has("tiros_penalti_fallado") ? 0 : stats.tiros_penalti_fallado || 0);
+
+	const eficienciaPenaltis =
+		totalPenaltis > 0
+			? (((hiddenStats.has("goles_penalti_anotado") ? 0 : stats.goles_penalti_anotado || 0) / totalPenaltis) * 100).toFixed(1)
+			: "0.0";
 
 	const matches = Array.isArray(matchStats)
 		? matchStats
@@ -146,15 +181,27 @@ function FieldPlayerSummary({
 
 	return (
 		<div className="space-y-6 mb-6">
-			<FieldPlayerTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} />
+			<div className="space-y-6 mb-6">
+				<FieldPlayerTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} hiddenStats={hiddenStats} />
+			</div>
 		</div>
 	);
 }
 
-function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Player; matchStats: MatchStatsWithMatch[]; goalkeeperShots: any[] }) {
+function GoalkeeperPage({
+	player,
+	matchStats,
+	goalkeeperShots,
+	hiddenStats
+}: {
+	player: Player;
+	matchStats: MatchStatsWithMatch[];
+	goalkeeperShots: any[];
+	hiddenStats: Set<string>;
+}) {
 	const matchCount = matchStats.length;
 
-	const goalkeeperStats = calculateGoalkeeperStats(matchStats);
+	const goalkeeperStats = calculateGoalkeeperStats(matchStats, hiddenStats);
 	const chartShots: GoalkeeperShotForChart[] = (goalkeeperShots ?? []).map((s: any) => ({
 		id: s.id,
 		goalkeeper_player_id: Number(s.goalkeeper_player_id),
@@ -166,12 +213,19 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
 			<div className="mb-6">
-				<Button variant="ghost" asChild className="mb-4">
-					<Link href="/jugadores">
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Volver a Jugadores
-					</Link>
-				</Button>
+				<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<Button variant="ghost" asChild>
+						<Link href="/jugadores">
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Volver a Jugadores
+						</Link>
+					</Button>
+
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+						<ExportPlayerPdfButton playerId={player.id} />
+						<ExportPlayerExcelButton playerId={player.id} />
+					</div>
+				</div>
 
 				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats as Record<string, number>} />
 			</div>
@@ -190,11 +244,17 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 				</TabsList>
 
 				<TabsContent value="resumen" className="space-y-6">
-					<GoalkeeperSummary stats={goalkeeperStats} matchCount={matchCount} matchStats={matchStats} playerId={player.id} />
+					<GoalkeeperSummary
+						stats={goalkeeperStats}
+						matchCount={matchCount}
+						matchStats={matchStats}
+						playerId={player.id}
+						hiddenStats={hiddenStats}
+					/>
 				</TabsContent>
 
 				<TabsContent value="partidos" className="space-y-6">
-					<GoalkeeperMatchStatsClient matchStats={matchStats} player={player} />
+					<GoalkeeperMatchStatsClient matchStats={matchStats} player={player} hiddenStats={hiddenStats} />
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
@@ -211,14 +271,16 @@ function GoalkeeperPage({ player, matchStats, goalkeeperShots }: { player: Playe
 	);
 }
 
-function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[]) {
-	const base = accumulateGoalkeeperStats(matchStats as Array<Record<string, any>>);
+function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[], hiddenStats: Set<string>) {
+	const base = accumulateGoalkeeperStats(matchStats as Array<Record<string, any>>, hiddenStats);
 
-	const goles_recibidos_reales = matchStats.reduce((acc, stat) => {
-		const match = stat.matches;
-		const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0;
-		return acc + gkN(rivalGoals);
-	}, 0);
+	const goles_recibidos_reales = hiddenStats.has("goles_recibidos_reales")
+		? 0
+		: matchStats.reduce((acc, stat) => {
+				const match = stat.matches;
+				const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0;
+				return acc + gkN(rivalGoals);
+			}, 0);
 
 	return {
 		...base,
@@ -230,14 +292,16 @@ function GoalkeeperSummary({
 	stats,
 	matchCount,
 	matchStats,
-	playerId
+	playerId,
+	hiddenStats
 }: {
 	stats: Record<string, any>;
 	matchCount: number;
 	matchStats: MatchStatsWithMatch[];
 	playerId: number;
+	hiddenStats: Set<string>;
 }) {
-	const derived = getGoalkeeperDerived(stats);
+	const derived = getGoalkeeperDerived(stats, hiddenStats);
 
 	const totalShots = derived.shotsReceived;
 	const savePercentage = derived.savePct.toFixed(1);
@@ -257,7 +321,9 @@ function GoalkeeperSummary({
 
 	return (
 		<div className="space-y-6 mb-6">
-			<GoalkeeperTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} />
+			<div className="space-y-6 mb-6">
+				<GoalkeeperTotalsCard stats={stats} matchCount={matchCount} playerId={playerId} hiddenStats={hiddenStats} />
+			</div>
 		</div>
 	);
 }

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, CheckCircle2, PauseCircle } from "lucide-react";
 import type { Match } from "@/lib/types";
 import { useClub } from "@/lib/club-context";
 import { useProfile } from "@/lib/profile-context";
@@ -74,6 +74,30 @@ export default function MatchesPage() {
 		fetchData();
 	}, [currentClub]);
 
+	const handleToggleStatsEnabled = async (matchId: number, currentValue: boolean) => {
+		try {
+			const supabase = createClient();
+			if (!supabase) return;
+
+			const nextValue = !currentValue;
+
+			const { error } = await supabase
+				.from("matches")
+				.update({ stats_enabled: nextValue })
+				.eq("id", matchId);
+
+			if (error) throw error;
+
+			setMatches((prev) =>
+				prev.map((match) =>
+					match.id === matchId ? { ...match, stats_enabled: nextValue } : match
+				)
+			);
+		} catch (error) {
+			console.error("[v0] Error updating stats_enabled:", error);
+		}
+	};
+
 	if (loading) {
 		return (
 			<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
@@ -104,7 +128,13 @@ export default function MatchesPage() {
 			{matches && matches.length > 0 ? (
 				<div className="grid gap-3 sm:gap-4">
 					{matches.map((match) => (
-						<MatchCard key={match.id} match={match} clubName={currentClub?.short_name || ""} canEdit={canEdit} />
+						<MatchCard
+							key={match.id}
+							match={match}
+							clubName={currentClub?.short_name || ""}
+							canEdit={canEdit}
+							onToggleStatsEnabled={handleToggleStatsEnabled}
+						/>
 					))}
 				</div>
 			) : (
@@ -128,7 +158,17 @@ export default function MatchesPage() {
 	);
 }
 
-function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; clubName: string; canEdit: boolean }) {
+function MatchCard({
+	match,
+	clubName,
+	canEdit,
+	onToggleStatsEnabled
+}: {
+	match: MatchWithCompetition;
+	clubName: string;
+	canEdit: boolean;
+	onToggleStatsEnabled: (matchId: number, currentValue: boolean) => void;
+}) {
 	const router = useRouter();
 	const matchDate = new Date(match.match_date);
 
@@ -247,12 +287,27 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 						</div>
 					</div>
 
-					{/* ===================== */}
-					{/* BOTONES: 50% - 50% */}
-					{/* ===================== */}
 					{canEdit && (
 						<div className="flex gap-3 mt-4 action-buttons">
-							{/* EDITAR */}
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={(e) => {
+									e.stopPropagation();
+									onToggleStatsEnabled(match.id, match.stats_enabled ?? true);
+								}}
+								className={`group flex-1 h-10 rounded-md flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
+									match.stats_enabled
+										? "text-green-700 dark:text-green-400 bg-green-500/5 hover:bg-green-500/20"
+										: "text-amber-700 dark:text-amber-400 bg-amber-500/5 hover:bg-amber-500/20"
+								}`}
+							>
+								{match.stats_enabled ? <CheckCircle2 className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
+								<span className="hidden sm:inline text-sm">
+									{match.stats_enabled ? "Stats activadas" : "Stats desactivadas"}
+								</span>
+							</Button>
+
 							<Link
 								href={`/nuevo-partido?matchId=${match.id}`}
 								className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
@@ -264,7 +319,6 @@ function MatchCard({ match, clubName, canEdit }: { match: MatchWithCompetition; 
 								<span className="hidden sm:inline text-sm">Editar</span>
 							</Link>
 
-							{/* ELIMINAR */}
 							<div
 								className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
                   text-red-700 dark:text-red-400 

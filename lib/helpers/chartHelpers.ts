@@ -71,10 +71,12 @@ export function buildInferiorityConversionData(stats: unknown): MatchConversionD
 	const scoredExtra = rows.reduce((acc, row) => acc + n(row?.portero_gol_palo), 0);
 
 	const saves = rows.reduce((acc, row) => acc + n(row?.portero_paradas_hombre_menos), 0);
+	const saveCornerInf = rows.reduce((acc, row) => acc + n(row?.portero_parada_fuera_inf), 0);
+	const postInf = rows.reduce((acc, row) => acc + n(row?.portero_lanz_palo_inf), 0);
 	const out = rows.reduce((acc, row) => acc + n(row?.portero_inferioridad_fuera), 0);
 	const blocks = rows.reduce((acc, row) => acc + n(row?.portero_inferioridad_bloqueo), 0);
 
-	const missed = saves + out + blocks;
+	const missed = saves + saveCornerInf + postInf + out + blocks;
 	const attempts = scored + scoredExtra + missed;
 	const efficiency = attempts > 0 ? pct(missed, attempts) : 0;
 
@@ -91,14 +93,18 @@ export function buildInferiorityBreakdown(stats: unknown) {
 	const rows = asRows(stats);
 
 	const saves = rows.reduce((acc, row) => acc + n(row?.portero_paradas_hombre_menos), 0);
+	const saveCornerInf = rows.reduce((acc, row) => acc + n(row?.portero_parada_fuera_inf), 0);
+	const postInf = rows.reduce((acc, row) => acc + n(row?.portero_lanz_palo_inf), 0);
 	const out = rows.reduce((acc, row) => acc + n(row?.portero_inferioridad_fuera), 0);
 	const blocks = rows.reduce((acc, row) => acc + n(row?.portero_inferioridad_bloqueo), 0);
 
 	return {
 		saves,
+		saveCornerInf,
+		postInf,
 		out,
 		blocks,
-		avoidedBreakdown: saves + out + blocks
+		avoidedBreakdown: saves + saveCornerInf + postInf + out + blocks
 	};
 }
 
@@ -125,7 +131,7 @@ export function buildBlocksChartData(stats: unknown, matchStats: unknown): Match
 		.filter((row) => n((row as any)?.acciones_bloqueo) > 0)
 		.sort((a, b) => n((b as any)?.acciones_bloqueo) - n((a as any)?.acciones_bloqueo));
 
-	const top3 = playersWithBlocks.slice(0, 3);
+	const top3 = playersWithBlocks.slice(0, 1);
 
 	return {
 		ok,

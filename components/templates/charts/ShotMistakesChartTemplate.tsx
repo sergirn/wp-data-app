@@ -71,6 +71,16 @@ type Props = {
 
 const fmtPct = (v: number) => `${(Number.isFinite(v) ? v : 0).toFixed(1)}%`;
 
+const MATCH_COLUMN_LABELS: Record<string, string> = {
+	pen: "Pen.",
+	corner: "Corner",
+	out: "Fuera",
+	palo: "Palo",
+	saved: "Parado",
+	blocked: "Bloq",
+	sup: "Sup.+"
+};
+
 export function ShotMistakesChartBase({
 	title = "Distribución de fallos de tiro",
 	description,
@@ -88,6 +98,9 @@ export function ShotMistakesChartBase({
 	const resolvedTopLineCompact = topLineCompact ?? "Sin datos";
 	const resolvedTopLineFull = topLineFull ?? "Sin datos";
 
+	const visibleParts = summary.parts.filter((p) => p.value > 0 || summary.parts.some((x) => x.key === p.key));
+	const visibleKeys = visibleParts.map((p) => p.key);
+
 	return (
 		<ExpandableChartCard
 			title={title}
@@ -100,7 +113,7 @@ export function ShotMistakesChartBase({
 				const inner = compact ? 54 : 68;
 
 				const chartConfig = Object.fromEntries(
-					summary.parts.map((p) => [
+					visibleParts.map((p) => [
 						p.key,
 						{
 							label: p.label,
@@ -117,7 +130,7 @@ export function ShotMistakesChartBase({
 									<ResponsiveContainer width="100%" height="100%">
 										<PieChart margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
 											<Pie
-												data={summary.parts}
+												data={visibleParts}
 												dataKey="value"
 												nameKey="label"
 												innerRadius={inner}
@@ -128,7 +141,7 @@ export function ShotMistakesChartBase({
 												cx="50%"
 												cy="50%"
 											>
-												{summary.parts.map((p) => (
+												{visibleParts.map((p) => (
 													<Cell key={p.key} fill={p.color} />
 												))}
 											</Pie>
@@ -147,7 +160,7 @@ export function ShotMistakesChartBase({
 							</ChartContainer>
 
 							<div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-								{summary.parts.map((p) => (
+								{visibleParts.map((p) => (
 									<div key={p.key} className="inline-flex items-center gap-2">
 										<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
 										<span className="whitespace-nowrap">
@@ -159,7 +172,7 @@ export function ShotMistakesChartBase({
 							</div>
 
 							<div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
-								{summary.parts.map((p) => (
+								{visibleParts.map((p) => (
 									<div
 										key={p.key}
 										className="rounded-md border px-2 py-2 text-center"
@@ -195,13 +208,13 @@ export function ShotMistakesChartBase({
 											<TableRow className="hover:bg-transparent">
 												<TableHead className="w-[90px]">Jornada</TableHead>
 												<TableHead>Rival</TableHead>
-												<TableHead className="text-right">Pen.</TableHead>
-												<TableHead className="text-right">Corner</TableHead>
-												<TableHead className="text-right">Fuera</TableHead>
-												<TableHead className="text-right">Palo</TableHead>
-												<TableHead className="text-right">Parado</TableHead>
-												<TableHead className="text-right">Bloq</TableHead>
-												<TableHead className="text-right">Sup.+</TableHead>
+
+												{visibleParts.map((part) => (
+													<TableHead key={part.key} className="text-right">
+														{MATCH_COLUMN_LABELS[part.key] ?? part.label}
+													</TableHead>
+												))}
+
 												<TableHead className="text-right">Total</TableHead>
 												<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
 											</TableRow>
@@ -222,33 +235,16 @@ export function ShotMistakesChartBase({
 														</div>
 													</TableCell>
 
-													<TableCell className="text-right tabular-nums">
-														{m.pen} <span className="text-xs text-muted-foreground">({fmtPct(m.penPct)})</span>
-													</TableCell>
+													{visibleKeys.map((key) => {
+														const value = (m as any)[key] ?? 0;
+														const pctValue = (m as any)[`${key}Pct`] ?? 0;
 
-													<TableCell className="text-right tabular-nums">
-														{m.corner} <span className="text-xs text-muted-foreground">({fmtPct(m.cornerPct)})</span>
-													</TableCell>
-
-													<TableCell className="text-right tabular-nums">
-														{m.out} <span className="text-xs text-muted-foreground">({fmtPct(m.outPct)})</span>
-													</TableCell>
-
-													<TableCell className="text-right tabular-nums">
-														{m.palo} <span className="text-xs text-muted-foreground">({fmtPct(m.paloPct)})</span>
-													</TableCell>
-
-													<TableCell className="text-right tabular-nums">
-														{m.saved} <span className="text-xs text-muted-foreground">({fmtPct(m.savedPct)})</span>
-													</TableCell>
-
-													<TableCell className="text-right tabular-nums">
-														{m.blocked} <span className="text-xs text-muted-foreground">({fmtPct(m.blockedPct)})</span>
-													</TableCell>
-
-													<TableCell className="text-right tabular-nums">
-														{m.sup} <span className="text-xs text-muted-foreground">({fmtPct(m.supPct)})</span>
-													</TableCell>
+														return (
+															<TableCell key={key} className="text-right tabular-nums">
+																{value} <span className="text-xs text-muted-foreground">({fmtPct(pctValue)})</span>
+															</TableCell>
+														);
+													})}
 
 													<TableCell className="text-right tabular-nums font-semibold">{m.total}</TableCell>
 													<TableCell className="text-right text-muted-foreground hidden lg:table-cell">
@@ -285,13 +281,13 @@ export function ShotMistakesChartBase({
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
 										<TableHead>Jugador</TableHead>
-										<TableHead className="text-right">Pen.</TableHead>
-										<TableHead className="text-right">Corner</TableHead>
-										<TableHead className="text-right">Fuera</TableHead>
-										<TableHead className="text-right">Palo</TableHead>
-										<TableHead className="text-right">Parado</TableHead>
-										<TableHead className="text-right">Bloq</TableHead>
-										<TableHead className="text-right">Sup.+</TableHead>
+
+										{visibleParts.map((part) => (
+											<TableHead key={part.key} className="text-right">
+												{MATCH_COLUMN_LABELS[part.key] ?? part.label}
+											</TableHead>
+										))}
+
 										<TableHead className="text-right">Total</TableHead>
 									</TableRow>
 								</UITableHeader>
@@ -308,13 +304,12 @@ export function ShotMistakesChartBase({
 													: `#${r.playerId}`}
 											</TableCell>
 
-											<TableCell className="text-right tabular-nums">{r.pen}</TableCell>
-											<TableCell className="text-right tabular-nums">{r.corner}</TableCell>
-											<TableCell className="text-right tabular-nums">{r.out}</TableCell>
-											<TableCell className="text-right tabular-nums">{r.palo}</TableCell>
-											<TableCell className="text-right tabular-nums">{r.saved}</TableCell>
-											<TableCell className="text-right tabular-nums">{r.blocked}</TableCell>
-											<TableCell className="text-right tabular-nums">{r.sup}</TableCell>
+											{visibleKeys.map((key) => (
+												<TableCell key={key} className="text-right tabular-nums">
+													{(r as any)[key] ?? 0}
+												</TableCell>
+											))}
+
 											<TableCell className="text-right tabular-nums font-semibold">{r.total}</TableCell>
 										</TableRow>
 									))}

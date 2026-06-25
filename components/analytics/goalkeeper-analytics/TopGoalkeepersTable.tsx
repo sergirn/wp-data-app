@@ -11,12 +11,31 @@ interface GoalkeeperRankingTableProps {
 	title?: string;
 	className?: string;
 	minActions?: number;
+	hiddenStats?: string[];
 }
 
 const toNum = (v: unknown) => {
 	const n = Number(v);
 	return Number.isFinite(n) ? n : 0;
 };
+
+const SAVE_DEFS = [
+	{ key: "paradasRecup", statKey: "portero_tiros_parada_recup", label: "P. Recup" },
+	{ key: "paradasFuera", statKey: "portero_paradas_fuera", label: "P. Fuera" },
+	{ key: "paradasPenalti", statKey: "portero_paradas_penalti_parado", label: "P. Pen." },
+	{ key: "paradasInf", statKey: "portero_paradas_hombre_menos", label: "P. Inf." },
+	{ key: "paradasCornerInf", statKey: "portero_parada_fuera_inf", label: "P. Córner Inf." }
+] as const;
+
+const GOAL_DEFS = [
+	{ key: "gcBoya", statKey: "portero_goles_boya_parada", label: "GC Boya" },
+	{ key: "gcHm", statKey: "portero_goles_hombre_menos", label: "GC Inf." },
+	{ key: "gcDir", statKey: "portero_goles_dir_mas_5m", label: "GC +6m" },
+	{ key: "gcContra", statKey: "portero_goles_contraataque", label: "GC Contra" },
+	{ key: "gcPen", statKey: "portero_goles_penalti", label: "GC Pen." },
+	{ key: "gcLanz", statKey: "portero_goles_lanzamiento", label: "GC Lanz." },
+	{ key: "gcPalo", statKey: "portero_gol_palo", label: "GC Palo" }
+] as const;
 
 function getPlayerLabel(player: Player | null) {
 	if (!player) return "Portero";
@@ -50,8 +69,14 @@ export function GoalkeeperRankingTable({
 	players,
 	title = "Ranking de porteros",
 	className,
-	minActions = 5
+	minActions = 5,
+	hiddenStats = []
 }: GoalkeeperRankingTableProps) {
+	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
+
+	const visibleSaveDefs = useMemo(() => SAVE_DEFS.filter((def) => !hiddenSet.has(def.statKey)), [hiddenSet]);
+	const visibleGoalDefs = useMemo(() => GOAL_DEFS.filter((def) => !hiddenSet.has(def.statKey)), [hiddenSet]);
+
 	const playersById = useMemo(() => {
 		const map = new Map<number, Player>();
 		(players ?? []).forEach((p) => {
@@ -69,10 +94,13 @@ export function GoalkeeperRankingTable({
 				player: Player | null;
 				paradas: number;
 				golesConcedidos: number;
+				accionesExtra: number;
 				paradasRecup: number;
 				paradasFuera: number;
 				paradasPenalti: number;
 				paradasInf: number;
+				paradasCornerInf: number;
+				lanzPaloInf: number;
 				gcBoya: number;
 				gcHm: number;
 				gcDir: number;
@@ -87,32 +115,38 @@ export function GoalkeeperRankingTable({
 			const pid = Number(s.player_id);
 			if (!pid || !playersById.has(pid)) return;
 
-			const paradasRecup = toNum(s.portero_tiros_parada_recup);
-			const paradasFuera = toNum(s.portero_paradas_fuera);
-			const paradasPenalti = toNum(s.portero_paradas_penalti_parado);
-			const paradasInf = toNum(s.portero_paradas_hombre_menos);
+			const paradasRecup = hiddenSet.has("portero_tiros_parada_recup") ? 0 : toNum(s.portero_tiros_parada_recup);
+			const paradasFuera = hiddenSet.has("portero_paradas_fuera") ? 0 : toNum(s.portero_paradas_fuera);
+			const paradasPenalti = hiddenSet.has("portero_paradas_penalti_parado") ? 0 : toNum(s.portero_paradas_penalti_parado);
+			const paradasInf = hiddenSet.has("portero_paradas_hombre_menos") ? 0 : toNum(s.portero_paradas_hombre_menos);
+			const paradasCornerInf = hiddenSet.has("portero_parada_fuera_inf") ? 0 : toNum(s.portero_parada_fuera_inf);
+			const lanzPaloInf = hiddenSet.has("portero_lanz_palo_inf") ? 0 : toNum(s.portero_lanz_palo_inf);
 
-			const gcBoya = toNum(s.portero_goles_boya_parada);
-			const gcHm = toNum(s.portero_goles_hombre_menos);
-			const gcDir = toNum(s.portero_goles_dir_mas_5m);
-			const gcContra = toNum(s.portero_goles_contraataque);
-			const gcPen = toNum(s.portero_goles_penalti);
-			const gcLanz = toNum(s.portero_goles_lanzamiento);
-			const gcPalo = toNum(s.portero_gol_palo);
+			const gcBoya = hiddenSet.has("portero_goles_boya_parada") ? 0 : toNum(s.portero_goles_boya_parada);
+			const gcHm = hiddenSet.has("portero_goles_hombre_menos") ? 0 : toNum(s.portero_goles_hombre_menos);
+			const gcDir = hiddenSet.has("portero_goles_dir_mas_5m") ? 0 : toNum(s.portero_goles_dir_mas_5m);
+			const gcContra = hiddenSet.has("portero_goles_contraataque") ? 0 : toNum(s.portero_goles_contraataque);
+			const gcPen = hiddenSet.has("portero_goles_penalti") ? 0 : toNum(s.portero_goles_penalti);
+			const gcLanz = hiddenSet.has("portero_goles_lanzamiento") ? 0 : toNum(s.portero_goles_lanzamiento);
+			const gcPalo = hiddenSet.has("portero_gol_palo") ? 0 : toNum(s.portero_gol_palo);
 
-			const paradas = paradasRecup + paradasFuera + paradasPenalti + paradasInf;
+			const paradas = paradasRecup + paradasFuera + paradasPenalti + paradasInf + paradasCornerInf;
 			const golesConcedidos = gcBoya + gcHm + gcDir + gcContra + gcPen + gcLanz + gcPalo;
+			const accionesExtra = lanzPaloInf;
 
-			if (paradas <= 0 && golesConcedidos <= 0) return;
+			if (paradas <= 0 && golesConcedidos <= 0 && accionesExtra <= 0) return;
 
 			const prev = map.get(pid) ?? {
 				player: playersById.get(pid) ?? null,
 				paradas: 0,
 				golesConcedidos: 0,
+				accionesExtra: 0,
 				paradasRecup: 0,
 				paradasFuera: 0,
 				paradasPenalti: 0,
 				paradasInf: 0,
+				paradasCornerInf: 0,
+				lanzPaloInf: 0,
 				gcBoya: 0,
 				gcHm: 0,
 				gcDir: 0,
@@ -124,10 +158,15 @@ export function GoalkeeperRankingTable({
 
 			prev.paradas += paradas;
 			prev.golesConcedidos += golesConcedidos;
+			prev.accionesExtra += accionesExtra;
+
 			prev.paradasRecup += paradasRecup;
 			prev.paradasFuera += paradasFuera;
 			prev.paradasPenalti += paradasPenalti;
 			prev.paradasInf += paradasInf;
+			prev.paradasCornerInf += paradasCornerInf;
+			prev.lanzPaloInf += lanzPaloInf;
+
 			prev.gcBoya += gcBoya;
 			prev.gcHm += gcHm;
 			prev.gcDir += gcDir;
@@ -141,7 +180,7 @@ export function GoalkeeperRankingTable({
 
 		return Array.from(map.values())
 			.map((r) => {
-				const acciones = r.paradas + r.golesConcedidos;
+				const acciones = r.paradas + r.golesConcedidos + r.accionesExtra;
 				const pctParadas = acciones > 0 ? Number(((r.paradas / acciones) * 100).toFixed(1)) : 0;
 				const balance = r.paradas - r.golesConcedidos;
 
@@ -158,13 +197,13 @@ export function GoalkeeperRankingTable({
 				if (b.paradas !== a.paradas) return b.paradas - a.paradas;
 				return b.balance - a.balance;
 			});
-	}, [stats, playersById, minActions]);
+	}, [stats, playersById, minActions, hiddenSet]);
 
 	const leader = ranking[0] ?? null;
 	const totalParadas = ranking.reduce((sum, r) => sum + r.paradas, 0);
 	const totalGC = ranking.reduce((sum, r) => sum + r.golesConcedidos, 0);
 
-	if (!ranking.length) return null;
+	if (!ranking.length || (!visibleSaveDefs.length && !visibleGoalDefs.length)) return null;
 
 	return (
 		<div className={`rounded-xl border overflow-hidden bg-card w-full ${className ?? ""}`}>
@@ -190,10 +229,13 @@ export function GoalkeeperRankingTable({
 								<TableHead className="text-right">Paradas</TableHead>
 								<TableHead className="text-right">GC</TableHead>
 								<TableHead className="text-right">Balance</TableHead>
-								<TableHead className="text-right">P. Recup</TableHead>
-								<TableHead className="text-right">P. Fuera</TableHead>
-								<TableHead className="text-right">P. Pen.</TableHead>
-								<TableHead className="text-right">P. Inf.</TableHead>
+
+								{visibleSaveDefs.map((def) => (
+									<TableHead key={def.key} className="text-right">
+										{def.label}
+									</TableHead>
+								))}
+
 								<TableHead className="text-right">Acciones</TableHead>
 							</TableRow>
 						</UITableHeader>
@@ -214,10 +256,13 @@ export function GoalkeeperRankingTable({
 									<TableCell className="text-right tabular-nums font-semibold">
 										{r.balance > 0 ? `+${r.balance}` : r.balance}
 									</TableCell>
-									<TableCell className="text-right tabular-nums">{r.paradasRecup}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.paradasFuera}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.paradasPenalti}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.paradasInf}</TableCell>
+
+									{visibleSaveDefs.map((def) => (
+										<TableCell key={def.key} className="text-right tabular-nums">
+											{toNum((r as Record<string, unknown>)[def.key])}
+										</TableCell>
+									))}
+
 									<TableCell className="text-right tabular-nums">{r.acciones}</TableCell>
 								</TableRow>
 							))}

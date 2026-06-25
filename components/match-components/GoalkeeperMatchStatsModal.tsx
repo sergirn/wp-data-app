@@ -13,6 +13,7 @@ type Props = {
 	onOpenChange: (v: boolean) => void;
 	player: any;
 	stat: any;
+	hiddenStats?: string[];
 	derived: {
 		paradas: number;
 		golesRecibidos: number;
@@ -101,7 +102,7 @@ function usePlayerFavorites(playerId?: number, open?: boolean) {
 	return { favSet, toggleLocal, dirty, save, discard, saving, error };
 }
 
-export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, derived }: Props) {
+export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, derived, hiddenStats = [] }: Props) {
 	const playerId: number | undefined = player?.id ?? stat?.player_id;
 	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId, open);
 
@@ -189,11 +190,6 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 		);
 	};
 
-	const hmGoles = Number(stat?.portero_goles_hombre_menos ?? 0);
-	const hmParadas = Number(stat?.portero_paradas_hombre_menos ?? 0);
-	const hmTotal = hmGoles + hmParadas;
-	const hmEficiencia = hmTotal > 0 ? Math.round((hmParadas / hmTotal) * 100) : 0;
-
 	return (
 		<>
 			<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -257,6 +253,7 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 						<GoalkeeperStatsSections
 							stats={stat}
 							mode="match"
+							hiddenStats={hiddenStats}
 							categories={["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"]}
 							renderRow={({ label, value, statKey }) => <KV key={statKey} label={label} value={value} statKey={statKey} />}
 						/>

@@ -4,8 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AttackBlock } from "./cards-templates/AttackBlock";
 import { DefenseBlock } from "./cards-templates/DefenseBlock";
 import { GoalkeeperBlock } from "./cards-templates/GoalkeeperBlock";
-import { PlayerStatCard } from "./PlayerStatCard";
-import { CustomStatCardDialog } from "./CustomStatCardDialog";
 import { ChevronLeft, ChevronRight, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MostExpelledFeaturedCard } from "./cards-templates/MostExpelledBlock";
