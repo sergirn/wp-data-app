@@ -1776,20 +1776,25 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				</Dialog>
 			)}
 
-			<div className="fixed bottom-6 right-6 z-40">
-				<Button onClick={handleSave} disabled={saving} size="lg" className="shadow-lg">
-					{saving ? (
-						<>
-							<Loader2 className="mr-2 h-5 w-5 animate-spin" />
-							Guardando...
-						</>
-					) : (
-						<>
-							<Save className="mr-2 h-5 w-5" />
-							{editingMatchId ? "Actualizar Partido" : "Guardar Partido"}
-						</>
-					)}
-				</Button>
+			<div className=" mt-8">
+			<Button
+				onClick={handleSave}
+				disabled={saving}
+				size="lg"
+				className="w-full h-12"
+			>
+				{saving ? (
+				<>
+					<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+					Guardando...
+				</>
+				) : (
+				<>
+					<Save className="mr-2 h-5 w-5" />
+					{editingMatchId ? "Actualizar Partido" : "Guardar Partido"}
+				</>
+				)}
+			</Button>
 			</div>
 			<div className="mt-6 flex flex-col items-center gap-2 text-center">
 				<p className="text-xs text-muted-foreground">

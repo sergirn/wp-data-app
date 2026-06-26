@@ -115,14 +115,7 @@ export default function MatchesPage() {
 					<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Partidos</h1>
 					<p className="text-sm sm:text-base text-muted-foreground">Historial de partidos de {currentClub?.short_name || ""}</p>
 				</div>
-				{canEdit && (
-					<Button asChild className="w-full sm:w-auto">
-						<Link href="/nuevo-partido">
-							<Plus className="mr-2 h-4 w-4" />
-							Nuevo Partido
-						</Link>
-					</Button>
-				)}
+				
 			</div>
 
 			{matches && matches.length > 0 ? (
@@ -288,7 +281,7 @@ function MatchCard({
 					</div>
 
 					{canEdit && (
-						<div className="flex gap-3 mt-4 action-buttons">
+						<div className="flex gap-4 mt-2 action-buttons">
 							<Button
 								type="button"
 								variant="ghost"

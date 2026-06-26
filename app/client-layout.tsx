@@ -7,6 +7,7 @@ import { ClubProvider } from "@/lib/club-context"
 import { ProfileProvider } from "@/lib/profile-context"
 import { Navigation } from "@/components/navigation"
 import type { Club, Profile } from "@/lib/types"
+import { AnimatedBackground } from "@/components/background";
 
 interface ClientLayoutProps {
   children: React.ReactNode
@@ -25,6 +26,7 @@ export default function ClientLayout({
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <ProfileProvider initialProfile={profile}>
         <ClubProvider initialClub={currentClub} initialClubs={allClubs}>
+          <AnimatedBackground />
           {/* Top + Bottom navigation */}
           {profile && <Navigation profile={profile} />}
 

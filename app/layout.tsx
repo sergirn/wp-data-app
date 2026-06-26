@@ -7,6 +7,7 @@ import ClientLayout from "./client-layout";
 import "./globals.css";
 import { getCurrentProfile, getCurrentClub, getAllClubs } from "@/lib/auth";
 import { Suspense } from "react";
+import { Bai_Jamjuree } from "next/font/google";
 
 const geistSans = Geist({
 	subsets: ["latin"],
@@ -16,6 +17,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
 	subsets: ["latin"],
 	variable: "--font-mono"
+});
+
+const baiJamjuree = Bai_Jamjuree({
+	subsets: ["latin"],
+	weight: ["300", "400", "500", "600", "700"],
+	variable: "--font-sans",
+	display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -34,13 +42,13 @@ export default async function RootLayout({
 	const allClubs = profile ? await getAllClubs() : [];
 
 	return (
-		<html lang="es" suppressHydrationWarning>
+		<html lang="es" className={baiJamjuree.variable} suppressHydrationWarning>
 			<head>
 				<link rel="manifest" href="/manifest.json" />
 				<meta name="theme-color" content="#000000" />
 			</head>
 
-			<body className={`font-sans ${geistSans.variable} ${geistMono.variable}`}>
+			<body className={baiJamjuree.className}>
 				<Suspense fallback={<div>Loading...</div>}>
 					<ClientLayout profile={profile} currentClub={currentClub} allClubs={allClubs}>
 						{children}

@@ -180,20 +180,32 @@ export function TeamDashboard({ teamStats }: TeamDashboardProps) {
 
 			{/* Dots */}
 			{totalPages > 1 ? (
-				<div className="flex items-center justify-center gap-2">
-					{Array.from({ length: totalPages }).map((_, i) => (
-						<button
-							key={i}
-							type="button"
-							onClick={() => scrollToPage(i)}
-							className={`
-                h-2 w-2 rounded-full transition
-                ${i === page ? "bg-foreground" : "bg-muted-foreground/30 hover:bg-muted-foreground/50"}
-              `}
-							aria-label={`Ir a página ${i + 1}`}
-						/>
-					))}
-				</div>
+				<div className="flex items-center justify-center gap-0.5 sm:gap-2">
+	{Array.from({ length: totalPages }).map((_, i) => (
+		<button
+			key={i}
+			type="button"
+			onClick={() => scrollToPage(i)}
+			className="
+				grid place-items-center rounded-full
+				!h-5 !w-5 !min-h-5 !min-w-5
+				sm:!h-8 sm:!w-8 sm:!min-h-8 sm:!min-w-8
+			"
+			aria-label={`Ir a página ${i + 1}`}
+		>
+			<span
+				className={`
+					block rounded-full transition-all duration-300
+					${
+						i === page
+							? "h-1 w-3 bg-primary sm:h-2 sm:w-6"
+							: "h-1 w-1 bg-muted-foreground/30 hover:bg-muted-foreground/50 sm:h-2 sm:w-2"
+					}
+				`}
+			/>
+		</button>
+	))}
+</div>
 			) : null}
 		</section>
 	);

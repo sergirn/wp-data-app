@@ -271,69 +271,49 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
 		router.push(`/jugadores/${player.id}`);
 	}, [router, player.id]);
 
+	const efficiency = player.totalTiros > 0 ? Math.round((player.totalGoles / player.totalTiros) * 100) : 0;
+
 	return (
-		<Card
+		<article
 			role="link"
 			tabIndex={0}
 			onClick={goToPlayer}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") goToPlayer();
 			}}
-			className={cn(`
-        h-full overflow-hidden p-0 cursor-pointer
-        transition-all duration-200
-        hover:-translate-y-1 hover:shadow-lg
-        flex flex-col
-      `)}
+			className="
+				group flex h-full cursor-pointer flex-col overflow-hidden
+				rounded-3xl border bg-card shadow-sm
+				transition-all duration-300
+				hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg
+				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+			"
 		>
-			{/* ✅ FOTO: más compacta en móvil */}
-			<div className="relative aspect-[5/4] sm:aspect-auto sm:h-40 md:h-65 overflow-hidden">
-				{player.photo_url ? (
-					<img
-						src={player.photo_url ?? undefined}
-						alt={player.name}
-						loading="lazy"
-						className="
-              absolute inset-0 h-full w-full
-              object-cover sm:object-cover
-              object-top
-              bg-muted
-            "
-					/>
-				) : (
-					<div className="absolute inset-0 grid place-items-center bg-muted">
-						<div className="text-center">
-							<div className="text-3xl font-extrabold text-muted-foreground">#{player.number}</div>
-							<div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
-						</div>
-					</div>
-				)}
+			<PlayerHero player={player} role="Jugador de campo" />
+
+			<div className="space-y-3 p-3 sm:p-4">
+				<div className="grid grid-cols-3 gap-2">
+					<MiniStat label="Goles" value={player.totalGoles || 0} />
+					<MiniStat label="Asist." value={player.totalAsistencias || 0} />
+					<MiniStat label="Ef." value={`${efficiency}%`} />
+				</div>
 
 				<div
+					onClick={(e) => e.stopPropagation()}
+					onMouseDown={(e) => e.stopPropagation()}
+					onPointerDown={(e) => e.stopPropagation()}
 					className="
-            absolute inset-0 bg-gradient-to-t
-            from-white/75 via-white/10 to-transparent
-            dark:from-black/60 dark:via-black/20 dark:to-transparent
-          "
-				/>
-
-				{/* ✅ Texto más compacto en móvil */}
-				<div className="absolute inset-x-0 bottom-0 px-3 pb-2 sm:px-4 sm:pb-3">
-					<h3 className="text-sm sm:text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">{player.name}</h3>
-					<p className="text-[11px] sm:text-xs text-zinc-700/80 dark:text-white/80">#{player.number} · Jugador de campo</p>
+						overflow-hidden rounded-2xl mb-6
+					"
+				>
+					<PlayerRadarChart
+						playerName={player.name}
+						matchStats={playerMatchStats}
+						height={isMobile ? 190 : 200}
+					/>
 				</div>
 			</div>
-
-			{/* Radar */}
-			<div
-				onClick={(e) => e.stopPropagation()}
-				onMouseDown={(e) => e.stopPropagation()}
-				onPointerDown={(e) => e.stopPropagation()}
-				className="cursor-default -mt-15 sm:mt-0"
-			>
-				<PlayerRadarChart playerName={player.name} matchStats={playerMatchStats} height={isMobile ? 220 : 340} />
-			</div>
-		</Card>
+		</article>
 	);
 });
 
@@ -362,60 +342,116 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
 	}, [router, player.id]);
 
 	return (
-		<Card
+		<article
 			role="link"
 			tabIndex={0}
 			onClick={goToPlayer}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") goToPlayer();
 			}}
-			className={cn(`
-        h-full overflow-hidden p-0 cursor-pointer
-        transition-all duration-200
-        hover:-translate-y-1 hover:shadow-lg
-        flex flex-col
-      `)}
+			className="
+				group flex h-full cursor-pointer flex-col overflow-hidden
+				rounded-3xl border bg-card shadow-sm
+				transition-all duration-300
+				hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg
+				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+			"
 		>
-			{/* ✅ FOTO compacta móvil */}
-			<div className="relative aspect-[5/4] sm:aspect-auto sm:h-40 md:h-65 overflow-hidden">
-				{player.photo_url ? (
-					<img
-						src={player.photo_url ?? undefined}
-						alt={player.name}
-						loading="lazy"
-						className="absolute inset-0 h-full w-full object-cover object-top bg-muted"
-					/>
-				) : (
-					<div className="absolute inset-0 grid place-items-center bg-muted">
-						<div className="text-center">
-							<div className="text-3xl font-extrabold text-muted-foreground">#{player.number}</div>
-							<div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
-						</div>
-					</div>
-				)}
+			<PlayerHero player={player} role="Portero" />
+
+			<div className="space-y-3 p-3 sm:p-4">
+				<div className="grid grid-cols-3 gap-2">
+					<MiniStat label="Paradas" value={player.totalParadas || 0} />
+					<MiniStat label="Goles" value={player.totalRivalGoles || 0} />
+					<MiniStat label="Partidos" value={player.matchesPlayed || 0} />
+				</div>
 
 				<div
+					onClick={(e) => e.stopPropagation()}
+					onMouseDown={(e) => e.stopPropagation()}
+					onPointerDown={(e) => e.stopPropagation()}
 					className="
-            absolute inset-0 bg-gradient-to-t
-            from-white/75 via-white/10 to-transparent
-            dark:from-black/60 dark:via-black/10 dark:to-transparent
-          "
-				/>
-
-				<div className="absolute inset-x-0 bottom-0 px-3 pb-2 sm:px-4 sm:pb-3">
-					<h3 className="text-sm sm:text-base font-semibold leading-tight truncate text-zinc-900 dark:text-white">{player.name}</h3>
-					<p className="text-[11px] sm:text-xs text-zinc-700/80 dark:text-white/80">#{player.number} · Portero</p>
+						overflow-hidden rounded-2xl mb-6
+						
+					"
+				>
+					<GoalkeeperRadarChart
+						playerName={player.name}
+						matchStats={goalkeeperMatchStats}
+						height={isMobile ? 190 : 200}
+					/>
 				</div>
 			</div>
-
-			<div
-				onClick={(e) => e.stopPropagation()}
-				onMouseDown={(e) => e.stopPropagation()}
-				onPointerDown={(e) => e.stopPropagation()}
-				className="cursor-default -mt-15 sm:mt-0"
-			>
-				<GoalkeeperRadarChart playerName={player.name} matchStats={goalkeeperMatchStats} height={isMobile ? 220 : 340} />
-			</div>
-		</Card>
+		</article>
 	);
 });
+
+function PlayerHero({
+	player,
+	role
+}: {
+	player: Player & {
+		matchesPlayed?: number;
+	};
+	role: string;
+}) {
+	return (
+		<div className="relative aspect-[4/5] overflow-hidden bg-muted sm:aspect-[5/4]">
+			{player.photo_url ? (
+				<img
+					src={player.photo_url}
+					alt={player.name}
+					loading="lazy"
+					className="
+						absolute inset-0 h-full w-full object-cover object-top
+						transition-transform duration-500
+						group-hover:scale-[1.04]
+					"
+				/>
+			) : (
+				<div className="absolute inset-0 grid place-items-center">
+					<div className="text-center">
+						<div className="text-4xl font-black text-muted-foreground">
+							#{player.number}
+						</div>
+						<div className="mt-1 text-xs text-muted-foreground">
+							Sin foto
+						</div>
+					</div>
+				</div>
+			)}
+
+			<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+
+			<div className="absolute right-3 top-3 rounded-full bg-black/45 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
+				#{player.number}
+			</div>
+
+			<div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+				<h3 className="line-clamp-1 text-sm font-bold text-white sm:text-base">
+					{player.name}
+				</h3>
+				<p className="mt-0.5 text-[11px] text-white/75 sm:text-xs">
+					{role} · {player.matchesPlayed || 0} partidos
+				</p>
+			</div>
+		</div>
+	);
+}
+
+function MiniStat({
+	label,
+	value
+}: {
+	label: string;
+	value: string | number;
+}) {
+	return (
+		<div className="rounded-xl border bg-muted/30 px-2 py-2 text-center">
+			<p className="truncate text-sm font-bold tabular-nums">{value}</p>
+			<p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+				{label}
+			</p>
+		</div>
+	);
+}
