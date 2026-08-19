@@ -21,6 +21,8 @@ import { accumulatePlayerStats, getPlayerDerived } from "@/lib/stats/playerStats
 import { accumulateGoalkeeperStats, getGoalkeeperDerived, n as gkN } from "@/lib/stats/goalkeeperStatsHelpers";
 import { ExportPlayerPdfButton } from "@/components/export-buttons/export-player-pdf-button";
 import { ExportPlayerExcelButton } from "@/components/export-buttons/export-player-excel-button";
+import { getCurrentProfile } from "@/lib/auth";
+import { getTranslations } from "next-intl/server";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -29,14 +31,17 @@ interface MatchStatsWithMatch extends MatchStats {
 export default async function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
 	const supabase = await createClient();
+	const profile = await getCurrentProfile();
+	if (!supabase || !profile) notFound();
 
-	const {
-		data: { user }
-	} = await supabase.auth.getUser();
+	const hiddenStatsSet = await getHiddenStatsSet(supabase, profile.id);
 
-	const hiddenStatsSet = await getHiddenStatsSet(supabase, user?.id);
-
-	const { data: player, error: playerError } = await supabase.from("players").select("*").eq("id", id).single();
+	let playerQuery = supabase.from("players").select("*").eq("id", id);
+	if (!profile.is_super_admin) {
+		if (!profile.club_id) notFound();
+		playerQuery = playerQuery.eq("club_id", profile.club_id);
+	}
+	const { data: player, error: playerError } = await playerQuery.single();
 	if (playerError || !player) notFound();
 
 	const { data: matchStats } = await supabase
@@ -57,7 +62,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 }
 
 async function getHiddenStatsSet(supabase: Awaited<ReturnType<typeof createClient>>, profileId?: string) {
-	if (!profileId) return new Set<string>();
+	if (!supabase || !profileId) return new Set<string>();
 
 	const { data, error } = await supabase.from("profile_hidden_stats").select("stat_key").eq("profile_id", profileId);
 
@@ -66,7 +71,8 @@ async function getHiddenStatsSet(supabase: Awaited<ReturnType<typeof createClien
 	return new Set(data.map((row) => row.stat_key));
 }
 
-function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; matchStats: MatchStatsWithMatch[]; hiddenStats: Set<string> }) {
+async function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; matchStats: MatchStatsWithMatch[]; hiddenStats: Set<string> }) {
+	const t = await getTranslations("PlayerDetail");
 	const matchCount = matchStats.length;
 	const fieldPlayerStats = calculateFieldPlayerStats(matchStats, hiddenStats);
 
@@ -77,7 +83,7 @@ function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; 
 					<Button variant="ghost" asChild>
 						<Link href="/jugadores">
 							<ArrowLeft className="mr-2 h-4 w-4" />
-							Volver a Jugadores
+							{t("backToPlayers")}
 						</Link>
 					</Button>
 
@@ -87,19 +93,19 @@ function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; 
 					</div>
 				</div>
 
-				<PlayerHeroHeader player={player} roleLabel="Jugador de Campo" statTotals={fieldPlayerStats as Record<string, number>} />
+				<PlayerHeroHeader player={player} roleLabel={t("fieldPlayer")} statTotals={fieldPlayerStats as Record<string, number>} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
 				<TabsList className="grid w-full grid-cols-3 md:grid-cols-3 h-auto gap-1">
 					<TabsTrigger value="resumen" className="text-xs md:text-sm py-2">
-						Resumen
+						{t("summary")}
 					</TabsTrigger>
 					<TabsTrigger value="partidos" className="text-xs md:text-sm py-2">
-						Rendimiento por Partido
+						{t("matchPerformance")}
 					</TabsTrigger>
 					<TabsTrigger value="evolucion" className="text-xs md:text-sm py-2">
-						Evolución
+						{t("evolution")}
 					</TabsTrigger>
 				</TabsList>
 
@@ -118,7 +124,7 @@ function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; 
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
-					<ChartSwipeCarousel className="w-full" items={[<PerformanceEvolutionChart matchStats={matchStats} player={player} />]} />
+					<ChartSwipeCarousel className="w-full" items={[<PerformanceEvolutionChart key="performance" matchStats={matchStats} player={player} />]} />
 				</TabsContent>
 			</Tabs>
 		</main>
@@ -188,7 +194,7 @@ function FieldPlayerSummary({
 	);
 }
 
-function GoalkeeperPage({
+async function GoalkeeperPage({
 	player,
 	matchStats,
 	goalkeeperShots,
@@ -199,11 +205,13 @@ function GoalkeeperPage({
 	goalkeeperShots: any[];
 	hiddenStats: Set<string>;
 }) {
+	const t = await getTranslations("PlayerDetail");
 	const matchCount = matchStats.length;
 
 	const goalkeeperStats = calculateGoalkeeperStats(matchStats, hiddenStats);
 	const chartShots: GoalkeeperShotForChart[] = (goalkeeperShots ?? []).map((s: any) => ({
 		id: s.id,
+		match_id: s.match_id,
 		goalkeeper_player_id: Number(s.goalkeeper_player_id),
 		x: Number(s.x),
 		y: Number(s.y),
@@ -217,7 +225,7 @@ function GoalkeeperPage({
 					<Button variant="ghost" asChild>
 						<Link href="/jugadores">
 							<ArrowLeft className="mr-2 h-4 w-4" />
-							Volver a Jugadores
+							{t("backToPlayers")}
 						</Link>
 					</Button>
 
@@ -227,19 +235,19 @@ function GoalkeeperPage({
 					</div>
 				</div>
 
-				<PlayerHeroHeader player={player} roleLabel="Portero" statTotals={goalkeeperStats as Record<string, number>} />
+				<PlayerHeroHeader player={player} roleLabel={t("goalkeeper")} statTotals={goalkeeperStats as Record<string, number>} />
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
 				<TabsList className="grid w-full grid-cols-3 md:grid-cols-3 h-auto gap-1">
 					<TabsTrigger value="resumen" className="text-xs md:text-sm py-2">
-						Rendimiento
+						{t("performance")}
 					</TabsTrigger>
 					<TabsTrigger value="partidos" className="text-xs md:text-sm py-2">
-						Rendimiento por Partido
+						{t("matchPerformance")}
 					</TabsTrigger>
 					<TabsTrigger value="evolucion" className="text-xs md:text-sm py-2">
-						Evolución
+						{t("evolution")}
 					</TabsTrigger>
 				</TabsList>
 
@@ -261,8 +269,8 @@ function GoalkeeperPage({
 					<ChartSwipeCarousel
 						className="w-full"
 						items={[
-							<GoalkeeperShotsGoalChartSimple shots={chartShots} goalkeeperPlayerId={player.id} />,
-							<PerformanceEvolutionChart matchStats={matchStats} player={player} />
+							<GoalkeeperShotsGoalChartSimple key="shots" shots={chartShots} goalkeeperPlayerId={player.id} />,
+							<PerformanceEvolutionChart key="performance" matchStats={matchStats} player={player} />
 						]}
 					/>
 				</TabsContent>

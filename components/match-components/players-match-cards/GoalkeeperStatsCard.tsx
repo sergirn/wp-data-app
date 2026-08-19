@@ -7,6 +7,7 @@ import { MatchStats, Player } from "@/lib/types";
 import { GoalkeeperMatchStatsModal } from "../GoalkeeperMatchStatsModal";
 import { GOALKEEPER_STATS } from "@/lib/stats/goalkeeperStatsConfig";
 import { getGoalkeeperDerived, n } from "@/lib/stats/goalkeeperStatsHelpers";
+import { useTranslations } from "next-intl";
 
 function hasGoalkeeperStats(stat: Record<string, any> | null | undefined, hiddenStats: string[] = []) {
 	if (!stat) return false;
@@ -32,6 +33,7 @@ function MiniStat({ icon: Icon, label, value }: { icon: React.ElementType; label
 }
 
 export function GoalkeeperStatsCard({ stat, player, hiddenStats = [] }: { stat: MatchStats; player: Player; hiddenStats?: string[] }) {
+	const t = useTranslations("MatchDetails");
 	const [open, setOpen] = useState(false);
 
 	const hasStats = hasGoalkeeperStats(stat as Record<string, any>, hiddenStats);
@@ -43,7 +45,7 @@ export function GoalkeeperStatsCard({ stat, player, hiddenStats = [] }: { stat: 
 				type="button"
 				disabled={!hasStats}
 				onClick={() => hasStats && setOpen(true)}
-				aria-label={`Ver estadísticas de portero de ${player.name}`}
+				aria-label={t("viewGoalkeeperStats", { name: player.name })}
 				className="group w-full text-left disabled:cursor-not-allowed"
 			>
 				<div
@@ -68,7 +70,7 @@ export function GoalkeeperStatsCard({ stat, player, hiddenStats = [] }: { stat: 
 							<div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-muted to-muted/60">
 								<div className="text-center">
 									<div className="text-4xl font-black tracking-tight text-foreground/85">#{player.number}</div>
-									<div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
+									<div className="mt-1 text-xs text-muted-foreground">{t("noPhoto")}</div>
 								</div>
 							</div>
 						)}
@@ -100,7 +102,7 @@ export function GoalkeeperStatsCard({ stat, player, hiddenStats = [] }: { stat: 
 							<div className="rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-sm dark:bg-black/35">
 								<h3 className="truncate text-sm font-semibold text-white">{player.name}</h3>
 								<p className="mt-0.5 text-[11px] text-white/75">
-									#{player.number} · {hasStats ? "Disponible" : "Sin datos registrados"}
+									#{player.number} · {hasStats ? t("available") : t("noData")}
 								</p>
 							</div>
 						</div>
@@ -108,19 +110,19 @@ export function GoalkeeperStatsCard({ stat, player, hiddenStats = [] }: { stat: 
 
 					<div className="space-y-3 p-3">
 						<div className="grid grid-cols-2 gap-2">
-							<MiniStat icon={Shield} label="Paradas" value={derived.saves} />
-							<MiniStat icon={TrendingUp} label="Eficacia" value={`${derived.savePct}%`} />
+							<MiniStat icon={Shield} label={t("saves")} value={derived.saves} />
+							<MiniStat icon={TrendingUp} label={t("efficiency")} value={`${derived.savePct}%`} />
 						</div>
 
 						<div className="flex items-center justify-between rounded-xl border bg-muted/20 px-3 py-2">
 							<div className="min-w-0">
-								<p className="text-[11px] text-muted-foreground">Resumen</p>
+								<p className="text-[11px] text-muted-foreground">{t("summary")}</p>
 								<p className="truncate text-xs font-medium text-foreground/85">
-									{derived.shotsReceived} tiros recibidos · {derived.saves} intervenciones
+									{t("goalkeeperSummary", { shots: derived.shotsReceived, saves: derived.saves })}
 								</p>
 							</div>
 
-							<span className="ml-3 text-[11px] font-semibold text-primary">{hasStats ? "Ver detalle" : "Sin detalle"}</span>
+							<span className="ml-3 text-[11px] font-semibold text-primary">{hasStats ? t("viewDetail") : t("noDetail")}</span>
 						</div>
 					</div>
 				</div>

@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PenaltyShootoutList } from "@/components/players-components/PenaltyShootoutList"
+import { useTranslations } from "next-intl"
 
 type PlayerMini = { id: number; name: string; number: number; photo_url?: string | null }
 
@@ -33,6 +34,7 @@ type Period = {
 type Props = {
   clubName: string
   opponentName: string
+  isClubHome: boolean
   hasPenalties: boolean
   periods: Period[]
   penaltyHomeScore?: number | null
@@ -44,6 +46,7 @@ type Props = {
 export function MatchPeriodsAndPenaltiesCard({
   clubName,
   opponentName,
+  isClubHome,
   hasPenalties,
   periods,
   penaltyHomeScore,
@@ -51,6 +54,7 @@ export function MatchPeriodsAndPenaltiesCard({
   homePenaltyShooters,
   rivalPenaltyShots,
 }: Props) {
+  const t = useTranslations("MatchDetails")
   const hasPeriods = periods.some((p) => (p.home ?? 0) > 0 || (p.away ?? 0) > 0)
 
   if (!hasPeriods && !hasPenalties) return null
@@ -60,36 +64,40 @@ export function MatchPeriodsAndPenaltiesCard({
       <div>
         <Tabs defaultValue="parciales" className="w-full">
           <TabsList className={`grid w-full ${hasPenalties ? "grid-cols-2" : "grid-cols-1"}`}>
-            <TabsTrigger value="parciales">Parciales</TabsTrigger>
-            {hasPenalties && <TabsTrigger value="penaltis">Tanda de Penaltis</TabsTrigger>}
+            <TabsTrigger value="parciales">{t("periods")}</TabsTrigger>
+            {hasPenalties && <TabsTrigger value="penaltis">{t("shootout")}</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="parciales" className="mt-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {periods.map(({ q, home, away, winner }) => {
                 const player = winner
+                const localScore = isClubHome ? home : away
+                const visitingScore = isClubHome ? away : home
+                const localTeam = isClubHome ? clubName : opponentName
+                const visitingTeam = isClubHome ? opponentName : clubName
 
                 return (
                   <div key={q} className="space-y-3">
                   {/* Parcial */}
                   <div className="p-4 bg-muted/30 rounded-lg text-center border">
-                    <p className="text-sm font-semibold text-muted-foreground mb-2">Parcial {q}</p>
+                    <p className="text-sm font-semibold text-muted-foreground mb-2">{t("period", { number: q })}</p>
 
                     <div className="flex items-center justify-between gap-3">
                       {/* Home */}
                       <div className="min-w-0 flex-1">
-                        <p className="text-2xl font-bold tabular-nums">{home ?? 0}</p>
+                        <p className="text-2xl font-bold tabular-nums">{localScore ?? 0}</p>
                         {/* ✅ truncate real */}
-                        <p className="text-xs text-muted-foreground truncate">{clubName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{localTeam}</p>
                       </div>
 
                       <p className="text-muted-foreground font-bold shrink-0">-</p>
 
                       {/* Away */}
                       <div className="min-w-0 flex-1">
-                        <p className="text-2xl font-bold tabular-nums">{away ?? 0}</p>
+                        <p className="text-2xl font-bold tabular-nums">{visitingScore ?? 0}</p>
                         {/* ✅ truncate real */}
-                        <p className="text-xs text-muted-foreground truncate">{opponentName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{visitingTeam}</p>
                       </div>
                     </div>
                   </div>
@@ -122,7 +130,7 @@ export function MatchPeriodsAndPenaltiesCard({
                             {/* ✅ In móvil, pone el label al lado y no rompe */}
                             <div className="min-w-0">
                               <span className="block text-xs font-semibold text-green-600 dark:text-green-400">
-                                Sprint ganado
+                                {t("sprintWon")}
                               </span>
 
                               {/* ✅ no overflow: min-w-0 + truncate */}
@@ -138,7 +146,7 @@ export function MatchPeriodsAndPenaltiesCard({
                     ) : (
                       <div className="text-center py-4">
                         <span className="text-sm font-semibold text-red-500 dark:text-red-400">
-                          Sprint perdido
+                          {t("sprintLost")}
                         </span>
                       </div>
                     )}
@@ -161,7 +169,7 @@ export function MatchPeriodsAndPenaltiesCard({
                 </div>
             ) : (
                 <p className="text-center text-muted-foreground py-8">
-                No hubo tanda de penaltis en este partido
+                {t("noShootout")}
                 </p>
             )}
             </TabsContent>

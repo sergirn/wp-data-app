@@ -4,6 +4,7 @@ import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ConversionChartData = {
 	scored: number;
@@ -175,16 +176,21 @@ export function MatchConversionChartTemplate({
 	scoredLabel,
 	scoredExtraLabel,
 	missedLabel,
-	recoveredLabel = "Recuperados",
-	lostLabel = "Perdidos",
-	insightGood = "Buen rendimiento en la conversión.",
-	insightBad = "Conversión mejorable.",
+	recoveredLabel,
+	lostLabel,
+	insightGood,
+	insightBad,
 	rightHeader,
 	okColor = DEFAULT_OK,
 	badColor = DEFAULT_BAD,
 	renderExtraChartSummary,
 	renderExtraTableSummary
 }: Props) {
+	const t = useTranslations("ChartTemplates");
+	const resolvedRecoveredLabel = recoveredLabel ?? t("recovered");
+	const resolvedLostLabel = lostLabel ?? t("lost");
+	const resolvedInsightGood = insightGood ?? t("defaultGood");
+	const resolvedInsightBad = insightBad ?? t("defaultBad");
 	const scoredExtra = data.scoredExtra ?? 0;
 	const scoredTotal = data.scored + scoredExtra;
 
@@ -202,13 +208,13 @@ export function MatchConversionChartTemplate({
 			title={title}
 			description={description ?? `${scoredTotal}/${data.attempts} · ${data.efficiency}%`}
 			icon={icon}
-			className="from-transparent"
+			className="h-full from-transparent"
 			rightHeader={rightHeader ?? <span className="text-xs text-muted-foreground tabular-nums">{data.efficiency}%</span>}
 			renderChart={({ compact }) => (
 				<div className="w-full">
 					<div className={`grid gap-5 ${compact ? "grid-cols-1" : "grid-cols-1 xl:grid-cols-[1.05fr_1fr]"}`}>
 						<div className="relative">
-							<div className={`${compact ? "h-[240px]" : "h-[320px]"} w-full rounded-3xl border border-border/60 bg-card/30 p-2`}>
+							<div className={`${compact ? "h-[180px]" : "h-[320px]"} w-full rounded-2xl border border-border/60 bg-card/30 p-2`}>
 								<ResponsiveContainer width="100%" height="100%">
 									<PieChart>
 										<Pie
@@ -218,8 +224,8 @@ export function MatchConversionChartTemplate({
 											]}
 											cx="50%"
 											cy="50%"
-											innerRadius={compact ? 52 : 74}
-											outerRadius={compact ? 86 : 116}
+											innerRadius={compact ? 42 : 74}
+											outerRadius={compact ? 66 : 116}
 											paddingAngle={2}
 											stroke="transparent"
 											dataKey="value"
@@ -231,14 +237,14 @@ export function MatchConversionChartTemplate({
 									</PieChart>
 								</ResponsiveContainer>
 
-								<DonutCenter title="Eficiencia" value={`${data.efficiency}%`} subtitle={`${scoredTotal}/${data.attempts}`} />
+								<DonutCenter title={t("efficiency")} value={`${data.efficiency}%`} subtitle={`${scoredTotal}/${data.attempts}`} />
 							</div>
 						</div>
 
-						<div className="space-y-4">
+						{!compact ? <div className="space-y-4">
 							<div className="flex flex-wrap gap-2">
 								<TinyPill>
-									Intentos <span className="ml-1 font-semibold text-foreground tabular-nums">{data.attempts}</span>
+									{t("attempts")} <span className="ml-1 font-semibold text-foreground tabular-nums">{data.attempts}</span>
 								</TinyPill>
 								<TinyPill>
 									{scoredLabel} <span className="ml-1 font-semibold text-foreground tabular-nums">{scoredTotal}</span>
@@ -256,13 +262,13 @@ export function MatchConversionChartTemplate({
 							<div className="grid grid-cols-4 gap-3">
 								<StatBox label={scoredLabel} value={scoredTotal} />
 								<StatBox label={missedLabel} value={data.missed} />
-								<StatBox label="% éxito" value={`${scoredPct}%`} subtle />
-								<StatBox label="% fallo" value={`${missedPct}%`} subtle />
+								<StatBox label={t("successPercentage")} value={`${scoredPct}%`} subtle />
+								<StatBox label={t("failurePercentage")} value={`${missedPct}%`} subtle />
 							</div>
 
 							<div className="rounded-3xl border border-border/60 bg-card/40 p-4 shadow-sm">
 								<div className="flex items-center justify-between gap-3 mb-3">
-									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Conversión</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("conversion")}</p>
 									<Badge variant="outline" className="bg-background/70 text-[11px] tabular-nums">
 										{data.efficiency}%
 									</Badge>
@@ -281,18 +287,18 @@ export function MatchConversionChartTemplate({
 							{hasRebounds ? (
 								<div className="rounded-3xl border border-border/60 bg-card/40 p-4 shadow-sm">
 									<div className="flex items-center justify-between gap-2 mb-3">
-										<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rebotes</p>
+										<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("rebounds")}</p>
 										<Badge variant="outline" className="bg-background/70 text-[11px] tabular-nums">
-											Total {reboundsTotal}
+											{t("total")} {reboundsTotal}
 										</Badge>
 									</div>
 
 									<div className="grid grid-cols-2 gap-2">
-										<Row label={recoveredLabel} value={reboundsRecovered} />
-										<Row label={lostLabel} value={reboundsLost} />
+										<Row label={resolvedRecoveredLabel} value={reboundsRecovered} />
+										<Row label={resolvedLostLabel} value={reboundsLost} />
 										<div className="col-span-2">
 											<Row
-												label="Balance"
+												label={t("balance")}
 												value={
 													<span className="tabular-nums">
 														{reboundsBalance >= 0 ? "+" : ""}
@@ -323,14 +329,14 @@ export function MatchConversionChartTemplate({
 									</div>
 
 									<div className="min-w-0">
-										<p className="text-sm font-semibold">Lectura rápida</p>
+									<p className="text-sm font-semibold">{t("quickRead")}</p>
 										<p className="mt-1 text-xs leading-relaxed text-muted-foreground">
 											{data.efficiency >= 50 ? insightGood : insightBad}
 										</p>
 									</div>
 								</div>
 							</div>
-						</div>
+						</div> : null}
 					</div>
 				</div>
 			)}
@@ -338,7 +344,7 @@ export function MatchConversionChartTemplate({
 				<div className="rounded-3xl border border-border/60 bg-card/40 overflow-hidden">
 					<div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-4 py-4">
 						<div className="min-w-0">
-							<p className="text-sm font-semibold">Detalle de {title}</p>
+							<p className="text-sm font-semibold">{t("detailTitle", { title })}</p>
 							<p className="text-xs text-muted-foreground">
 								{scoredTotal}/{data.attempts} · {data.efficiency}%
 							</p>
@@ -356,29 +362,29 @@ export function MatchConversionChartTemplate({
 
 					<div className="p-4 space-y-4">
 						<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-							<StatBox label="Intentos" value={data.attempts} />
-							<StatBox label="Eficiencia" value={`${data.efficiency}%`} />
+							<StatBox label={t("attempts")} value={data.attempts} />
+							<StatBox label={t("efficiency")} value={`${data.efficiency}%`} />
 							<StatBox label={scoredLabel} value={scoredTotal} />
 							<StatBox label={missedLabel} value={data.missed} />
-							<StatBox label={`${scoredLabel} (base)`} value={data.scored} subtle />
+							<StatBox label={t("baseLabel", { label: scoredLabel })} value={data.scored} subtle />
 							{scoredExtraLabel ? <StatBox label={scoredExtraLabel} value={scoredExtra} subtle /> : null}
 						</div>
 
 						{hasRebounds ? (
 							<div className="rounded-3xl border border-border/60 bg-muted/15 p-4">
 								<div className="flex items-center justify-between gap-2 mb-3">
-									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rebotes</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("rebounds")}</p>
 									<Badge variant="outline" className="bg-background/70 text-[11px] tabular-nums">
-										Total {reboundsTotal}
+										{t("total")} {reboundsTotal}
 									</Badge>
 								</div>
 
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-									<Row label={recoveredLabel} value={reboundsRecovered} />
-									<Row label={lostLabel} value={reboundsLost} />
+									<Row label={resolvedRecoveredLabel} value={reboundsRecovered} />
+									<Row label={resolvedLostLabel} value={reboundsLost} />
 									<div className="sm:col-span-2">
 										<Row
-											label="Balance"
+										label={t("balance")}
 											value={
 												<span className="tabular-nums">
 													{reboundsBalance >= 0 ? "+" : ""}
@@ -409,9 +415,9 @@ export function MatchConversionChartTemplate({
 								</div>
 
 								<div>
-									<p className="text-sm font-semibold">Conclusión</p>
+								<p className="text-sm font-semibold">{t("conclusion")}</p>
 									<p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-										{data.efficiency >= 50 ? insightGood : insightBad}
+										{data.efficiency >= 50 ? resolvedInsightGood : resolvedInsightBad}
 									</p>
 								</div>
 							</div>

@@ -5,6 +5,7 @@ import { ExpandableChartCard } from "@/components/analytics-player/ExpandableCha
 import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
+import { useTranslations } from "next-intl";
 
 type ShotMistakePart = {
 	key: string;
@@ -71,18 +72,8 @@ type Props = {
 
 const fmtPct = (v: number) => `${(Number.isFinite(v) ? v : 0).toFixed(1)}%`;
 
-const MATCH_COLUMN_LABELS: Record<string, string> = {
-	pen: "Pen.",
-	corner: "Corner",
-	out: "Fuera",
-	palo: "Palo",
-	saved: "Parado",
-	blocked: "Bloq",
-	sup: "Sup.+"
-};
-
 export function ShotMistakesChartBase({
-	title = "Distribución de fallos de tiro",
+	title,
 	description,
 	icon,
 	summary,
@@ -93,18 +84,29 @@ export function ShotMistakesChartBase({
 	topLineFull,
 	rightHeader
 }: Props) {
+	const t = useTranslations("ShotMistakesTemplate");
 	if (!summary?.total) return null;
 
-	const resolvedTopLineCompact = topLineCompact ?? "Sin datos";
-	const resolvedTopLineFull = topLineFull ?? "Sin datos";
+	const resolvedTitle = title ?? t("title");
+	const resolvedTopLineCompact = topLineCompact ?? t("noData");
+	const resolvedTopLineFull = topLineFull ?? t("noData");
+	const matchColumnLabels: Record<string, string> = {
+		pen: t("penaltyShort"),
+		corner: t("corner"),
+		out: t("out"),
+		palo: t("post"),
+		saved: t("saved"),
+		blocked: t("blockedShort"),
+		sup: t("powerPlayShort")
+	};
 
 	const visibleParts = summary.parts.filter((p) => p.value > 0 || summary.parts.some((x) => x.key === p.key));
 	const visibleKeys = visibleParts.map((p) => p.key);
 
 	return (
 		<ExpandableChartCard
-			title={title}
-			description={description ?? `${summary.topType?.label ?? "Sin datos"} · ${resolvedTopLineCompact}`}
+			title={resolvedTitle}
+			description={description ?? `${summary.topType?.label ?? t("noData")} · ${resolvedTopLineCompact}`}
 			icon={icon}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={rightHeader ?? <span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
@@ -206,17 +208,17 @@ export function ShotMistakesChartBase({
 									<Table className="min-w-[1180px]">
 										<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 											<TableRow className="hover:bg-transparent">
-												<TableHead className="w-[90px]">Jornada</TableHead>
-												<TableHead>Rival</TableHead>
+											<TableHead className="w-[90px]">{t("round")}</TableHead>
+											<TableHead>{t("opponent")}</TableHead>
 
 												{visibleParts.map((part) => (
 													<TableHead key={part.key} className="text-right">
-														{MATCH_COLUMN_LABELS[part.key] ?? part.label}
+													{matchColumnLabels[part.key] ?? part.label}
 													</TableHead>
 												))}
 
-												<TableHead className="text-right">Total</TableHead>
-												<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+											<TableHead className="text-right">{t("total")}</TableHead>
+											<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 											</TableRow>
 										</UITableHeader>
 
@@ -261,11 +263,11 @@ export function ShotMistakesChartBase({
 								<div className="flex flex-col gap-2 text-xs text-muted-foreground">
 									<div className="flex flex-wrap items-center justify-between gap-2">
 										<span>
-											<span className="font-medium text-foreground">{perMatch.length}</span> partidos (últimos)
+											{t("recentMatches", { count: perMatch.length })}
 										</span>
 
 										<span className="rounded-md border bg-card px-2 py-1">
-											Fallos (temp): <span className="font-semibold text-foreground tabular-nums">{summary.total}</span>
+											{t("seasonMisses", { count: summary.total })}
 										</span>
 									</div>
 
@@ -280,15 +282,15 @@ export function ShotMistakesChartBase({
 							<Table className="min-w-[720px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jugador</TableHead>
+									<TableHead>{t("player")}</TableHead>
 
 										{visibleParts.map((part) => (
 											<TableHead key={part.key} className="text-right">
-												{MATCH_COLUMN_LABELS[part.key] ?? part.label}
+											{matchColumnLabels[part.key] ?? part.label}
 											</TableHead>
 										))}
 
-										<TableHead className="text-right">Total</TableHead>
+									<TableHead className="text-right">{t("total")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -317,7 +319,7 @@ export function ShotMistakesChartBase({
 							</Table>
 
 							<div className="border-t bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-								Total fallos: <span className="font-semibold text-foreground tabular-nums">{summary.total}</span>
+								{t("totalMisses", { count: summary.total })}
 							</div>
 						</div>
 					)}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useTranslations } from "next-intl"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +27,7 @@ type Draft = {
 }
 
 export function EditPlayersModal({ open, players, onClose, onSaved }: Props) {
+  const t = useTranslations("EditPlayers")
   const supabase = createClient()
 
   const [saving, setSaving] = useState(false)
@@ -137,7 +139,7 @@ export function EditPlayersModal({ open, players, onClose, onSaved }: Props) {
       onSaved?.(updatedPlayers)
       onClose()
     } catch (e: any) {
-      setErrorMsg(e?.message ?? "Error guardando jugadores")
+      setErrorMsg(e?.message ?? t("saveError"))
     } finally {
       setSaving(false)
     }
@@ -152,7 +154,7 @@ export function EditPlayersModal({ open, players, onClose, onSaved }: Props) {
     >
       <DialogContent className="w-[92vw] sm:max-w-5xl">
         <DialogHeader>
-          <DialogTitle>Editar jugadores</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
         {errorMsg ? (
@@ -192,7 +194,7 @@ export function EditPlayersModal({ open, players, onClose, onSaved }: Props) {
                   <div className="pt-2 space-y-2">
                     <div className="flex gap-2">
                       <div className="w-20">
-                        <p className="text-[11px] text-muted-foreground mb-1">Gorro</p>
+                        <p className="text-[11px] text-muted-foreground mb-1">{t("capNumber")}</p>
                         <Input
                           value={d.number}
                           inputMode="numeric"
@@ -202,7 +204,7 @@ export function EditPlayersModal({ open, players, onClose, onSaved }: Props) {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] text-muted-foreground mb-1">Nombre</p>
+                        <p className="text-[11px] text-muted-foreground mb-1">{t("name")}</p>
                         <Input
                           value={d.name}
                           onChange={(e) => updateDraft(p.id, { name: e.target.value })}
@@ -227,11 +229,11 @@ export function EditPlayersModal({ open, players, onClose, onSaved }: Props) {
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancelar
+            {t("cancel")}
           </Button>
 
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar"}
+            {saving ? t("saving") : t("save")}
           </Button>
         </div>
       </DialogContent>

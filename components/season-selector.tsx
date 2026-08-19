@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useTranslations } from "next-intl"
 
 interface SeasonSelectorProps {
   seasons: string[]
@@ -9,6 +10,7 @@ interface SeasonSelectorProps {
 }
 
 export function SeasonSelector({ seasons, selectedSeason }: SeasonSelectorProps) {
+  const t = useTranslations("Common")
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -21,7 +23,7 @@ export function SeasonSelector({ seasons, selectedSeason }: SeasonSelectorProps)
   return (
     <Select value={selectedSeason} onValueChange={handleSeasonChange}>
       <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Selecciona temporada" />
+        <SelectValue placeholder={t("selectSeason")} />
       </SelectTrigger>
       <SelectContent>
         {seasons.map((season) => (

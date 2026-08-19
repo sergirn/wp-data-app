@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
@@ -14,6 +15,7 @@ const toNum = (v: any) => {
 }
 
 export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
+  const t = useTranslations("TeamDashboardCards")
   const topGoalkeepers = useMemo(() => {
     return [...(playerStats ?? [])]
       .sort((a, b) => toNum(b.portero_paradas_totales) - toNum(a.portero_paradas_totales))
@@ -33,15 +35,15 @@ export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
   return (
     <div>
       <div>
-        <CardTitle>Portero</CardTitle>
-        <CardDescription>Rendimiento bajo palos</CardDescription>
+        <CardTitle>{t("goalkeeper.title")}</CardTitle>
+        <CardDescription>{t("goalkeeper.description")}</CardDescription>
       </div>
 
       <div className="space-y-4">
 
         {(!playerStats || playerStats.length === 0) && (
           <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-            No hay estadísticas de porteros para mostrar.
+            {t("goalkeeper.noData")}
           </div>
         )}
 
@@ -54,27 +56,27 @@ export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
                 number: topKeeper.number,
                 photo_url: topKeeper.photo_url,
               }}
-              statLabel="Más paradas totales"
+              statLabel={t("goalkeeper.mostSaves")}
               statValue={totalSaves}
               gradientColors="from-blue-500 to-cyan-500"
               details={[
-                { label: "Paradas", value: totalSaves },
-                { label: "Pen. parados", value: penSaved },
-                { label: "P/part", value: savesPerMatch.toFixed(1) },
-                { label: "Pen/part", value: pensPerMatch.toFixed(2) },
+                { label: t("saves"), value: totalSaves },
+                { label: t("penaltiesSaved"), value: penSaved },
+                { label: t("savesPerMatch"), value: savesPerMatch.toFixed(1) },
+                { label: t("penaltiesPerMatch"), value: pensPerMatch.toFixed(2) },
               ]}
             />
 
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="secondary" className="w-full mt-2" disabled={restKeepers.length === 0}>
-                  Ver más
+                  {t("viewMore")}
                 </Button>
               </DialogTrigger>
 
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Ranking de porteros · Paradas totales</DialogTitle>
+                  <DialogTitle>{t("goalkeeper.ranking")}</DialogTitle>
                 </DialogHeader>
 
                 <div className="max-h-[70vh] overflow-y-auto space-y-3 pr-1">
@@ -94,14 +96,14 @@ export function GoalkeeperBlock({ playerStats }: GoalkeeperBlockProps) {
                           number: p.number,
                           photo_url: p.photo_url,
                         }}
-                        statLabel={`#${idx + 2} · Paradas`}
+                        statLabel={t("rankedMetric", { rank: idx + 2, metric: t("saves") })}
                         statValue={s}
                         gradientColors="from-blue-500 to-cyan-500"
                         details={[
-                          { label: "Paradas", value: s },
-                          { label: "Pen. parados", value: ps },
-                          { label: "P/part", value: spm.toFixed(1) },
-                          { label: "Pen/part", value: ppm.toFixed(2) },
+                          { label: t("saves"), value: s },
+                          { label: t("penaltiesSaved"), value: ps },
+                          { label: t("savesPerMatch"), value: spm.toFixed(1) },
+                          { label: t("penaltiesPerMatch"), value: ppm.toFixed(2) },
                         ]}
                       />
                     )

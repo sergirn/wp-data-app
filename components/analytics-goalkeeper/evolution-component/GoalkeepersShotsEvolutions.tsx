@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ function yJitter(id: string, amp = 0.015) {
  *  DOTS
  *  =========================== */
 function InnerDot({ id, x, y, result }: { id: string; x: number; y: number; result: "goal" | "save" }) {
+	const t = useTranslations("GoalkeeperShotMap");
 	const y2 = clamp01(y + yJitter(`inner-${id}`, 0.015));
 	return (
 		<div
@@ -63,12 +65,13 @@ function InnerDot({ id, x, y, result }: { id: string; x: number; y: number; resu
 				result === "goal" ? "bg-red-500/90 ring-red-900/10" : "bg-emerald-500/90 ring-emerald-900/10"
 			)}
 			style={{ left: `${x * 100}%`, top: `${y2 * 100}%` }}
-			title={result === "goal" ? "Gol" : "Parada"}
+			title={result === "goal" ? t("goal") : t("save")}
 		/>
 	);
 }
 
 function OutDot({ id, x, y }: { id: string; x: number; y: number }) {
+	const t = useTranslations("GoalkeeperShotMap");
 	const y2 = clamp01(y + yJitter(`out-${id}`, 0.02));
 	return (
 		<div
@@ -79,7 +82,7 @@ function OutDot({ id, x, y }: { id: string; x: number; y: number }) {
 				"bg-blue-500/90 ring-blue-900/10"
 			)}
 			style={{ left: `${x * 100}%`, top: `${y2 * 100}%` }}
-			title="Fuera"
+			title={t("out")}
 		/>
 	);
 }
@@ -318,6 +321,7 @@ function ToggleRow({
 	disabled?: boolean;
 	icon?: React.ReactNode;
 }) {
+	const t = useTranslations("GoalkeeperShotMap");
 	return (
 		<button
 			type="button"
@@ -329,7 +333,7 @@ function ToggleRow({
 				active ? "bg-foreground text-background border-foreground/30" : "bg-background",
 				disabled && "opacity-50 cursor-not-allowed"
 			)}
-			title={disabled ? "Activa la cuadrícula para usar esta opción" : undefined}
+			title={disabled ? t("enableGridHint") : undefined}
 		>
 			<div className="flex items-start gap-2">
 				<span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center">{icon}</span>
@@ -356,6 +360,7 @@ function GoalkeeperShotsChartCore({
 	enableJornadaFilter?: boolean;
 	enableGoalkeeperFilter?: boolean;
 }) {
+	const t = useTranslations("GoalkeeperShotMap");
 	const [shotLayer, setShotLayer] = React.useState<ShotLayer>("all");
 	const [showGrid, setShowGrid] = React.useState(true);
 	const [showCellPct, setShowCellPct] = React.useState(false);
@@ -530,12 +535,12 @@ function GoalkeeperShotsChartCore({
 
 	const layerLabel =
 		shotLayer === "all"
-			? "Todos"
+			? t("all")
 			: shotLayer === "goals"
-				? `Goles (${totalsVisible.total})`
+				? t("goalsCount", { count: totalsVisible.total })
 				: shotLayer === "saves"
-					? `Paradas (${totalsVisible.total})`
-					: `Fuera (${totalsVisible.total})`;
+					? t("savesCount", { count: totalsVisible.total })
+					: t("outCount", { count: totalsVisible.total });
 
 	return (
 		<div className={cn("rounded-2xl border bg-card shadow-sm overflow-hidden", className)}>
@@ -547,31 +552,31 @@ function GoalkeeperShotsChartCore({
 							<Target className="h-4 w-4 text-muted-foreground" />
 						</div>
 						<div className="leading-tight min-w-0">
-							<div className="text-sm font-semibold">Mapa de tiros</div>
+							<div className="text-sm font-semibold">{t("title")}</div>
 							<div className="text-xs text-muted-foreground truncate">
 								{jornadaEnabled && selectedJornada != null ? `J${selectedJornada} · ` : ""}
-								Rendimiento por zona (3×3)
+								{t("zonePerformance")}
 							</div>
 						</div>
 					</div>
 
 					<div className="flex flex-wrap items-center gap-1.5 justify-end">
 						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							Total: {totalsAll.total}
+							{t("totalCount", { count: totalsAll.total })}
 						</Badge>
 						<Badge variant="destructive" className="text-[11px] h-5 px-2">
-							Goles: {totalsAll.goals}
+							{t("goalsCount", { count: totalsAll.goals })}
 						</Badge>
 						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							Paradas: {totalsAll.saves}
+							{t("savesCount", { count: totalsAll.saves })}
 						</Badge>
 						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							Fuera: {totalsAll.out}
+							{t("outCount", { count: totalsAll.out })}
 						</Badge>
 
 						{shotLayer !== "all" ? (
 							<Badge variant="outline" className="text-[11px] h-5 px-2">
-								Vista: {layerLabel}
+								{t("view", { label: layerLabel })}
 							</Badge>
 						) : null}
 					</div>
@@ -661,15 +666,15 @@ function GoalkeeperShotsChartCore({
 					<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
 							<span className="h-2.5 w-2.5 rounded-full bg-red-500/90" />
-							Gol
+							{t("goal")}
 						</span>
 						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
 							<span className="h-2.5 w-2.5 rounded-full bg-emerald-500/90" />
-							Parada
+							{t("save")}
 						</span>
 						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
 							<span className="h-2.5 w-2.5 rounded-full bg-blue-500/90" />
-							Fuera
+							{t("out")}
 						</span>
 					</div>
 				</div>
@@ -677,7 +682,7 @@ function GoalkeeperShotsChartCore({
 				{/* Right */}
 				<aside className="border-t lg:border-t-0 lg:border-l bg-card/60">
 					<div className="p-3 space-y-3 lg:sticky lg:top-4">
-						<SidebarSection title="Visualización" icon={<Grid3X3 className="h-4 w-4 text-muted-foreground" />}>
+						<SidebarSection title={t("visualization")} icon={<Grid3X3 className="h-4 w-4 text-muted-foreground" />}>
 							<div className="space-y-2">
 								<div className="grid grid-cols-4 gap-2">
 									<Button
@@ -687,7 +692,7 @@ function GoalkeeperShotsChartCore({
 										className="h-8"
 										onClick={() => setShotLayer("all")}
 									>
-										Todos
+										{t("all")}
 									</Button>
 									<Button
 										type="button"
@@ -696,7 +701,7 @@ function GoalkeeperShotsChartCore({
 										className="h-8"
 										onClick={() => setShotLayer("goals")}
 									>
-										Goles
+										{t("goals")}
 									</Button>
 									<Button
 										type="button"
@@ -705,7 +710,7 @@ function GoalkeeperShotsChartCore({
 										className={cn("h-8", shotLayer === "saves" ? "bg-emerald-600 hover:bg-emerald-600/90 text-white" : "")}
 										onClick={() => setShotLayer("saves")}
 									>
-										Paradas
+										{t("saves")}
 									</Button>
 									<Button
 										type="button"
@@ -714,28 +719,28 @@ function GoalkeeperShotsChartCore({
 										className={cn("h-8", shotLayer === "out" ? "bg-blue-600 hover:bg-blue-600/90 text-white" : "")}
 										onClick={() => setShotLayer("out")}
 									>
-										Fuera
+										{t("out")}
 									</Button>
 								</div>
 
 								<ToggleRow
-									label="Cuadrícula"
-									description="Divide la portería en 3×3"
+									label={t("grid")}
+									description={t("gridDescription")}
 									active={showGrid}
 									onClick={() => setShowGrid((v) => !v)}
 									icon={<Grid3X3 className="h-4 w-4" />}
 								/>
 								<ToggleRow
-									label="% por celda"
-									description="Eficacia por zona (solo dentro)"
+									label={t("cellPercentage")}
+									description={t("cellPercentageDescription")}
 									active={showCellPct}
 									onClick={() => setShowCellPct((v) => !v)}
 									disabled={!showGrid}
 									icon={<Percent className="h-4 w-4" />}
 								/>
 								<ToggleRow
-									label="Heatmap"
-									description="Mapa de calor (solo dentro)"
+									label={t("heatmap")}
+									description={t("heatmapDescription")}
 									active={showHeatmap}
 									onClick={() => setShowHeatmap((v) => !v)}
 									disabled={!showGrid}
@@ -745,7 +750,7 @@ function GoalkeeperShotsChartCore({
 						</SidebarSection>
 
 						{jornadaEnabled ? (
-							<SidebarSection title="Jornada" icon={<ListFilter className="h-4 w-4 text-muted-foreground" />}>
+							<SidebarSection title={t("round")} icon={<ListFilter className="h-4 w-4 text-muted-foreground" />}>
 								<div className="space-y-2">
 									<div className="flex items-center gap-2">
 										<Button
@@ -755,7 +760,7 @@ function GoalkeeperShotsChartCore({
 											className="h-8 px-2"
 											onClick={goPrev}
 											disabled={!canPrev}
-											title="Anterior"
+											title={t("previous")}
 										>
 											<ChevronLeft className="h-4 w-4" />
 										</Button>
@@ -770,7 +775,7 @@ function GoalkeeperShotsChartCore({
 											value={selectedJornada == null ? "all" : String(selectedJornada)}
 											onChange={(e) => setSelectedJornada(e.target.value === "all" ? null : Number(e.target.value))}
 										>
-											<option value="all">Todas</option>
+											<option value="all">{t("allRounds")}</option>
 											{jornadas.map((j) => (
 												<option key={j} value={j}>
 													J{j}
@@ -785,17 +790,17 @@ function GoalkeeperShotsChartCore({
 											className="h-8 px-2"
 											onClick={goNext}
 											disabled={!canNext}
-											title="Siguiente"
+											title={t("next")}
 										>
 											<ChevronRight className="h-4 w-4" />
 										</Button>
 									</div>
 
 									{jornadas.length === 0 ? (
-										<div className="text-xs text-muted-foreground">No hay jornadas en los datos.</div>
+										<div className="text-xs text-muted-foreground">{t("noRoundsData")}</div>
 									) : (
 										<div className="text-xs text-muted-foreground">
-											Mostrando: <b className="text-foreground">{selectedJornada == null ? "Todas" : `J${selectedJornada}`}</b>
+											{t("showing")} <b className="text-foreground">{selectedJornada == null ? t("allRounds") : `J${selectedJornada}`}</b>
 										</div>
 									)}
 								</div>
@@ -803,18 +808,18 @@ function GoalkeeperShotsChartCore({
 						) : null}
 
 						{goalkeeperFilterEnabled ? (
-							<SidebarSection title="Porteros" icon={<Users className="h-4 w-4 text-muted-foreground" />}>
+							<SidebarSection title={t("goalkeepers")} icon={<Users className="h-4 w-4 text-muted-foreground" />}>
 								{goalkeepers.length === 0 ? (
-									<div className="text-xs text-muted-foreground">No hay tiros con portero.</div>
+									<div className="text-xs text-muted-foreground">{t("noGoalkeeperShots")}</div>
 								) : (
 									<div className="space-y-2">
 										<div className="flex items-center justify-between gap-2">
 											<div className="text-xs text-muted-foreground">
-												Seleccionados: <b className="text-foreground">{selectedGoalkeepers.size}</b> / {goalkeepers.length}
+											{t("selected")} <b className="text-foreground">{selectedGoalkeepers.size}</b> / {goalkeepers.length}
 											</div>
 											<Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={selectAllGoalkeepers}>
 												<Eye className="h-4 w-4 mr-1" />
-												Todos
+												{t("all")}
 											</Button>
 										</div>
 
@@ -844,7 +849,7 @@ function GoalkeeperShotsChartCore({
 																			: "bg-background text-muted-foreground"
 																	)}
 																>
-																	{active ? "ON" : "OFF"}
+															{active ? t("enabled") : t("disabled")}
 																</span>
 															</button>
 														</li>
@@ -901,6 +906,7 @@ export function GoalkeeperShotsGoalChartFromRows({
 	players: PlayerLite[];
 	className?: string;
 }) {
+	const t = useTranslations("GoalkeeperShotMap");
 	const matchesById = React.useMemo(() => {
 		const m = new Map<number, MatchLite>();
 		(matches || []).forEach((x) => m.set(x.id, x));
@@ -918,7 +924,7 @@ export function GoalkeeperShotsGoalChartFromRows({
 			.map((r) => {
 				const match = matchesById.get(r.match_id);
 				const p = playersById.get(r.goalkeeper_player_id);
-				const name = (p?.full_name || p?.name || `Portero ${r.goalkeeper_player_id}`).toString();
+				const name = (p?.full_name || p?.name || t("goalkeeperFallback", { id: r.goalkeeper_player_id })).toString();
 
 				const res = String(r.result ?? "")
 					.trim()
@@ -967,6 +973,7 @@ export function GoalkeeperShotsGoalChartSimple({
   className?: string
   players?: Array<{ id: number; name?: string | null; full_name?: string | null }>
 }) {
+	const t = useTranslations("GoalkeeperShotMap")
     const playersById = React.useMemo(() => {
     const m = new Map<number, string>()
     ;(players ?? []).forEach((p) => {
@@ -987,7 +994,7 @@ export function GoalkeeperShotsGoalChartSimple({
       .map((s) => {
         const gkIdNum = Number(s.goalkeeper_player_id)
         const gkName =
-          playersById.get(gkIdNum) ?? `Portero ${gkIdNum}` // fallback bonito
+		  playersById.get(gkIdNum) ?? t("goalkeeperFallback", { id: gkIdNum }) // fallback bonito
 
         return {
           id: `${s.match_id}-${s.goalkeeper_player_id}-${String(s.id)}`,
@@ -998,7 +1005,7 @@ export function GoalkeeperShotsGoalChartSimple({
           goalkeeperName: gkName, // ✅ AQUÍ
         }
       })
-  }, [shots, goalkeeperPlayerId, matchId, playersById])
+	}, [shots, goalkeeperPlayerId, matchId, playersById, t])
 
   const hasManyGoalkeepers = React.useMemo(() => {
     const set = new Set(filtered.map((s) => s.goalkeeperPlayerId ?? ""))

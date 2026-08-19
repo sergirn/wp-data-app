@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
@@ -21,6 +22,10 @@ const toNum = (v: unknown) => {
 };
 
 export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: DefenseFoulsMixChartProps) {
+	const tChart = useTranslations("DefenseAnalyticsCharts");
+	const common = useTranslations("AnalyticsCommon");
+	const locale = useLocale();
+	const tStat = useTranslations("StatLabels")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const isVisible = (key: string) => !hiddenSet.has(key);
@@ -31,57 +36,41 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 				{
 					key: "exp1c1",
 					statKey: "faltas_exp_20_1c1",
-					label: 'Exp 18" 1c1',
-					shortLabel: "1c1",
 					color: "hsla(0, 84%, 60%, 1.00)"
 				},
 				{
 					key: "expBoya",
 					statKey: "faltas_exp_20_boya",
-					label: 'Exp 18" Boya',
-					shortLabel: "Boya",
 					color: "hsla(25, 95%, 53%, 1.00)"
 				},
 				{
 					key: "penalti",
 					statKey: "faltas_penalti",
-					label: "Penalti",
-					shortLabel: "Pen.",
 					color: "hsla(330, 78%, 58%, 1.00)"
 				},
 				{
 					key: "expSimple",
 					statKey: "faltas_exp_simple",
-					label: "Exp simple",
-					shortLabel: "Simple",
 					color: "hsla(270, 75%, 60%, 1.00)"
 				},
 				{
 					key: "expTrans",
 					statKey: "exp_trans_def",
-					label: "Exp trans.",
-					shortLabel: "Trans.",
 					color: "hsla(205, 90%, 55%, 1.00)"
 				},
 				{
 					key: "contrafaltas",
 					statKey: "faltas_contrafaltas",
-					label: "Contrafaltas",
-					shortLabel: "Contraf.",
 					color: "hsla(145, 63%, 42%, 1.00)"
 				},
 				{
 					key: "exp3Int",
 					statKey: "faltas_exp_3_int",
-					label: 'Exp 3" Int',
-					shortLabel: '3" Int',
 					color: "hsla(190, 95%, 45%, 1.00)"
 				},
 				{
 					key: "exp3Bruta",
 					statKey: "faltas_exp_3_bruta",
-					label: 'Exp 3" Bruta',
-					shortLabel: '3" Bruta',
 					color: "hsla(42, 96%, 55%, 1.00)"
 				}
 			].filter((def) => isVisible(def.statKey)),
@@ -96,8 +85,8 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 			return {
 				key: def.key,
 				statKey: def.statKey,
-				label: def.label,
-				shortLabel: def.shortLabel,
+				label: tStat(def.statKey),
+				shortLabel: tStat(def.statKey),
 				value,
 				color: def.color
 			};
@@ -118,7 +107,7 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 			topType,
 			totalMatches: (matches ?? []).length || 0
 		};
-	}, [matches, stats, visibleDefs]);
+	}, [matches, stats, visibleDefs, tStat]);
 
 	const perMatch = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -143,13 +132,13 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 					matchId: match.id,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 					total,
 					...values
 				};
 			})
 			.filter((row) => row.total > 0);
-	}, [matches, stats, visibleDefs]);
+	}, [matches, stats, visibleDefs, locale]);
 
 	const chartConfig = useMemo(() => {
 		return Object.fromEntries(
@@ -167,8 +156,8 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 
 	return (
 		<ExpandableChartCard
-			title="Mix de faltas defensivas"
-			description={`${summary.topType?.label ?? "Sin datos"} · Total ${summary.total}`}
+			title={tChart("foulsMix")}
+			description={`${summary.topType?.label ?? common("noData")} · ${common("total")} ${summary.total}`}
 			icon={<ShieldAlert className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
@@ -252,15 +241,15 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
-												{def.shortLabel}
+												{tStat(def.statKey)}
 											</TableHead>
 										))}
-										<TableHead className="text-right">Total</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{common("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 								<TableBody>

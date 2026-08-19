@@ -16,6 +16,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 
 import { Swords, PlusCircle, Shield, RefreshCcw, AlertTriangle, Hand, BarChart3, Table2, Trash2 } from "lucide-react";
 import { ComparisonRow } from "../../comparisionRow";
+import { useLocale, useTranslations } from "next-intl";
 
 const safe = (n: any) => (Number.isFinite(Number(n)) ? Number(n) : 0);
 
@@ -74,6 +75,8 @@ type Props = {
 type ViewMode = "table" | "chart";
 
 export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, maxSelections = 4 }: Props) {
+	const t = useTranslations("PlayerMatchCompare");
+	const locale = useLocale();
 	const [playerId, setPlayerId] = useState<number | null>(defaultPlayerId ?? null);
 	const [selectedMatchIds, setSelectedMatchIds] = useState<number[]>([]);
 	const [playerModalOpen, setPlayerModalOpen] = useState(false);
@@ -145,7 +148,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 
 				const jornadaNum = match.jornada ?? "—";
 				const jornadaLabel = `J${jornadaNum}`;
-				const fullDate = new Date(match.match_date).toLocaleDateString("es-ES");
+				const fullDate = new Date(match.match_date).toLocaleDateString(locale);
 
 				return {
 					matchId: Number(match.id),
@@ -184,7 +187,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 			.filter(Boolean) as CompareCell[];
 
 		return selected;
-	}, [playerId, selectedMatchIds, sortedMatches, statsByMatchId]);
+	}, [playerId, selectedMatchIds, sortedMatches, statsByMatchId, locale]);
 
 	const removeMatch = (id: number) => setSelectedMatchIds((prev) => prev.filter((x) => x !== id));
 	const clearMatches = () => setSelectedMatchIds([]);
@@ -225,35 +228,35 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 	const chartConfig = useMemo(() => {
 		if (isGoalkeeper) {
 			return {
-				paradas: { label: "Paradas", color: "hsl(142, 71%, 45%)" },
-				golesRecibidos: { label: "Goles recibidos", color: "hsl(0, 84%, 60%)" },
-				porcentajeParadas: { label: "% Paradas", color: "hsl(217, 91%, 60%)" },
+				paradas: { label: t("saves"), color: "hsl(142, 71%, 45%)" },
+				golesRecibidos: { label: t("goalsConceded"), color: "hsl(0, 84%, 60%)" },
+				porcentajeParadas: { label: t("savePercentage"), color: "hsl(217, 91%, 60%)" },
 
-				paradasHombreMenos: { label: "Paradas (HM)", color: "hsl(142, 71%, 35%)" },
-				golesHombreMenos: { label: "Goles (HM)", color: "hsl(0, 84%, 45%)" },
-				eficienciaInferioridad: { label: "% Inferioridad", color: "hsl(262, 85%, 65%)" },
+				paradasHombreMenos: { label: t("savesDisadvantageShort"), color: "hsl(142, 71%, 35%)" },
+				golesHombreMenos: { label: t("goalsDisadvantageShort"), color: "hsl(0, 84%, 45%)" },
+				eficienciaInferioridad: { label: t("disadvantagePercentage"), color: "hsl(262, 85%, 65%)" },
 
-				paradasRecuperacion: { label: "Parada+Recup", color: "hsl(38, 92%, 55%)" },
-				recuperaciones: { label: "Recuperaciones", color: "hsl(160, 84%, 39%)" },
-				perdidas: { label: "Pérdidas", color: "hsl(28, 90%, 55%)" },
+				paradasRecuperacion: { label: t("saveRecoveryShort"), color: "hsl(38, 92%, 55%)" },
+				recuperaciones: { label: t("recoveries"), color: "hsl(160, 84%, 39%)" },
+				perdidas: { label: t("losses"), color: "hsl(28, 90%, 55%)" },
 
-				exclusiones: { label: "Exclusiones", color: "hsl(0, 80%, 55%)" },
-				penaltis: { label: "Penaltis", color: "hsl(262, 85%, 65%)" }
+				exclusiones: { label: t("exclusions"), color: "hsl(0, 80%, 55%)" },
+				penaltis: { label: t("penalties"), color: "hsl(262, 85%, 65%)" }
 			} as const;
 		}
 
 		return {
-			goles: { label: "Goles", color: "hsl(142, 71%, 45%)" },
-			asistencias: { label: "Asistencias", color: "hsl(217, 91%, 60%)" },
-			recuperaciones: { label: "Recuperaciones", color: "hsl(160, 84%, 39%)" },
-			perdidas: { label: "Pérdidas", color: "hsl(28, 90%, 55%)" },
-			exclusiones: { label: "Exclusiones", color: "hsl(0, 80%, 55%)" },
-			penaltis: { label: "Penaltis", color: "hsl(262, 85%, 65%)" },
+			goles: { label: t("goals"), color: "hsl(142, 71%, 45%)" },
+			asistencias: { label: t("assists"), color: "hsl(217, 91%, 60%)" },
+			recuperaciones: { label: t("recoveries"), color: "hsl(160, 84%, 39%)" },
+			perdidas: { label: t("losses"), color: "hsl(28, 90%, 55%)" },
+			exclusiones: { label: t("exclusions"), color: "hsl(0, 80%, 55%)" },
+			penaltis: { label: t("penalties"), color: "hsl(262, 85%, 65%)" },
 
-			eficienciaTiro: { label: "% Tiro", color: "hsl(38, 92%, 55%)" },
-			eficienciaHombreMas: { label: "% H+", color: "hsl(262, 85%, 65%)" }
+			eficienciaTiro: { label: t("shootingPercentage"), color: "hsl(38, 92%, 55%)" },
+			eficienciaHombreMas: { label: t("powerPlayPercentage"), color: "hsl(262, 85%, 65%)" }
 		} as const;
-	}, [isGoalkeeper]);
+	}, [isGoalkeeper, t]);
 
 	return (
 		<>
@@ -262,11 +265,11 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 					<div className="flex flex-col sm:flex-row gap-2 sm:items-center w-full">
 						<Button type="button" variant="outline" onClick={() => setPlayerModalOpen(true)} className="justify-start sm:w-[260px]">
-							{player ? `#${player.number} · ${player.name}` : "Seleccionar jugador"}
+						{player ? `#${player.number} · ${player.name}` : t("selectPlayer")}
 						</Button>
 
 						<Button type="button" variant="outline" onClick={() => setMatchModalOpen(true)} disabled={!playerId}>
-							Seleccionar jornadas ({selectedMatchIds.length}/{maxSelections})
+						{t("selectRounds", { selected: selectedMatchIds.length, max: maxSelections })}
 						</Button>
 
 						<Button type="button" variant="outline" onClick={clearMatches} disabled={!selectedMatchIds.length} className="gap-2">
@@ -278,7 +281,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 					<div className="flex items-center gap-2 sm:ml-auto sm:flex-nowrap">
 						<div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2">
 							<Table2 className="h-4 w-4 text-muted-foreground" />
-							<Switch checked={view === "chart"} onCheckedChange={(v) => setView(v ? "chart" : "table")} aria-label="Cambiar vista" />
+							<Switch checked={view === "chart"} onCheckedChange={(v) => setView(v ? "chart" : "table")} aria-label={t("switchView")} />
 							<BarChart3 className="h-4 w-4 text-muted-foreground" />
 						</div>
 					</div>
@@ -300,9 +303,9 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 							<div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl group-hover:scale-105 transition">
 								＋
 							</div>
-							<h3 className="text-lg font-semibold">{!playerId ? "Seleccionar jugador" : "Añadir jornadas para comparar"}</h3>
+						<h3 className="text-lg font-semibold">{!playerId ? t("selectPlayer") : t("addRounds")}</h3>
 							<p className="text-muted-foreground max-w-md mx-auto text-sm">
-								{!playerId ? "Empieza eligiendo el jugador." : "Pulsa para escoger las jornadas que quieres comparar."}
+							{!playerId ? t("choosePlayerFirst") : t("chooseRounds")}
 							</p>
 						</CardContent>
 					</Card>
@@ -312,7 +315,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 				{hasData && (
 					<div className="flex flex-wrap gap-2 items-center">
 						<Badge variant="secondary">
-							{isGoalkeeper ? "Portero" : "Jugador"}: {player ? `#${player.number}` : "—"}
+						{isGoalkeeper ? t("goalkeeper") : t("player")}: {player ? `#${player.number}` : "—"}
 						</Badge>
 
 						{comparisonData.map((m) => (
@@ -337,7 +340,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 								<Table>
 									<TableHeader>
 										<TableRow>
-											<TableHead>Estadística</TableHead>
+								<TableHead>{t("statistic")}</TableHead>
 											{comparisonData.map((m) => (
 												<TableHead key={m.matchId} className="text-center">
 													<div className="font-semibold">{m.jornadaLabel}</div>
@@ -350,102 +353,102 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 									<TableBody>
 										{isGoalkeeper ? (
 											<>
-												<Section title="Portería" icon={<Hand className="h-4 w-4" />}>
-													<ComparisonRow label="Paradas" field="paradas" data={comparisonData} />
-													<ComparisonRow label="Goles recibidos" field="golesRecibidos" inverse data={comparisonData} />
-													<ComparisonRow label="% Paradas" field="porcentajeParadas" isPercentage data={comparisonData} />
+								<Section title={t("goal")} icon={<Hand className="h-4 w-4" />}>
+									<ComparisonRow label={t("saves")} field="paradas" data={comparisonData} />
+									<ComparisonRow label={t("goalsConceded")} field="golesRecibidos" inverse data={comparisonData} />
+									<ComparisonRow label={t("savePercentage")} field="porcentajeParadas" isPercentage data={comparisonData} />
 												</Section>
 
-												<Section title="Inferioridad" icon={<Shield className="h-4 w-4" />}>
-													<ComparisonRow label="Paradas en inferioridad" field="paradasHombreMenos" data={comparisonData} />
+								<Section title={t("disadvantage")} icon={<Shield className="h-4 w-4" />}>
+									<ComparisonRow label={t("savesDisadvantage")} field="paradasHombreMenos" data={comparisonData} />
 													<ComparisonRow
-														label="Goles en inferioridad"
+										label={t("goalsDisadvantage")}
 														field="golesHombreMenos"
 														inverse
 														data={comparisonData}
 													/>
 													<ComparisonRow
-														label="Eficiencia inferioridad"
+										label={t("disadvantageEfficiency")}
 														field="eficienciaInferioridad"
 														isPercentage
 														data={comparisonData}
 													/>
 												</Section>
 
-												<Section title="Acciones" icon={<RefreshCcw className="h-4 w-4" />}>
-													<ComparisonRow label="Paradas + recuperación" field="paradasRecuperacion" data={comparisonData} />
-													<ComparisonRow label="Recuperaciones (+rebotes)" field="recuperaciones" data={comparisonData} />
+								<Section title={t("actions")} icon={<RefreshCcw className="h-4 w-4" />}>
+									<ComparisonRow label={t("saveRecovery")} field="paradasRecuperacion" data={comparisonData} />
+									<ComparisonRow label={t("recoveriesRebounds")} field="recuperaciones" data={comparisonData} />
 													<ComparisonRow
-														label="Pérdidas (+pase boya fall.)"
+										label={t("lossesBuoyPass")}
 														field="perdidas"
 														inverse
 														data={comparisonData}
 													/>
-													<ComparisonRow label="Balance posesión" field="balancePosesion" data={comparisonData} />
+									<ComparisonRow label={t("possessionBalance")} field="balancePosesion" data={comparisonData} />
 												</Section>
 
-												<Section title="Disciplina" icon={<AlertTriangle className="h-4 w-4" />}>
+								<Section title={t("discipline")} icon={<AlertTriangle className="h-4 w-4" />}>
 													<ComparisonRow
-														label="Exclusiones (incl. simple)"
+										label={t("exclusionsSimple")}
 														field="exclusiones"
 														inverse
 														data={comparisonData}
 													/>
-													<ComparisonRow label="Penaltis" field="penaltis" inverse data={comparisonData} />
+									<ComparisonRow label={t("penalties")} field="penaltis" inverse data={comparisonData} />
 												</Section>
 											</>
 										) : (
 											<>
-												<Section title="Ataque" icon={<Swords className="h-4 w-4" />}>
-													<ComparisonRow label="Goles" field="goles" data={comparisonData} />
-													<ComparisonRow label="Tiros" field="tiros" data={comparisonData} />
+								<Section title={t("attack")} icon={<Swords className="h-4 w-4" />}>
+									<ComparisonRow label={t("goals")} field="goles" data={comparisonData} />
+									<ComparisonRow label={t("shots")} field="tiros" data={comparisonData} />
 													<ComparisonRow
-														label="Eficiencia de tiro"
+										label={t("shootingEfficiency")}
 														field="eficienciaTiro"
 														isPercentage
 														data={comparisonData}
 													/>
-													<ComparisonRow label="Asistencias" field="asistencias" data={comparisonData} />
+									<ComparisonRow label={t("assists")} field="asistencias" data={comparisonData} />
 												</Section>
 
-												<Section title="Superioridad (H+)" icon={<PlusCircle className="h-4 w-4" />}>
+								<Section title={t("powerPlay")} icon={<PlusCircle className="h-4 w-4" />}>
 													<ComparisonRow
-														label="H+ (goles / fallos)"
+										label={t("powerPlayGoalsMisses")}
 														field="golesHombreMas"
 														extraField="fallosHombreMas"
 														data={comparisonData}
 													/>
 													<ComparisonRow
-														label="Eficiencia H+"
+										label={t("powerPlayEfficiency")}
 														field="eficienciaHombreMas"
 														isPercentage
 														data={comparisonData}
 													/>
 												</Section>
 
-												<Section title="Defensa" icon={<Shield className="h-4 w-4" />}>
-													<ComparisonRow label="Bloqueos" field="bloqueos" data={comparisonData} />
+								<Section title={t("defense")} icon={<Shield className="h-4 w-4" />}>
+									<ComparisonRow label={t("blocks")} field="bloqueos" data={comparisonData} />
 												</Section>
 
-												<Section title="Posesión y acciones" icon={<RefreshCcw className="h-4 w-4" />}>
-													<ComparisonRow label="Recuperaciones (+rebotes)" field="recuperaciones" data={comparisonData} />
+								<Section title={t("possessionActions")} icon={<RefreshCcw className="h-4 w-4" />}>
+									<ComparisonRow label={t("recoveriesRebounds")} field="recuperaciones" data={comparisonData} />
 													<ComparisonRow
-														label="Pérdidas (+pase boya fall.)"
+										label={t("lossesBuoyPass")}
 														field="perdidas"
 														inverse
 														data={comparisonData}
 													/>
-													<ComparisonRow label="Balance posesión" field="balancePosesion" data={comparisonData} />
+									<ComparisonRow label={t("possessionBalance")} field="balancePosesion" data={comparisonData} />
 												</Section>
 
-												<Section title="Disciplina" icon={<AlertTriangle className="h-4 w-4" />}>
+								<Section title={t("discipline")} icon={<AlertTriangle className="h-4 w-4" />}>
 													<ComparisonRow
-														label="Exclusiones (incl. simple)"
+										label={t("exclusionsSimple")}
 														field="exclusiones"
 														inverse
 														data={comparisonData}
 													/>
-													<ComparisonRow label="Penaltis" field="penaltis" inverse data={comparisonData} />
+									<ComparisonRow label={t("penalties")} field="penaltis" inverse data={comparisonData} />
 												</Section>
 											</>
 										)}
@@ -487,7 +490,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 														labelFormatter={(label, payload) => {
 															const p = payload?.[0]?.payload as any;
 															if (!p) return String(label);
-															return `${label} · vs ${p.rival} · ${p.fullDate}`;
+											return t("tooltip", { round: String(label), opponent: p.rival, date: p.fullDate });
 														}}
 													/>
 												}
@@ -498,55 +501,55 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 											{/* ====== BARRAS ====== */}
 											{isGoalkeeper ? (
 												<>
-													<Bar dataKey="paradas" name="Paradas" fill="var(--color-paradas)" radius={[4, 4, 0, 0]} />
+									<Bar dataKey="paradas" name={t("saves")} fill="var(--color-paradas)" radius={[4, 4, 0, 0]} />
 													<Bar
 														dataKey="golesRecibidos"
-														name="Goles recibidos"
+										name={t("goalsConceded")}
 														fill="var(--color-golesRecibidos)"
 														radius={[4, 4, 0, 0]}
 													/>
 
 													<Bar
 														dataKey="paradasHombreMenos"
-														name="Paradas (HM)"
+										name={t("savesDisadvantageShort")}
 														fill="var(--color-paradasHombreMenos)"
 														radius={[4, 4, 0, 0]}
 													/>
 													<Bar
 														dataKey="golesHombreMenos"
-														name="Goles (HM)"
+										name={t("goalsDisadvantageShort")}
 														fill="var(--color-golesHombreMenos)"
 														radius={[4, 4, 0, 0]}
 													/>
 
 													<Bar
 														dataKey="paradasRecuperacion"
-														name="Parada+Recup"
+										name={t("saveRecoveryShort")}
 														fill="var(--color-paradasRecuperacion)"
 														radius={[4, 4, 0, 0]}
 													/>
 													<Bar
 														dataKey="recuperaciones"
-														name="Recuperaciones"
+										name={t("recoveries")}
 														fill="var(--color-recuperaciones)"
 														radius={[4, 4, 0, 0]}
 													/>
-													<Bar dataKey="perdidas" name="Pérdidas" fill="var(--color-perdidas)" radius={[4, 4, 0, 0]} />
+									<Bar dataKey="perdidas" name={t("losses")} fill="var(--color-perdidas)" radius={[4, 4, 0, 0]} />
 
 													<Bar
 														dataKey="exclusiones"
-														name="Exclusiones"
+										name={t("exclusions")}
 														fill="var(--color-exclusiones)"
 														radius={[4, 4, 0, 0]}
 													/>
-													<Bar dataKey="penaltis" name="Penaltis" fill="var(--color-penaltis)" radius={[4, 4, 0, 0]} />
+									<Bar dataKey="penaltis" name={t("penalties")} fill="var(--color-penaltis)" radius={[4, 4, 0, 0]} />
 
 													{/* ====== LÍNEAS (% en eje derecho) ====== */}
 													<Line
 														yAxisId="right"
 														type="monotone"
 														dataKey="porcentajeParadas"
-														name="% Paradas"
+										name={t("savePercentage")}
 														stroke="var(--color-porcentajeParadas)"
 														strokeWidth={4}
 														dot={false}
@@ -556,7 +559,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 														yAxisId="right"
 														type="monotone"
 														dataKey="eficienciaInferioridad"
-														name="% Inferioridad"
+										name={t("disadvantagePercentage")}
 														stroke="var(--color-eficienciaInferioridad)"
 														strokeWidth={4}
 														dot={false}
@@ -565,33 +568,33 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 												</>
 											) : (
 												<>
-													<Bar dataKey="goles" name="Goles" fill="var(--color-goles)" radius={[4, 4, 0, 0]} />
+									<Bar dataKey="goles" name={t("goals")} fill="var(--color-goles)" radius={[4, 4, 0, 0]} />
 													<Bar
 														dataKey="asistencias"
-														name="Asistencias"
+										name={t("assists")}
 														fill="var(--color-asistencias)"
 														radius={[4, 4, 0, 0]}
 													/>
 													<Bar
 														dataKey="recuperaciones"
-														name="Recuperaciones"
+										name={t("recoveries")}
 														fill="var(--color-recuperaciones)"
 														radius={[4, 4, 0, 0]}
 													/>
-													<Bar dataKey="perdidas" name="Pérdidas" fill="var(--color-perdidas)" radius={[4, 4, 0, 0]} />
+									<Bar dataKey="perdidas" name={t("losses")} fill="var(--color-perdidas)" radius={[4, 4, 0, 0]} />
 													<Bar
 														dataKey="exclusiones"
-														name="Exclusiones"
+										name={t("exclusions")}
 														fill="var(--color-exclusiones)"
 														radius={[4, 4, 0, 0]}
 													/>
-													<Bar dataKey="penaltis" name="Penaltis" fill="var(--color-penaltis)" radius={[4, 4, 0, 0]} />
+									<Bar dataKey="penaltis" name={t("penalties")} fill="var(--color-penaltis)" radius={[4, 4, 0, 0]} />
 
 													<Line
 														yAxisId="right"
 														type="monotone"
 														dataKey="eficienciaTiro"
-														name="% Tiro"
+										name={t("shootingPercentage")}
 														stroke="var(--color-eficienciaTiro)"
 														strokeWidth={4}
 														dot={false}
@@ -601,7 +604,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 														yAxisId="right"
 														type="monotone"
 														dataKey="eficienciaHombreMas"
-														name="% H+"
+										name={t("powerPlayPercentage")}
 														stroke="var(--color-eficienciaHombreMas)"
 														strokeWidth={4}
 														dot={false}
@@ -621,7 +624,7 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 			{/* MODAL jugador */}
 			<PlayerPickerModal
 				open={playerModalOpen}
-				title={isGoalkeeper ? "Seleccionar portero" : "Seleccionar jugador"}
+				title={isGoalkeeper ? t("selectGoalkeeper") : t("selectPlayer")}
 				players={players}
 				initialSelectedId={playerId}
 				onClose={() => setPlayerModalOpen(false)}
@@ -634,8 +637,8 @@ export function PlayerMatchCompare({ players, matches, stats, defaultPlayerId, m
 			{/* MODAL jornadas */}
 			<MatchPickerModal
 				open={matchModalOpen}
-				title="Seleccionar jornadas"
-				description="Pulsa sobre las jornadas que quieras comparar"
+				title={t("selectRoundsTitle")}
+				description={t("selectRoundsDescription")}
 				matches={sortedMatches}
 				maxSelections={maxSelections}
 				initialSelectedIds={selectedMatchIds}

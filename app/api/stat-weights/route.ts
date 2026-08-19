@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getTranslations } from "next-intl/server";
 
 async function getClubId(supabase: any, userId: string) {
 	const { data, error } = await supabase.from("profiles").select("club_id").eq("id", userId).single();
@@ -10,7 +11,9 @@ async function getClubId(supabase: any, userId: string) {
 
 // GET: Retrieve all stat weights for the current user
 export async function GET() {
+	const t = await getTranslations("Api");
 	const supabase = await createClient();
+	if (!supabase) return NextResponse.json({ error: t("serviceNotConfigured") }, { status: 503 });
 	const { data: auth } = await supabase.auth.getUser();
 	const userId = auth?.user?.id;
 
@@ -33,7 +36,9 @@ export async function GET() {
 
 // PUT: Upsert all stat weights for the current user (bulk save)
 export async function PUT(req: Request) {
+	const t = await getTranslations("Api");
 	const supabase = await createClient();
+	if (!supabase) return NextResponse.json({ error: t("serviceNotConfigured") }, { status: 503 });
 	const { data: auth } = await supabase.auth.getUser();
 	const userId = auth?.user?.id;
 	if (!userId) return NextResponse.json({ ok: false }, { status: 401 });
@@ -42,7 +47,7 @@ export async function PUT(req: Request) {
 	const weightsInput: Record<string, number> = body.weights;
 
 	if (!weightsInput || typeof weightsInput !== "object") {
-		return NextResponse.json({ ok: false, error: "weights object is required" }, { status: 400 });
+		return NextResponse.json({ ok: false, error: t("weightsRequired") }, { status: 400 });
 	}
 
 	const clubId = await getClubId(supabase, userId);
@@ -75,7 +80,7 @@ export async function PUT(req: Request) {
 			.eq("club_id", clubId)
 			.in("stat_key", toDeleteKeys);
 
-		if (delErr) return NextResponse.json({ ok: false, error: delErr.message }, { status: 500 });
+		if (delErr) return NextResponse.json({ ok: false, error: t("requestFailed") }, { status: 500 });
 	}
 
 	// Upsert non-zero entries
@@ -84,7 +89,7 @@ export async function PUT(req: Request) {
 			onConflict: "user_id,club_id,stat_key"
 		});
 
-		if (upsErr) return NextResponse.json({ ok: false, error: upsErr.message }, { status: 500 });
+		if (upsErr) return NextResponse.json({ ok: false, error: t("requestFailed") }, { status: 500 });
 	}
 
 	// Return final state
@@ -94,7 +99,7 @@ export async function PUT(req: Request) {
 		.eq("user_id", userId)
 		.eq("club_id", clubId);
 
-	if (finErr) return NextResponse.json({ ok: false, error: finErr.message }, { status: 500 });
+	if (finErr) return NextResponse.json({ ok: false, error: t("requestFailed") }, { status: 500 });
 
 	const finalWeights: Record<string, number> = {};
 	for (const row of finalData ?? []) {

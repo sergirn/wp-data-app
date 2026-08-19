@@ -68,9 +68,9 @@ export function calculateMatchTotals(
     "portero_paradas_hombre_menos",
   )
 
-  const golesRecibidos = match.is_home
-    ? match.away_score
-    : match.home_score
+  // home_score/away_score mean own/rival score in this application's schema.
+  // is_home only describes where the match was played.
+  const golesRecibidos = match.away_score
 
   return {
     matchId: match.id,

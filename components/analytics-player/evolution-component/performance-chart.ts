@@ -18,15 +18,11 @@ export interface MatchStatsWithMatch {
   }
 }
 
-export const chartConfig = {
-  paradas: { label: "Paradas", color: "hsl(200 80% 50%)" },
-  eficiencia: { label: "Eficiencia %", color: "hsl(160 70% 50%)" },
-  goles: { label: "Goles", color: "hsl(200 80% 50%)" },
-  asistencias: { label: "Asistencias", color: "hsl(280 70% 60%)" },
-  bloqueos: { label: "Bloqueos", color: "hsl(220 80% 55%)" },
-  golesRecibidos: { label: "Goles Recibidos", color: "hsl(0 70% 60%)" },
-  mediaBloqueos: { label: "Media Bloqueos", color: "hsl(220 90% 40%)" },
-  mediaGolesRecibidos: { label: "Media Goles Recibidos", color: "hsl(0 80% 45%)" },
+export const chartColors = {
+  bloqueos: "hsl(220 80% 55%)",
+  golesRecibidos: "hsl(0 70% 60%)",
+  mediaBloqueos: "hsl(220 90% 40%)",
+  mediaGolesRecibidos: "hsl(0 80% 45%)",
 }
 
 export function sortStatsByDate(matchStats: MatchStatsWithMatch[]) {

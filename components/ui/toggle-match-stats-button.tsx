@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface ToggleMatchStatsButtonProps {
 	matchId: number;
@@ -15,6 +16,7 @@ export function ToggleMatchStatsButton({
 	initialValue,
 	onUpdated
 }: ToggleMatchStatsButtonProps) {
+	const t = useTranslations("CommonUI");
 	const [enabled, setEnabled] = useState(initialValue);
 	const [loading, setLoading] = useState(false);
 
@@ -37,7 +39,7 @@ export function ToggleMatchStatsButton({
 			setEnabled(nextValue);
 			onUpdated?.(nextValue);
 		} catch (error) {
-			console.error("Error actualizando stats_enabled:", error);
+			console.error(t("statsUpdateError"), error);
 		} finally {
 			setLoading(false);
 		}
@@ -56,7 +58,7 @@ export function ToggleMatchStatsButton({
 					: "border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
 			}
 		>
-			{enabled ? "Cuenta en estadísticas" : "No cuenta en estadísticas"}
+			{enabled ? t("includedInStats") : t("excludedFromStats")}
 		</Button>
 	);
 }

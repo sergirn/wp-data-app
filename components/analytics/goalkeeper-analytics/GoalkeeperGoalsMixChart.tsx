@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
@@ -22,7 +23,6 @@ const toNum = (v: unknown) => {
 
 type GoalPartDef = {
 	key: "boya" | "hm" | "dir" | "contra" | "penalti" | "lanz" | "palo";
-	label: string;
 	statKey: string;
 	color: string;
 };
@@ -30,49 +30,46 @@ type GoalPartDef = {
 const GOAL_PART_DEFS: GoalPartDef[] = [
 	{
 		key: "boya",
-		label: "Boya",
 		statKey: "portero_goles_boya_parada",
 		color: "hsla(145, 63%, 42%, 1.00)"
 	},
 	{
 		key: "hm",
-		label: "Inferioridad",
 		statKey: "portero_goles_hombre_menos",
 		color: "hsla(42, 96%, 55%, 1.00)"
 	},
 	{
 		key: "dir",
-		label: "Dir +6m",
 		statKey: "portero_goles_dir_mas_5m",
 		color: "hsla(221, 83%, 53%, 1.00)"
 	},
 	{
 		key: "contra",
-		label: "Contraataque",
 		statKey: "portero_goles_contraataque",
 		color: "hsla(190, 95%, 45%, 1.00)"
 	},
 	{
 		key: "penalti",
-		label: "Penalti",
 		statKey: "portero_goles_penalti",
 		color: "hsla(330, 78%, 58%, 1.00)"
 	},
 	{
 		key: "lanz",
-		label: "Lanzamiento",
 		statKey: "portero_goles_lanzamiento",
 		color: "hsla(0, 84%, 60%, 1.00)"
 	},
 	{
 		key: "palo",
-		label: "Palo",
 		statKey: "portero_gol_palo",
 		color: "hsla(270, 75%, 60%, 1.00)"
 	}
 ];
 
 export function GoalkeeperGoalsMixChart({ matches, stats, hiddenStats = [] }: GoalkeeperGoalsMixChartProps) {
+	const tChart = useTranslations("GoalkeeperCharts");
+	const common = useTranslations("AnalyticsCommon");
+	const locale = useLocale();
+	const tStat = useTranslations("StatLabels")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibleDefs = useMemo(() => GOAL_PART_DEFS.filter((def) => !hiddenSet.has(def.statKey)), [hiddenSet]);
@@ -92,7 +89,7 @@ export function GoalkeeperGoalsMixChart({ matches, stats, hiddenStats = [] }: Go
 
 		const parts = GOAL_PART_DEFS.filter((def) => !hiddenSet.has(def.statKey)).map((def) => ({
 			key: def.key,
-			label: def.label,
+			label: tStat(def.statKey),
 			value: rawValues[def.key],
 			pct: pct(rawValues[def.key]),
 			color: def.color
@@ -101,7 +98,7 @@ export function GoalkeeperGoalsMixChart({ matches, stats, hiddenStats = [] }: Go
 		const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;
 
 		return { parts, total, topType, totalMatches: (matches ?? []).length || 0 };
-	}, [matches, stats, hiddenSet]);
+	}, [matches, stats, hiddenSet, tStat]);
 
 	const perMatch = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -129,20 +126,20 @@ export function GoalkeeperGoalsMixChart({ matches, stats, hiddenStats = [] }: Go
 					matchId: match.id,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 					...values,
 					total
 				};
 			})
 			.filter((row) => row.total > 0);
-	}, [matches, stats, hiddenSet]);
+	}, [matches, stats, hiddenSet, locale]);
 
 	if (!summary.totalMatches || visibleDefs.length === 0 || summary.total === 0) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Mix de goles recibidos"
-			description={`${summary.topType?.label ?? "Sin datos"} · Total ${summary.total}`}
+			title={tChart("goalsMix")}
+			description={`${summary.topType?.label ?? common("noData")} · ${common("total")} ${summary.total}`}
 			icon={<ShieldX className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
@@ -223,17 +220,17 @@ export function GoalkeeperGoalsMixChart({ matches, stats, hiddenStats = [] }: Go
 							<Table className="min-w-[1180px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead>Fecha</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead>{common("date")}</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
-												{def.label}
+											{tStat(def.statKey)}
 											</TableHead>
 										))}
 
-										<TableHead className="text-right">Total</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 

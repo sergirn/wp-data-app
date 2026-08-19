@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { Player } from "@/lib/types"
+import { useTranslations } from "next-intl"
 
 type Props = {
   open: boolean
@@ -18,13 +19,14 @@ type Props = {
 
 export function PlayerPickerModal({
   open,
-  title = "Seleccionar jugador",
+  title,
   players,
   allowedPlayerIds,
   initialSelectedId = null,
   onClose,
   onConfirm,
 }: Props) {
+  const t = useTranslations("Pickers")
   const [selectedId, setSelectedId] = useState<number | null>(initialSelectedId)
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function PlayerPickerModal({
     >
       <DialogContent className="w-[95vw] sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{title ?? t("selectPlayer")}</DialogTitle>
         </DialogHeader>
 
         <div className="mt-3 max-h-[70vh] overflow-auto rounded-md p-3">
@@ -100,7 +102,7 @@ export function PlayerPickerModal({
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
-            Cancelar
+            {t("cancel")}
           </Button>
 
           <Button
@@ -111,7 +113,7 @@ export function PlayerPickerModal({
               onClose()
             }}
           >
-            Guardar
+            {t("save")}
           </Button>
         </div>
       </DialogContent>

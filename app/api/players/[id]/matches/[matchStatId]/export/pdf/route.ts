@@ -1,6 +1,7 @@
 import { getCurrentProfile } from "@/lib/auth"
 import { getPlayerMatchReportData } from "@/lib/players/get-player-report-data"
 import { buildPlayerMatchPdf } from "@/lib/exports/build-player-pdf"
+import { getTranslations } from "next-intl/server"
 
 function sanitizeFilenamePart(value: string) {
   return value
@@ -17,28 +18,31 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string; matchStatId: string }> }
 ) {
+  const t = await getTranslations("Api")
+  const tExport = await getTranslations("Export")
   try {
     const { id, matchStatId } = await params
     const playerId = Number(id)
     const statId = Number(matchStatId)
 
     if (!Number.isFinite(playerId) || !Number.isFinite(statId)) {
-      return new Response("Invalid ids", { status: 400 })
+      return new Response(t("invalidIds"), { status: 400 })
     }
 
     const profile = await getCurrentProfile()
-    const reportData = await getPlayerMatchReportData(playerId, statId, profile?.id ?? null)
+    if (!profile) return new Response(t("unauthenticated"), { status: 401 })
+    const reportData = await getPlayerMatchReportData(playerId, statId, profile)
     const pdfBytes = await buildPlayerMatchPdf(reportData)
 
-    const opponent = sanitizeFilenamePart(reportData.match?.opponent || "Rival")
-    const jornada = reportData.match?.jornada != null ? `J${reportData.match.jornada}` : "Jornada"
+    const opponent = sanitizeFilenamePart(reportData.match?.opponent || tExport("opponentFallback"))
+    const jornada = reportData.match?.jornada != null ? `J${reportData.match.jornada}` : tExport("roundFallback")
 
     const dateObj = new Date(reportData.match?.match_date)
     const yyyy = dateObj.getFullYear()
     const mm = String(dateObj.getMonth() + 1).padStart(2, "0")
     const dd = String(dateObj.getDate()).padStart(2, "0")
 
-    const playerName = sanitizeFilenamePart(reportData.player.name || "Jugador")
+    const playerName = sanitizeFilenamePart(reportData.player.name || tExport("playerFallback"))
     const filename = `${playerName}_${opponent}_${jornada}_${yyyy}-${mm}-${dd}.pdf`
 
     return new Response(new Uint8Array(pdfBytes), {
@@ -50,6 +54,6 @@ export async function GET(
     })
   } catch (error) {
     console.error(error)
-    return new Response("Failed to generate PDF", { status: 500 })
+    return new Response(t("pdfGenerationFailed"), { status: 500 })
   }
 }

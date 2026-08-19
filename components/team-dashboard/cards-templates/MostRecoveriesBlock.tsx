@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { CardTitle, CardDescription } from "@/components/ui/card"
 import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,7 @@ const toNum = (v: any) => {
 }
 
 export function MostRecoveriesFeaturedCard({ playerStats }: MostRecoveriesFeaturedCardProps) {
+  const t = useTranslations("TeamDashboardCards")
   const ranking = useMemo(() => {
     return [...(playerStats ?? [])]
       .filter((p) => toNum(p.acciones_recuperacion) > 0)
@@ -31,8 +33,8 @@ export function MostRecoveriesFeaturedCard({ playerStats }: MostRecoveriesFeatur
   return (
     <div>
       <div>
-        <CardTitle>Más recuperaciones</CardTitle>
-        <CardDescription>Ranking por recuperaciones</CardDescription>
+        <CardTitle>{t("recoveriesCard.title")}</CardTitle>
+        <CardDescription>{t("recoveriesCard.description")}</CardDescription>
       </div>
 
       <div className="mt-4">
@@ -46,14 +48,14 @@ export function MostRecoveriesFeaturedCard({ playerStats }: MostRecoveriesFeatur
               return (
                 <TopPlayerCard
                   player={{ id: top.id, name: top.name, number: top.number, photo_url: top.photo_url }}
-                  statLabel="Recuperaciones"
+                  statLabel={t("recoveries")}
                   statValue={`${rec}`}
                   gradientColors="from-purple-500 to-fuchsia-500"
                   details={[
-                    { label: "Recuperaciones", value: rec }, 
-                    { label: "Rec/part", value: recPerMatch.toFixed(1) },
-                    { label: "Bloqueos", value: toNum(top.acciones_bloqueo) },
-                    { label: "Rebotes", value: toNum(top.acciones_rebote) },
+                    { label: t("recoveries"), value: rec }, 
+                    { label: t("recoveriesPerMatch"), value: recPerMatch.toFixed(1) },
+                    { label: t("blocks"), value: toNum(top.acciones_bloqueo) },
+                    { label: t("rebounds"), value: toNum(top.acciones_rebote) },
                   ]}
                 />
               )
@@ -62,13 +64,13 @@ export function MostRecoveriesFeaturedCard({ playerStats }: MostRecoveriesFeatur
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="secondary" className="w-full" disabled={rest.length === 0}>
-                  Ver más
+                  {t("viewMore")}
                 </Button>
               </DialogTrigger>
 
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Ranking · Recuperaciones</DialogTitle>
+                  <DialogTitle>{t("recoveriesCard.ranking")}</DialogTitle>
                 </DialogHeader>
 
                 <div className="max-h-[70vh] overflow-y-auto space-y-3 pr-1">
@@ -81,14 +83,14 @@ export function MostRecoveriesFeaturedCard({ playerStats }: MostRecoveriesFeatur
                       <TopPlayerCard
                         key={p.id ?? `${p.name}-${idx}`}
                         player={{ id: p.id, name: p.name, number: p.number, photo_url: p.photo_url }}
-                        statLabel={`#${idx + 2} · Recuperaciones`}
+                        statLabel={t("rankedMetric", { rank: idx + 2, metric: t("recoveries") })}
                         statValue={`${rec}`}
                         gradientColors="from-purple-500 to-fuchsia-500"
                         details={[
-                          { label: "Recuperaciones", value: rec }, 
-                          { label: "Rec/part", value: recPerMatch.toFixed(1) },
-                          { label: "Bloqueos", value: toNum(p.acciones_bloqueo) },
-                          { label: "Rebotes", value: toNum(p.acciones_rebote) },
+                          { label: t("recoveries"), value: rec }, 
+                          { label: t("recoveriesPerMatch"), value: recPerMatch.toFixed(1) },
+                          { label: t("blocks"), value: toNum(p.acciones_bloqueo) },
+                          { label: t("rebounds"), value: toNum(p.acciones_rebote) },
                         ]}
                       />
                     )

@@ -1,24 +1,14 @@
-import withPWA from "next-pwa";
+import { withSerwist } from "@serwist/turbopack"
+import createNextIntlPlugin from "next-intl/plugin"
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts")
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
-    unoptimized: true,
+    remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
   turbopack: {},
 };
 
-export default withPWA({
-  dest: "public",
-  register: true,
-  skipWaiting: true,
-
-  // No PWA en dev
-  disable: process.env.NODE_ENV === "development",
-})(nextConfig);
+export default withSerwist(withNextIntl(nextConfig))

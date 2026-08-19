@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { BarChart3, Table2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 type ViewMode = "chart" | "table"
 
@@ -31,22 +32,24 @@ export function ExpandableChartCard({
   renderTable,
   rightHeader,
 }: ExpandableChartCardProps) {
+  const t = useTranslations("ChartTemplates")
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<ViewMode>("chart")
 
   // Si cierras, vuelve a gráfico por defecto
-  useMemo(() => {
-    if (!open) setView("chart")
-  }, [open])
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) setView("chart")
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Card className={`cursor-pointer hover:opacity-95 transition ${className ?? ""}`}>
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 p-4 pb-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                   {icon}
                   <span className="truncate">{title}</span>
                 </CardTitle>
@@ -57,7 +60,7 @@ export function ExpandableChartCard({
             </div>
           </CardHeader>
 
-          <CardContent className="min-w-0 w-full overflow-hidden">
+          <CardContent className="min-w-0 w-full overflow-hidden px-4 pb-4">
             {/* Compact: sin switch, solo gráfico */}
             {renderChart({ compact: true })}
           </CardContent>
@@ -87,7 +90,7 @@ export function ExpandableChartCard({
               <Switch
                 checked={view === "table"}
                 onCheckedChange={(v) => setView(v ? "table" : "chart")}
-                aria-label="Cambiar vista de gráfico a tabla"
+                aria-label={t("switchView")}
               />
               <Table2 className={`h-4 w-4 ${view === "table" ? "text-foreground" : "text-muted-foreground"}`} />
             </div>

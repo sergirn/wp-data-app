@@ -15,7 +15,10 @@ export function getPlayerStatValue(stats: Record<string, any> | null | undefined
 	return n(stats?.[key]);
 }
 
-export function getPlayerStatsByCategory(category: PlayerStatCategory, hiddenStats?: HiddenStatsInput): PlayerStatDef[] {
+export function getPlayerStatsByCategory(
+	category: PlayerStatCategory,
+	hiddenStats?: HiddenStatsInput
+): PlayerStatDef[] {
 	return PLAYER_STATS.filter((s) => s.category === category && isVisibleStat(s.key, hiddenStats));
 }
 

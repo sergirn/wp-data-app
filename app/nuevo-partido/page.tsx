@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatInput } from "@/components/stat-input";
 import Image from "next/image";
 import type { Player, MatchStats, Profile, Match } from "@/lib/types";
-import { Loader2, AlertCircle, RefreshCw, Plus, Save } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw, Plus, Save, Cloud, CloudOff, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,6 +18,7 @@ import { PlayerSubstitutionDialog } from "@/components/player-substitution-dialo
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useLocale, useTranslations } from "next-intl";
 import { SprintWinnerModal } from "@/components/nuevo-partido/modals/SprintWinnerPlayerModal";
 import {
 	GoalkeeperGoalsRecorder,
@@ -28,13 +29,49 @@ import { Competition } from "@/lib/admin";
 import { PenaltiesTab, type PenaltyShooter, type RivalPenalty } from "@/components/players-components/PenaltiesTab";
 import { PenaltyShooterDialog } from "@/components/players-components/PenaltyShooterDialog";
 import { useHiddenStats } from "@/hooks/useHiddenStats";
+import { useMatchAutosave } from "@/hooks/useMatchAutosave";
+import { loadBestMatchDraft } from "@/lib/match-draft-client";
+import type { MatchDraftPayload } from "@/lib/match-drafts";
 
 interface MatchEditParams {
-	matchId?: number;
+	matchId?: string;
+	draftKey?: string;
 	isEditing?: boolean;
 }
 
+type DraftQuarter = 1 | 2 | 3 | 4;
+
+type NewMatchDraftPayload = MatchDraftPayload & {
+	schemaVersion: 1;
+	matchDate: string;
+	opponent: string;
+	location: string;
+	isHome: boolean;
+	season: string;
+	jornada: number;
+	notes: string;
+	competitionId: string;
+	closedQuarters: Record<DraftQuarter, boolean>;
+	quarterScores: Record<DraftQuarter, { home: number; away: number }>;
+	sprintWinners: Record<DraftQuarter, number | null>;
+	penaltyHomeScore: number | null;
+	penaltyAwayScore: number | null;
+	penaltyShooters: PenaltyShooter[];
+	rivalPenalties: RivalPenalty[];
+	penaltyGoalkeeperMap: Record<number, number>;
+	activePlayerIds: number[];
+	stats: Record<number, Partial<MatchStats>>;
+	goalkeeperShots: GoalkeeperShotDraft[];
+};
+
+function isNewMatchDraftPayload(payload: MatchDraftPayload): payload is NewMatchDraftPayload {
+	return payload.schemaVersion === 1 && typeof payload.matchDate === "string" && Array.isArray(payload.activePlayerIds) && typeof payload.stats === "object";
+}
+
 export default function NewMatchPage({ searchParams }: { searchParams: Promise<MatchEditParams> }) {
+	const pageT = useTranslations("Pages");
+	const t = useTranslations("NewMatch");
+	const locale = useLocale();
 	const [closedQuarters, setClosedQuarters] = useState<Record<number, boolean>>({
 		1: false,
 		2: false,
@@ -63,7 +100,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const getWinnerLabel = (playerId: number | null) => {
 		if (!playerId) return null;
 		const p = playersById.get(playerId);
-		if (!p) return "Jugador no encontrado";
+		if (!p) return t("playerNotFound");
 		return `#${p.number} · ${p.name}`;
 	};
 
@@ -86,7 +123,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const [substitutionPlayer, setSubstitutionPlayer] = useState<Player | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
 	const [permissionError, setPermissionError] = useState(false);
-	const [previousMatches, setPreviousMatches] = useState<Match[]>([]);
+	const [previousMatches, setPreviousMatches] = useState<Array<Pick<Match, "id" | "match_date" | "opponent" | "season">>>([]);
 	const [loadingLineup, setLoadingLineup] = useState(false);
 	const [editingMatchId, setEditingMatchId] = useState<number | null>(null);
 	const [existingMatch, setExistingMatch] = useState<Match | null>(null);
@@ -103,6 +140,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const { toast } = useToast();
 	const [goalkeeperShots, setGoalkeeperShots] = useState<GoalkeeperShotDraft[]>([]);
 	const [myClub, setMyClub] = useState<{ id: string; name: string } | null>(null);
+	const [initialDraftRevision, setInitialDraftRevision] = useState(0);
+	const [initialDraftCreatedAt, setInitialDraftCreatedAt] = useState<string | null>(null);
+	const [initialDraftExpiresAt, setInitialDraftExpiresAt] = useState<string | null>(null);
+	const [draftRecovered, setDraftRecovered] = useState(false);
+	const [activeDraftKey, setActiveDraftKey] = useState<string | null>(null);
 
 	const playersById = useMemo(() => {
 		const m = new Map<number, Player>();
@@ -162,7 +204,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			}
 
 			setCompetitions(comps ?? []);
-			if (!competitionId && (comps ?? []).length > 0) setCompetitionId(String(comps![0].id));
+			if ((comps ?? []).length > 0) setCompetitionId((current) => current || String(comps![0].id));
 		};
 
 		fetchCompetitions();
@@ -220,12 +262,56 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				setEditingMatchId(Number(params.matchId));
 			}
 
-			await checkPermissions();
+			const authorizedProfile = await checkPermissions();
+			if (!authorizedProfile) {
+				setLoading(false);
+				return;
+			}
 			await loadPlayers();
 			await loadPreviousMatches();
 
 			if (params.matchId) {
-				await loadExistingMatch(Number(params.matchId));
+				await loadExistingMatch(Number(params.matchId), authorizedProfile.club_id!);
+			}
+
+			if (authorizedProfile.club_id) {
+				const matchId = params.matchId ? Number(params.matchId) : null;
+				const requestedDraftKey = typeof params.draftKey === "string" && params.draftKey.length <= 160 ? params.draftKey : null;
+				const createDraftKey = () => `${matchId ? `edit:${matchId}` : "new"}:${authorizedProfile.club_id}:${crypto.randomUUID()}`;
+				let selectedDraftKey = createDraftKey();
+
+				if (requestedDraftKey) {
+					const draft = await loadBestMatchDraft<NewMatchDraftPayload>(authorizedProfile.id, requestedDraftKey, authorizedProfile.club_id);
+					if (draft && Date.parse(draft.expiresAt) > Date.now() && isNewMatchDraftPayload(draft.payload)) {
+						selectedDraftKey = requestedDraftKey;
+						const saved = draft.payload;
+						setMatchDate(saved.matchDate);
+						setOpponent(saved.opponent);
+						setLocation(saved.location);
+						setIsHome(saved.isHome);
+						setSeason(saved.season);
+						setJornada(saved.jornada);
+						setNotes(saved.notes);
+						setCompetitionId(saved.competitionId);
+						setClosedQuarters(saved.closedQuarters);
+						setQuarterScores(saved.quarterScores);
+						setSprintWinners(saved.sprintWinners);
+						setPenaltyHomeScore(saved.penaltyHomeScore);
+						setPenaltyAwayScore(saved.penaltyAwayScore);
+						setPenaltyShooters(saved.penaltyShooters);
+						setRivalPenalties(saved.rivalPenalties);
+						setPenaltyGoalkeeperMap(saved.penaltyGoalkeeperMap);
+						setActivePlayerIds(saved.activePlayerIds);
+						setStats(saved.stats);
+						setGoalkeeperShots(saved.goalkeeperShots);
+						setInitialDraftRevision(draft.revision);
+						setInitialDraftCreatedAt(draft.createdAt);
+						setInitialDraftExpiresAt(draft.expiresAt);
+						setDraftRecovered(true);
+					}
+				}
+
+				setActiveDraftKey(selectedDraftKey);
 			}
 
 			setLoading(false);
@@ -237,7 +323,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const checkPermissions = async () => {
 		if (!supabase) {
 			setPermissionError(true);
-			return;
+			return null;
 		}
 
 		try {
@@ -247,20 +333,22 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 			if (!user) {
 				router.push("/auth/login");
-				return;
+				return null;
 			}
 
 			const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
 			if (!profileData || (profileData.role !== "admin" && profileData.role !== "coach")) {
 				setPermissionError(true);
-				return;
+				return null;
 			}
 
 			setProfile(profileData);
+			return profileData as Profile;
 		} catch (error) {
 			console.error("[v0] Auth error:", error);
 			setPermissionError(true);
+			return null;
 		}
 	};
 
@@ -312,7 +400,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			}
 		} catch (error) {
 			console.error("Error loading lineup:", error);
-			alert("Error al cargar la convocatoria");
+			alert(t("lineupLoadError"));
 		} finally {
 			setLoadingLineup(false);
 		}
@@ -497,7 +585,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}, 0);
 
 		if (!player.is_goalkeeper && currentFieldPlayers >= 12) {
-			alert("No se pueden añadir más de 12 jugadores de campo");
+			alert(t("maxFieldPlayers"));
 			return;
 		}
 
@@ -531,11 +619,16 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		});
 	};
 
-	const loadExistingMatch = async (matchId: number) => {
+	const loadExistingMatch = async (matchId: number, clubId: number) => {
 		if (!supabase) return;
 
 		try {
-			const { data: match, error } = await supabase.from("matches").select("*").eq("id", matchId).single();
+			const { data: match, error } = await supabase
+				.from("matches")
+				.select("*")
+				.eq("id", matchId)
+				.eq("club_id", clubId)
+				.single();
 
 			if (error || !match) {
 				console.error("Error loading match:", error);
@@ -821,12 +914,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 	const handleSave = async () => {
 		if (!opponent.trim()) {
-			alert("Por favor, introduce el nombre del rival");
+			alert(t("opponentRequired"));
 			return;
 		}
 
 		if (!profile || !profile.club_id) {
-			alert("Error: No se pudo obtener la información del club");
+			alert(t("clubInfoError"));
 			return;
 		}
 
@@ -838,19 +931,19 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 		if (hasAnyPenaltyData) {
 			if (penaltyHomeScore === null || penaltyAwayScore === null) {
-				alert("Si registras penaltis, debes indicar el resultado de la tanda.");
+				alert(t("penaltyResultRequired"));
 				return;
 			}
 
 			if (penaltyHomeScore === penaltyAwayScore) {
-				alert("La tanda de penaltis no puede terminar en empate. Debe haber un ganador.");
+				alert(t("penaltyTieError"));
 				return;
 			}
 
 			if (penaltyShooters.length === 0) {
 				toast({
-					title: "Atención",
-					description: "No has seleccionado los lanzadores de penaltis de tu equipo",
+					title: t("warning"),
+					description: t("penaltyShootersRequired"),
 					variant: "destructive"
 				});
 				return;
@@ -858,6 +951,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}
 
 		setSaving(true);
+		let createdMatchId: number | null = null;
 
 		try {
 			const homeQ1 = quarterScores[1].home;
@@ -937,10 +1031,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 				if (matchError) throw matchError;
 
-				await supabase.from("match_stats").delete().eq("match_id", editingMatchId);
+				const { error: deleteStatsError } = await supabase.from("match_stats").delete().eq("match_id", editingMatchId);
+				if (deleteStatsError) throw deleteStatsError;
 
 				const statsToInsert = activePlayerIds.map((playerId) => ({
-					...stats[playerId],
+					...statsForSave[playerId],
 					match_id: editingMatchId
 				}));
 
@@ -949,7 +1044,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				if (statsError) throw statsError;
 
 				if (homeGoals === awayGoals) {
-					await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
+					const { error: deletePenaltiesError } = await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
+					if (deletePenaltiesError) throw deletePenaltiesError;
 
 					const rows = buildPenaltyRows({
 						matchId: editingMatchId,
@@ -963,12 +1059,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						if (penErr) throw penErr;
 					}
 				} else {
-					await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
+					const { error: deletePenaltiesError } = await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
+					if (deletePenaltiesError) throw deletePenaltiesError;
 				}
 
-				if (goalkeeperShots.length > 0) {
-					await supabase.from("goalkeeper_shots").delete().eq("match_id", editingMatchId);
+				const { error: deleteShotsError } = await supabase.from("goalkeeper_shots").delete().eq("match_id", editingMatchId);
+				if (deleteShotsError) throw deleteShotsError;
 
+				if (goalkeeperShots.length > 0) {
 					const rows = goalkeeperShots.map((s) => ({
 						match_id: editingMatchId,
 						goalkeeper_player_id: s.goalkeeper_player_id,
@@ -981,11 +1079,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 					const { error: gkShotsError } = await supabase.from("goalkeeper_shots").insert(rows);
 					if (gkShotsError) throw gkShotsError;
-				} else {
-					// ⚠️ Importante: si está vacío NO borres nada.
-					console.warn("[GoalkeeperShots] Skipping replace because local array is empty");
 				}
 
+				await autosave.clearDraft().catch((error) => console.error("Error deleting saved draft:", error));
 				router.push(`/partidos/${editingMatchId}`);
 			} else {
 				const { data: newMatch, error: matchError } = await supabase
@@ -1026,9 +1122,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					.single();
 
 				if (matchError) throw matchError;
+				createdMatchId = newMatch.id;
 
 				const statsToInsert = activePlayerIds.map((playerId) => ({
-					...stats[playerId],
+					...statsForSave[playerId],
 					match_id: newMatch.id
 				}));
 
@@ -1037,8 +1134,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				if (statsError) throw statsError;
 
 				if (newMatch && homeGoals === awayGoals) {
-					await supabase.from("penalty_shootout_players").delete().eq("match_id", newMatch.id);
-
 					const rows = buildPenaltyRows({
 						matchId: newMatch.id,
 						penaltyShooters,
@@ -1050,8 +1145,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						const { error: penErr } = await supabase.from("penalty_shootout_players").insert(rows);
 						if (penErr) throw penErr;
 					}
-				} else if (newMatch) {
-					await supabase.from("penalty_shootout_players").delete().eq("match_id", newMatch.id);
 				}
 
 				if (goalkeeperShots.length > 0) {
@@ -1068,11 +1161,20 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					if (gkShotsError) throw gkShotsError;
 				}
 
+				await autosave.clearDraft().catch((error) => console.error("Error deleting saved draft:", error));
 				router.push(`/partidos/${newMatch.id}`);
 			}
 		} catch (error) {
 			console.error("Error saving match:", error);
-			alert("Error al guardar el partido");
+			if (createdMatchId !== null) {
+				// Best-effort rollback: avoid leaving a partially created match.
+				await supabase.from("goalkeeper_shots").delete().eq("match_id", createdMatchId);
+				await supabase.from("penalty_shootout_players").delete().eq("match_id", createdMatchId);
+				await supabase.from("match_stats").delete().eq("match_id", createdMatchId);
+				const { error: rollbackError } = await supabase.from("matches").delete().eq("id", createdMatchId);
+				if (rollbackError) console.error("Error rolling back incomplete match:", rollbackError);
+			}
+			alert(t("saveError"));
 		} finally {
 			setSaving(false);
 		}
@@ -1111,8 +1213,65 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const awayGoals = score.awayGoals;
 	const isTied = homeGoals === awayGoals;
 
-	const homeTeamName = myClub?.name || "Mi Equipo";
-	const awayTeamName = opponent || "Rival";
+	const homeTeamName = myClub?.name || t("myTeam");
+	const awayTeamName = opponent || t("opponentFallback");
+	const draftKey = profile?.club_id ? activeDraftKey : null;
+	const draftPayload = useMemo<NewMatchDraftPayload>(
+		() => ({
+			schemaVersion: 1,
+			matchDate,
+			opponent,
+			location,
+			isHome,
+			season,
+			jornada,
+			notes,
+			competitionId,
+			closedQuarters: closedQuarters as Record<DraftQuarter, boolean>,
+			quarterScores: quarterScores as Record<DraftQuarter, { home: number; away: number }>,
+			sprintWinners,
+			penaltyHomeScore,
+			penaltyAwayScore,
+			penaltyShooters,
+			rivalPenalties,
+			penaltyGoalkeeperMap,
+			activePlayerIds,
+			stats,
+			goalkeeperShots
+		}),
+		[
+			activePlayerIds,
+			closedQuarters,
+			competitionId,
+			goalkeeperShots,
+			isHome,
+			jornada,
+			location,
+			matchDate,
+			notes,
+			opponent,
+			penaltyAwayScore,
+			penaltyGoalkeeperMap,
+			penaltyHomeScore,
+			penaltyShooters,
+			quarterScores,
+			rivalPenalties,
+			season,
+			sprintWinners,
+			stats
+		]
+	);
+	const autosave = useMatchAutosave({
+		enabled: !loading && hiddenStatsState.loaded && !saving && Boolean(profile?.club_id),
+		draftKey,
+		clubId: profile?.club_id ?? null,
+		userId: profile?.id ?? null,
+		matchId: editingMatchId,
+		payload: draftPayload,
+		initialRevision: initialDraftRevision,
+		initialCreatedAt: initialDraftCreatedAt,
+		initialExpiresAt: initialDraftExpiresAt
+	});
 
 	if (loading || !hiddenStatsState.loaded) {
 		return (
@@ -1128,11 +1287,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				<Alert variant="destructive">
 					<AlertCircle className="h-4 w-4" />
 					<AlertDescription>
-						No tienes permisos para crear partidos. Solo los administradores y entrenadores pueden acceder a esta página.
+						{t("permissionError")}
 					</AlertDescription>
 				</Alert>
 				<div className="mt-4">
-					<Button onClick={() => router.back()}>Volver al Inicio</Button>
+					<Button onClick={() => router.back()}>{t("backHome")}</Button>
 				</div>
 			</main>
 		);
@@ -1141,23 +1300,31 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
 			<div className="mb-6">
-				<h1 className="text-3xl md:text-4xl font-bold mb-2">{editingMatchId ? "Editar Partido" : "Nuevo Partido"}</h1>
+				<h1 className="text-3xl md:text-4xl font-bold mb-2">{editingMatchId ? pageT("editMatch") : pageT("newMatch")}</h1>
 				<p className="text-muted-foreground text-lg">
-					{editingMatchId ? "Actualiza las estadísticas del partido" : "Registra las estadísticas del partido"}
+					{editingMatchId ? t("editDescription") : t("createDescription")}
 				</p>
 				<div className="flex items-center gap-3 mt-3 flex-wrap">
 					<Badge variant="secondary" className="text-sm">
-						Convocatoria: {activePlayerIds.length} jugadores
+						{t("lineupCount", { count: activePlayerIds.length })}
 					</Badge>
+					<Badge variant="outline" className="gap-1.5 text-sm">
+						{autosave.status === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+						{(autosave.status === "offline" || autosave.status === "error") && <CloudOff className="h-3.5 w-3.5" />}
+						{autosave.status === "saved" && <CheckCircle2 className="h-3.5 w-3.5" />}
+						{(autosave.status === "idle" || autosave.status === "pending") && <Cloud className="h-3.5 w-3.5" />}
+						{t(`autosave.${autosave.status}`)}
+					</Badge>
+					{draftRecovered && <span className="text-xs text-muted-foreground">{t("autosave.recovered")}</span>}
 					{previousMatches.length > 0 && (
 						<Select onValueChange={(value) => loadLineupFromMatch(Number(value))} disabled={loadingLineup}>
 							<SelectTrigger className="w-[250px]">
-								<SelectValue placeholder="Cargar convocatoria anterior" />
+								<SelectValue placeholder={t("loadPreviousLineup")} />
 							</SelectTrigger>
 							<SelectContent>
 								{previousMatches.map((match) => (
 									<SelectItem key={match.id} value={match.id.toString()}>
-										{new Date(match.match_date).toLocaleDateString()} - {match.opponent}
+									{new Date(match.match_date).toLocaleDateString(locale)} - {match.opponent}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -1172,31 +1339,31 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					{/* TAB: Información */}
 					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 						{/* Móvil */}
-						<span className="sm:hidden block truncate">Info</span>
+						<span className="sm:hidden block truncate">{t("tabs.infoShort")}</span>
 						{/* Desktop */}
-						<span className="hidden sm:inline block truncate">Información de Partido</span>
+						<span className="hidden sm:inline block truncate">{t("tabs.info")}</span>
 					</TabsTrigger>
 
 					{/* TAB: Jugadores de Campo */}
 					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 						{/* Móvil */}
-						<span className="sm:hidden block truncate">Campo ({fieldPlayers.length})</span>
+						<span className="sm:hidden block truncate">{t("tabs.fieldShort", { count: fieldPlayers.length })}</span>
 						{/* Desktop */}
-						<span className="hidden sm:inline block truncate">Jugadores de Campo ({fieldPlayers.length})</span>
+						<span className="hidden sm:inline block truncate">{t("tabs.field", { count: fieldPlayers.length })}</span>
 					</TabsTrigger>
 
 					{/* TAB: Porteros */}
 					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
 						{/* Móvil */}
-						<span className="sm:hidden block truncate">Porteros ({goalkeepers.length})</span>
+						<span className="sm:hidden block truncate">{t("tabs.goalkeepers", { count: goalkeepers.length })}</span>
 						{/* Desktop */}
-						<span className="hidden sm:inline block truncate">Porteros ({goalkeepers.length})</span>
+						<span className="hidden sm:inline block truncate">{t("tabs.goalkeepers", { count: goalkeepers.length })}</span>
 					</TabsTrigger>
 
 					{isTied && (
 						<TabsTrigger value="penalties" className="text-xs sm:text-sm px-2 sm:px-4 py-2 relative">
-							<span className="sm:hidden block truncate">Penaltis</span>
-							<span className="hidden sm:inline block truncate">Tanda de Penaltis</span>
+							<span className="sm:hidden block truncate">{t("tabs.penaltiesShort")}</span>
+							<span className="hidden sm:inline block truncate">{t("tabs.penalties")}</span>
 							{isTied && (
 								<span className="absolute -top-1 -right-1 flex h-3 w-3">
 									<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -1215,27 +1382,40 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 								<div className="space-y-4">
 									<div className="space-y-2">
-										<Label htmlFor="date">Fecha</Label>
+										<Label htmlFor="date">{t("date")}</Label>
 										<Input id="date" type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} />
 									</div>
 
 									<div className="space-y-2">
-										<Label htmlFor="opponent">Rival *</Label>
+										<Label htmlFor="opponent">{t("opponent")}</Label>
 										<Input
 											id="opponent"
 											value={opponent}
 											onChange={(e) => setOpponent(e.target.value)}
-											placeholder="Nombre del equipo rival"
+											placeholder={t("opponentPlaceholder")}
 										/>
 									</div>
 
 									<div className="space-y-2">
-										<Label htmlFor="location">Ubicación</Label>
+										<Label htmlFor="venue">{t("venue")}</Label>
+										<Select value={isHome ? "home" : "away"} onValueChange={(value) => setIsHome(value === "home")}>
+											<SelectTrigger id="venue">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="home">{t("home")}</SelectItem>
+												<SelectItem value="away">{t("away")}</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="location">{t("location")}</Label>
 										<Input
 											id="location"
 											value={location}
 											onChange={(e) => setLocation(e.target.value)}
-											placeholder="Piscina o ciudad"
+											placeholder={t("locationPlaceholder")}
 										/>
 									</div>
 								</div>
@@ -1247,10 +1427,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 								<div className="space-y-4">
 									<div className="space-y-2">
-										<Label htmlFor="competition">Competición</Label>
+										<Label htmlFor="competition">{t("competition")}</Label>
 										<Select value={competitionId} onValueChange={setCompetitionId}>
 											<SelectTrigger id="competition" className="w-full">
-												<SelectValue placeholder="Selecciona competición" />
+												<SelectValue placeholder={t("selectCompetition")} />
 											</SelectTrigger>
 											<SelectContent>
 												{competitions.map((c) => (
@@ -1265,7 +1445,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									</div>
 
 									<div className="space-y-2">
-										<Label htmlFor="jornada">Jornada</Label>
+										<Label htmlFor="jornada">{t("matchday")}</Label>
 										<Input
 											id="jornada"
 											type="number"
@@ -1276,7 +1456,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									</div>
 
 									<div className="space-y-2">
-										<Label htmlFor="season">Temporada</Label>
+										<Label htmlFor="season">{t("season")}</Label>
 										<Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
 									</div>
 								</div>
@@ -1284,33 +1464,33 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 							{/* COLUMNA 3: Marcador */}
 							<div className="space-y-4 rounded-sm border bg-muted/15 p-4">
-								<h3 className="text-sm font-semibold">Marcador</h3>
+								<h3 className="text-sm font-semibold">{t("score")}</h3>
 
 								<div className="space-y-4">
 									<div className="space-y-2">
-										<Label htmlFor="home-score">Goles Propios</Label>
+										<Label htmlFor="home-score">{t("ownGoals")}</Label>
 										<Input
 											id="home-score"
 											type="number"
 											value={homeGoals}
 											readOnly
 											className="bg-muted text-center text-lg font-bold"
-											title="Se calcula automáticamente sumando los goles de los jugadores"
+											title={t("ownGoalsHint")}
 										/>
-										<p className="text-xs text-muted-foreground">Se calcula automáticamente</p>
+										<p className="text-xs text-muted-foreground">{t("automaticCalculation")}</p>
 									</div>
 
 									<div className="space-y-2">
-										<Label htmlFor="away-score">Goles Rival</Label>
+										<Label htmlFor="away-score">{t("opponentGoals")}</Label>
 										<Input
 											id="away-score"
 											type="number"
 											value={awayGoals}
 											readOnly
 											className="bg-muted text-center text-lg font-bold"
-											title="Se calcula automáticamente desde las estadísticas del portero"
+											title={t("opponentGoalsHint")}
 										/>
-										<p className="text-xs text-muted-foreground">Se calcula desde goles del portero</p>
+										<p className="text-xs text-muted-foreground">{t("goalkeeperCalculation")}</p>
 									</div>
 								</div>
 							</div>
@@ -1332,12 +1512,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											}`}
 										>
 											<div className="flex items-center justify-between mb-2">
-												<Label className="text-sm font-medium">Parcial {q}</Label>
+												<Label className="text-sm font-medium">{t("quarter", { number: q })}</Label>
 											</div>
 
 											<div className="grid grid-cols-2 gap-2">
 												<div>
-													<Label className="text-xs">Propios</Label>
+													<Label className="text-xs">{t("own")}</Label>
 													<Input
 														type="number"
 														value={quarterScores[q].home}
@@ -1356,7 +1536,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 												</div>
 
 												<div>
-													<Label className="text-xs">Rival</Label>
+													<Label className="text-xs">{t("opponentFallback")}</Label>
 													<Input
 														type="number"
 														value={quarterScores[q].away}
@@ -1395,12 +1575,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 														: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
 												}`}
 											>
-												{hasWinner ? "Sprint ganado" : "Sprint NO ganado"}
+											{hasWinner ? t("sprintWon") : t("sprintLost")}
 											</button>
 
 											{hasWinner ? (
 												<div className="rounded-md border bg-card/60 px-2 py-1 text-[11px] text-muted-foreground">
-													Ganador: <span className="font-medium text-foreground">{winnerLabel}</span>
+											{t("winner")} <span className="font-medium text-foreground">{winnerLabel}</span>
 												</div>
 											) : null}
 
@@ -1410,7 +1590,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 												onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
 												className="w-full mt-2 text-xs"
 											>
-												{closedQuarters[q] ? "Abrir Parcial" : "Cerrar Parcial"}
+											{closedQuarters[q] ? t("openQuarter") : t("closeQuarter")}
 											</Button>
 										</div>
 									);
@@ -1441,12 +1621,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						/>
 
 						<div className="space-y-2 md:col-span-2">
-							<Label htmlFor="notes">Notas</Label>
+							<Label htmlFor="notes">{t("notes")}</Label>
 							<Textarea
 								id="notes"
 								value={notes}
 								onChange={(e) => setNotes(e.target.value)}
-								placeholder="Observaciones del partido..."
+								placeholder={t("notesPlaceholder")}
 								rows={2}
 							/>
 						</div>
@@ -1510,9 +1690,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											</p>
 
 											<p className="text-xs text-muted-foreground mt-1">
-												{safeNumber(stats[player.id]?.goles_totales)} goles
-												<span> | </span>
-												{totalExpulsiones(stats[player.id])} expulsiones
+											{t("playerSummary", { goals: safeNumber(stats[player.id]?.goles_totales), exclusions: totalExpulsiones(stats[player.id]) })}
 											</p>
 										</div>
 
@@ -1522,7 +1700,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 												<div
 													role="button"
 													tabIndex={0}
-													title="Sustituir jugador"
+											title={t("substitutePlayer")}
 													className="
                               h-8 w-full rounded-md
                               bg-muted/70 hover:bg-blue-500/40
@@ -1544,7 +1722,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 													}}
 												>
 													<RefreshCw className="h-4 w-4" />
-													Sustituir
+											{t("substitute")}
 												</div>
 											) : (
 												// Mantiene altura constante para que todas las cards queden iguales
@@ -1575,13 +1753,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									</div>
 
 									<div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
-										<p className="font-semibold text-sm">Convocar jugador</p>
-										<p className="text-xs text-muted-foreground mt-1">Añadir a la lista</p>
+									<p className="font-semibold text-sm">{t("callPlayer")}</p>
+									<p className="text-xs text-muted-foreground mt-1">{t("addToList")}</p>
 									</div>
 
 									<div className="w-full px-2 pb-2">
 										<div className="h-8 w-full rounded-md border border-green-500/40 bg-green-500/10 grid place-items-center text-xs font-medium text-green-700 dark:text-green-400">
-											Añadir
+										{t("add")}
 										</div>
 									</div>
 								</Button>
@@ -1644,9 +1822,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											</p>
 
 											<p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
-												{safeNumber(stats[player.id]?.portero_goles_totales)} goles
-												<span className="mx-1">|</span>
-												{calcParadasTotales(stats[player.id])} paradas
+											{t("goalkeeperSummary", { goals: safeNumber(stats[player.id]?.portero_goles_totales), saves: calcParadasTotales(stats[player.id]) })}
 											</p>
 										</div>
 
@@ -1656,7 +1832,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 												<div
 													role="button"
 													tabIndex={0}
-													title="Sustituir jugador"
+											title={t("substitutePlayer")}
 													className="
                               h-7 sm:h-8 w-full rounded-md
                               bg-muted/70 hover:bg-muted
@@ -1678,7 +1854,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 													}}
 												>
 													<RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-													Sustituir
+											{t("substitute")}
 												</div>
 											) : (
 												<div className="h-7 sm:h-8" />
@@ -1786,19 +1962,19 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				{saving ? (
 				<>
 					<Loader2 className="mr-2 h-5 w-5 animate-spin" />
-					Guardando...
+									{t("saving")}
 				</>
 				) : (
 				<>
 					<Save className="mr-2 h-5 w-5" />
-					{editingMatchId ? "Actualizar Partido" : "Guardar Partido"}
+									{editingMatchId ? t("updateMatch") : t("saveMatch")}
 				</>
 				)}
 			</Button>
 			</div>
 			<div className="mt-6 flex flex-col items-center gap-2 text-center">
 				<p className="text-xs text-muted-foreground">
-					POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+					{t("poweredBy")} <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
 				</p>
 
 				<div className="flex items-center gap-4 opacity-70">
@@ -1828,6 +2004,7 @@ function FieldPlayerStatsDialog({
 	onUpdate: (field: keyof MatchStats, value: number) => void;
 	isStatVisible: (statKey: keyof MatchStats | string) => boolean;
 }) {
+	const t = useTranslations("NewMatch");
 	return (
 		<Tabs defaultValue="goles" className="w-full">
 			<TabsList className="grid grid-cols-5 w-full h-auto">
@@ -1835,41 +2012,41 @@ function FieldPlayerStatsDialog({
 					value="goles"
 					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
 				>
-					Goles
+					{t("statTabs.goals")}
 				</TabsTrigger>
 
 				<TabsTrigger
 					value="tiros"
 					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
 				>
-					Tiros
+					{t("statTabs.shots")}
 				</TabsTrigger>
 
 				<TabsTrigger
 					value="superioridad"
 					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
 				>
-					<span className="sm:hidden">Sup.</span>
-					<span className="hidden sm:inline">Superioridad</span>
+					<span className="sm:hidden">{t("statTabs.superiorityShort")}</span>
+					<span className="hidden sm:inline">{t("statTabs.superiority")}</span>
 				</TabsTrigger>
 
 				<TabsTrigger
 					value="faltas"
 					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
 				>
-					Faltas
+					{t("statTabs.fouls")}
 				</TabsTrigger>
 
 				<TabsTrigger
 					value="acciones"
 					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
 				>
-					Acciones
+					{t("statTabs.actions")}
 				</TabsTrigger>
 			</TabsList>
 
 			<TabsContent value="goles" className="space-y-4 mt-4">
-				<Group title="Ofensiva">
+				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="goles_boya_jugada"
 						isStatVisible={isStatVisible}
@@ -1906,13 +2083,13 @@ function FieldPlayerStatsDialog({
 						onChange={(v) => onUpdate("goles_penalti_anotado", v)}
 					/>
 				</Group>
-				<Group title="Otros">
-					<StatField label="Totales" value={safeNumber(stats.goles_totales)} onChange={() => {}} readOnly />
+				<Group title={t("groups.other")}>
+					<StatField label={t("totals")} value={safeNumber(stats.goles_totales)} onChange={() => {}} readOnly />
 				</Group>
 			</TabsContent>
 
 			<TabsContent value="tiros" className="space-y-4 mt-4">
-				<Group title="Ofensiva">
+				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="tiros_penalti_fallado"
 						isStatVisible={isStatVisible}
@@ -1946,7 +2123,7 @@ function FieldPlayerStatsDialog({
 					/>
 				</Group>
 
-				<Group title="Defensiva (Rival)">
+				<Group title={t("groups.opponentDefense")}>
 					<VisibleStatField
 						statKey="tiros_parados"
 						isStatVisible={isStatVisible}
@@ -1963,10 +2140,10 @@ function FieldPlayerStatsDialog({
 						onChange={(v) => onUpdate("tiros_bloqueado", v)}
 					/>
 				</Group>
-				<Group title="Otros">
-					<StatField label="Totales" value={safeNumber(stats.tiros_totales)} onChange={() => {}} readOnly />
+				<Group title={t("groups.other")}>
+					<StatField label={t("totals")} value={safeNumber(stats.tiros_totales)} onChange={() => {}} readOnly />
 					<StatField
-						label="Eficiencia %"
+						label={t("efficiency")}
 						value={(() => {
 							const golesGenerales =
 								(isStatVisible("goles_boya_jugada") ? safeNumber(stats.goles_boya_jugada) : 0) +
@@ -1997,7 +2174,7 @@ function FieldPlayerStatsDialog({
 			</TabsContent>
 
 			<TabsContent value="superioridad" className="space-y-4 mt-4">
-				<Group title="Ofensiva">
+				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="goles_hombre_mas"
 						isStatVisible={isStatVisible}
@@ -2013,7 +2190,7 @@ function FieldPlayerStatsDialog({
 						onChange={(v) => onUpdate("gol_del_palo_sup", v)}
 					/>
 					<StatField
-						label="Eficiencia %"
+						label={t("efficiency")}
 						value={(() => {
 							const aciertos =
 								(isStatVisible("goles_hombre_mas") ? safeNumber(stats.goles_hombre_mas) : 0) +
@@ -2032,7 +2209,7 @@ function FieldPlayerStatsDialog({
 						suffix="%"
 					/>
 				</Group>
-				<Group title="Ofensiva (Fallado)">
+				<Group title={t("groups.missedOffense")}>
 					<VisibleStatField
 						statKey="tiros_hombre_mas"
 						isStatVisible={isStatVisible}
@@ -2058,7 +2235,7 @@ function FieldPlayerStatsDialog({
 					/>
 				</Group>
 
-				<Group title="Otros">
+				<Group title={t("groups.other")}>
 					<VisibleStatField
 						statKey="rebote_recup_hombre_mas"
 						isStatVisible={isStatVisible}
@@ -2078,7 +2255,7 @@ function FieldPlayerStatsDialog({
 			</TabsContent>
 
 			<TabsContent value="faltas" className="space-y-4 mt-4">
-				<Group title="Defensiva">
+				<Group title={t("groups.defense")}>
 					<VisibleStatField
 						statKey="faltas_exp_20_1c1"
 						isStatVisible={isStatVisible}
@@ -2122,7 +2299,7 @@ function FieldPlayerStatsDialog({
 			</TabsContent>
 
 			<TabsContent value="acciones" className="space-y-4 mt-4">
-				<Group title="Ofensiva">
+				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="acciones_asistencias"
 						isStatVisible={isStatVisible}
@@ -2180,7 +2357,7 @@ function FieldPlayerStatsDialog({
 					/>
 				</Group>
 
-				<Group title="Defensiva">
+				<Group title={t("groups.defense")}>
 					<VisibleStatField
 						statKey="acciones_bloqueo"
 						isStatVisible={isStatVisible}
@@ -2206,7 +2383,7 @@ function FieldPlayerStatsDialog({
 					/>
 				</Group>
 
-				<Group title="Otros">
+				<Group title={t("groups.other")}>
 					<VisibleStatField
 						statKey="acciones_rebote"
 						isStatVisible={isStatVisible}
@@ -2236,6 +2413,7 @@ function GoalkeeperStatsDialog({
 	setGoalkeeperShots: (next: GoalkeeperShotDraft[]) => void;
 	isStatVisible: (statKey: keyof MatchStats | string) => boolean;
 }) {
+	const t = useTranslations("NewMatch");
 	const totalGoalsConceded =
 		(isStatVisible("portero_goles_boya_parada") ? safeNumber(stats.portero_goles_boya_parada) : 0) +
 		(isStatVisible("portero_goles_hombre_menos") ? safeNumber(stats.portero_goles_hombre_menos) : 0) +
@@ -2249,22 +2427,22 @@ function GoalkeeperStatsDialog({
 		<Tabs defaultValue="goles" className="w-full">
 			<TabsList className="grid w-full grid-cols-4 h-auto">
 				<TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-					Goles
+					{t("statTabs.goals")}
 				</TabsTrigger>
 				<TabsTrigger value="paradas" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-					Paradas
+					{t("statTabs.saves")}
 				</TabsTrigger>
 				<TabsTrigger value="inferioridad" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-					<span className="sm:hidden block truncate">Inf.</span>
-					<span className="hidden sm:inline block truncate">Inferioridad</span>
+					<span className="sm:hidden block truncate">{t("statTabs.inferiorityShort")}</span>
+					<span className="hidden sm:inline block truncate">{t("statTabs.inferiority")}</span>
 				</TabsTrigger>
 				<TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
-					Acciones
+					{t("statTabs.actions")}
 				</TabsTrigger>
 			</TabsList>
 
 			<TabsContent value="goles" className="space-y-4 mt-4">
-				<Group title="Goles Recibidos">
+				<Group title={t("groups.goalsConceded")}>
 					<VisibleStatField
 						statKey="portero_goles_boya_parada"
 						isStatVisible={isStatVisible}
@@ -2301,14 +2479,14 @@ function GoalkeeperStatsDialog({
 						onChange={(v) => onUpdate("portero_goles_lanzamiento", v)}
 					/>
 				</Group>
-				<Group title="Otros">
-					<StatField label="Totales" value={totalGoalsConceded} onChange={() => {}} readOnly />
+				<Group title={t("groups.other")}>
+					<StatField label={t("totals")} value={totalGoalsConceded} onChange={() => {}} readOnly />
 				</Group>
 				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
 			</TabsContent>
 
 			<TabsContent value="paradas" className="space-y-4 mt-4">
-				<Group title="Paradas">
+				<Group title={t("statTabs.saves")}>
 					<VisibleStatField
 						statKey="portero_tiros_parada_recup"
 						isStatVisible={isStatVisible}
@@ -2341,7 +2519,7 @@ function GoalkeeperStatsDialog({
 						onChange={(v) => onUpdate("portero_lanz_palo", v)}
 					/>
 				</Group>
-				<Group title="Paradas Penalti">
+				<Group title={t("groups.penaltySaves")}>
 					<VisibleStatField
 						statKey="portero_paradas_penalti_parado"
 						isStatVisible={isStatVisible}
@@ -2366,9 +2544,9 @@ function GoalkeeperStatsDialog({
 						onChange={(v) => onUpdate("portero_penalti_fuera", v)}
 					/>
 				</Group>
-				<Group title="Otros">
+				<Group title={t("groups.other")}>
 					<StatField
-						label="Totales"
+						label={t("totals")}
 						value={
 							(isStatVisible("portero_tiros_parada_recup") ? safeNumber(stats.portero_tiros_parada_recup) : 0) +
 							(isStatVisible("portero_paradas_fuera") ? safeNumber(stats.portero_paradas_fuera) : 0) +
@@ -2384,7 +2562,7 @@ function GoalkeeperStatsDialog({
 			</TabsContent>
 
 			<TabsContent value="inferioridad" className="space-y-4 mt-4">
-				<Group title="Recibidos">
+				<Group title={t("groups.conceded")}>
 					<VisibleStatField
 						statKey="portero_goles_hombre_menos"
 						isStatVisible={isStatVisible}
@@ -2401,7 +2579,7 @@ function GoalkeeperStatsDialog({
 					/>
 				</Group>
 
-				<Group title="Defensiva">
+				<Group title={t("groups.defense")}>
 					<VisibleStatField
 						statKey="portero_paradas_hombre_menos"
 						isStatVisible={isStatVisible}
@@ -2439,9 +2617,9 @@ function GoalkeeperStatsDialog({
 					/>
 				</Group>
 
-				<Group title="Otros">
+				<Group title={t("groups.other")}>
 					<StatField
-						label="Eficiencia %"
+						label={t("efficiency")}
 						value={(() => {
 							const goles =
 								(isStatVisible("portero_goles_hombre_menos") ? safeNumber(stats.portero_goles_hombre_menos) : 0) +
@@ -2464,7 +2642,7 @@ function GoalkeeperStatsDialog({
 			</TabsContent>
 
 			<TabsContent value="acciones" className="space-y-4 mt-4">
-				<Group title="Ofensiva">
+				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="portero_acciones_asistencias"
 						isStatVisible={isStatVisible}
@@ -2506,7 +2684,7 @@ function GoalkeeperStatsDialog({
 					/>
 				</Group>
 
-				<Group title="Defensiva">
+				<Group title={t("groups.defense")}>
 					<VisibleStatField
 						statKey="portero_acciones_exp_provocada"
 						isStatVisible={isStatVisible}
@@ -2574,9 +2752,10 @@ function VisibleStatField({
 	readOnly?: boolean;
 	suffix?: string;
 }) {
+	const t = useTranslations("StatLabels");
 	if (!isStatVisible(statKey)) return null;
 
-	return <StatField {...props} />;
+	return <StatField {...props} label={t(statKey)} />;
 }
 
 const safeNumber = (value: number | undefined | null): number => {

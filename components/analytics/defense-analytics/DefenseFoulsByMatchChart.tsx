@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
@@ -23,7 +24,6 @@ const toNum = (v: unknown) => {
 type FoulDef = {
 	key: keyof MatchStats | string;
 	dataKey: string;
-	label: string;
 	color: string;
 };
 
@@ -31,48 +31,44 @@ const FOUL_DEFS: FoulDef[] = [
 	{
 		key: "faltas_exp_20_1c1",
 		dataKey: "exp1c1",
-		label: 'Exp 18" 1c1',
 		color: "hsla(0, 84%, 60%, 1.00)"
 	},
 	{
 		key: "faltas_exp_20_boya",
 		dataKey: "expBoya",
-		label: 'Exp 18" Boya',
 		color: "hsla(25, 95%, 53%, 1.00)"
 	},
 	{
 		key: "faltas_penalti",
 		dataKey: "penalti",
-		label: "Penalti",
 		color: "hsla(330, 78%, 58%, 1.00)"
 	},
 	{
 		key: "faltas_exp_simple",
 		dataKey: "expSimple",
-		label: "Exp simple",
 		color: "hsla(270, 75%, 60%, 1.00)"
 	},
 	{
 		key: "exp_trans_def",
 		dataKey: "expTrans",
-		label: "Exp trans.",
 		color: "hsla(205, 90%, 55%, 1.00)"
 	},
 	{
 		key: "faltas_exp_3_int",
 		dataKey: "exp3Int",
-		label: 'Exp 3" Int',
 		color: "hsla(190, 95%, 45%, 1.00)"
 	},
 	{
 		key: "faltas_exp_3_bruta",
 		dataKey: "exp3Bruta",
-		label: 'Exp 3" Bruta',
 		color: "hsla(42, 96%, 55%, 1.00)"
 	}
 ];
 
 export function DefenseFoulsByMatchChart({ matches, stats, hiddenStats = [] }: DefenseFoulsByMatchChartProps) {
+	const t = useTranslations("DefenseCharts")
+	const tStat = useTranslations("StatLabels")
+	const locale = useLocale()
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibleDefs = useMemo(() => FOUL_DEFS.filter((def) => !hiddenSet.has(String(def.key))), [hiddenSet]);
@@ -102,13 +98,13 @@ export function DefenseFoulsByMatchChart({ matches, stats, hiddenStats = [] }: D
 					xLabel: `${match.id}-${index}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 					...values,
 					total
 				};
 			})
 			.filter((row) => row.total > 0);
-	}, [matches, stats, hiddenSet, visibleDefs]);
+	}, [matches, stats, hiddenSet, visibleDefs, locale]);
 
 	const jornadaByXLabel = useMemo(() => {
 		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
@@ -121,19 +117,19 @@ export function DefenseFoulsByMatchChart({ matches, stats, hiddenStats = [] }: D
 			visibleDefs.map((def) => [
 				def.dataKey,
 				{
-					label: def.label,
+					label: tStat(String(def.key)),
 					color: def.color
 				}
 			])
 		);
-	}, [visibleDefs]);
+	}, [visibleDefs, tStat]);
 
 	if (!visibleDefs.length || !matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Faltas defensivas por jornada"
-			description={`Últimos ${matchData.length} · Total ${total}`}
+			title={t("foulsTitle")}
+			description={t("lastTotal", { count: matchData.length, total })}
 			icon={<ShieldAlert className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{total}</span>}
@@ -158,7 +154,7 @@ export function DefenseFoulsByMatchChart({ matches, stats, hiddenStats = [] }: D
 									<ChartTooltipContent
 										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
-											return p ? `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Total ${p.total}` : "";
+										return p ? t("tooltipTotal", { round: p.jornada, opponent: p.rival, date: p.fullDate, total: p.total }) : "";
 										}}
 									/>
 								}
@@ -170,7 +166,7 @@ export function DefenseFoulsByMatchChart({ matches, stats, hiddenStats = [] }: D
 									key={def.dataKey}
 									dataKey={def.dataKey}
 									stackId="f"
-									name={def.label}
+									name={tStat(String(def.key))}
 									fill={`var(--color-${def.dataKey})`}
 									radius={index === 0 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
 								/>
@@ -186,30 +182,16 @@ export function DefenseFoulsByMatchChart({ matches, stats, hiddenStats = [] }: D
 							<Table className="min-w-[1180px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
+										<TableHead>{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.dataKey} className="text-right">
-												{def.dataKey === "exp1c1"
-													? "1c1"
-													: def.dataKey === "expBoya"
-														? "Boya"
-														: def.dataKey === "penalti"
-															? "Pen."
-															: def.dataKey === "expSimple"
-																? "Simple"
-																: def.dataKey === "expTrans"
-																	? "Trans."
-																	: def.dataKey === "exp3Int"
-																		? '3" Int'
-																		: def.dataKey === "exp3Bruta"
-																			? '3" Bruta'
-																			: def.label}
+											{tStat(String(def.key))}
 											</TableHead>
 										))}
 
-										<TableHead className="text-right">Total</TableHead>
+										<TableHead className="text-right">{t("total")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 

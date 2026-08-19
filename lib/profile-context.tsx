@@ -43,7 +43,7 @@ export function ProfileProvider({
         } = await supabase.auth.getUser()
 
         if (user) {
-          const { data: profileData } = await supabase.from("user_profiles").select("*").eq("id", user.id).single()
+          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single()
 
           setProfile(profileData)
         }

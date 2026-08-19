@@ -6,6 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { Shield } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
+import { useLocale, useTranslations } from "next-intl";
 
 interface GoalkeeperPerformanceChartProps {
 	matches: any[];
@@ -21,6 +22,9 @@ const toNum = (v: unknown) => {
 const isVisible = (hiddenSet: Set<string>, key: string) => !hiddenSet.has(key);
 
 export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }: GoalkeeperPerformanceChartProps) {
+	const tChart = useTranslations("GoalkeeperCharts");
+	const common = useTranslations("AnalyticsCommon");
+	const locale = useLocale();
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibility = useMemo(
@@ -117,7 +121,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 
 				percentage: Number(savePercentage.toFixed(1)),
 				saves: totalSaves,
@@ -128,7 +132,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 				tirosRecibidos: totalShots
 			};
 		});
-	}, [matches, stats, visibility]);
+	}, [matches, stats, visibility, locale]);
 
 	const compactData = useMemo(() => allData.slice(-15), [allData]);
 
@@ -176,8 +180,8 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 
 	return (
 		<ExpandableChartCard
-			title="Rendimiento de Porteros"
-			description={`Jornadas registradas ${allData.length} · Media: ${avgPctAll}% · Paradas: ${totalSavesAll} · GC: ${totalGoalsAgainstAll}`}
+			title={tChart("performance")}
+			description={tChart("performanceDescription", { count: allData.length, average: avgPctAll, saves: totalSavesAll, conceded: totalGoalsAgainstAll })}
 			icon={<Shield className="w-5 h-5" />}
 			className="bg-gradient-to-br from-blue-500/5 to-white-500/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{avgPctAll}%</span>}
@@ -188,9 +192,9 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 				return (
 					<ChartContainer
 						config={{
-							...(showSaves && { saves: { label: "Paradas Totales", color: "hsl(199 95% 55%)" } }),
-							...(showSavesInf && { savesInf: { label: "Paradas en Inferioridad", color: "hsl(142 85% 45%)" } }),
-							percentage: { label: "% Efectividad", color: "hsl(34 95% 55%)" }
+							...(showSaves && { saves: { label: tChart("totalSaves"), color: "hsl(199 95% 55%)" } }),
+							...(showSavesInf && { savesInf: { label: tChart("inferioritySaves"), color: "hsl(142 85% 45%)" } }),
+							percentage: { label: tChart("effectiveness"), color: "hsl(34 95% 55%)" }
 						}}
 						className="w-full h-full"
 					>
@@ -262,7 +266,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 										yAxisId="left"
 										type="monotone"
 										dataKey="saves"
-										name="Paradas Totales"
+										name={tChart("totalSaves")}
 										stroke="var(--color-saves)"
 										fill="url(#fillSaves)"
 										strokeWidth={2}
@@ -276,7 +280,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 										yAxisId="left"
 										type="monotone"
 										dataKey="savesInf"
-										name="Paradas en Inferioridad"
+										name={tChart("inferioritySaves")}
 										stroke="var(--color-savesInf)"
 										fill="url(#fillSavesInf)"
 										strokeWidth={2}
@@ -289,7 +293,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 									yAxisId="right"
 									type="monotone"
 									dataKey="percentage"
-									name="% Efectividad"
+									name={tChart("effectiveness")}
 									stroke="var(--color-percentage)"
 									fill="url(#fillPercentage)"
 									strokeWidth={2}
@@ -308,15 +312,15 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										{showSaves ? <TableHead className="text-right">Paradas</TableHead> : null}
-										{showSavesInf ? <TableHead className="text-right">Par. Inf.</TableHead> : null}
-										{showPensSaved ? <TableHead className="text-right">Pen. Par.</TableHead> : null}
-										{showGoalsAgainst ? <TableHead className="text-right">GC</TableHead> : null}
-										{showShotsAgainst ? <TableHead className="text-right">Tiros</TableHead> : null}
-										<TableHead className="text-right">% Efec.</TableHead>
-										<TableHead className="text-right">Fecha</TableHead>
+										<TableHead className="w-[90px]">{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										{showSaves ? <TableHead className="text-right">{common("saved")}</TableHead> : null}
+										{showSavesInf ? <TableHead className="text-right">{tChart("inferioritySavesShort")}</TableHead> : null}
+										{showPensSaved ? <TableHead className="text-right">{tChart("penaltiesSavedShort")}</TableHead> : null}
+										{showGoalsAgainst ? <TableHead className="text-right">{tChart("goalsConcededShort")}</TableHead> : null}
+										{showShotsAgainst ? <TableHead className="text-right">{common("shots")}</TableHead> : null}
+										<TableHead className="text-right">{tChart("effectivenessShort")}</TableHead>
+										<TableHead className="text-right">{common("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -353,30 +357,30 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{allData.length}</span> partidos
+								{common("matches", { count: allData.length })}
 							</span>
 
 							<div className="flex flex-wrap gap-2">
 								{showSaves ? (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Total Paradas: <span className="font-semibold text-foreground">{totalSavesAll}</span>
+										{tChart("totalSavesValue")}: <span className="font-semibold text-foreground">{totalSavesAll}</span>
 									</span>
 								) : null}
 
 								{showGoalsAgainst ? (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Total GC: <span className="font-semibold text-foreground">{totalGoalsAgainstAll}</span>
+										{tChart("totalConceded")}: <span className="font-semibold text-foreground">{totalGoalsAgainstAll}</span>
 									</span>
 								) : null}
 
 								{showShotsAgainst ? (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Total Tiros: <span className="font-semibold text-foreground">{totalShotsAgainstAll}</span>
+										{tChart("totalShots")}: <span className="font-semibold text-foreground">{totalShotsAgainstAll}</span>
 									</span>
 								) : null}
 
 								<span className="rounded-md border bg-card px-2 py-1">
-									Media %: <span className="font-semibold text-white">{avgPctAll}%</span>
+									{tChart("averagePercent")}: <span className="font-semibold text-white">{avgPctAll}%</span>
 								</span>
 							</div>
 						</div>

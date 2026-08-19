@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
@@ -26,6 +27,8 @@ const sumVisible = (rows: Record<string, any>[], key: string, hiddenSet: Set<str
 };
 
 export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }: AttackGoalTypesByMatchChartProps) {
+	const t = useTranslations("AttackByMatch")
+	const locale = useLocale()
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showBoya = !hiddenSet.has("goles_boya_jugada");
@@ -66,7 +69,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 
 				boya,
 				lanzamiento,
@@ -79,7 +82,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 				total
 			};
 		});
-	}, [sortedMatches, stats, hiddenSet]);
+	}, [sortedMatches, stats, hiddenSet, locale]);
 
 	const jornadaByXLabel = useMemo(() => {
 		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
@@ -99,13 +102,13 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 		const total = matchData.reduce((sum, m) => sum + m.total, 0);
 
 		const parts = [
-			showBoya && { key: "boya", label: "Boya/Jugada", value: boya, color: "hsla(145, 63%, 42%, 1.00)" },
-			showLanzamiento && { key: "lanzamiento", label: "Lanzamiento", value: lanzamiento, color: "hsla(25, 95%, 53%, 1.00)" },
-			showDir5m && { key: "dir5m", label: "Dir +6m", value: dir5m, color: "hsla(221, 83%, 53%, 1.00)" },
-			showContra && { key: "contra", label: "Contraataque", value: contra, color: "hsla(190, 95%, 45%, 1.00)" },
-			showPenalti && { key: "penalti", label: "Penalti", value: penalti, color: "hsla(330, 78%, 58%, 1.00)" },
-			showSupMas && { key: "supMas", label: "Gol Sup.+", value: supMas, color: "hsla(42, 96%, 55%, 1.00)" },
-			showSupPalo && { key: "supPalo", label: "Gol palo Sup.+", value: supPalo, color: "hsla(48, 96%, 48%, 1.00)" }
+			showBoya && { key: "boya", label: t("buoyPlay"), value: boya, color: "hsla(145, 63%, 42%, 1.00)" },
+			showLanzamiento && { key: "lanzamiento", label: t("shot"), value: lanzamiento, color: "hsla(25, 95%, 53%, 1.00)" },
+			showDir5m && { key: "dir5m", label: t("direct6m"), value: dir5m, color: "hsla(221, 83%, 53%, 1.00)" },
+			showContra && { key: "contra", label: t("counterattack"), value: contra, color: "hsla(190, 95%, 45%, 1.00)" },
+			showPenalti && { key: "penalti", label: t("penalty"), value: penalti, color: "hsla(330, 78%, 58%, 1.00)" },
+			showSupMas && { key: "supMas", label: t("powerPlayGoal"), value: supMas, color: "hsla(42, 96%, 55%, 1.00)" },
+			showSupPalo && { key: "supPalo", label: t("powerPlayPostGoal"), value: supPalo, color: "hsla(48, 96%, 48%, 1.00)" }
 		]
 			.filter(Boolean)
 			.map((p: any) => ({
@@ -116,24 +119,24 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 		const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;
 
 		return { parts, topType, total, sup };
-	}, [matchData, showBoya, showLanzamiento, showDir5m, showContra, showPenalti, showSupMas, showSupPalo]);
+	}, [matchData, showBoya, showLanzamiento, showDir5m, showContra, showPenalti, showSupMas, showSupPalo, t]);
 
 	const chartConfig = {
-		...(showBoya && { boya: { label: "Boya/Jugada", color: "hsla(145, 63%, 42%, 1.00)" } }),
-		...(showLanzamiento && { lanzamiento: { label: "Lanzamiento", color: "hsla(25, 95%, 53%, 1.00)" } }),
-		...(showDir5m && { dir5m: { label: "Dir +6m", color: "hsla(221, 83%, 53%, 1.00)" } }),
-		...(showContra && { contra: { label: "Contraataque", color: "hsla(190, 95%, 45%, 1.00)" } }),
-		...(showPenalti && { penalti: { label: "Penalti", color: "hsla(330, 78%, 58%, 1.00)" } }),
-		...(showSupMas && { supMas: { label: "Gol Sup.+", color: "hsla(42, 96%, 55%, 1.00)" } }),
-		...(showSupPalo && { supPalo: { label: "Gol palo Sup.+", color: "hsla(48, 96%, 48%, 1.00)" } })
+		...(showBoya && { boya: { label: t("buoyPlay"), color: "hsla(145, 63%, 42%, 1.00)" } }),
+		...(showLanzamiento && { lanzamiento: { label: t("shot"), color: "hsla(25, 95%, 53%, 1.00)" } }),
+		...(showDir5m && { dir5m: { label: t("direct6m"), color: "hsla(221, 83%, 53%, 1.00)" } }),
+		...(showContra && { contra: { label: t("counterattack"), color: "hsla(190, 95%, 45%, 1.00)" } }),
+		...(showPenalti && { penalti: { label: t("penalty"), color: "hsla(330, 78%, 58%, 1.00)" } }),
+		...(showSupMas && { supMas: { label: t("powerPlayGoal"), color: "hsla(42, 96%, 55%, 1.00)" } }),
+		...(showSupPalo && { supPalo: { label: t("powerPlayPostGoal"), color: "hsla(48, 96%, 48%, 1.00)" } })
 	};
 
 	if (!matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Goles por tipo por jornada"
-			description={`Últimos ${partidos} · Total: ${totals.total} · Predomina: ${totals.topType?.label ?? "—"}`}
+			title={t("goalsTitle")}
+			description={t("summary", { count: partidos, total: totals.total, top: totals.topType?.label ?? "—" })}
 			icon={<Goal className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{totals.topType?.label ?? "—"}</span>}
@@ -164,7 +167,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 												labelFormatter={(_, payload) => {
 													const p = payload?.[0]?.payload;
 													if (!p) return "";
-													return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Total: ${p.total}`;
+											return t("tooltip", { round: p.jornada, opponent: p.rival, date: p.fullDate, total: p.total });
 												}}
 											/>
 										}
@@ -173,16 +176,16 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 									<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
 
 									{showBoya && (
-										<Bar dataKey="boya" name="Boya/Jugada" stackId="goals" fill="var(--color-boya)" radius={[4, 4, 0, 0]} />
+										<Bar dataKey="boya" name={t("buoyPlay")} stackId="goals" fill="var(--color-boya)" radius={[4, 4, 0, 0]} />
 									)}
 									{showLanzamiento && (
-										<Bar dataKey="lanzamiento" name="Lanzamiento" stackId="goals" fill="var(--color-lanzamiento)" />
+										<Bar dataKey="lanzamiento" name={t("shot")} stackId="goals" fill="var(--color-lanzamiento)" />
 									)}
-									{showDir5m && <Bar dataKey="dir5m" name="Dir +6m" stackId="goals" fill="var(--color-dir5m)" />}
-									{showContra && <Bar dataKey="contra" name="Contraataque" stackId="goals" fill="var(--color-contra)" />}
-									{showPenalti && <Bar dataKey="penalti" name="Penalti" stackId="goals" fill="var(--color-penalti)" />}
-									{showSupMas && <Bar dataKey="supMas" name="Gol Sup.+" stackId="goals" fill="var(--color-supMas)" />}
-									{showSupPalo && <Bar dataKey="supPalo" name="Gol palo Sup.+" stackId="goals" fill="var(--color-supPalo)" />}
+									{showDir5m && <Bar dataKey="dir5m" name={t("direct6m")} stackId="goals" fill="var(--color-dir5m)" />}
+									{showContra && <Bar dataKey="contra" name={t("counterattack")} stackId="goals" fill="var(--color-contra)" />}
+									{showPenalti && <Bar dataKey="penalti" name={t("penalty")} stackId="goals" fill="var(--color-penalti)" />}
+									{showSupMas && <Bar dataKey="supMas" name={t("powerPlayGoal")} stackId="goals" fill="var(--color-supMas)" />}
+									{showSupPalo && <Bar dataKey="supPalo" name={t("powerPlayPostGoal")} stackId="goals" fill="var(--color-supPalo)" />}
 								</ComposedChart>
 							</ResponsiveContainer>
 						</ChartContainer>
@@ -211,17 +214,17 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 							<Table className="min-w-[1180px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										{showBoya && <TableHead className="text-right">Boya</TableHead>}
-										{showLanzamiento && <TableHead className="text-right">Lanz.</TableHead>}
-										{showDir5m && <TableHead className="text-right">Dir +6m</TableHead>}
-										{showContra && <TableHead className="text-right">Contra</TableHead>}
-										{showPenalti && <TableHead className="text-right">Pen.</TableHead>}
-										{showSupMas && <TableHead className="text-right">Sup.+</TableHead>}
-										{showSupPalo && <TableHead className="text-right">Palo Sup.+</TableHead>}
-										<TableHead className="text-right">Total</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="w-[90px]">{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
+										{showBoya && <TableHead className="text-right">{t("buoyShort")}</TableHead>}
+										{showLanzamiento && <TableHead className="text-right">{t("shotShort")}</TableHead>}
+										{showDir5m && <TableHead className="text-right">{t("direct6mShort")}</TableHead>}
+										{showContra && <TableHead className="text-right">{t("counterattackShort")}</TableHead>}
+										{showPenalti && <TableHead className="text-right">{t("penaltyShort")}</TableHead>}
+										{showSupMas && <TableHead className="text-right">{t("powerPlayShort")}</TableHead>}
+										{showSupPalo && <TableHead className="text-right">{t("powerPlayPostShort")}</TableHead>}
+										<TableHead className="text-right">{t("total")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -254,7 +257,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{partidos}</span> partidos
+								{t("matches", { count: partidos })}
 							</span>
 							<div className="flex flex-wrap gap-2">
 								{totals.parts.map((p) => (
@@ -263,7 +266,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 									</span>
 								))}
 								<span className="rounded-md border bg-card px-2 py-1">
-									Total: <span className="font-semibold text-foreground">{totals.total}</span>
+									{t("total")}: <span className="font-semibold text-foreground">{totals.total}</span>
 								</span>
 							</div>
 						</div>

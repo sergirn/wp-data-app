@@ -1,7 +1,8 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
+import { BarChart3, Hand, LayoutGrid, ListTree, MapPinned, Shield, Target } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { PlayerStatsCard } from "@/components/match-components/players-match-cards/PlayerStatsCard";
 import { GoalkeeperStatsCard } from "@/components/match-components/players-match-cards/GoalkeeperStatsCard";
@@ -19,10 +20,10 @@ import { accumulateGoalkeeperStats, getGoalkeeperSummary } from "@/lib/stats/goa
 import { MatchGoalkeeperGoalsAgainstChart } from "@/components/match-components/GoalkeeperGoalsByTypeMatch";
 import { MatchGoalkeeperSavesBreakdownChart } from "@/components/match-components/GoalkeeperSavesByTypeMatch";
 import { MatchAttackTotals, MatchDefenseTotals, MatchGoalkeeperTotals } from "@/components/match-components/total-stats-match/MatchTotals";
-import { ChartSwipeCarousel } from "@/components/chartCarousel";
 import { MatchGoalMixChart } from "@/components/match-components/attack-match-analytics/AttackGoalType";
 import { ShotMistakesDonutChartMatch } from "@/components/match-components/attack-match-analytics/ShotMistakesDonutChartMatch";
 import { MatchShootingEfficiencyChart } from "@/components/match-components/attack-match-analytics/ShootEfficiencyMatch";
+import { MatchPhaseOverview } from "@/components/match-components/MatchPhaseOverview";
 
 type PlayerLite = {
 	id: number;
@@ -44,8 +45,6 @@ type Props = {
 	match: any;
 	matchStats: any[];
 
-	superioridadStats: any;
-	inferioridadStats: any;
 	blocksStats: any;
 
 	allGoalkeeperShots: any[];
@@ -69,13 +68,42 @@ function TinyKpi({ label, value }: { label: string; value: React.ReactNode }) {
 
 function SectionBlock({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
 	return (
-		<section className="space-y-4">
+		<section className="space-y-6">
 			<div>
 				<h2 className="text-lg sm:text-xl font-semibold">{title}</h2>
 				{description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
 			</div>
 			{children}
 		</section>
+	);
+}
+
+function ContentBlock({
+	icon: Icon,
+	title,
+	description,
+	children,
+	muted = false
+}: {
+	icon: React.ComponentType<{ className?: string }>;
+	title: string;
+	description?: string;
+	children: React.ReactNode;
+	muted?: boolean;
+}) {
+	return (
+		<div className={`space-y-4 ${muted ? "rounded-3xl border bg-muted/15 p-3 sm:p-5" : ""}`}>
+			<div className="flex items-start gap-3 px-1">
+				<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+					<Icon className="h-4 w-4" />
+				</div>
+				<div className="min-w-0">
+					<h3 className="text-sm font-semibold sm:text-base">{title}</h3>
+					{description ? <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{description}</p> : null}
+				</div>
+			</div>
+			{children}
+		</div>
 	);
 }
 
@@ -88,14 +116,13 @@ export function MatchPlayersTabs({
 	matchDateLabel,
 	match,
 	matchStats,
-	superioridadStats,
-	inferioridadStats,
 	blocksStats,
 	allGoalkeeperShots,
 	goalkeeperId,
 	players,
 	hiddenStats = []
 }: Props) {
+	const t = useTranslations("MatchTabs");
 	const hasGoalkeepers = (goalkeepersStats?.length ?? 0) > 0;
 	const canShowGoalkeeperShots = Boolean(goalkeeperId) && (allGoalkeeperShots?.length ?? 0) > 0;
 
@@ -124,79 +151,71 @@ export function MatchPlayersTabs({
 			<div className="rounded-2xl border bg-card/40 p-3 sm:p-4">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
-						<p className="text-sm font-semibold truncate">
-							{clubName} vs {opponentName}
-						</p>
+						<p className="text-sm font-semibold truncate">{t("summaryTitle", { club: clubName, opponent: opponentName })}</p>
 						<p className="text-xs text-muted-foreground truncate">{matchDateLabel}</p>
 
 						<div className="mt-2 flex flex-wrap gap-2">
-							<Pill>
-								{goals} goles · {attempts} intentos
-							</Pill>
-							<Pill>{shootingEfficiency}% efect.</Pill>
-							<Pill>
-								{assists} asist · {blocks} bloq
-							</Pill>
-							<Pill>
-								{recoveries} recup · {losses} pérdidas
-							</Pill>
+							<Pill>{t("goalsAttempts", { goals, attempts })}</Pill>
+							<Pill>{t("efficiencyShort", { value: shootingEfficiency })}</Pill>
+							<Pill>{t("assistsBlocks", { assists, blocks })}</Pill>
+							<Pill>{t("recoveriesLosses", { recoveries, losses })}</Pill>
 						</div>
 					</div>
 
 					<div className="grid grid-cols-3 gap-2 sm:w-[340px]">
-						<TinyKpi label="Tiros" value={attempts} />
-						<TinyKpi label="Efect." value={`${shootingEfficiency}%`} />
-						<TinyKpi label="Portero" value={`${savePct}%`} />
+						<TinyKpi label={t("shots")} value={attempts} />
+						<TinyKpi label={t("efficiencyKpiShort")} value={`${shootingEfficiency}%`} />
+						<TinyKpi label={t("goalkeeper")} value={`${savePct}%`} />
 					</div>
 				</div>
 			</div>
 
 			<Tabs defaultValue="players" className="w-full">
-				<TabsList className="flex w-full max-w-full items-stretch justify-start gap-2 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-2xl bg-muted/30 p-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+				<TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-2xl bg-muted/30 p-1.5 sm:grid-cols-4 sm:gap-2">
 					<TabsTrigger
 						value="players"
-						className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+						className="min-w-0 rounded-xl px-1.5 py-2.5 text-[10px] font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm sm:px-4 sm:py-3 sm:text-sm"
 					>
 						<div className="flex items-center justify-center gap-2 w-full">
 							<LayoutGrid className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">Jugadores</span>
+							<span className="truncate">{t("players")}</span>
 						</div>
 					</TabsTrigger>
 
 					<TabsTrigger
 						value="attack"
-						className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+						className="min-w-0 rounded-xl px-1.5 py-2.5 text-[10px] font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm sm:px-4 sm:py-3 sm:text-sm"
 					>
 						<div className="flex items-center justify-center gap-2 w-full">
 							<Target className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">Ataque</span>
+							<span className="truncate">{t("attack")}</span>
 						</div>
 					</TabsTrigger>
 
 					<TabsTrigger
 						value="defense"
-						className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+						className="min-w-0 rounded-xl px-1.5 py-2.5 text-[10px] font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm sm:px-4 sm:py-3 sm:text-sm"
 					>
 						<div className="flex items-center justify-center gap-2 w-full">
 							<Shield className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">Defensa</span>
+							<span className="truncate">{t("defense")}</span>
 						</div>
 					</TabsTrigger>
 
 					<TabsTrigger
 						value="goalkeeper"
-						className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+						className="min-w-0 rounded-xl px-1.5 py-2.5 text-[10px] font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm sm:px-4 sm:py-3 sm:text-sm"
 					>
 						<div className="flex items-center justify-center gap-2 w-full">
 							<Hand className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">Portero</span>
+							<span className="truncate">{t("goalkeeper")}</span>
 						</div>
 					</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="players" className="mt-4 space-y-6">
 					<div className="space-y-3">
-						<p className="text-sm font-semibold text-muted-foreground">Jugadores de campo</p>
+						<p className="text-sm font-semibold text-muted-foreground">{t("fieldPlayers")}</p>
 
 						<div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-4">
 							{fieldPlayersStats?.map((stat: any) => (
@@ -208,7 +227,7 @@ export function MatchPlayersTabs({
 					{hasGoalkeepers ? (
 						<div className="space-y-3">
 							<div className="flex items-center gap-3">
-								<p className="text-sm font-semibold text-muted-foreground">Porteros</p>
+								<p className="text-sm font-semibold text-muted-foreground">{t("goalkeepers")}</p>
 								<div className="h-px flex-1 bg-border/60" />
 							</div>
 
@@ -221,86 +240,68 @@ export function MatchPlayersTabs({
 					) : null}
 				</TabsContent>
 
-				<TabsContent value="attack" className="mt-4 space-y-8">
-					<SectionBlock title="Ataque" description="Producción ofensiva y eficiencia del equipo en este partido.">
-						<MatchAttackTotals stats={matchStats} hiddenStats={hiddenStats} />
+				<TabsContent value="attack" className="mt-5 space-y-8">
+					<SectionBlock title={t("attack")} description={t("attackDescription")}>
+						<MatchPhaseOverview phase="attack" stats={matchStats} hiddenStats={hiddenStats} />
 
-						<div className="flex items-center gap-2">
-							<div className="h-px flex-1 bg-border/90" />
-						</div>
-
-						<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
-								<div className="h-full lg:col-span-2">
-									<MatchShootingEfficiencyChart
-										match={match}
-										stats={matchStats}
-										hiddenStats={hiddenStats}
-									/>
+						<ContentBlock icon={BarChart3} title={t("visualAnalysis")} description={t("visualAnalysisDescription")}>
+							<div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-4 xl:gap-5">
+								<div className="min-w-0">
+									<MatchShootingEfficiencyChart match={match} stats={matchStats} hiddenStats={hiddenStats} />
+								</div>
+								<div className="min-w-0">
+									<MatchSuperiorityChart matchStats={matchStats} />
 								</div>
 
-								<div className="h-full lg:col-span-1 flex flex-col gap-4 lg:gap-2">
-									<div className="lg:col-span-1 h-full">
-									<ChartSwipeCarousel
-										items={[
-											<MatchGoalMixChart match={match} stats={matchStats} hiddenStats={hiddenStats} />,
-											<ShotMistakesDonutChartMatch match={match} stats={matchStats} players={players} hiddenStats={hiddenStats}  />
-											
-										]}
-									/>
+								<div className="min-w-0">
+									<MatchGoalMixChart match={match} stats={matchStats} hiddenStats={hiddenStats} />
+								</div>
+								<div className="min-w-0">
+									<ShotMistakesDonutChartMatch match={match} stats={matchStats} players={players} hiddenStats={hiddenStats} />
 								</div>
 							</div>
-							
-						</div>
-						<div className="h-full">
-							<MatchSuperiorityChart matchStats={matchStats} />
-							</div>
+						</ContentBlock>
+
+						<ContentBlock icon={ListTree} title={t("statisticalBreakdown")} description={t("statisticalBreakdownDescription")} muted>
+							<MatchAttackTotals stats={matchStats} hiddenStats={hiddenStats} showSummary={false} />
+						</ContentBlock>
 					</SectionBlock>
 				</TabsContent>
 
-				<TabsContent value="defense" className="mt-4 space-y-8">
-					<SectionBlock title="Defensa" description="Inferioridad, bloqueos y acciones defensivas del equipo.">
-						<MatchDefenseTotals stats={matchStats} hiddenStats={hiddenStats} />
+				<TabsContent value="defense" className="mt-5 space-y-8">
+					<SectionBlock title={t("defense")} description={t("defenseDescription")}>
+						<MatchPhaseOverview phase="defense" stats={matchStats} hiddenStats={hiddenStats} />
 
-						<div className="flex items-center gap-2">
-							<div className="h-px flex-1 bg-border/90" />
-						</div>
-
-						<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
-								<div className="h-full lg:col-span-2">
+						<ContentBlock icon={BarChart3} title={t("visualAnalysis")} description={t("visualAnalysisDescription")}>
+							<div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-5">
+								<div className="min-w-0">
 									<MatchInferiorityChart matchStats={matchStats} />
 								</div>
-
-								<div className="h-full lg:col-span-1 flex flex-col gap-4 lg:gap-2">
-									<div className="lg:col-span-1 h-full">
-									<ChartSwipeCarousel
-										items={[
-											<MatchBlocksChart stats={blocksStats} matchStats={matchStats} clubName={clubName} />,
-											<MatchPossessionChart stats={matchStats} rival={opponentName} matchDateLabel={matchDateLabel} size="sm" />
-											
-										]}
-									/>
+								<div className="min-w-0">
+									<MatchBlocksChart stats={blocksStats} matchStats={matchStats} clubName={clubName} />
+								</div>
+								<div className="min-w-0">
+									<MatchPossessionChart stats={matchStats} rival={opponentName} matchDateLabel={matchDateLabel} size="sm" />
 								</div>
 							</div>
-						</div>
+						</ContentBlock>
+
+						<ContentBlock icon={ListTree} title={t("statisticalBreakdown")} description={t("statisticalBreakdownDescription")} muted>
+							<MatchDefenseTotals stats={matchStats} hiddenStats={hiddenStats} showSummary={false} />
+						</ContentBlock>
 					</SectionBlock>
 				</TabsContent>
 
-				<TabsContent value="goalkeeper" className="mt-4 space-y-8">
-					<SectionBlock title="Portero" description="Rendimiento del portero y detalle de tiros recibidos.">
-						<MatchGoalkeeperTotals stats={matchStats} hiddenStats={hiddenStats} />
+				<TabsContent value="goalkeeper" className="mt-5 space-y-8">
+					<SectionBlock title={t("goalkeeper")} description={t("goalkeeperDescription")}>
+						<MatchPhaseOverview phase="goalkeeper" stats={matchStats} hiddenStats={hiddenStats} />
 
-						<div className="flex items-center gap-2">
-							<div className="h-px flex-1 bg-border/90" />
-						</div>
-
-						<div className="grid grid-cols-1 sm:grid-cols-1 gap-4 lg:gap-6 items-stretch">
-							<div className="rounded-2xl border bg-card/40 p-3">
+						<ContentBlock icon={MapPinned} title={t("goalkeeperShotMap")} description={t("goalkeeperShotMapDescription")}>
+							<div className="rounded-2xl border bg-background/50 p-3 sm:p-4">
 								<div className="mb-3 flex flex-wrap gap-2">
-									<Pill>
-										{saves} paradas · {goalsConceded} GC
-									</Pill>
-									<Pill>{shotsReceived} tiros recibidos</Pill>
-									<Pill>{savePct}% eficacia</Pill>
+									<Pill>{t("savesConceded", { saves, conceded: goalsConceded })}</Pill>
+									<Pill>{t("shotsReceived", { count: shotsReceived })}</Pill>
+									<Pill>{t("saveEfficiency", { value: savePct })}</Pill>
 								</div>
 
 								{canShowGoalkeeperShots ? (
@@ -312,36 +313,36 @@ export function MatchPlayersTabs({
 									/>
 								) : (
 									<div className="rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
-										<p className="font-medium text-foreground/80">Sin mapa de tiros del portero</p>
-										<p className="mt-1">No hay datos suficientes para mostrar el mapa/evolución de tiros del portero.</p>
-
-										<div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
-											<TinyKpi label="Paradas" value={saves} />
-											<TinyKpi label="GC" value={goalsConceded} />
-											<TinyKpi label="Tiros recib." value={shotsReceived} />
-											<TinyKpi label="Efic." value={`${savePct}%`} />
+										<p className="font-medium text-foreground/80">{t("noShotMap")}</p>
+										<p className="mt-1">{t("noShotMapDescription")}</p>
+										<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+											<TinyKpi label={t("saves")} value={saves} />
+											<TinyKpi label={t("goalsConcededShort")} value={goalsConceded} />
+											<TinyKpi label={t("shotsReceivedShort")} value={shotsReceived} />
+											<TinyKpi label={t("efficiencyKpiShort")} value={`${savePct}%`} />
 										</div>
 									</div>
 								)}
 							</div>
-						</div>
+						</ContentBlock>
 
-						<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
-							<div className="h-full lg:col-span-2">
-								<MatchGoalkeepersPieChart stats={matchStats} match={match} />
-							</div>
-
-							<div className="h-full lg:col-span-1 flex flex-col gap-4 lg:gap-2">
-								<div className="h-full">
+						<ContentBlock icon={BarChart3} title={t("visualAnalysis")} description={t("visualAnalysisDescription")}>
+							<div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-5">
+								<div className="min-w-0">
+									<MatchGoalkeepersPieChart stats={matchStats} match={match} />
+								</div>
+								<div className="min-w-0">
 									<MatchGoalkeeperGoalsAgainstChart stats={matchStats} match={match} players={players} />
 								</div>
-
-								<div className="h-full">
+								<div className="min-w-0">
 									<MatchGoalkeeperSavesBreakdownChart stats={matchStats} match={match} players={players} />
 								</div>
 							</div>
-						</div>
+						</ContentBlock>
 
+						<ContentBlock icon={ListTree} title={t("statisticalBreakdown")} description={t("statisticalBreakdownDescription")} muted>
+							<MatchGoalkeeperTotals stats={matchStats} hiddenStats={hiddenStats} showSummary={false} />
+						</ContentBlock>
 					</SectionBlock>
 				</TabsContent>
 			</Tabs>

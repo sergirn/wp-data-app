@@ -15,6 +15,7 @@ import { LogOut, User, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { Profile } from "@/lib/types"
 import { useProfile } from "@/lib/profile-context"
+import { useTranslations } from "next-intl"
 
 interface UserMenuProps {
   profile: Profile
@@ -23,6 +24,8 @@ interface UserMenuProps {
 export function UserMenu({ profile }: UserMenuProps) {
   const router = useRouter()
   const { clearProfile } = useProfile()
+  const t = useTranslations("UserMenu")
+  const common = useTranslations("Common")
 
   const handleLogout = async () => {
     try {
@@ -48,9 +51,9 @@ export function UserMenu({ profile }: UserMenuProps) {
 
   const getRoleBadge = (role: string) => {
     const badges = {
-      admin: { label: "Admin", color: "text-red-600 dark:text-red-400" },
-      coach: { label: "Entrenador", color: "text-blue-600 dark:text-blue-400" },
-      viewer: { label: "Visualizador", color: "text-gray-600 dark:text-gray-400" },
+      admin: { label: t("roles.admin"), color: "text-red-600 dark:text-red-400" },
+      coach: { label: t("roles.coach"), color: "text-blue-600 dark:text-blue-400" },
+      viewer: { label: t("roles.viewer"), color: "text-gray-600 dark:text-gray-400" },
     }
     return badges[role as keyof typeof badges] || badges.viewer
   }
@@ -81,7 +84,7 @@ export function UserMenu({ profile }: UserMenuProps) {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{profile.full_name || "Usuario"}</p>
+            <p className="text-sm font-medium leading-none">{profile.full_name || common("user")}</p>
             <p className="text-xs leading-none text-muted-foreground">{profile.email}</p>
             <div className="flex items-center gap-1 mt-1">
               <Shield className={`h-3 w-3 ${roleBadge.color}`} />
@@ -92,12 +95,12 @@ export function UserMenu({ profile }: UserMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/ajustes")}>
           <User className="mr-2 h-4 w-4" />
-          <span>Perfil</span>
+          <span>{t("profile")}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Cerrar Sesión</span>
+          <span>{t("logout")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

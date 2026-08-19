@@ -39,8 +39,11 @@ import { GoalkeeperGoalsByTypeChart } from "@/components/analytics/goalkeeper-an
 import { GoalkeeperRankingTable } from "@/components/analytics/goalkeeper-analytics/TopGoalkeepersTable";
 import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
 import { useHiddenStats } from "@/hooks/useHiddenStats";
+import { useTranslations } from "next-intl";
 
 export default function AnalyticsPage() {
+	const t = useTranslations("Pages");
+	const a = useTranslations("AnalyticsPage");
 	const { currentClub } = useClub();
 	const searchParams = useSearchParams();
 	const seasonParam = searchParams.get("season");
@@ -240,7 +243,7 @@ export default function AnalyticsPage() {
 		return (
 			<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
 				<div className="text-center py-12">
-					<p className="text-muted-foreground">Cargando analytics...</p>
+					<p className="text-muted-foreground">{a("loading")}</p>
 				</div>
 			</main>
 		);
@@ -250,9 +253,9 @@ export default function AnalyticsPage() {
 		<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
 			<div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 				<div>
-					<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Analytics</h1>
+					<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{t("analytics")}</h1>
 					<p className="text-sm sm:text-base text-muted-foreground">
-						Análisis detallado de {currentClub?.short_name || ""} – Temporada {selectedSeason}
+					{a("seasonDescription", { club: currentClub?.short_name || "", season: selectedSeason })}
 					</p>
 				</div>
 			</div>
@@ -266,7 +269,7 @@ export default function AnalyticsPage() {
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<LayoutGrid className="h-4 w-4 shrink-0" />
-								<span className="hidden sm:inline">Resumen</span>
+							<span className="hidden sm:inline">{a("overview")}</span>
 							</div>
 						</TabsTrigger>
 
@@ -276,7 +279,7 @@ export default function AnalyticsPage() {
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<Target className="h-4 w-4 shrink-0" />
-								<span className="hidden sm:inline">Ataque</span>
+							<span className="hidden sm:inline">{a("attack")}</span>
 							</div>
 						</TabsTrigger>
 
@@ -286,7 +289,7 @@ export default function AnalyticsPage() {
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<Shield className="h-4 w-4 shrink-0" />
-								<span className="hidden sm:inline">Defensa</span>
+							<span className="hidden sm:inline">{a("defense")}</span>
 							</div>
 						</TabsTrigger>
 
@@ -296,7 +299,7 @@ export default function AnalyticsPage() {
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<Hand className="h-4 w-4 shrink-0" />
-								<span className="hidden sm:inline">Portero</span>
+							<span className="hidden sm:inline">{a("goalkeeper")}</span>
 							</div>
 						</TabsTrigger>
 					</TabsList>
@@ -314,13 +317,13 @@ export default function AnalyticsPage() {
 							<Tabs defaultValue="compare">
 								<TabsList className="w-full justify-start overflow-x-auto whitespace-nowrap">
 									<TabsTrigger className="min-w-[170px] text-xs sm:text-sm" value="compare">
-										Comparador partidos
+									{a("matchComparator")}
 									</TabsTrigger>
 									<TabsTrigger className="min-w-[170px] text-xs sm:text-sm" value="players-compare">
-										Comparador jugadores
+									{a("playerComparator")}
 									</TabsTrigger>
 									<TabsTrigger className="min-w-[220px] text-xs sm:text-sm" value="players-jornada-compare">
-										Jornadas por jugador
+									{a("roundsByPlayer")}
 									</TabsTrigger>
 								</TabsList>
 
@@ -342,9 +345,9 @@ export default function AnalyticsPage() {
 					<TabsContent value="attack" className="mt-4 space-y-10">
 						<section>
 							<div className="mb-4">
-								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">Estadistica ofensiva</h1>
+								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">{a("attackTitle")}</h1>
 								<p className="text-sm sm:text-base text-muted-foreground">
-									Estadistica ofensiva del {currentClub?.short_name || ""} – Temporada {selectedSeason}
+									{a("attackSeason", { club: currentClub?.short_name || "", season: selectedSeason })}
 								</p>
 							</div>
 
@@ -357,9 +360,9 @@ export default function AnalyticsPage() {
 							<div className="space-y-8">
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Eficiencia y resumen ofensivo</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("attackSummary")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Visión general del rendimiento ofensivo, distribución de goles y tipos de fallo.
+											{a("attackSummaryDescription")}
 										</p>
 									</div>
 
@@ -402,8 +405,8 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Eficienca por jornada</h2>
-										<p className="text-sm text-muted-foreground">Goles y fallos por jornada</p>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("efficiencyByRound")}</h2>
+										<p className="text-sm text-muted-foreground">{a("goalsAndMissesByRound")}</p>
 									</div>
 
 									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
@@ -429,9 +432,9 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Construcción ofensiva</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("attackBuildUp")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Balance entre generación de ventajas, pérdidas y uso del juego con boya.
+											{a("attackBuildUpDescription")}
 										</p>
 									</div>
 
@@ -458,9 +461,9 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Ranking ofensivo</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("attackRanking")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Jugadores más determinantes en finalización y aportación ofensiva.
+											{a("attackRankingDescription")}
 										</p>
 									</div>
 
@@ -482,9 +485,9 @@ export default function AnalyticsPage() {
 					<TabsContent value="defense" className="mt-4 space-y-10">
 						<section>
 							<div className="mb-4">
-								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">Estadística defensiva</h1>
+								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">{a("defenseTitle")}</h1>
 								<p className="text-sm sm:text-base text-muted-foreground">
-									Estadística defensiva del {currentClub?.short_name || ""} – Temporada {selectedSeason}
+									{a("defenseSeason", { club: currentClub?.short_name || "", season: selectedSeason })}
 								</p>
 							</div>
 
@@ -497,9 +500,9 @@ export default function AnalyticsPage() {
 							<div className="space-y-8">
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Resumen defensivo</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("defenseSummary")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Visión general de disciplina defensiva, inferioridad y balance del equipo.
+											{a("defenseSummaryDescription")}
 										</p>
 									</div>
 
@@ -551,9 +554,9 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Acciones defensivas</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("defenseActions")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Bloqueos, recuperaciones, rebotes y balance neto del trabajo defensivo.
+											{a("defenseActionsDescription")}
 										</p>
 									</div>
 
@@ -579,8 +582,8 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Ranking defensivo</h2>
-										<p className="text-sm text-muted-foreground">Jugadores más determinantes en defensa.</p>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("defenseRanking")}</h2>
+										<p className="text-sm text-muted-foreground">{a("defenseRankingDescription")}</p>
 									</div>
 
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
@@ -601,9 +604,9 @@ export default function AnalyticsPage() {
 					<TabsContent value="goalkeeper" className="mt-4 space-y-10">
 						<section>
 							<div className="mb-4">
-								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">Estadística del portero</h1>
+								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">{a("goalkeeperTitle")}</h1>
 								<p className="text-sm sm:text-base text-muted-foreground">
-									Rendimiento del portero de {currentClub?.short_name || ""} – Temporada {selectedSeason}
+									{a("goalkeeperSeason", { club: currentClub?.short_name || "", season: selectedSeason })}
 								</p>
 							</div>
 
@@ -616,9 +619,9 @@ export default function AnalyticsPage() {
 							<div className="space-y-8">
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Resumen del portero</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("goalkeeperSummary")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Visión general del perfil de goles recibidos, tipo de paradas y rendimiento global.
+											{a("goalkeeperSummaryDescription")}
 										</p>
 									</div>
 
@@ -652,9 +655,9 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Rendimiento específico</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("specificPerformance")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Comportamiento en inferioridad y distribución del daño recibido por tipo de lanzamiento.
+											{a("specificPerformanceDescription")}
 										</p>
 									</div>
 
@@ -681,9 +684,9 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Detalle de lanzamientos</h2>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("shotDetails")}</h2>
 										<p className="text-sm text-muted-foreground">
-											Distribución final de tiros recibidos y resultado de cada acción del portero.
+											{a("shotDetailsDescription")}
 										</p>
 									</div>
 
@@ -696,8 +699,8 @@ export default function AnalyticsPage() {
 
 								<div className="space-y-4">
 									<div>
-										<h2 className="text-lg sm:text-xl font-semibold">Ranking en porteria</h2>
-										<p className="text-sm text-muted-foreground">Portero mas determinante.</p>
+										<h2 className="text-lg sm:text-xl font-semibold">{a("goalkeeperRanking")}</h2>
+										<p className="text-sm text-muted-foreground">{a("goalkeeperRankingDescription")}</p>
 									</div>
 
 									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
@@ -719,7 +722,7 @@ export default function AnalyticsPage() {
 
 			<div className="mt-6 flex flex-col items-center gap-2 text-center">
 				<p className="text-xs text-muted-foreground">
-					POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+					{a("poweredBy")} <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
 				</p>
 
 				<div className="flex items-center gap-4 opacity-70">

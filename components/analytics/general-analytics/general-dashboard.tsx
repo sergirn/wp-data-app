@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Target, Shield, Activity } from "lucide-react";
 import { MatchResultsChart } from "./match-results-chart";
 import { buildGeneralDashboardAnalytics } from "@/lib/helpers/generalDashboardHelper";
+import { useTranslations } from "next-intl";
 
 interface GeneralDashboardProps {
 	matches: any[];
@@ -12,6 +13,7 @@ interface GeneralDashboardProps {
 }
 
 export function GeneralDashboard({ matches, stats, players }: GeneralDashboardProps) {
+	const t = useTranslations("GeneralDashboard");
 	const enabledMatches = useMemo(() => {
 		return (matches || []).filter((match) => match.stats_enabled !== false);
 	}, [matches]);
@@ -29,7 +31,7 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 	}, [enabledMatches, enabledStats, players]);
 
 	if (!analytics) {
-		return <div className="text-center py-10 text-sm text-muted-foreground">No hay datos disponibles para mostrar estadísticas.</div>;
+		return <div className="text-center py-10 text-sm text-muted-foreground">{t("noData")}</div>;
 	}
 
 	const MetricCard = ({
@@ -85,7 +87,7 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="min-w-0">
 					<p className="text-sm text-muted-foreground truncate">
-						Indicadores clave y tendencias del equipo · {analytics.totalMatches} partidos
+						{t("teamTrends", { count: analytics.totalMatches })}
 					</p>
 				</div>
 			</div>
@@ -98,38 +100,38 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 				<div className="order-1 lg:order-2 space-y-7">
 					<div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-2">
 						<MetricCard
-							title="Eficiencia de tiro"
+							title={t("shootingEfficiency")}
 							icon={<Target className="h-4 w-4 text-blue-600 dark:text-blue-300" />}
 							value={analytics.shootingEfficiency}
 							unit="%"
-							subline={`${analytics.totalGoalsFor} goles / ${analytics.totalShots} tiros`}
+							subline={t("goalsShots", { goals: analytics.totalGoalsFor, shots: analytics.totalShots })}
 							accent="blue"
 						/>
 
 						<MetricCard
-							title="Superioridad"
+							title={t("powerPlay")}
 							icon={<TrendingUp className="h-4 w-4 text-green-600 dark:text-green-300" />}
 							value={analytics.superiorityEfficiency}
 							unit="%"
-							subline={`${analytics.goalsSuperiority} goles / ${analytics.shotsSuperiority} intentos`}
+							subline={t("goalsAttempts", { goals: analytics.goalsSuperiority, attempts: analytics.shotsSuperiority })}
 							accent="green"
 						/>
 
 						<MetricCard
-							title="Inferioridad"
+							title={t("playerDisadvantage")}
 							icon={<TrendingDown className="h-4 w-4 text-orange-600 dark:text-orange-300" />}
 							value={analytics.inferiorityEfficiency}
 							unit="%"
-							subline={`${analytics.savesInferiority} evitadas / ${analytics.savesInferiority + analytics.goalsAgainstInferiority} intentos`}
+							subline={t("preventedAttempts", { prevented: analytics.savesInferiority, attempts: analytics.savesInferiority + analytics.goalsAgainstInferiority })}
 							accent="orange"
 						/>
 
 						<MetricCard
-							title="Eficiencia porteros"
+							title={t("goalkeeperEfficiency")}
 							icon={<Shield className="h-4 w-4 text-purple-600 dark:text-purple-300" />}
 							value={analytics.goalkeeperEfficiency}
 							unit="%"
-							subline={`${analytics.totalSaves} paradas totales`}
+							subline={t("totalSaves", { count: analytics.totalSaves })}
 							accent="purple"
 						/>
 					</div>
@@ -138,69 +140,69 @@ export function GeneralDashboard({ matches, stats, players }: GeneralDashboardPr
 						<div className="pb-3">
 							<div className="flex items-center gap-2 font-semibold">
 								<Activity className="h-5 w-5 text-muted-foreground" />
-								Medias por Partido
+								{t("averagesPerMatch")}
 							</div>
 						</div>
 
 						<div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgGoalsFor}</div>
-								<p className="text-xs text-muted-foreground">Goles a favor</p>
+								<p className="text-xs text-muted-foreground">{t("goalsFor")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.avgGoalsAgainst}</div>
-								<p className="text-xs text-muted-foreground">Goles en contra</p>
+								<p className="text-xs text-muted-foreground">{t("goalsAgainst")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-foreground">{analytics.avgShots}</div>
-								<p className="text-xs text-muted-foreground">Tiros</p>
+								<p className="text-xs text-muted-foreground">{t("shots")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgAssists}</div>
-								<p className="text-xs text-muted-foreground">Asistencias</p>
+								<p className="text-xs text-muted-foreground">{t("assists")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgBlocks}</div>
-								<p className="text-xs text-muted-foreground">Bloqueos</p>
+								<p className="text-xs text-muted-foreground">{t("blocks")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.avgFouls}</div>
-								<p className="text-xs text-muted-foreground">Faltas</p>
+								<p className="text-xs text-muted-foreground">{t("fouls")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgRecoveries}</div>
-								<p className="text-xs text-muted-foreground">Recuperaciones</p>
+								<p className="text-xs text-muted-foreground">{t("recoveries")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.avgTurnovers}</div>
-								<p className="text-xs text-muted-foreground">Pérdidas</p>
+								<p className="text-xs text-muted-foreground">{t("turnovers")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgSaves}</div>
-								<p className="text-xs text-muted-foreground">Paradas</p>
+								<p className="text-xs text-muted-foreground">{t("saves")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.avgExclusions}</div>
-								<p className="text-xs text-muted-foreground">Exclusiones</p>
+								<p className="text-xs text-muted-foreground">{t("exclusions")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgGoalsSuperiority}</div>
-								<p className="text-xs text-muted-foreground">Goles Sup.+</p>
+								<p className="text-xs text-muted-foreground">{t("powerPlayGoals")}</p>
 							</div>
 
 							<div className="rounded-lg border bg-card p-3 text-center">
 								<div className="text-2xl font-bold text-green-600 dark:text-green-400">{analytics.avgShotsSuperiority}</div>
-								<p className="text-xs text-muted-foreground">Intentos Sup.+</p>
+								<p className="text-xs text-muted-foreground">{t("powerPlayAttempts")}</p>
 							</div>
 						</div>
 					</div>

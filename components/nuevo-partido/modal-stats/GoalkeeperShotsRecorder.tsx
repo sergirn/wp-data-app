@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 type ShotResult = "goal" | "save" | "out";
 
@@ -28,7 +29,9 @@ type BaseProps = {
 	hintText?: string;
 };
 
-function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, fixedResult, hintText = "Toca para registrar" }: BaseProps) {
+function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, fixedResult, hintText }: BaseProps) {
+	const t = useTranslations("GoalkeeperRecorder");
+	const activeHint = hintText || t("tapToRecord");
 	const safeShots = React.useMemo(() => (Array.isArray(shots) ? shots : []), [shots]);
 	const safeOnChange = React.useMemo(() => onChangeShots ?? (() => {}), [onChangeShots]);
 
@@ -164,11 +167,11 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 			{/* Cabecera */}
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="text-sm text-muted-foreground">
-					Registrando:{" "}
+					{t("recording")} {" "}
 					<b>
-						{fixedResult === "goal" ? "Goles" : "Paradas"}{" "}
+						{fixedResult === "goal" ? t("goals") : t("saves")} {" "}
 						<span className="text-muted-foreground font-normal">
-							(fuera = <span className="text-blue-600">azul</span>)
+							({t("outsideBlue")})
 						</span>
 					</b>
 				</div>
@@ -176,9 +179,9 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 				<div className="flex gap-2 justify-end">
 					<Button type="button" variant="outline" onClick={removeLast} disabled={shotsForThisGK.length === 0} className="gap-2">
 						<Trash2 className="h-4 w-4" />
-						Deshacer
+						{t("undo")}
 					</Button>
-					<Button type="button" variant="outline" onClick={clearThisGK} disabled={shotsForThisGK.length === 0}>
+					<Button type="button" variant="outline" onClick={clearThisGK} disabled={shotsForThisGK.length === 0} aria-label={t("clear")}>
 						<Trash2 className="h-4 w-4" />
 					</Button>
 				</div>
@@ -191,7 +194,7 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 						ref={goalOuterRef}
 						onPointerDown={onPointerDownOuter}
 						role="button"
-						aria-label="Portería interactiva"
+						aria-label={t("interactiveGoal")}
 						className={cn("relative mx-auto h-full", "w-auto max-w-full", "aspect-[4/3]", "select-none", "rounded-xl border bg-muted/10")}
 						style={{ touchAction: "none" }}
 					>
@@ -203,7 +206,7 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 
 						{/* Texto guía */}
 						<div className="pointer-events-none absolute left-3 top-3 text-[11px] text-muted-foreground">
-							{hintText} (si tocas fuera de palos → OUT)
+							{t("outsideHint", { hint: activeHint })}
 						</div>
 
 						{/* ✅ Puntos:
@@ -243,7 +246,7 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 				</div>
 
 				<p className="mt-2 text-xs text-muted-foreground">
-					Esto se guarda en memoria (array) hasta que pulses <b>Guardar Partido</b>.
+					{t("memoryHint")}
 				</p>
 			</div>
 		</div>
@@ -252,22 +255,25 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 
 /** ✅ Componente 1: SOLO GOLES */
 export function GoalkeeperGoalsRecorder(props: Omit<BaseProps, "fixedResult">) {
-	return <GoalkeeperShotRecorderBase {...props} fixedResult="goal" hintText="Toca para registrar un gol" />;
+	const t = useTranslations("GoalkeeperRecorder");
+	return <GoalkeeperShotRecorderBase {...props} fixedResult="goal" hintText={t("tapGoal")} />;
 }
 
 /** ✅ Componente 2: SOLO PARADAS */
 export function GoalkeeperSavesRecorder(props: Omit<BaseProps, "fixedResult">) {
-	return <GoalkeeperShotRecorderBase {...props} fixedResult="save" hintText="Toca para registrar una parada" />;
+	const t = useTranslations("GoalkeeperRecorder");
+	return <GoalkeeperShotRecorderBase {...props} fixedResult="save" hintText={t("tapSave")} />;
 }
 
 function ShotDot({ x, y, result }: { x: number; y: number; result: ShotResult }) {
+	const t = useTranslations("GoalkeeperRecorder");
 	const cls = result === "goal" ? "bg-destructive" : result === "save" ? "bg-emerald-600" : "bg-blue-600";
 
 	return (
 		<div
 			className={cn("absolute -translate-x-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full border border-background/60 shadow-sm", cls)}
 			style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
-			title={result}
+			title={t(`results.${result}`)}
 		/>
 	);
 }

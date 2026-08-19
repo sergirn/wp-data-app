@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, T
 import { Bar, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
 import type { Match, MatchStats, Player } from "@/lib/types";
 import { ShieldCheck } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 interface DefenseActionsByMatchChartProps {
 	matches: Match[];
@@ -21,6 +22,9 @@ const toNum = (v: unknown) => {
 };
 
 export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }: DefenseActionsByMatchChartProps) {
+	const locale = useLocale();
+	const t = useTranslations("DefenseAnalyticsCharts");
+	const common = useTranslations("AnalyticsCommon");
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showBloqueos = !hiddenSet.has("acciones_bloqueo");
@@ -50,7 +54,7 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 				xLabel: `${match.id}-${index}`,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 				bloqueos,
 				recuperaciones,
 				recibeGol,
@@ -58,7 +62,7 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 				total: bloqueos + recuperaciones + recibeGol + rebotes
 			};
 		});
-	}, [matches, stats, showBloqueos, showRecuperaciones, showRebotes, showRecibeGol]);
+	}, [matches, stats, showBloqueos, showRecuperaciones, showRebotes, showRecibeGol, locale]);
 
 	const jornadaByXLabel = useMemo(() => {
 		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
@@ -81,27 +85,27 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 		const config: Record<string, { label: string; color: string }> = {};
 
 		if (showBloqueos) {
-			config.bloqueos = { label: "Bloqueos", color: "hsla(221, 83%, 53%, 1.00)" };
+			config.bloqueos = { label: t("blocks"), color: "hsla(221, 83%, 53%, 1.00)" };
 		}
 		if (showRecuperaciones) {
-			config.recuperaciones = { label: "Recuperaciones", color: "hsla(145, 63%, 42%, 1.00)" };
+			config.recuperaciones = { label: t("recoveries"), color: "hsla(145, 63%, 42%, 1.00)" };
 		}
 		if (showRebotes) {
-			config.rebotes = { label: "Rebotes", color: "hsla(42, 96%, 55%, 1.00)" };
+			config.rebotes = { label: t("rebounds"), color: "hsla(42, 96%, 55%, 1.00)" };
 		}
 		if (showRecibeGol) {
-			config.recibeGol = { label: "Recibe gol", color: "hsla(0, 84%, 60%, 1.00)" };
+			config.recibeGol = { label: t("goalConceded"), color: "hsla(0, 84%, 60%, 1.00)" };
 		}
 
 		return config;
-	}, [showBloqueos, showRecuperaciones, showRebotes, showRecibeGol]);
+	}, [showBloqueos, showRecuperaciones, showRebotes, showRecibeGol, t]);
 
 	if (!matchData.length || visibleSeriesCount === 0) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Acciones defensivas por jornada"
-			description={`Últimos ${matchData.length} · Total visible ${totalVisible}`}
+			title={t("actionsTitle")}
+			description={t("actionsDescription", { count: matchData.length, total: totalVisible })}
 			icon={<ShieldCheck className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{matchData.length} pj</span>}
@@ -158,13 +162,13 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 							<Table className="min-w-[900px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										{showBloqueos && <TableHead className="text-right">Bloq.</TableHead>}
-										{showRecuperaciones && <TableHead className="text-right">Recup.</TableHead>}
-										{showRebotes && <TableHead className="text-right">Rebotes</TableHead>}
-										{showRecibeGol && <TableHead className="text-right">Recibe gol</TableHead>}
-										<TableHead className="text-right">Total</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										{showBloqueos && <TableHead className="text-right">{t("blocks")}</TableHead>}
+										{showRecuperaciones && <TableHead className="text-right">{t("recoveries")}</TableHead>}
+										{showRebotes && <TableHead className="text-right">{t("rebounds")}</TableHead>}
+										{showRecibeGol && <TableHead className="text-right">{t("goalConceded")}</TableHead>}
+										<TableHead className="text-right">{common("total")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -188,32 +192,32 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{matchData.length}</span> partidos
+								{common("matches", { count: matchData.length })}
 							</span>
 
 							<div className="flex flex-wrap gap-2">
 								{showBloqueos && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Bloq.: <span className="font-semibold text-foreground">{totalBloqueos}</span>
+										{t("blocks")}: <span className="font-semibold text-foreground">{totalBloqueos}</span>
 									</span>
 								)}
 								{showRecuperaciones && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Recup.: <span className="font-semibold text-foreground">{totalRecuperaciones}</span>
+										{t("recoveries")}: <span className="font-semibold text-foreground">{totalRecuperaciones}</span>
 									</span>
 								)}
 								{showRebotes && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Rebotes: <span className="font-semibold text-foreground">{totalRebotes}</span>
+										{t("rebounds")}: <span className="font-semibold text-foreground">{totalRebotes}</span>
 									</span>
 								)}
 								{showRecibeGol && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Recibe gol: <span className="font-semibold text-foreground">{totalRecibeGol}</span>
+										{t("goalConceded")}: <span className="font-semibold text-foreground">{totalRecibeGol}</span>
 									</span>
 								)}
 								<span className="rounded-md border bg-card px-2 py-1">
-									Total visible: <span className="font-semibold text-foreground">{totalVisible}</span>
+									{t("visibleTotal")}: <span className="font-semibold text-foreground">{totalVisible}</span>
 								</span>
 							</div>
 						</div>

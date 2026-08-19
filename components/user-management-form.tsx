@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import type { Club } from "@/lib/types"
+import { useTranslations } from "next-intl"
 
 interface UserManagementFormProps {
   clubs: Club[]
 }
 
 export function UserManagementForm({ clubs }: UserManagementFormProps) {
+  const t = useTranslations("AdminForms")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
@@ -49,10 +51,10 @@ export function UserManagementForm({ clubs }: UserManagementFormProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Error al crear usuario")
+        throw new Error(data.error || t("userCreateError"))
       }
 
-      setSuccess(`Usuario ${email} creado exitosamente`)
+      setSuccess(t("userCreated", {email}))
       // Reset form
       setEmail("")
       setPassword("")
@@ -66,7 +68,7 @@ export function UserManagementForm({ clubs }: UserManagementFormProps) {
         window.location.reload()
       }, 2000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear usuario")
+      setError(err instanceof Error ? err.message : t("userCreateError"))
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +78,7 @@ export function UserManagementForm({ clubs }: UserManagementFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="email">Email *</Label>
+          <Label htmlFor="email">{t("email")}</Label>
           <Input
             id="email"
             type="email"
@@ -87,21 +89,21 @@ export function UserManagementForm({ clubs }: UserManagementFormProps) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Contraseña *</Label>
+          <Label htmlFor="password">{t("password")}</Label>
           <Input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
             disabled={isLoading}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="fullName">Nombre Completo</Label>
+        <Label htmlFor="fullName">{t("fullName")}</Label>
         <Input
           id="fullName"
           type="text"
@@ -113,25 +115,25 @@ export function UserManagementForm({ clubs }: UserManagementFormProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="role">Rol *</Label>
+          <Label htmlFor="role">{t("role")}</Label>
           <Select value={role} onValueChange={(value: any) => setRole(value)} disabled={isLoading}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="viewer">Viewer (Solo lectura)</SelectItem>
-              <SelectItem value="coach">Coach (Puede editar)</SelectItem>
-              <SelectItem value="admin">Admin (Control total del club)</SelectItem>
+              <SelectItem value="viewer">{t("viewer")}</SelectItem>
+              <SelectItem value="coach">{t("coach")}</SelectItem>
+              <SelectItem value="admin">{t("admin")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {!isSuperAdmin && (
           <div className="space-y-2">
-            <Label htmlFor="club">Club *</Label>
+            <Label htmlFor="club">{t("club")}</Label>
             <Select value={clubId} onValueChange={setClubId} disabled={isLoading}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona un club" />
+                <SelectValue placeholder={t("selectClub")} />
               </SelectTrigger>
               <SelectContent>
                 {clubs.map((club) => (
@@ -155,7 +157,7 @@ export function UserManagementForm({ clubs }: UserManagementFormProps) {
           className="h-4 w-4"
         />
         <Label htmlFor="superAdmin" className="text-sm font-normal cursor-pointer">
-          Super Administrador (acceso a todos los clubes)
+          {t("superAdmin")}
         </Label>
       </div>
 
@@ -174,7 +176,7 @@ export function UserManagementForm({ clubs }: UserManagementFormProps) {
       )}
 
       <Button type="submit" disabled={isLoading || (!isSuperAdmin && !clubId)}>
-        {isLoading ? "Creando..." : "Crear Usuario"}
+        {isLoading ? t("creating") : t("createUser")}
       </Button>
     </form>
   )

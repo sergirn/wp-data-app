@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import type { LucideIcon } from "lucide-react"
 import { TopPlayerCard } from "./TopPlayerCard"
+import { useTranslations } from "next-intl"
 
 interface PlayerLite {
   id: number
@@ -41,35 +42,35 @@ const toStr = (v: any) => (v === null || v === undefined ? "" : String(v))
 
 export function PlayerStatCard({
   title,
-  // icon: Icon, // si quieres mostrar icono en el header, lo activamos abajo
-  icon,
+  icon: Icon,
   player,
   statLabel,
   statValue,
   details = [],
 
-  description = "Ranking y detalle del líder",
+  description,
   gradientColors = "from-slate-500 to-zinc-500",
 
   ranking = [],
   dialogTitle,
 }: PlayerStatCardProps) {
+  const t = useTranslations("TeamCards")
   const rest = useMemo(() => {
     // Si el ranking incluye el top también, lo quitamos por id
     return (ranking ?? []).filter((r) => r.player?.id !== player?.id)
   }, [ranking, player?.id])
 
-  const DialogHeaderTitle = dialogTitle ?? `Ranking · ${title}`
+  const DialogHeaderTitle = dialogTitle ?? t("rankingTitle", { title })
 
   return (
     <div>
       {/* ✅ Header igual que AttackBlock */}
       <div>
         <CardTitle className="flex items-center gap-2">
-          {icon ? <span className="[&>svg]:h-4 [&>svg]:w-4 text-muted-foreground">{/* icon opcional */}</span> : null}
+          <Icon className="h-4 w-4 text-muted-foreground" />
           {title}
         </CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription>{description ?? t("leaderRankingDescription")}</CardDescription>
       </div>
 
       <div className="mt-4 ">
@@ -92,7 +93,7 @@ export function PlayerStatCard({
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="secondary" className="w-full" disabled={rest.length === 0}>
-                Ver más
+                {t("viewMore")}
               </Button>
             </DialogTrigger>
 

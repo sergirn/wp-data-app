@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Match } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useLocale, useTranslations } from "next-intl"
 
 type Props = {
   open: boolean
@@ -20,14 +21,16 @@ type Props = {
 
 export function MatchPickerModal({
   open,
-  title = "Seleccionar jornadas",
-  description = "Pulsa sobre las jornadas que quieras comparar",
+  title,
+  description,
   matches,
   maxSelections = 4,
   initialSelectedIds = [],
   onClose,
   onConfirm,
 }: Props) {
+  const t = useTranslations("Pickers")
+  const locale = useLocale()
   const [selectedIds, setSelectedIds] = useState<number[]>(initialSelectedIds)
 
   useEffect(() => {
@@ -63,9 +66,9 @@ export function MatchPickerModal({
     >
       <DialogContent className="w-[95vw] sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{title ?? t("selectRounds")}</DialogTitle>
           <DialogDescription>
-            {description} · <span className="font-medium">{selectedIds.length}</span>/{maxSelections}
+            {description ?? t("selectRoundsDescription")} · <span className="font-medium">{selectedIds.length}</span>/{maxSelections}
           </DialogDescription>
         </DialogHeader>
 
@@ -75,7 +78,7 @@ export function MatchPickerModal({
               const id = Number(m.id)
               const checked = selectedIds.includes(id)
               const disabled = !checked && selectedIds.length >= maxSelections
-              const dateStr = new Date(m.match_date).toLocaleDateString("es-ES")
+              const dateStr = new Date(m.match_date).toLocaleDateString(locale)
 
               return (
                 <button
@@ -106,7 +109,7 @@ export function MatchPickerModal({
 
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
-            Cancelar
+            {t("cancel")}
           </Button>
           <Button
             onClick={() => {
@@ -114,7 +117,7 @@ export function MatchPickerModal({
               onClose()
             }}
           >
-            Guardar
+            {t("save")}
           </Button>
         </div>
       </DialogContent>

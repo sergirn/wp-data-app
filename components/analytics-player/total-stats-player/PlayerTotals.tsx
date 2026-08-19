@@ -4,12 +4,12 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { usePlayerFavorites } from "@/hooks/usePlayerFavorites";
 import { getPlayerDerived, getPlayerStatsByCategory } from "@/lib/stats/playerStatsHelpers";
-import { PLAYER_CATEGORY_HINTS, PLAYER_CATEGORY_TITLES } from "@/lib/stats/playerStatsConfig";
+import { useTranslations } from "next-intl";
 
 export function FieldPlayerTotalsCard({
 	stats,
 	matchCount,
-	title = "Totales",
+	title,
 	playerId,
 	hiddenStats
 }: {
@@ -19,6 +19,11 @@ export function FieldPlayerTotalsCard({
 	playerId: number;
 	hiddenStats?: string[] | Set<string>;
 }) {
+	const t = useTranslations("FavoritesModal");
+	const sections = useTranslations("StatsSections");
+	const details = useTranslations("MatchDetails");
+	const tStat = useTranslations("StatLabels");
+	const resolvedTitle = title ?? sections("totals");
 	const StatPill = ({ children }: { children: React.ReactNode }) => (
 		<span className="inline-flex items-center rounded-full border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">{children}</span>
 	);
@@ -75,8 +80,8 @@ export function FieldPlayerTotalsCard({
 						? "bg-yellow-500/20 border border-yellow-500/20 hover:bg-yellow-500/25"
 						: "bg-muted/40 border border-transparent hover:bg-muted/55"
 				].join(" ")}
-				aria-label={`${label}: ${isFav ? "favorita" : "no favorita"}`}
-				title="Pulsa para marcar/desmarcar como favorita"
+				aria-label={t("favoriteState", { label, state: isFav ? t("favorite") : t("notFavorite") })}
+				title={t("toggleHint")}
 			>
 				<span className="text-sm text-muted-foreground min-w-0 truncate">{label}</span>
 
@@ -92,8 +97,8 @@ export function FieldPlayerTotalsCard({
 						className={["h-7 w-7 grid place-items-center rounded-md text-xs", isFav ? "opacity-100" : "opacity-50 hover:opacity-90"].join(
 							" "
 						)}
-						aria-label={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
-						title={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
+						aria-label={isFav ? t("removeFavorite") : t("markFavorite")}
+						title={isFav ? t("removeFavorite") : t("markFavorite")}
 					>
 						<span className={isFav ? "opacity-100" : "opacity-30"}>★</span>
 					</button>
@@ -115,15 +120,15 @@ export function FieldPlayerTotalsCard({
 				<div className="sticky top-2 z-20">
 					<div className="rounded-xl border bg-background/60 backdrop-blur px-3 py-2 flex items-center justify-between gap-3">
 						<div className="text-xs text-muted-foreground">
-							Cambios sin guardar{error ? <span className="text-destructive"> · {error}</span> : null}
+							{t("unsavedChanges")}{error ? <span className="text-destructive"> · {error}</span> : null}
 						</div>
 
 						<div className="flex items-center gap-2">
 							<Button variant="outline" size="sm" onClick={discard} disabled={saving}>
-								Descartar
+								{t("discard")}
 							</Button>
 							<Button size="sm" onClick={save} disabled={saving}>
-								{saving ? "Guardando..." : "Guardar cambios"}
+								{saving ? t("saving") : t("saveChanges")}
 							</Button>
 						</div>
 					</div>
@@ -134,41 +139,41 @@ export function FieldPlayerTotalsCard({
 				<div className="space-y-5">
 					<div className="flex items-center justify-between gap-3">
 						<div className="min-w-0">
-							<h3 className="text-lg font-semibold truncate">{title}</h3>
+							<h3 className="text-lg font-semibold truncate">{resolvedTitle}</h3>
 						</div>
 
-						{typeof matchCount === "number" ? <StatPill>{matchCount} partidos</StatPill> : null}
+						{typeof matchCount === "number" ? <StatPill>{sections("matches", { count: matchCount })}</StatPill> : null}
 					</div>
 
 					<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-						<KpiBox label="Goles" value={derived.goals} />
-						<KpiBox label="Tiros" value={derived.shots} subtle />
-						<KpiBox label="Eficiencia" value={`${derived.efficiency}%`} />
-						<KpiBox label="Asistencias" value={derived.assists} subtle />
+						<KpiBox label={details("goals")} value={derived.goals} />
+						<KpiBox label={details("shots")} value={derived.shots} subtle />
+						<KpiBox label={details("efficiency")} value={`${derived.efficiency}%`} />
+						<KpiBox label={details("assists")} value={derived.assists} subtle />
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-						<Section title={PLAYER_CATEGORY_TITLES.goles} hint={PLAYER_CATEGORY_HINTS.goles}>
+					<Section title={sections("categories.playerGoals")} hint={sections("hints.playerGoals")}>
 							{goalsItems.map((it) => (
-								<FavRow key={it.key} statKey={it.key} label={it.label} value={(stats?.[it.key] ?? 0) as number} />
+							<FavRow key={it.key} statKey={it.key} label={tStat(it.key)} value={(stats?.[it.key] ?? 0) as number} />
 							))}
 						</Section>
 
-						<Section title={PLAYER_CATEGORY_TITLES.fallos} hint={PLAYER_CATEGORY_HINTS.fallos}>
+					<Section title={sections("categories.playerMisses")} hint={sections("hints.playerMisses")}>
 							{missesItems.map((it) => (
-								<FavRow key={it.key} statKey={it.key} label={it.label} value={(stats?.[it.key] ?? 0) as number} />
+							<FavRow key={it.key} statKey={it.key} label={tStat(it.key)} value={(stats?.[it.key] ?? 0) as number} />
 							))}
 						</Section>
 
-						<Section title={PLAYER_CATEGORY_TITLES.faltas} hint={PLAYER_CATEGORY_HINTS.faltas}>
+					<Section title={sections("categories.fouls")} hint={sections("hints.fouls")}>
 							{foulsItems.map((it) => (
-								<FavRow key={it.key} statKey={it.key} label={it.label} value={(stats?.[it.key] ?? 0) as number} />
+							<FavRow key={it.key} statKey={it.key} label={tStat(it.key)} value={(stats?.[it.key] ?? 0) as number} />
 							))}
 						</Section>
 
-						<Section title={PLAYER_CATEGORY_TITLES.acciones} hint={PLAYER_CATEGORY_HINTS.acciones}>
+					<Section title={sections("categories.actions")} hint={sections("hints.actions")}>
 							{actionsItems.map((it) => (
-								<FavRow key={it.key} statKey={it.key} label={it.label} value={(stats?.[it.key] ?? 0) as number} />
+							<FavRow key={it.key} statKey={it.key} label={tStat(it.key)} value={(stats?.[it.key] ?? 0) as number} />
 							))}
 						</Section>
 					</div>

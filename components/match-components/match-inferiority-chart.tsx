@@ -5,6 +5,7 @@ import { ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buildInferiorityBreakdown, buildInferiorityConversionData } from "@/lib/helpers/chartHelpers";
 import { MatchConversionChartTemplate } from "../templates/charts/MatchConversionChartTemplate";
+import { useTranslations } from "next-intl";
 
 function Row({ label, value, subtle }: { label: string; value: React.ReactNode; subtle?: boolean }) {
 	return (
@@ -22,6 +23,7 @@ function Row({ label, value, subtle }: { label: string; value: React.ReactNode; 
 }
 
 export function MatchInferiorityChart({ matchStats }: { matchStats: any[] }) {
+	const t = useTranslations("MatchCharts");
 	const data = useMemo(() => buildInferiorityConversionData(matchStats ?? []), [matchStats]);
 	const breakdown = useMemo(() => buildInferiorityBreakdown(matchStats ?? []), [matchStats]);
 
@@ -31,35 +33,35 @@ export function MatchInferiorityChart({ matchStats }: { matchStats: any[] }) {
 
 	return (
 		<MatchConversionChartTemplate
-			title="Inferioridad"
+			title={t("inferiority")}
 			icon={<ShieldAlert className="h-5 w-5" />}
 			data={data}
-			scoredLabel="Recibidos"
-			scoredExtraLabel="Gol del palo"
-			missedLabel="Evitados"
-			insightGood="Buena gestión en inferioridad: alto % de evitados."
-			insightBad="Inferioridad mejorable: revisa cobertura y finalización rival."
-			description={`${avoided}/${data.attempts} · ${data.efficiency}% · Par ${breakdown.saves} · Fuera ${breakdown.out} · Bloq ${breakdown.blocks}`}
+			scoredLabel={t("received")}
+			scoredExtraLabel={t("postGoal")}
+			missedLabel={t("avoided")}
+			insightGood={t("inferiorityGood")}
+			insightBad={t("inferiorityBad")}
+			description={t("inferiorityDescription", { avoided, attempts: data.attempts, efficiency: data.efficiency, saves: breakdown.saves, out: breakdown.out, blocks: breakdown.blocks })}
 			renderExtraChartSummary={
 				<div className="rounded-2xl border bg-card/40 p-3">
 					<div className="flex items-center justify-between gap-2">
-						<p className="text-xs font-semibold text-muted-foreground">Evitados (detalle)</p>
+						<p className="text-xs font-semibold text-muted-foreground">{t("avoidedDetail")}</p>
 						<Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
 							{breakdown.avoidedBreakdown}/{avoided}
 						</Badge>
 					</div>
 
 					<div className="mt-2 grid grid-cols-2 gap-2">
-						<Row label="Paradas" value={breakdown.saves} />
-						<Row label="Fuera" value={breakdown.out} />
+						<Row label={t("saves")} value={breakdown.saves} />
+						<Row label={t("out")} value={breakdown.out} />
 						<div className="col-span-2">
-							<Row label="Bloqueos" value={breakdown.blocks} />
+							<Row label={t("blocks")} value={breakdown.blocks} />
 						</div>
 
 						{deltaAvoided !== 0 ? (
 							<div className="col-span-2">
 								<Row
-									label="Ajuste (delta)"
+								label={t("adjustment")}
 									value={
 										<span className="tabular-nums">
 											{deltaAvoided >= 0 ? "+" : ""}
@@ -76,21 +78,21 @@ export function MatchInferiorityChart({ matchStats }: { matchStats: any[] }) {
 			renderExtraTableSummary={
 				<div className="rounded-2xl border bg-muted/20 p-3">
 					<div className="flex items-center justify-between gap-2">
-						<p className="text-xs font-semibold text-muted-foreground">Evitados (detalle)</p>
+						<p className="text-xs font-semibold text-muted-foreground">{t("avoidedDetail")}</p>
 						<Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
 							{breakdown.avoidedBreakdown}/{avoided}
 						</Badge>
 					</div>
 
 					<div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-						<Row label="Paradas" value={breakdown.saves} />
-						<Row label="Fuera" value={breakdown.out} />
-						<Row label="Bloqueos" value={breakdown.blocks} />
-						<Row label="Evitados (par+fuera+bloq)" value={breakdown.avoidedBreakdown} subtle />
+						<Row label={t("saves")} value={breakdown.saves} />
+						<Row label={t("out")} value={breakdown.out} />
+						<Row label={t("blocks")} value={breakdown.blocks} />
+						<Row label={t("avoidedBreakdown")} value={breakdown.avoidedBreakdown} subtle />
 
 						{deltaAvoided !== 0 ? (
 							<Row
-								label="Diferencia (evitados - desglose)"
+							label={t("avoidedDifference")}
 								value={
 									<span className="tabular-nums">
 										{deltaAvoided >= 0 ? "+" : ""}

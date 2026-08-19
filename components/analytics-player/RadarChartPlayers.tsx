@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Radar,
   RadarChart,
@@ -10,6 +11,8 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
+
+const SafePolarAngleAxis = PolarAngleAxis as unknown as (props: any) => React.JSX.Element;
 import { ExpandableChartCard } from "./ExpandableChartCard";
 import {
   Table,
@@ -28,22 +31,14 @@ type Props = {
   height?: number;
 };
 
-type RadarDatum = { metric: string; raw: number; norm: number };
+type RadarDatum = { id: string; metric: string; raw: number; norm: number; isPct: boolean };
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-const CAPS: Record<string, number> = {
-  Asistencias: 20,
-  Bloqueos: 25,
-  Expulsiones: 15,
-  Recuperaciones: 30
-};
-
-function toNorm(metric: string, raw: number) {
-  if (metric.includes("Efic.")) return clamp(raw, 0, 100);
-  const cap = CAPS[metric] ?? 20;
+function toNorm(raw: number, isPct: boolean, cap = 20) {
+  if (isPct) return clamp(raw, 0, 100);
   return clamp((raw / cap) * 100, 0, 100);
 }
 
@@ -109,7 +104,7 @@ function useMediaQuery(query: string) {
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const item = payload[0]?.payload as RadarDatum;
-  const isPct = item.metric.includes("Efic.");
+  const isPct = item.isPct;
 
   return (
     <div className="rounded-lg border bg-background/95 backdrop-blur px-3 py-2 shadow-lg">
@@ -142,9 +137,9 @@ function RadarViz({
         const { payload, x, y, textAnchor } = props;
         const metric: string = payload?.value;
         const item = byMetric.get(metric);
-        if (!item) return null;
+        if (!item) return <g />;
 
-        const isPct = metric.includes("Efic.");
+        const isPct = item.isPct;
         const valueText = isPct ? `${item.raw.toFixed(0)}%` : String(item.raw);
 
         return (
@@ -168,9 +163,9 @@ function RadarViz({
       const { payload, x, y, textAnchor } = props;
       const metric: string = payload?.value;
       const item = byMetric.get(metric);
-      if (!item) return null;
+      if (!item) return <g />;
 
-      const isPct = metric.includes("Efic.");
+      const isPct = item.isPct;
       const valueText = isPct ? `${item.raw.toFixed(1)}%` : String(item.raw);
 
       const cx = props?.cx ?? props?.viewBox?.cx ?? 0;
@@ -231,7 +226,7 @@ function RadarViz({
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data} cx="50%" cy="50%" outerRadius={outerRadius} margin={chartMargin}>
             <PolarGrid strokeOpacity={0.35} />
-            <PolarAngleAxis dataKey="metric" tick={AngleTick} tickLine={false} />
+            <SafePolarAngleAxis dataKey="metric" tick={AngleTick} tickLine={false} />
             <PolarRadiusAxis domain={[0, 100]} tick={false} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip />} />
             <Radar
@@ -256,6 +251,8 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({
   matchStats,
   height = 250
 }: Props) {
+  const t = useTranslations("RadarCharts");
+  const common = useTranslations("AnalyticsCommon");
   const data: RadarDatum[] = useMemo(() => {
     const stats = calculateFieldPlayerStats(Array.isArray(matchStats) ? matchStats : []);
 
@@ -271,20 +268,20 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({
       (stats.faltas_exp_3_int || 0);
 
     const items = [
-      { metric: "Efic. tiro", raw: Number(effShot.toFixed(1)) },
-      { metric: "Asistencias", raw: stats.acciones_asistencias },
-      { metric: "Bloqueos", raw: stats.acciones_bloqueo },
-      { metric: "Expulsiones", raw: expulsiones },
-      { metric: "Efic. sup.", raw: Number(effSup.toFixed(1)) },
-      { metric: "Recup.", raw: stats.acciones_recuperacion }
+      { id: "shooting", metric: t("shootingEfficiency"), raw: Number(effShot.toFixed(1)), isPct: true, cap: 100 },
+      { id: "assists", metric: t("assists"), raw: stats.acciones_asistencias, isPct: false, cap: 20 },
+      { id: "blocks", metric: t("blocks"), raw: stats.acciones_bloqueo, isPct: false, cap: 25 },
+      { id: "exclusions", metric: t("exclusions"), raw: expulsiones, isPct: false, cap: 15 },
+      { id: "powerPlay", metric: t("powerPlayEfficiency"), raw: Number(effSup.toFixed(1)), isPct: true, cap: 100 },
+      { id: "recoveries", metric: t("recoveriesShort"), raw: stats.acciones_recuperacion, isPct: false, cap: 30 }
     ];
 
-    return items.map((it) => ({ ...it, norm: toNorm(it.metric, it.raw) }));
-  }, [matchStats]);
+    return items.map((it) => ({ ...it, norm: toNorm(it.raw, it.isPct, it.cap) }));
+  }, [matchStats, t]);
 
   const summary = useMemo(() => {
-    const eff = Number(data.find((d) => d.metric === "Efic. tiro")?.raw ?? 0).toFixed(1);
-    const sup = Number(data.find((d) => d.metric === "Efic. sup.")?.raw ?? 0).toFixed(1);
+    const eff = Number(data.find((d) => d.id === "shooting")?.raw ?? 0).toFixed(1);
+    const sup = Number(data.find((d) => d.id === "powerPlay")?.raw ?? 0).toFixed(1);
     return { eff, sup };
   }, [data]);
 
@@ -304,14 +301,14 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({
               <Table className="min-w-[520px]">
                 <UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Métrica</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>{t("metric")}</TableHead>
+                    <TableHead className="text-right">{t("value")}</TableHead>
                   </TableRow>
                 </UITableHeader>
 
                 <TableBody>
                   {data.map((d, idx) => {
-                    const isPct = d.metric.includes("Efic.");
+                    const isPct = d.isPct;
                     return (
                       <TableRow
                         key={d.metric}
@@ -331,15 +328,9 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({
 
           <div className="border-t bg-muted/20 px-3 py-2">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span>
-                <span className="font-medium text-foreground">
-                  {Array.isArray(matchStats) ? matchStats.length : 0}
-                </span>{" "}
-                partidos
-              </span>
+              <span>{common("matches", { count: Array.isArray(matchStats) ? matchStats.length : 0 })}</span>
               <span className="rounded-md border bg-card px-2 py-1">
-                Efic. tiro: <span className="font-semibold">{summary.eff}%</span> · Efic. sup.:{" "}
-                <span className="font-semibold">{summary.sup}%</span>
+                {t("playerSummary", { shooting: summary.eff, powerPlay: summary.sup })}
               </span>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 function getFilenameFromDisposition(disposition: string | null) {
 	if (!disposition) return null;
@@ -17,6 +18,7 @@ function getFilenameFromDisposition(disposition: string | null) {
 }
 
 export function ExportPlayerMatchPdfButton({ playerId, matchStatId }: { playerId: number | string; matchStatId: number | string }) {
+	const t = useTranslations("Export");
 	const [loading, setLoading] = useState(false);
 
 	const handleDownload = async (e?: React.MouseEvent) => {
@@ -29,13 +31,13 @@ export function ExportPlayerMatchPdfButton({ playerId, matchStatId }: { playerId
 				method: "GET"
 			});
 
-			if (!response.ok) throw new Error("Failed to download PDF");
+			if (!response.ok) throw new Error(t("pdfDownloadFailed"));
 
 			const blob = await response.blob();
 			const blobUrl = window.URL.createObjectURL(blob);
 
 			const disposition = response.headers.get("Content-Disposition");
-			const filename = getFilenameFromDisposition(disposition) || `player-match-${matchStatId}.pdf`;
+			const filename = getFilenameFromDisposition(disposition) || t("playerMatchPdfFilename", { id: matchStatId });
 
 			const link = document.createElement("a");
 			link.href = blobUrl;
@@ -61,8 +63,8 @@ export function ExportPlayerMatchPdfButton({ playerId, matchStatId }: { playerId
 			className="cursor-pointer bg-red-600 text-white shadow-sm hover:bg-red-700 dark:bg-red-600/30 dark:text-white dark:hover:bg-red-500/30"
 		>
 			<Download className="mr-2 h-4 w-4" />
-			{loading ? "Descargando..." : "PDF"}
-			<span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide">PDF</span>
+			{loading ? t("downloading") : t("pdf")}
+			<span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide">{t("pdf")}</span>
 		</Button>
 	);
 }

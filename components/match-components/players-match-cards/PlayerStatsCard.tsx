@@ -6,6 +6,7 @@ import { Target, TrendingUp, Activity, ChevronRight } from "lucide-react";
 import { PlayerMatchStatsModal } from "../PlayerMatchStatsModal";
 import { MatchStats, Player } from "@/lib/types";
 import { getPlayerDerived } from "@/lib/stats/playerStatsHelpers";
+import { useTranslations } from "next-intl";
 
 function MiniStat({
 	icon: Icon,
@@ -30,13 +31,14 @@ function MiniStat({
 }
 
 export function PlayerStatsCard({ stat, player, hiddenStats = [] }: { stat: MatchStats; player: Player; hiddenStats?: string[] }) {
+	const t = useTranslations("MatchDetails");
 	const [open, setOpen] = useState(false);
 
 	const derived = getPlayerDerived(stat as Record<string, any>, hiddenStats);
 
 	return (
 		<>
-			<button type="button" onClick={() => setOpen(true)} aria-label={`Ver estadísticas de ${player.name}`} className="group w-full text-left">
+			<button type="button" onClick={() => setOpen(true)} aria-label={t("viewStats", { name: player.name })} className="group w-full text-left">
 				<div className="w-full overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30">
 					<div className="relative aspect-[4/5] overflow-hidden">
 						{player.photo_url ? (
@@ -50,7 +52,7 @@ export function PlayerStatsCard({ stat, player, hiddenStats = [] }: { stat: Matc
 							<div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-muted to-muted/60">
 								<div className="text-center">
 									<div className="text-4xl font-black tracking-tight text-foreground/85">#{player.number}</div>
-									<div className="mt-1 text-xs text-muted-foreground">Sin foto</div>
+									<div className="mt-1 text-xs text-muted-foreground">{t("noPhoto")}</div>
 								</div>
 							</div>
 						)}
@@ -75,26 +77,26 @@ export function PlayerStatsCard({ stat, player, hiddenStats = [] }: { stat: Matc
 						<div className="absolute inset-x-0 bottom-0 p-3">
 							<div className="rounded-2xl border border-white/10 bg-black/25 p-3 backdrop-blur-sm dark:bg-black/35">
 								<h3 className="truncate text-sm font-semibold text-white">{player.name}</h3>
-								<p className="mt-0.5 text-[11px] text-white/75">Jugador de campo</p>
+								<p className="mt-0.5 text-[11px] text-white/75">{t("fieldPlayer")}</p>
 							</div>
 						</div>
 					</div>
 
 					<div className="space-y-3 p-3">
 						<div className="grid grid-cols-2 gap-2">
-							<MiniStat icon={Target} label="Goles" value={derived.goals} />
-							<MiniStat icon={TrendingUp} label="Efect." value={`${derived.efficiency}%`} />
+							<MiniStat icon={Target} label={t("goals")} value={derived.goals} />
+							<MiniStat icon={TrendingUp} label={t("efficiencyShort")} value={`${derived.efficiency}%`} />
 						</div>
 
 						<div className="flex items-center justify-between rounded-xl border bg-muted/20 px-3 py-2">
 							<div className="min-w-0">
-								<p className="text-[11px] text-muted-foreground">Resumen</p>
+								<p className="text-[11px] text-muted-foreground">{t("summary")}</p>
 								<p className="truncate text-xs font-medium text-foreground/85">
-									{derived.shots} tiros · {derived.assists} asist. · {derived.totalFouls} faltas
+									{t("playerSummary", { shots: derived.shots, assists: derived.assists, fouls: derived.totalFouls })}
 								</p>
 							</div>
 
-							<span className="ml-3 text-[11px] font-semibold text-primary">Ver detalle</span>
+							<span className="ml-3 text-[11px] font-semibold text-primary">{t("viewDetail")}</span>
 						</div>
 					</div>
 				</div>

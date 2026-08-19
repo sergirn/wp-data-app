@@ -124,23 +124,23 @@ function buildShotMistakesSummary(rows: any[], options?: ShotMistakesBuildOption
 
 	const parts: ShotMistakePart[] = [
 		isVisible(hiddenSet, "tiros_penalti_fallado")
-			? { key: "pen", label: "Penalti fallado", value: pen, pct: pct(pen), color: SHOT_MISTAKES_COLORS.pen }
+			? { key: "pen", label: "tiros_penalti_fallado", value: pen, pct: pct(pen), color: SHOT_MISTAKES_COLORS.pen }
 			: null,
 		isVisible(hiddenSet, "tiros_corner")
-			? { key: "corner", label: "Corner", value: corner, pct: pct(corner), color: SHOT_MISTAKES_COLORS.corner }
+			? { key: "corner", label: "tiros_corner", value: corner, pct: pct(corner), color: SHOT_MISTAKES_COLORS.corner }
 			: null,
-		isVisible(hiddenSet, "tiros_fuera") ? { key: "out", label: "Fuera", value: out, pct: pct(out), color: SHOT_MISTAKES_COLORS.out } : null,
-		isVisible(hiddenSet, "tiro_palo") ? { key: "palo", label: "Palo", value: palo, pct: pct(palo), color: SHOT_MISTAKES_COLORS.palo } : null,
+		isVisible(hiddenSet, "tiros_fuera") ? { key: "out", label: "tiros_fuera", value: out, pct: pct(out), color: SHOT_MISTAKES_COLORS.out } : null,
+		isVisible(hiddenSet, "tiro_palo") ? { key: "palo", label: "tiro_palo", value: palo, pct: pct(palo), color: SHOT_MISTAKES_COLORS.palo } : null,
 		isVisible(hiddenSet, "tiros_parados")
-			? { key: "saved", label: "Parado", value: saved, pct: pct(saved), color: SHOT_MISTAKES_COLORS.saved }
+			? { key: "saved", label: "tiros_parados", value: saved, pct: pct(saved), color: SHOT_MISTAKES_COLORS.saved }
 			: null,
 		isVisible(hiddenSet, "tiros_bloqueado")
-			? { key: "blocked", label: "Bloqueado", value: blocked, pct: pct(blocked), color: SHOT_MISTAKES_COLORS.blocked }
+			? { key: "blocked", label: "tiros_bloqueado", value: blocked, pct: pct(blocked), color: SHOT_MISTAKES_COLORS.blocked }
 			: null,
 		isVisible(hiddenSet, "tiros_hombre_mas") ||
 		isVisible(hiddenSet, "portero_paradas_superioridad") ||
 		isVisible(hiddenSet, "jugador_superioridad_bloqueo")
-			? { key: "sup", label: "Fallo Sup.+", value: sup, pct: pct(sup), color: SHOT_MISTAKES_COLORS.sup }
+			? { key: "sup", label: "power_play_miss", value: sup, pct: pct(sup), color: SHOT_MISTAKES_COLORS.sup }
 			: null
 	].filter(Boolean) as ShotMistakePart[];
 

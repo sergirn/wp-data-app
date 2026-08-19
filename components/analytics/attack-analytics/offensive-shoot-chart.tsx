@@ -6,6 +6,7 @@ import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Target } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
+import { useLocale, useTranslations } from "next-intl";
 
 type PlayerLite = { id: number; name: string; number?: number; photo_url?: string };
 
@@ -36,6 +37,10 @@ function playerLabelFull(p: PlayerLite | null, value: number) {
 }
 
 export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: GoalMixChartProps) {
+	const locale = useLocale();
+	const t = useTranslations("AttackByMatch");
+	const charts = useTranslations("AttackCharts");
+	const common = useTranslations("AnalyticsCommon");
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const playersById = useMemo(() => {
@@ -72,12 +77,12 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 		const pct = (x: number) => (total > 0 ? (x / total) * 100 : 0);
 
 		const rawParts = [
-			{ key: "boya", label: "Boya/Jugada", value: boya, pct: pct(boya), color: "hsla(140, 70%, 45%, 1.00)" },
-			{ key: "lanzamiento", label: "Lanzamiento", value: lanzamiento, pct: pct(lanzamiento), color: "hsla(12, 85%, 60%, 1.00)" },
-			{ key: "dir5m", label: "Dir +6m", value: dir5m, pct: pct(dir5m), color: "hsla(220, 80%, 62%, 1.00)" },
-			{ key: "contra", label: "Contraataque", value: contra, pct: pct(contra), color: "hsla(205, 90%, 55%, 1.00)" },
-			{ key: "penalti", label: "Penalti", value: penalti, pct: pct(penalti), color: "hsla(330, 78%, 58%, 1.00)" },
-			{ key: "sup", label: "Superioridad", value: sup, pct: pct(sup), color: "hsla(59, 85%, 45%, 1.00)" }
+			{ key: "boya", label: t("buoyPlay"), value: boya, pct: pct(boya), color: "hsla(140, 70%, 45%, 1.00)" },
+			{ key: "lanzamiento", label: t("shot"), value: lanzamiento, pct: pct(lanzamiento), color: "hsla(12, 85%, 60%, 1.00)" },
+			{ key: "dir5m", label: t("direct6mShort"), value: dir5m, pct: pct(dir5m), color: "hsla(220, 80%, 62%, 1.00)" },
+			{ key: "contra", label: t("counterattack"), value: contra, pct: pct(contra), color: "hsla(205, 90%, 55%, 1.00)" },
+			{ key: "penalti", label: t("penalty"), value: penalti, pct: pct(penalti), color: "hsla(330, 78%, 58%, 1.00)" },
+			{ key: "sup", label: t("powerPlayShort"), value: sup, pct: pct(sup), color: "hsla(59, 85%, 45%, 1.00)" }
 		];
 
 		const parts = rawParts.filter((p) => p.value > 0);
@@ -90,7 +95,7 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 			topType: topType && topType.value > 0 ? topType : null,
 			totalMatches: (matches ?? []).length || 0
 		};
-	}, [matches, stats, hiddenSet]);
+	}, [matches, stats, hiddenSet, t]);
 
 	const topPlayers = useMemo(() => {
 		const sumByPlayer = (getValue: (s: any) => number) => {
@@ -178,7 +183,7 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 				boya,
 				lanzamiento,
 				dir5m,
@@ -194,7 +199,7 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 				supPct: Number(pct(sup).toFixed(1))
 			};
 		});
-	}, [matches, stats, hiddenSet]);
+	}, [matches, stats, hiddenSet, locale]);
 
 	if (!summary.totalMatches || summary.total <= 0) return null;
 
@@ -204,7 +209,7 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 		topPlayers.contra.value > 0 ? `Contra ${playerLabelShort(topPlayers.contra.player, topPlayers.contra.value)}` : null
 	].filter(Boolean);
 
-	const topLineCompact = topLineCompactParts.length ? topLineCompactParts.join(" · ") : "Sin datos";
+	const topLineCompact = topLineCompactParts.length ? topLineCompactParts.join(" · ") : common("noData");
 
 	const topLineFullParts = [
 		topPlayers.boya.value > 0 ? `Boya ${playerLabelFull(topPlayers.boya.player, topPlayers.boya.value)}` : null,
@@ -219,7 +224,7 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 
 	return (
 		<ExpandableChartCard
-			title="Tipo de goles ofensivos"
+			title={charts("offensiveGoalTypes")}
 			description={` ${topLineCompact}`}
 			icon={<Target className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
@@ -315,18 +320,18 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 							<Table className="min-w-[1180px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										{!hiddenSet.has("goles_boya_jugada") && <TableHead className="text-right">Boya</TableHead>}
-										{!hiddenSet.has("goles_lanzamiento") && <TableHead className="text-right">Lanz.</TableHead>}
-										{!hiddenSet.has("goles_dir_mas_5m") && <TableHead className="text-right">Dir +6m</TableHead>}
-										{!hiddenSet.has("goles_contraataque") && <TableHead className="text-right">Contra</TableHead>}
-										{!hiddenSet.has("goles_penalti_anotado") && <TableHead className="text-right">Penalti</TableHead>}
+										<TableHead className="w-[90px]">{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										{!hiddenSet.has("goles_boya_jugada") && <TableHead className="text-right">{t("buoyShort")}</TableHead>}
+										{!hiddenSet.has("goles_lanzamiento") && <TableHead className="text-right">{t("shotShort")}</TableHead>}
+										{!hiddenSet.has("goles_dir_mas_5m") && <TableHead className="text-right">{t("direct6mShort")}</TableHead>}
+										{!hiddenSet.has("goles_contraataque") && <TableHead className="text-right">{t("counterattackShort")}</TableHead>}
+										{!hiddenSet.has("goles_penalti_anotado") && <TableHead className="text-right">{t("penalty")}</TableHead>}
 										{(!hiddenSet.has("goles_hombre_mas") || !hiddenSet.has("gol_del_palo_sup")) && (
-											<TableHead className="text-right">Sup.</TableHead>
+											<TableHead className="text-right">{t("powerPlayShort")}</TableHead>
 										)}
-										<TableHead className="text-right">Total</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{common("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -392,11 +397,11 @@ export function GoalMixChart({ matches, stats, players, hiddenStats = [] }: Goal
 						<div className="flex flex-col gap-2 text-xs text-muted-foreground">
 							<div className="flex flex-wrap items-center justify-between gap-2">
 								<span>
-									<span className="font-medium text-foreground">{perMatch.length}</span> partidos (últimos)
+									{common("recentMatches", { count: perMatch.length })}
 								</span>
 
 								<span className="rounded-md border bg-card px-2 py-1">
-									Goles ofensivos: <span className="font-semibold text-foreground tabular-nums">{summary.total}</span>
+									{charts("offensiveGoals")}: <span className="font-semibold text-foreground tabular-nums">{summary.total}</span>
 								</span>
 							</div>
 

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bar, Line, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
 import type { Match, MatchStats, Player } from "@/lib/types";
 import { Shield } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 interface GoalkeeperInferiorityEfficiencyChartProps {
 	matches: Match[];
@@ -22,6 +23,10 @@ const toNum = (v: unknown) => {
 };
 
 export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenStats = [] }: GoalkeeperInferiorityEfficiencyChartProps) {
+	const tChart = useTranslations("GoalkeeperCharts");
+	const t = useTranslations("DefenseAnalyticsCharts");
+	const common = useTranslations("AnalyticsCommon");
+	const locale = useLocale();
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showGoalsHM = !hiddenSet.has("portero_goles_hombre_menos");
@@ -73,7 +78,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 					xLabel: `${match.id}-${idx}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 					golesHM,
 					golPaloHM,
 					golesRecibidos,
@@ -88,7 +93,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 				};
 			})
 			.filter((row) => row.totalAcciones > 0);
-	}, [matches, stats, showGoalsHM, showGoalPostHM, showSavesHM, showSaveCornerHM, showPostHM, showOutsideHM, showBlocksHM]);
+	}, [matches, stats, showGoalsHM, showGoalPostHM, showSavesHM, showSaveCornerHM, showPostHM, showOutsideHM, showBlocksHM, locale]);
 
 	const compactMatchData = useMemo(() => allMatchData.slice(-15), [allMatchData]);
 
@@ -123,8 +128,8 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 
 	return (
 		<ExpandableChartCard
-			title="Inferioridad: recibidos vs evitados"
-			description={`Jornadas registradas ${allMatchData.length} · Evitados ${overall}% · ${totalEvitados}/${totalAcciones}`}
+			title={tChart("inferiorityTitle")}
+			description={t("inferiorityDescription", { count: allMatchData.length, percentage: overall, avoided: totalEvitados, total: totalAcciones })}
 			icon={<Shield className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{overall}%</span>}
@@ -135,14 +140,14 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 				return (
 					<ChartContainer
 						config={{
-							golesRecibidos: { label: "Goles recibidos", color: "hsla(0, 84%, 60%, 1.00)" },
-							paradasInf: { label: "Paradas Inf.-", color: "hsla(145, 63%, 42%, 1.00)" },
-							paradaCornerInf: { label: "Parada corner Inf.-", color: "hsla(160, 70%, 38%, 1.00)" },
-							paloInf: { label: "Palo Inf.-", color: "hsla(285, 70%, 52%, 1.00)" },
-							fueraInf: { label: "Fuera Inf.-", color: "hsla(42, 96%, 55%, 1.00)" },
-							bloqueoInf: { label: "Bloqueo Inf.-", color: "hsla(270, 75%, 60%, 1.00)" },
-							eficacia: { label: "Evitados %", color: "hsla(190, 95%, 45%, 1.00)" },
-							eficaciaAcum: { label: "Evitados acum. %", color: "hsla(221, 83%, 53%, 1.00)" }
+							golesRecibidos: { label: t("goalsConceded"), color: "hsla(0, 84%, 60%, 1.00)" },
+							paradasInf: { label: t("inferioritySaves"), color: "hsla(145, 63%, 42%, 1.00)" },
+							paradaCornerInf: { label: t("inferiorityCornerSave"), color: "hsla(160, 70%, 38%, 1.00)" },
+							paloInf: { label: t("inferiorityPost"), color: "hsla(285, 70%, 52%, 1.00)" },
+							fueraInf: { label: t("inferiorityOut"), color: "hsla(42, 96%, 55%, 1.00)" },
+							bloqueoInf: { label: t("inferiorityBlock"), color: "hsla(270, 75%, 60%, 1.00)" },
+							eficacia: { label: t("avoidedPercent"), color: "hsla(190, 95%, 45%, 1.00)" },
+							eficaciaAcum: { label: t("cumulativeAvoided"), color: "hsla(221, 83%, 53%, 1.00)" }
 						}}
 						className="w-full h-full"
 					>
@@ -185,7 +190,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 								<Bar
 									yAxisId="left"
 									dataKey="golesRecibidos"
-									name="Goles recibidos"
+									name={t("goalsConceded")}
 									fill="var(--color-golesRecibidos)"
 									radius={[4, 4, 0, 0]}
 								/>
@@ -194,7 +199,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 									<Bar
 										yAxisId="left"
 										dataKey="paradasInf"
-										name="Paradas Inf.-"
+										name={t("inferioritySaves")}
 										fill="var(--color-paradasInf)"
 										radius={[4, 4, 0, 0]}
 									/>
@@ -204,25 +209,25 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 									<Bar
 										yAxisId="left"
 										dataKey="paradaCornerInf"
-										name="Parada corner Inf.-"
+										name={t("inferiorityCornerSave")}
 										fill="var(--color-paradaCornerInf)"
 										radius={[4, 4, 0, 0]}
 									/>
 								) : null}
 
 								{showPostHM ? (
-									<Bar yAxisId="left" dataKey="paloInf" name="Palo Inf.-" fill="var(--color-paloInf)" radius={[4, 4, 0, 0]} />
+									<Bar yAxisId="left" dataKey="paloInf" name={t("inferiorityPost")} fill="var(--color-paloInf)" radius={[4, 4, 0, 0]} />
 								) : null}
 
 								{showOutsideHM ? (
-									<Bar yAxisId="left" dataKey="fueraInf" name="Fuera Inf.-" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
+									<Bar yAxisId="left" dataKey="fueraInf" name={t("inferiorityOut")} fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
 								) : null}
 
 								{showBlocksHM ? (
 									<Bar
 										yAxisId="left"
 										dataKey="bloqueoInf"
-										name="Bloqueo Inf.-"
+										name={t("inferiorityBlock")}
 										fill="var(--color-bloqueoInf)"
 										radius={[4, 4, 0, 0]}
 									/>
@@ -232,7 +237,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 									yAxisId="right"
 									type="monotone"
 									dataKey="eficacia"
-									name="Evitados %"
+									name={t("avoidedPercent")}
 									stroke="var(--color-eficacia)"
 									strokeWidth={2.5}
 									dot={false}
@@ -242,7 +247,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 									yAxisId="right"
 									type="monotone"
 									dataKey="eficaciaAcum"
-									name="Evitados acum. %"
+									name={t("cumulativeAvoided")}
 									stroke="var(--color-eficaciaAcum)"
 									strokeWidth={3.5}
 									strokeDasharray="6 4"
@@ -261,22 +266,22 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 							<Table className="min-w-[940px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead>Fecha</TableHead>
-										<TableHead className="text-right">Goles HM</TableHead>
-										<TableHead className="text-right">Gol palo</TableHead>
-										<TableHead className="text-right">Recibidos</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead>{common("date")}</TableHead>
+										<TableHead className="text-right">{t("inferiorityGoals")}</TableHead>
+										<TableHead className="text-right">{t("postGoal")}</TableHead>
+										<TableHead className="text-right">{common("received")}</TableHead>
 
-										{showSavesHM ? <TableHead className="text-right">Paradas</TableHead> : null}
-										{showSaveCornerHM ? <TableHead className="text-right">P. corner</TableHead> : null}
-										{showPostHM ? <TableHead className="text-right">Palo</TableHead> : null}
-										{showOutsideHM ? <TableHead className="text-right">Fuera</TableHead> : null}
-										{showBlocksHM ? <TableHead className="text-right">Bloqueo</TableHead> : null}
+										{showSavesHM ? <TableHead className="text-right">{common("saved")}</TableHead> : null}
+										{showSaveCornerHM ? <TableHead className="text-right">{t("cornerSaveShort")}</TableHead> : null}
+										{showPostHM ? <TableHead className="text-right">{common("post")}</TableHead> : null}
+										{showOutsideHM ? <TableHead className="text-right">{common("out")}</TableHead> : null}
+										{showBlocksHM ? <TableHead className="text-right">{common("blocked")}</TableHead> : null}
 
-										<TableHead className="text-right">Evitados</TableHead>
-										<TableHead className="text-right">Total acc.</TableHead>
-										<TableHead className="text-right">Efic.</TableHead>
+										<TableHead className="text-right">{common("avoided")}</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
+										<TableHead className="text-right">{common("efficiency")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 								<TableBody>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, RefreshCw, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Player } from "@/lib/types";
+import { useTranslations } from "next-intl";
 
 interface PlayerSubstitutionDialogProps {
 	open: boolean;
@@ -26,6 +27,8 @@ export function PlayerSubstitutionDialog({
 	onSubstitute,
 	onRemove
 }: PlayerSubstitutionDialogProps) {
+	const t = useTranslations("Substitution");
+	const common = useTranslations("Common");
 	const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
 	const [removeMode, setRemoveMode] = useState(false);
 
@@ -52,45 +55,45 @@ export function PlayerSubstitutionDialog({
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<RefreshCw className="h-5 w-5" />
-						Sustituir Jugador
+						{t("title")}
 					</DialogTitle>
 					<DialogDescription>
-						{removeMode ? `¿Desconvocar a ${currentPlayer.name}?` : `Sustituye a ${currentPlayer.name} por otro jugador o desconvócalo`}
+						{removeMode ? t("removeQuestion", { player: currentPlayer.name }) : t("description", { player: currentPlayer.name })}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4 py-4">
 					<Alert>
 						<AlertCircle className="h-4 w-4" />
-						<AlertDescription>Solo puedes sustituir jugadores que no tengan estadísticas registradas en este partido.</AlertDescription>
+						<AlertDescription>{t("statsWarning")}</AlertDescription>
 					</Alert>
 
 					{removeMode ? (
 						<div className="space-y-3">
 							<p className="text-sm text-muted-foreground">
-								Esto dejará el puesto vacío en la alineación. Podrás convocarlo de nuevo más tarde.
+								{t("removeHint")}
 							</p>
 							<div className="flex justify-end gap-2">
 								<Button variant="outline" onClick={() => setRemoveMode(false)}>
-									Cancelar
+									{common("cancel")}
 								</Button>
 								<Button variant="destructive" onClick={handleRemove}>
 									<Trash2 className="mr-2 h-4 w-4" />
-									Confirmar Desconvocatoria
+									{t("confirmRemoval")}
 								</Button>
 							</div>
 						</div>
 					) : (
 						<>
 							<div className="space-y-2">
-								<Label htmlFor="replacement-player">Selecciona el jugador sustituto</Label>
+								<Label htmlFor="replacement-player">{t("selectReplacement")}</Label>
 								<Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
 									<SelectTrigger id="replacement-player">
-										<SelectValue placeholder="Elige un jugador..." />
+									<SelectValue placeholder={t("choosePlayer")} />
 									</SelectTrigger>
 									<SelectContent>
 										{availablePlayers.length === 0 ? (
-											<div className="p-2 text-sm text-muted-foreground text-center">No hay jugadores disponibles</div>
+										<div className="p-2 text-sm text-muted-foreground text-center">{t("noPlayers")}</div>
 										) : (
 											availablePlayers.map((player) => (
 												<SelectItem key={player.id} value={player.id.toString()}>
@@ -104,17 +107,17 @@ export function PlayerSubstitutionDialog({
 
 							<div className="flex justify-end gap-2 pt-4">
 								<Button variant="outline" onClick={() => onOpenChange(false)}>
-									Cancelar
+									{common("cancel")}
 								</Button>
 								{onRemove && (
 									<Button variant="secondary" onClick={() => setRemoveMode(true)}>
 										<Trash2 className="mr-2 h-4 w-4" />
-										Desconvocar
+										{t("remove")}
 									</Button>
 								)}
 								<Button onClick={handleSubstitute} disabled={!selectedPlayerId || availablePlayers.length === 0}>
 									<RefreshCw className="mr-2 h-4 w-4" />
-									Sustituir
+									{t("substitute")}
 								</Button>
 							</div>
 						</>

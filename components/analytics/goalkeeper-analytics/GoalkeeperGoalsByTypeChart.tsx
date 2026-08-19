@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
@@ -24,55 +25,45 @@ const GOAL_DEFS = [
 	{
 		key: "boya",
 		statKey: "portero_goles_boya_parada",
-		label: "Boya",
-		shortLabel: "Boya",
 		color: "hsla(145, 63%, 42%, 1.00)"
 	},
 	{
 		key: "hm",
 		statKey: "portero_goles_hombre_menos",
-		label: "Inferioridad",
-		shortLabel: "Inf.",
 		color: "hsla(42, 96%, 55%, 1.00)"
 	},
 	{
 		key: "dir",
 		statKey: "portero_goles_dir_mas_5m",
-		label: "Dir +6m",
-		shortLabel: "Dir +6m",
 		color: "hsla(221, 83%, 53%, 1.00)"
 	},
 	{
 		key: "contra",
 		statKey: "portero_goles_contraataque",
-		label: "Contraataque",
-		shortLabel: "Contra",
 		color: "hsla(190, 95%, 45%, 1.00)"
 	},
 	{
 		key: "penalti",
 		statKey: "portero_goles_penalti",
-		label: "Penalti",
-		shortLabel: "Pen.",
 		color: "hsla(330, 78%, 58%, 1.00)"
 	},
 	{
 		key: "lanz",
 		statKey: "portero_goles_lanzamiento",
-		label: "Lanzamiento",
-		shortLabel: "Lanz.",
 		color: "hsla(0, 84%, 60%, 1.00)"
 	},
 	{
 		key: "palo",
 		statKey: "portero_gol_palo",
-		label: "Palo",
-		shortLabel: "Palo",
 		color: "hsla(270, 75%, 60%, 1.00)"
 	}
 ] as const;
 
 export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }: GoalkeeperGoalsByTypeChartProps) {
+	const tChart = useTranslations("GoalkeeperCharts");
+	const common = useTranslations("AnalyticsCommon");
+	const locale = useLocale();
+	const tStat = useTranslations("StatLabels")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibleDefs = useMemo(() => {
@@ -84,12 +75,12 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 			visibleDefs.map((def) => [
 				def.key,
 				{
-					label: def.label,
+					label: tStat(def.statKey),
 					color: def.color
 				}
 			])
 		);
-	}, [visibleDefs]);
+	}, [visibleDefs, tStat]);
 
 	const allMatchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -116,13 +107,13 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 					xLabel: `${match.id}-${index}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 					...values,
 					total
 				};
 			})
 			.filter((row) => row.total > 0);
-	}, [matches, stats, hiddenSet, visibleDefs]);
+	}, [matches, stats, hiddenSet, visibleDefs, locale]);
 
 	const compactMatchData = useMemo(() => {
 		return allMatchData.slice(-15);
@@ -136,8 +127,8 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 
 	return (
 		<ExpandableChartCard
-			title="Goles recibidos por tipo"
-			description={`Jornadas registradas ${allMatchData.length} · Total ${total}`}
+			title={tChart("goalsByType")}
+			description={tChart("recordedTotal", { count: allMatchData.length, total })}
 			icon={<ShieldX className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{total}</span>}
@@ -166,7 +157,7 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 										<ChartTooltipContent
 											labelFormatter={(_, payload) => {
 												const p = payload?.[0]?.payload;
-												return p ? `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Total ${p.total}` : "";
+												return p ? tChart("tooltipTotal", { round: p.jornada, opponent: p.rival, date: p.fullDate, total: p.total }) : "";
 											}}
 										/>
 									}
@@ -177,7 +168,7 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 									<Bar
 										key={def.key}
 										dataKey={def.key}
-										name={def.label}
+										name={tStat(def.statKey)}
 										stackId="g"
 										fill={`var(--color-${def.key})`}
 										radius={index === 0 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
@@ -195,17 +186,17 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 							<Table className="min-w-[1200px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead>Fecha</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead>{common("date")}</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
-												{def.shortLabel}
+												{tStat(def.statKey)}
 											</TableHead>
 										))}
 
-										<TableHead className="text-right">Total</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 

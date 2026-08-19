@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Grid3X3, Percent, Target, Flame } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export type GoalkeeperShotForChart = {
 	id: number | string;
@@ -14,6 +15,7 @@ export type GoalkeeperShotForChart = {
 };
 
 function Dot({ x, y, result }: { x: number; y: number; result: "goal" | "save" }) {
+	const t = useTranslations("GoalkeeperShotMap")
 	return (
 		<div
 			className={cn(
@@ -23,7 +25,7 @@ function Dot({ x, y, result }: { x: number; y: number; result: "goal" | "save" }
 				result === "goal" ? "bg-red-500/90 ring-red-900/10" : "bg-emerald-500/90 ring-emerald-900/10"
 			)}
 			style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
-			title={result === "goal" ? "Gol" : "Parada"}
+			title={result === "goal" ? t("goal") : t("save")}
 		/>
 	);
 }
@@ -219,6 +221,7 @@ function ToggleRow({
 	active,
 	onClick,
 	disabled,
+	disabledHint,
 	icon
 }: {
 	label: string;
@@ -226,6 +229,7 @@ function ToggleRow({
 	active: boolean;
 	onClick: () => void;
 	disabled?: boolean;
+	disabledHint?: string;
 	icon?: React.ReactNode;
 }) {
 	return (
@@ -239,7 +243,7 @@ function ToggleRow({
 				active ? "bg-foreground text-background border-foreground/30" : "bg-background",
 				disabled && "opacity-50 cursor-not-allowed"
 			)}
-			title={disabled ? "Activa la cuadrícula para usar esta opción" : undefined}
+			title={disabled ? disabledHint : undefined}
 		>
 			<div className="flex items-start gap-2">
 				<span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center">{icon}</span>
@@ -261,6 +265,7 @@ export function GoalkeeperShotsGoalChart({
 	goalkeeperPlayerId: number; // ✅ filtra automáticamente
 	className?: string;
 }) {
+	const t = useTranslations("GoalkeeperShotMap")
 	const [showGrid, setShowGrid] = React.useState(true);
 	const [showCellPct, setShowCellPct] = React.useState(false);
 	const [showHeatmap, setShowHeatmap] = React.useState(false);
@@ -311,20 +316,20 @@ export function GoalkeeperShotsGoalChart({
 							<Target className="h-4 w-4 text-muted-foreground" />
 						</div>
 						<div className="leading-tight min-w-0">
-							<div className="text-sm font-semibold">Mapa de tiros</div>
-							<div className="text-xs text-muted-foreground truncate">Rendimiento por zona (3×3)</div>
+							<div className="text-sm font-semibold">{t("title")}</div>
+							<div className="text-xs text-muted-foreground truncate">{t("zonePerformance")}</div>
 						</div>
 					</div>
 
 					<div className="flex flex-wrap items-center gap-1.5 justify-end">
 						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							Total: {totals.total}
+							{t("totalCount", { count: totals.total })}
 						</Badge>
 						<Badge variant="destructive" className="text-[11px] h-5 px-2">
-							Goles: {totals.goals}
+							{t("goalsCount", { count: totals.goals })}
 						</Badge>
 						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							Paradas: {totals.saves}
+							{t("savesCount", { count: totals.saves })}
 						</Badge>
 					</div>
 				</div>
@@ -412,11 +417,11 @@ export function GoalkeeperShotsGoalChart({
 					<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
 						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
 							<span className="h-2.5 w-2.5 rounded-full bg-red-500/90" />
-							Gol
+							{t("goal")}
 						</span>
 						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
 							<span className="h-2.5 w-2.5 rounded-full bg-emerald-500/90" />
-							Parada
+							{t("save")}
 						</span>
 
 						<span className="ml-auto hidden sm:inline-flex items-center gap-2">
@@ -439,29 +444,31 @@ export function GoalkeeperShotsGoalChart({
 				{/* Right: Sidebar (sin porteros) */}
 				<aside className="border-t lg:border-t-0 lg:border-l bg-card/60">
 					<div className="p-3 space-y-3 lg:sticky lg:top-4">
-						<SidebarSection title="Visualización" icon={<Grid3X3 className="h-4 w-4 text-muted-foreground" />}>
+						<SidebarSection title={t("visualization")} icon={<Grid3X3 className="h-4 w-4 text-muted-foreground" />}>
 							<div className="space-y-2">
 								<ToggleRow
-									label="Cuadrícula"
-									description="Divide la portería en 3×3"
+									label={t("grid")}
+									description={t("gridDescription")}
 									active={showGrid}
 									onClick={() => setShowGrid((v) => !v)}
 									icon={<Grid3X3 className="h-4 w-4" />}
 								/>
 								<ToggleRow
-									label="% por celda"
-									description="Muestra eficacia por zona"
+									label={t("cellPercentage")}
+									description={t("cellPercentageDescription")}
 									active={showCellPct}
 									onClick={() => setShowCellPct((v) => !v)}
 									disabled={!showGrid}
+									disabledHint={t("enableGridHint")}
 									icon={<Percent className="h-4 w-4" />}
 								/>
 								<ToggleRow
-									label="Heatmap"
-									description="Colorea por tiers de %"
+									label={t("heatmap")}
+									description={t("heatmapDescription")}
 									active={showHeatmap}
 									onClick={() => setShowHeatmap((v) => !v)}
 									disabled={!showGrid}
+									disabledHint={t("enableGridHint")}
 									icon={<Flame className="h-4 w-4" />}
 								/>
 							</div>

@@ -1,6 +1,7 @@
 import { getCurrentProfile } from "@/lib/auth";
 import { getMatchReportData } from "@/lib/matches/get-match-report-data";
 import { buildMatchExcel } from "@/lib/exports/build-match-excel";
+import { getTranslations } from "next-intl/server";
 
 function sanitizeFilenamePart(value: string) {
 	return value
@@ -14,19 +15,22 @@ function sanitizeFilenamePart(value: string) {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+	const t = await getTranslations("Api");
+	const tExport = await getTranslations("Export");
 	try {
 		const { id } = await params;
 		const matchId = Number(id);
 
 		if (!Number.isFinite(matchId)) {
-			return new Response("Invalid match id", { status: 400 });
+			return new Response(t("invalidMatchId"), { status: 400 });
 		}
 
 		const profile = await getCurrentProfile();
-		const reportData = await getMatchReportData(matchId, profile?.id ?? null);
+		if (!profile) return new Response(t("unauthenticated"), { status: 401 });
+		const reportData = await getMatchReportData(matchId, profile);
 		const excelBytes = await buildMatchExcel(reportData);
 
-		const filename = `${sanitizeFilenamePart(reportData.clubName || "Partido")}_vs_${sanitizeFilenamePart(reportData.match.opponent || "Rival")}.xlsx`;
+		const filename = `${sanitizeFilenamePart(reportData.clubName || tExport("matchFallback"))}_vs_${sanitizeFilenamePart(reportData.match.opponent || tExport("opponentFallback"))}.xlsx`;
 
 		return new Response(new Uint8Array(excelBytes), {
 			status: 200,
@@ -37,6 +41,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 		});
 	} catch (error) {
 		console.error(error);
-		return new Response("Failed to generate Excel", { status: 500 });
+		return new Response(t("excelGenerationFailed"), { status: 500 });
 	}
 }

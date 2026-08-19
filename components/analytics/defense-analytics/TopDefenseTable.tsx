@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import type { Match, MatchStats, Player } from "@/lib/types";
 
@@ -21,7 +22,6 @@ const toNum = (v: unknown) => {
 type MetricDef = {
 	key: keyof MatchStats | string;
 	dataKey: "bloqueos" | "recuperaciones" | "rebotes" | "recibeGol";
-	label: string;
 	group: "positive" | "negative";
 };
 
@@ -29,35 +29,31 @@ const METRIC_DEFS: MetricDef[] = [
 	{
 		key: "acciones_bloqueo",
 		dataKey: "bloqueos",
-		label: "Bloqueos",
 		group: "positive"
 	},
 	{
 		key: "acciones_recuperacion",
 		dataKey: "recuperaciones",
-		label: "Recup.",
 		group: "positive"
 	},
 	{
 		key: "acciones_rebote",
 		dataKey: "rebotes",
-		label: "Rebotes",
 		group: "positive"
 	},
 	{
 		key: "acciones_recibir_gol",
 		dataKey: "recibeGol",
-		label: "Recibe gol",
 		group: "negative"
 	}
 ];
 
-function getPlayerLabel(player: Player | null) {
-	if (!player) return "Jugador";
+function getPlayerLabel(player: Player | null, fallback: string) {
+	if (!player) return fallback;
 	return player.number != null ? `#${player.number} ${player.name}` : player.name;
 }
 
-function PlayerRowMini({ player }: { player: Player | null }) {
+function PlayerRowMini({ player, fallback, noNumber }: { player: Player | null; fallback: string; noNumber: string }) {
 	return (
 		<div className="flex items-center gap-3 min-w-0">
 			<div className="h-10 w-10 rounded-full overflow-hidden bg-muted shrink-0 border">
@@ -71,8 +67,8 @@ function PlayerRowMini({ player }: { player: Player | null }) {
 			</div>
 
 			<div className="min-w-0">
-				<p className="text-sm font-medium truncate">{player?.name ?? "Jugador"}</p>
-				<p className="text-xs text-muted-foreground">{player?.number != null ? `#${player.number}` : "Sin dorsal"}</p>
+				<p className="text-sm font-medium truncate">{player?.name ?? fallback}</p>
+				<p className="text-xs text-muted-foreground">{player?.number != null ? `#${player.number}` : noNumber}</p>
 			</div>
 		</div>
 	);
@@ -82,10 +78,13 @@ export function TopDefendersTable({
 	matches,
 	stats,
 	players,
-	title = "Jugadores que más defienden",
+	title,
 	className,
 	hiddenStats = []
 }: TopDefendersTableProps) {
+	const t = useTranslations("TopDefense")
+	const tStat = useTranslations("StatLabels")
+	const resolvedTitle = title ?? t("title")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibleDefs = useMemo(() => METRIC_DEFS.filter((def) => !hiddenSet.has(String(def.key))), [hiddenSet]);
@@ -171,9 +170,9 @@ export function TopDefendersTable({
 			<div className="px-4 py-3 border-b bg-card/60">
 				<div className="flex items-center justify-between gap-3">
 					<div>
-						<h3 className="text-sm sm:text-base font-semibold">{title}</h3>
+						<h3 className="text-sm sm:text-base font-semibold">{resolvedTitle}</h3>
 						<p className="text-xs text-muted-foreground">
-							{leader ? `${getPlayerLabel(leader.player)} lidera con ${leader.accionesDefensivas} acciones defensivas` : "Sin datos"}
+							{leader ? t("leaderSummary", { player: getPlayerLabel(leader.player, t("player")), actions: leader.accionesDefensivas }) : t("noData")}
 						</p>
 					</div>
 				</div>
@@ -185,13 +184,13 @@ export function TopDefendersTable({
 						<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 							<TableRow className="hover:bg-transparent">
 								<TableHead className="w-[64px]">#</TableHead>
-								<TableHead>Jugador</TableHead>
-								<TableHead className="text-right">Acciones Def.</TableHead>
-								<TableHead className="text-right">Balance</TableHead>
+								<TableHead>{t("player")}</TableHead>
+								<TableHead className="text-right">{t("defensiveActions")}</TableHead>
+								<TableHead className="text-right">{t("balance")}</TableHead>
 
 								{visibleDefs.map((def) => (
 									<TableHead key={def.dataKey} className="text-right">
-										{def.label}
+										{tStat(String(def.key))}
 									</TableHead>
 								))}
 							</TableRow>
@@ -205,7 +204,7 @@ export function TopDefendersTable({
 								>
 									<TableCell className="font-semibold">{idx + 1}</TableCell>
 									<TableCell>
-										<PlayerRowMini player={r.player} />
+										<PlayerRowMini player={r.player} fallback={t("player")} noNumber={t("noNumber")} />
 									</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">{r.accionesDefensivas}</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">
@@ -227,16 +226,16 @@ export function TopDefendersTable({
 			<div className="border-t bg-muted/20 px-3 py-2">
 				<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 					<span>
-						<span className="font-medium text-foreground">{ranking.length}</span> jugadores con actividad defensiva
+						{t("playersWithActivity", { count: ranking.length })}
 					</span>
 
 					<div className="flex flex-wrap gap-2">
 						<span className="rounded-md border bg-card px-2 py-1">
-							Total acciones: <span className="font-semibold text-foreground">{totalActions}</span>
+							{t("totalActions")}: <span className="font-semibold text-foreground">{totalActions}</span>
 						</span>
 						{leader ? (
 							<span className="rounded-md border bg-card px-2 py-1">
-								Líder: <span className="font-semibold text-foreground">{getPlayerLabel(leader.player)}</span>
+								{t("leader")}: <span className="font-semibold text-foreground">{getPlayerLabel(leader.player, t("player"))}</span>
 							</span>
 						) : null}
 					</div>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bar, Line, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
 import type { Match, MatchStats, Player } from "@/lib/types";
 import { TrendingUp } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 interface ManAdvantageChartProps {
 	matches: Match[];
@@ -34,6 +35,9 @@ const sumVisible = (rows: Record<string, any>[], keys: string[], hiddenSet: Set<
 };
 
 export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }: ManAdvantageChartProps) {
+	const locale = useLocale();
+	const t = useTranslations("AttackCharts");
+	const common = useTranslations("AnalyticsCommon");
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const sortedMatches = useMemo(() => {
@@ -76,7 +80,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 
 				golesSup,
 				golesPaloSup,
@@ -91,7 +95,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 				eficiencia
 			};
 		});
-	}, [sortedMatches, stats, hiddenSet]);
+	}, [sortedMatches, stats, hiddenSet, locale]);
 
 	const chartData = useMemo(() => {
 		return matchData.map((m, index) => {
@@ -152,21 +156,21 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 
 	return (
 		<ExpandableChartCard
-			title="Eficiencia en Superioridad"
-			description={`Últimos ${partidos} · Media: ${overallEfficiency}% · ${totalGoles}/${totalIntentos} intentos`}
+			title={t("powerPlayTitle")}
+			description={t("powerPlayDescription", { count: partidos, average: overallEfficiency, goals: totalGoles, attempts: totalIntentos })}
 			icon={<TrendingUp className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{overallEfficiency}%</span>}
 			renderChart={({ compact }) => (
 				<ChartContainer
 					config={{
-						golesSup: { label: "Gol Sup.+", color: "hsla(145, 63%, 42%, 1.00)" },
-						golesPaloSup: { label: "Gol del palo", color: "hsla(42, 96%, 55%, 1.00)" },
-						fallosFueraSup: { label: "Fuera Sup.+", color: "hsla(0, 84%, 60%, 1.00)" },
-						fallosParadaSup: { label: "Parada rival", color: "hsla(350, 75%, 55%, 1.00)" },
-						fallosBloqueoSup: { label: "Bloqueo rival", color: "hsla(8, 70%, 52%, 1.00)" },
-						eficiencia: { label: "Eficiencia %", color: "hsla(190, 95%, 45%, 1.00)" },
-						eficienciaAcumulada: { label: "Eficiencia acumulada %", color: "hsla(221, 83%, 53%, 1.00)" }
+						golesSup: { label: t("powerPlayGoal"), color: "hsla(145, 63%, 42%, 1.00)" },
+						golesPaloSup: { label: t("postGoal"), color: "hsla(42, 96%, 55%, 1.00)" },
+						fallosFueraSup: { label: t("powerPlayOut"), color: "hsla(0, 84%, 60%, 1.00)" },
+						fallosParadaSup: { label: t("opponentSave"), color: "hsla(350, 75%, 55%, 1.00)" },
+						fallosBloqueoSup: { label: t("opponentBlock"), color: "hsla(8, 70%, 52%, 1.00)" },
+						eficiencia: { label: t("efficiencyPercent"), color: "hsla(190, 95%, 45%, 1.00)" },
+						eficienciaAcumulada: { label: t("cumulativeEfficiency"), color: "hsla(221, 83%, 53%, 1.00)" }
 					}}
 					className={`w-full ${compact ? "h-[260px]" : "h-[360px] lg:h-[420px]"}`}
 				>
@@ -215,7 +219,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<Bar
 								yAxisId="left"
 								dataKey="golesSup"
-								name="Gol Sup.+"
+								name={t("powerPlayGoal")}
 								stackId="sup"
 								fill="var(--color-golesSup)"
 								radius={[4, 4, 0, 0]}
@@ -224,7 +228,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<Bar
 								yAxisId="left"
 								dataKey="golesPaloSup"
-								name="Gol del palo"
+								name={t("postGoal")}
 								stackId="sup"
 								fill="var(--color-golesPaloSup)"
 								radius={[4, 4, 0, 0]}
@@ -233,7 +237,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<Bar
 								yAxisId="left"
 								dataKey="fallosFueraSup"
-								name="Fuera Sup.+"
+								name={t("powerPlayOut")}
 								stackId="fallos"
 								fill="var(--color-fallosFueraSup)"
 								radius={[4, 4, 0, 0]}
@@ -242,7 +246,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<Bar
 								yAxisId="left"
 								dataKey="fallosParadaSup"
-								name="Parada rival"
+								name={t("opponentSave")}
 								stackId="fallos"
 								fill="var(--color-fallosParadaSup)"
 								radius={[4, 4, 0, 0]}
@@ -251,7 +255,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<Bar
 								yAxisId="left"
 								dataKey="fallosBloqueoSup"
-								name="Bloqueo rival"
+								name={t("opponentBlock")}
 								stackId="fallos"
 								fill="var(--color-fallosBloqueoSup)"
 								radius={[4, 4, 0, 0]}
@@ -261,7 +265,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 								yAxisId="right"
 								type="monotone"
 								dataKey="eficiencia"
-								name="Eficiencia %"
+								name={t("efficiencyPercent")}
 								stroke="var(--color-eficiencia)"
 								strokeWidth={2.5}
 								dot={false}
@@ -272,7 +276,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 								yAxisId="right"
 								type="monotone"
 								dataKey="eficienciaAcumulada"
-								name="Eficiencia acumulada %"
+								name={t("cumulativeEfficiency")}
 								stroke="var(--color-eficienciaAcumulada)"
 								strokeWidth={3.5}
 								strokeDasharray="6 4"
@@ -290,18 +294,18 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 							<Table className="min-w-[1180px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">Gol Sup.+</TableHead>
-										<TableHead className="text-right">Gol palo</TableHead>
-										<TableHead className="text-right">Fuera</TableHead>
-										<TableHead className="text-right">Parada</TableHead>
-										<TableHead className="text-right">Bloqueo</TableHead>
-										<TableHead className="text-right">Anotados</TableHead>
-										<TableHead className="text-right">Fallados</TableHead>
-										<TableHead className="text-right">Total</TableHead>
-										<TableHead className="text-right">Eficiencia</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="w-[90px]">{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead className="text-right">{t("powerPlayGoal")}</TableHead>
+										<TableHead className="text-right">{t("postGoal")}</TableHead>
+										<TableHead className="text-right">{common("out")}</TableHead>
+										<TableHead className="text-right">{common("saved")}</TableHead>
+										<TableHead className="text-right">{common("blocked")}</TableHead>
+										<TableHead className="text-right">{t("scored")}</TableHead>
+										<TableHead className="text-right">{t("missed")}</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
+										<TableHead className="text-right">{common("efficiency")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{common("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -390,38 +394,38 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{partidos}</span> partidos
+								{common("matches", { count: partidos })}
 							</span>
 
 							<div className="flex flex-wrap gap-2">
 								<span className="rounded-md border bg-card px-2 py-1">
-									Gol Sup.+: <span className="font-semibold text-foreground">{totalGolesSup}</span>
+									{t("powerPlayGoal")}: <span className="font-semibold text-foreground">{totalGolesSup}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Gol palo: <span className="font-semibold text-foreground">{totalPaloSup}</span>
+									{t("postGoal")}: <span className="font-semibold text-foreground">{totalPaloSup}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Fuera: <span className="font-semibold text-foreground">{totalFallosFuera}</span>
+									{common("out")}: <span className="font-semibold text-foreground">{totalFallosFuera}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Parada: <span className="font-semibold text-foreground">{totalFallosParada}</span>
+									{common("saved")}: <span className="font-semibold text-foreground">{totalFallosParada}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Bloqueo: <span className="font-semibold text-foreground">{totalFallosBloqueo}</span>
+									{common("blocked")}: <span className="font-semibold text-foreground">{totalFallosBloqueo}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Anotados: <span className="font-semibold text-foreground">{totalGoles}</span>{" "}
+									{t("scored")}: <span className="font-semibold text-foreground">{totalGoles}</span>{" "}
 									<span className="text-muted-foreground">({avgGoalsPerMatch}/p)</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Fallados: <span className="font-semibold text-foreground">{totalFallos}</span>{" "}
+									{t("missed")}: <span className="font-semibold text-foreground">{totalFallos}</span>{" "}
 									<span className="text-muted-foreground">({avgMissesPerMatch}/p)</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Total: <span className="font-semibold text-foreground">{totalIntentos}</span>
+									{common("total")}: <span className="font-semibold text-foreground">{totalIntentos}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Media %: <span className="font-semibold text-foreground">{overallEfficiency}%</span>
+									{t("averagePercent")}: <span className="font-semibold text-foreground">{overallEfficiency}%</span>
 								</span>
 							</div>
 						</div>

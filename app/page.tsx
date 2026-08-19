@@ -30,10 +30,11 @@ import {
 import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard";
 import { buildTeamDashboardStats } from "@/lib/helpers/buildTeamDashboardStats";
 import { SequentialTypewriter } from "@/components/ui/typing";
+import { useLocale, useTranslations } from "next-intl";
 
 type MatchRow = {
-	id: string;
-	club_id: string;
+	id: number;
+	club_id: number;
 	opponent: string;
 	match_date: string;
 	home_score: number;
@@ -44,20 +45,21 @@ type MatchRow = {
 };
 
 type PlayerRow = {
-	id: string;
-	club_id: string;
+	id: number;
+	club_id: number;
 	name: string;
 	number: number;
+	is_goalkeeper: boolean;
 	photo_url?: string | null;
 };
 
 type StatRow = Record<string, any>;
 
-type Outcome = { status: "W" | "L" | "D"; label: string };
+type Outcome = { status: "W" | "L" | "D" };
 
-function formatEsDate(dateStr: string) {
+function formatDate(dateStr: string, locale: string) {
 	try {
-		return new Date(dateStr).toLocaleDateString("es-ES", {
+		return new Date(dateStr).toLocaleDateString(locale, {
 			day: "numeric",
 			month: "short",
 			year: "numeric"
@@ -73,29 +75,30 @@ function getOutcome(match: MatchRow): Outcome {
 
 	if (hasPenalties) {
 		const win = (match.penalty_home_score ?? 0) > (match.penalty_away_score ?? 0);
-		return { status: win ? "W" : "L", label: win ? "Victoria (Pen.)" : "Derrota (Pen.)" };
+		return { status: win ? "W" : "L" };
 	}
 
-	if (match.home_score > match.away_score) return { status: "W", label: "Victoria" };
-	if (match.home_score < match.away_score) return { status: "L", label: "Derrota" };
-	return { status: "D", label: "Empate" };
+	if (match.home_score > match.away_score) return { status: "W" };
+	if (match.home_score < match.away_score) return { status: "L" };
+	return { status: "D" };
 }
 
-const FORM_STYLES: Record<Outcome["status"], { letter: string; cls: string }> = {
-	W: { letter: "G", cls: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400" },
-	L: { letter: "P", cls: "bg-red-500/10 text-red-600 ring-red-500/25 dark:text-red-400" },
-	D: { letter: "E", cls: "bg-muted text-muted-foreground ring-border" }
+const FORM_STYLES: Record<Outcome["status"], string> = {
+	W: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/25 dark:text-emerald-400",
+	L: "bg-red-500/10 text-red-600 ring-red-500/25 dark:text-red-400",
+	D: "bg-muted text-muted-foreground ring-border"
 };
 
 function FormBadge({ status }: { status: Outcome["status"] }) {
-	const s = FORM_STYLES[status];
+	const t = useTranslations("Home");
+	const resultKey = status === "W" ? "win" : status === "L" ? "loss" : "draw";
 
 	return (
 		<span
-			className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ring-1 ${s.cls}`}
-			aria-label={status === "W" ? "Victoria" : status === "L" ? "Derrota" : "Empate"}
+			className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ring-1 ${FORM_STYLES[status]}`}
+			aria-label={t(`results.${resultKey}`)}
 		>
-			{s.letter}
+			{t(`resultLetters.${resultKey}`)}
 		</span>
 	);
 }
@@ -165,6 +168,7 @@ function LoadingMinimal() {
 }
 
 export default function HomePage() {
+	const t = useTranslations("Home");
 	const { currentClub } = useClub();
 	const { profile, loading: profileLoading } = useProfile();
 
@@ -292,10 +296,6 @@ export default function HomePage() {
 
 
 
-		const primaryCta = canEdit
-			? { href: "/nuevo-partido", label: "Nuevo partido", icon: <PlusCircle className="mr-2 h-4 w-4" /> }
-			: { href: "/partidos", label: "Ver partidos", icon: <Calendar className="mr-2 h-4 w-4" /> };
-
 		return {
 			totalMatches,
 			wins,
@@ -307,8 +307,7 @@ export default function HomePage() {
 			recentForm,
 			previewPlayers,
 			mobileFirst,
-			mobileRest,
-			primaryCta
+			mobileRest
 		};
 	}, [enabledMatches, enabledStats, allMatches, matches, players, stats, canEdit]);
 
@@ -336,7 +335,7 @@ export default function HomePage() {
 							{currentClub?.logo_url ? (
 								<img
 									src={currentClub.logo_url}
-									alt={currentClub.name || "Club"}
+									alt={currentClub.name || t("defaultClub")}
 									className="h-full w-full object-contain p-2"
 								/>
 							) : (
@@ -348,9 +347,9 @@ export default function HomePage() {
 						<div className="min-w-0 flex-1">
 							<SequentialTypewriter
 								lines={[
-									"Panel del club",
-									`Bienvenido de nuevo, ${currentClub?.short_name || currentClub?.name || "Mi Club"}`,
-									"Todo listo para revisar el rendimiento del equipo."
+									t("clubPanel"),
+									t("welcomeBack", { club: currentClub?.short_name || currentClub?.name || t("defaultClub") }),
+									t("ready")
 								]}
 								className="space-y-1"
 							/>
@@ -390,16 +389,16 @@ export default function HomePage() {
 					{tablesNotFound && (
 						<Alert variant="destructive" className="rounded-2xl">
 							<AlertCircle className="h-4 w-4" />
-							<AlertTitle>Base de datos no inicializada</AlertTitle>
+							<AlertTitle>{t("databaseNotInitialized")}</AlertTitle>
 							<AlertDescription className="mt-2 space-y-3">
-								<p>Las tablas aún no se han creado. Para inicializar:</p>
+								<p>{t("tablesMissing")}</p>
 								<ol className="ml-2 list-inside list-decimal space-y-2">
-									<li>Abre el panel lateral (icono de menú)</li>
+									<li>{t("initStepMenu")}</li>
 									<li>
-										Ve a <strong>Scripts</strong>
+										{t("initStepScripts", { scripts: t("scripts") })}
 									</li>
-									<li>Ejecuta los SQL en orden</li>
-									<li>Recarga la página</li>
+									<li>{t("initStepSql")}</li>
+									<li>{t("initStepReload")}</li>
 								</ol>
 							</AlertDescription>
 						</Alert>
@@ -408,59 +407,61 @@ export default function HomePage() {
 					{connectionError && !tablesNotFound && (
 						<Alert variant="destructive" className="rounded-2xl">
 							<AlertCircle className="h-4 w-4" />
-							<AlertTitle>Error de conexión</AlertTitle>
-							<AlertDescription>Revisa la configuración de Supabase en el panel lateral.</AlertDescription>
+							<AlertTitle>{t("connectionError")}</AlertTitle>
+							<AlertDescription>{t("connectionDescription")}</AlertDescription>
 						</Alert>
 					)}
 
-					<section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Resumen del club">
+					<section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label={t("clubSummary")}>
 						<KpiCard
 							icon={<Target className="h-4 w-4" />}
-							label="Eficiencia ataque"
+							label={t("attackEfficiency")}
 							value={analytics?.shootingEfficiency ?? 0}
 							suffix="%"
 							delay={0}
 							footer={
 								<p className="text-[11px] text-muted-foreground">
-									{analytics?.totalGoalsFor ?? 0} goles / {analytics?.totalShots ?? 0} tiros
+									{t("goalsShots", { goals: analytics?.totalGoalsFor ?? 0, shots: analytics?.totalShots ?? 0 })}
 								</p>
 							}
 						/>
 
 						<KpiCard
 							icon={<TrendingUp className="h-4 w-4" />}
-							label="Superioridad"
+							label={t("superiority")}
 							value={analytics?.superiorityEfficiency ?? 0}
 							suffix="%"
 							delay={60}
 							footer={
 								<p className="text-[11px] text-muted-foreground">
-									{analytics?.goalsSuperiority ?? 0} goles / {analytics?.shotsSuperiority ?? 0} intentos
+									{t("goalsAttempts", { goals: analytics?.goalsSuperiority ?? 0, attempts: analytics?.shotsSuperiority ?? 0 })}
 								</p>
 							}
 						/>
 
 						<KpiCard
 							icon={<TrendingDown className="h-4 w-4" />}
-							label="Inferioridad"
+							label={t("inferiority")}
 							value={analytics?.inferiorityEfficiency ?? 0}
 							suffix="%"
 							delay={120}
 							footer={
 								<p className="text-[11px] text-muted-foreground">
-									{analytics?.savesInferiority ?? 0} evitadas /{" "}
-									{(analytics?.savesInferiority ?? 0) + (analytics?.goalsAgainstInferiority ?? 0)} intentos
+									{t("avoidedAttempts", {
+										saves: analytics?.savesInferiority ?? 0,
+										attempts: (analytics?.savesInferiority ?? 0) + (analytics?.goalsAgainstInferiority ?? 0)
+									})}
 								</p>
 							}
 						/>
 
 						<KpiCard
 							icon={<Shield className="h-4 w-4" />}
-							label="Eficiencia porteros"
+							label={t("goalkeeperEfficiency")}
 							value={analytics?.goalkeeperEfficiency ?? 0}
 							suffix="%"
 							delay={180}
-							footer={<p className="text-[11px] text-muted-foreground">{analytics?.totalSaves ?? 0} paradas totales</p>}
+							footer={<p className="text-[11px] text-muted-foreground">{t("totalSaves", { count: analytics?.totalSaves ?? 0 })}</p>}
 						/>
 					</section>
 
@@ -469,13 +470,13 @@ export default function HomePage() {
 							<div className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
 								<div className="mb-4 flex items-center justify-between gap-3">
 									<div>
-										<h2 className="text-base font-semibold tracking-tight">Últimos partidos</h2>
-										<p className="text-sm text-muted-foreground">Resultados recientes</p>
+										<h2 className="text-base font-semibold tracking-tight">{t("latestMatches")}</h2>
+										<p className="text-sm text-muted-foreground">{t("recentResults")}</p>
 									</div>
 
 									<Button asChild variant="ghost" size="sm" className="rounded-lg text-muted-foreground hover:text-foreground">
 										<Link href="/partidos">
-											Ver todos <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+											{t("viewAll")} <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
 										</Link>
 									</Button>
 								</div>
@@ -485,9 +486,9 @@ export default function HomePage() {
 								) : (
 									<EmptyMinimal
 										icon={<Calendar className="h-5 w-5" />}
-										title="Sin partidos"
-										desc={canEdit ? "Crea el primer partido para empezar a registrar estadísticas." : "Todavía no hay partidos registrados."}
-										cta={canEdit ? { href: "/nuevo-partido", label: "Crear primer partido" } : undefined}
+										title={t("noMatches")}
+										desc={canEdit ? t("createFirstMatchDescription") : t("noMatchesDescription")}
+										cta={canEdit ? { href: "/nuevo-partido", label: t("createFirstMatch") } : undefined}
 									/>
 								)}
 							</div>
@@ -498,12 +499,12 @@ export default function HomePage() {
 								<div className="border-b p-5 sm:p-6">
 									<div className="flex items-start justify-between gap-4">
 										<div>
-											<h2 className="text-base font-semibold tracking-tight">Estado del equipo</h2>
-											<p className="text-sm text-muted-foreground">Forma reciente y balance global</p>
+											<h2 className="text-base font-semibold tracking-tight">{t("teamStatus")}</h2>
+											<p className="text-sm text-muted-foreground">{t("teamStatusDescription")}</p>
 										</div>
 
 										<div className="rounded-full border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-											{derived.totalMatches} partidos
+											{t("matchCount", { count: derived.totalMatches })}
 										</div>
 									</div>
 								</div>
@@ -513,7 +514,7 @@ export default function HomePage() {
 										<div className="flex items-end justify-between gap-5">
 											<div>
 												<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-													Rendimiento
+													{t("performance")}
 												</p>
 
 												<div className="mt-2 flex items-baseline gap-1.5">
@@ -530,7 +531,7 @@ export default function HomePage() {
 														{derived.wins}
 													</p>
 													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-														G
+															{t("resultLetters.win")}
 													</p>
 												</div>
 
@@ -539,7 +540,7 @@ export default function HomePage() {
 														{derived.draws}
 													</p>
 													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-														E
+															{t("resultLetters.draw")}
 													</p>
 												</div>
 
@@ -548,7 +549,7 @@ export default function HomePage() {
 														{derived.losses}
 													</p>
 													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-														P
+															{t("resultLetters.loss")}
 													</p>
 												</div>
 											</div>
@@ -572,14 +573,14 @@ export default function HomePage() {
 									<div className="mt-7">
 										<div className="mb-3 flex items-center justify-between gap-3">
 											<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-												Últimos resultados
+														{t("latestResults")}
 											</p>
 
 											<Link
 												href="/partidos"
 												className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
 											>
-												Ver historial
+														{t("viewHistory")}
 											</Link>
 										</div>
 
@@ -590,7 +591,7 @@ export default function HomePage() {
 												))}
 											</div>
 										) : (
-											<p className="text-sm text-muted-foreground">Sin datos todavía</p>
+											<p className="text-sm text-muted-foreground">{t("noData")}</p>
 										)}
 									</div>
 								</div>
@@ -608,7 +609,7 @@ export default function HomePage() {
 
 				<div className="mt-10 flex flex-col items-center gap-2 text-center">
 					<p className="text-xs text-muted-foreground">
-						POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+						{t("poweredBy")} <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
 					</p>
 
 					<div className="flex items-center gap-4 opacity-70">
@@ -629,6 +630,8 @@ export default function HomePage() {
 }
 
 function MatchListCompact({ matches }: { matches: MatchRow[] }) {
+	const t = useTranslations("Home");
+	const locale = useLocale();
 	return (
 		<div className="flex flex-col divide-y divide-border/70">
 			{matches.map((m) => {
@@ -638,7 +641,7 @@ function MatchListCompact({ matches }: { matches: MatchRow[] }) {
 					<Link
 						key={m.id}
 						href={`/partidos/${m.id}`}
-						aria-label={`Ver partido vs ${m.opponent}`}
+						aria-label={t("viewMatch", { opponent: m.opponent })}
 						className="group flex items-center justify-between gap-3 py-3 transition-colors first:pt-0 last:pb-0 focus-visible:outline-none"
 					>
 						<div className="flex min-w-0 items-center gap-3">
@@ -646,7 +649,7 @@ function MatchListCompact({ matches }: { matches: MatchRow[] }) {
 
 							<div className="min-w-0">
 								<p className="truncate text-sm font-medium transition-colors group-hover:text-primary">{m.opponent}</p>
-								<p className="mt-0.5 text-xs text-muted-foreground">{formatEsDate(m.match_date)}</p>
+								<p className="mt-0.5 text-xs text-muted-foreground">{formatDate(m.match_date, locale)}</p>
 							</div>
 						</div>
 
@@ -667,13 +670,14 @@ function MatchListCompact({ matches }: { matches: MatchRow[] }) {
 }
 
 function PlayerPhotoGridResponsive({ players }: { players: PlayerRow[] }) {
+	const t = useTranslations("Home");
 	return (
 		<div className="grid grid-cols-4 gap-3 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9">
 			{players.map((player) => (
 				<Link
 					key={player.id}
 					href={`/jugadores/${player.id}`}
-					aria-label={`Ver jugador ${player.name}`}
+					aria-label={t("viewPlayer", { player: player.name })}
 					className="group overflow-hidden rounded-xl border bg-background transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 				>
 					<div className="relative aspect-[4/5] overflow-hidden bg-muted/40">

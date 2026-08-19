@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useLocale, useTranslations } from "next-intl"
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import type { Match } from "@/lib/types"
 
@@ -9,11 +10,13 @@ interface TeamStatsChartProps {
 }
 
 export function TeamStatsChart({ matches }: TeamStatsChartProps) {
+  const t = useTranslations("TeamStatsChart")
+  const locale = useLocale()
   // Group matches by month
   const monthlyData = matches.reduce(
     (acc, match) => {
       const date = new Date(match.match_date)
-      const monthKey = date.toLocaleDateString("es-ES", { month: "short", year: "numeric" })
+      const monthKey = date.toLocaleDateString(locale, { month: "short", year: "numeric" })
 
       if (!acc[monthKey]) {
         acc[monthKey] = { month: monthKey, golesAFavor: 0, golesEnContra: 0, partidos: 0 }
@@ -33,8 +36,8 @@ export function TeamStatsChart({ matches }: TeamStatsChartProps) {
   return (
     <Card className="col-span-full">
       <CardHeader>
-        <CardTitle>Evolución Mensual</CardTitle>
-        <CardDescription>Goles a favor y en contra por mes</CardDescription>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -43,8 +46,8 @@ export function TeamStatsChart({ matches }: TeamStatsChartProps) {
             <XAxis dataKey="month" className="text-xs" />
             <YAxis />
             <Legend />
-            <Bar dataKey="golesAFavor" fill="#3b82f6" name="Goles a Favor" radius={[8, 8, 0, 0]} />
-            <Bar dataKey="golesEnContra" fill="#f97316" name="Goles en Contra" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="golesAFavor" fill="#3b82f6" name={t("goalsFor")} radius={[8, 8, 0, 0]} />
+            <Bar dataKey="golesEnContra" fill="#f97316" name={t("goalsAgainst")} radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

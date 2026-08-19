@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { ShieldCheck } from "lucide-react";
 import { buildGoalkeeperSavesSummary, buildGoalkeeperSavesPerPlayer } from "@/lib/helpers/chartGoalkeeperBreakdownHelper";
 import { GoalkeeperBreakdownChartBase } from "../templates/charts/GoalkeeperBreakdownChartTemplate";
+import { useTranslations } from "next-intl";
 
 type PlayerLiteInput = {
 	id: number;
@@ -20,6 +21,8 @@ type Props = {
 };
 
 export function MatchGoalkeeperSavesBreakdownChart({ match, stats, players }: Props) {
+	const t = useTranslations("MatchCharts");
+	const tStat = useTranslations("StatLabels");
 	const playersById = useMemo(() => {
 		const m = new Map<number, { id: number; name: string; number?: number | null; photo_url?: string | null }>();
 
@@ -28,31 +31,32 @@ export function MatchGoalkeeperSavesBreakdownChart({ match, stats, players }: Pr
 
 			m.set(p.id, {
 				id: p.id,
-				name: candidate.length ? candidate : `Jugador ${p.id}`,
+				name: candidate.length ? candidate : t("playerFallback", { id: p.id }),
 				number: p.number ?? null,
 				photo_url: p.photo_url ?? null
 			});
 		});
 
 		return m;
-	}, [players]);
+	}, [players, t]);
 
-	const summary = useMemo(() => buildGoalkeeperSavesSummary(stats ?? []), [stats]);
+	const summary = useMemo(() => buildGoalkeeperSavesSummary(stats ?? [], (key) => tStat(key)), [stats, tStat]);
 	const perPlayer = useMemo(() => buildGoalkeeperSavesPerPlayer(stats ?? [], playersById), [stats, playersById]);
 
 	if (!summary.total) return null;
 
-	const matchTitle = match?.opponent ? `vs ${match.opponent}` : "Partido";
+	const matchTitle = match?.opponent ? t("versus", { opponent: match.opponent }) : t("match");
+	const topLabel = summary.topType?.label ?? t("noData");
 
 	return (
 		<GoalkeeperBreakdownChartBase
-			title="Distribución de paradas"
-			description={`${matchTitle} · ${summary.topType?.label ?? "Sin datos"} · Total ${summary.total}`}
+			title={t("savesDistribution")}
+			description={t("breakdownDescription", { match: matchTitle, top: topLabel, total: summary.total })}
 			icon={<ShieldCheck className="h-5 w-5" />}
 			summary={summary}
 			perPlayer={perPlayer}
-			topLineCompact={`Principal: ${summary.topType?.label ?? "—"}`}
-			topLineFull={`Principal: ${summary.topType?.label ?? "—"} · ${summary.topType?.value ?? 0}/${summary.total}`}
+			topLineCompact={t("primary", { label: summary.topType?.label ?? "—" })}
+			topLineFull={t("primaryWithTotal", { label: summary.topType?.label ?? "—", value: summary.topType?.value ?? 0, total: summary.total })}
 		/>
 	);
 }

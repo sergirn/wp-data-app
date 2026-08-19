@@ -9,14 +9,15 @@ import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Refere
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { MatchWithQuarterScores } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
+import { useTranslations } from "next-intl";
 
 type QuarterKey = "q1" | "q2" | "q3" | "q4";
 
 const QUARTERS = [
-	{ key: "q1", label: "Q1", for: "q1_score", against: "q1_score_rival" },
-	{ key: "q2", label: "Q2", for: "q2_score", against: "q2_score_rival" },
-	{ key: "q3", label: "Q3", for: "q3_score", against: "q3_score_rival" },
-	{ key: "q4", label: "Q4", for: "q4_score", against: "q4_score_rival" }
+	{ key: "q1", for: "q1_score", against: "q1_score_rival" },
+	{ key: "q2", for: "q2_score", against: "q2_score_rival" },
+	{ key: "q3", for: "q3_score", against: "q3_score_rival" },
+	{ key: "q4", for: "q4_score", against: "q4_score_rival" }
 ] as const;
 
 interface Props {
@@ -25,13 +26,14 @@ interface Props {
 }
 
 export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] sm:h-[180px] lg:h-[180px]" }: Props) {
+	const t = useTranslations("QuarterGoals");
 	const [view, setView] = useState<"chart" | "table">("chart");
 	const [openQuarter, setOpenQuarter] = useState<QuarterKey | null>(null);
 
 	const games = Math.max(matches?.length ?? 0, 1);
 
 	const data = useMemo(() => {
-		return QUARTERS.map((q) => {
+		return QUARTERS.map((q, index) => {
 			const goalsFor = matches.reduce((sum, m) => sum + (Number((m as any)[q.for]) || 0), 0) / games;
 			const goalsAgainst = matches.reduce((sum, m) => sum + (Number((m as any)[q.against]) || 0), 0) / games;
 
@@ -39,7 +41,7 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 
 			return {
 				key: q.key as QuarterKey,
-				quarter: q.label,
+				quarter: t("quarterNumber", { number: index + 1 }),
 				goalsFor: Number(goalsFor.toFixed(2)),
 				goalsAgainst: Number(goalsAgainst.toFixed(2)),
 				differential,
@@ -47,7 +49,7 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 				neg: differential < 0 ? differential : 0 // (negativo)
 			};
 		});
-	}, [matches, games]);
+	}, [matches, games, t]);
 
 	const maxAbs = useMemo(() => {
 		const v = Math.max(...data.map((d) => Math.abs(d.differential)), 0.1);
@@ -79,8 +81,8 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 			<CardHeader className="space-y-1">
 				<div className="flex items-start justify-between gap-3">
 					<div className="min-w-0">
-						<CardTitle>Rendimiento por Cuartos</CardTitle>
-						<CardDescription className="truncate">Diferencial medio por cuarto (media de todos los partidos)</CardDescription>
+						<CardTitle>{t("title")}</CardTitle>
+						<CardDescription className="truncate">{t("description")}</CardDescription>
 					</div>
 
 					{/* Switch Chart/Table */}
@@ -100,7 +102,7 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 				{/* KPIs */}
 				<div className="grid grid-cols-2 gap-3 mb-4">
 					<div className="rounded-lg border p-3 text-center">
-						<p className="text-xs text-muted-foreground">Mejor cuarto</p>
+						<p className="text-xs text-muted-foreground">{t("bestQuarter")}</p>
 						<p className="text-lg font-bold text-green-600 dark:text-green-400">
 							{bestQuarter?.quarter} ({bestQuarter?.differential > 0 ? "+" : ""}
 							{bestQuarter?.differential})
@@ -108,7 +110,7 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 					</div>
 
 					<div className="rounded-lg border p-3 text-center">
-						<p className="text-xs text-muted-foreground">Peor cuarto</p>
+						<p className="text-xs text-muted-foreground">{t("worstQuarter")}</p>
 						<p className="text-lg font-bold text-red-600 dark:text-red-400">
 							{worstQuarter?.quarter} ({worstQuarter?.differential > 0 ? "+" : ""}
 							{worstQuarter?.differential})
@@ -120,8 +122,8 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 				{view === "chart" ? (
 					<ChartContainer
 						config={{
-							pos: { label: "DIF +", color: "hsl(142, 71%, 45%)" },
-							neg: { label: "DIF −", color: "hsl(0, 84%, 60%)" }
+							pos: { label: t("positiveDifference"), color: "hsl(142, 71%, 45%)" },
+							neg: { label: t("negativeDifference"), color: "hsl(0, 84%, 60%)" }
 						}}
 						className={`w-full ${chartHeightClassName}`}
 					>
@@ -157,14 +159,14 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 												const p = payload?.[0]?.payload;
 												if (!p) return String(label);
 												const dif = p.differential;
-												return `${label} · DIF: ${dif > 0 ? "+" : ""}${dif} · GF: ${p.goalsFor} · GC: ${p.goalsAgainst}`;
+											return t("tooltip", { quarter: String(label), difference: `${dif > 0 ? "+" : ""}${dif}`, goalsFor: p.goalsFor, goalsAgainst: p.goalsAgainst });
 											}}
 										/>
 									}
 								/>
 
-								<Bar dataKey="neg" name="DIF −" fill="var(--color-neg)" stackId="dif" radius={[8, 0, 0, 8]} barSize={26} />
-								<Bar dataKey="pos" name="DIF +" fill="var(--color-pos)" stackId="dif" radius={[0, 8, 8, 0]} barSize={26} />
+								<Bar dataKey="neg" name={t("negativeDifference")} fill="var(--color-neg)" stackId="dif" radius={[8, 0, 0, 8]} barSize={26} />
+								<Bar dataKey="pos" name={t("positiveDifference")} fill="var(--color-pos)" stackId="dif" radius={[0, 8, 8, 0]} barSize={26} />
 							</BarChart>
 						</ResponsiveContainer>
 					</ChartContainer>
@@ -175,10 +177,10 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 								<Table className="min-w-[720px]">
 									<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 										<TableRow className="hover:bg-transparent">
-											<TableHead className="w-[90px]">Cuarto</TableHead>
-											<TableHead className="text-right">GF</TableHead>
-											<TableHead className="text-right">GC</TableHead>
-											<TableHead className="text-right">DIF</TableHead>
+										<TableHead className="w-[90px]">{t("quarter")}</TableHead>
+										<TableHead className="text-right">{t("goalsForShort")}</TableHead>
+										<TableHead className="text-right">{t("goalsAgainstShort")}</TableHead>
+										<TableHead className="text-right">{t("differenceShort")}</TableHead>
 											<TableHead className="w-10 text-right"></TableHead>
 										</TableRow>
 									</UITableHeader>
@@ -208,7 +210,7 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 													{q.differential}
 												</TableCell>
 												<TableCell className="text-right text-muted-foreground">
-													<Eye className="h-4 w-4 inline-block" />
+											<Eye className="h-4 w-4 inline-block" aria-label={t("viewDetails")} />
 												</TableCell>
 											</TableRow>
 										))}
@@ -220,10 +222,10 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 						<div className="border-t bg-muted/20 px-3 py-2">
 							<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 								<span>
-									<span className="font-medium text-foreground">{matches?.length ?? 0}</span> partidos
+									{t("matches", { count: matches?.length ?? 0 })}
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Mejor: <span className="font-semibold text-foreground">{bestQuarter?.quarter}</span>{" "}
+									{t("best")}: <span className="font-semibold text-foreground">{bestQuarter?.quarter}</span>{" "}
 									<span className="font-semibold text-white">
 										({bestQuarter?.differential > 0 ? "+" : ""}
 										{bestQuarter?.differential})
@@ -238,7 +240,7 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 				<Dialog open={!!openQuarter} onOpenChange={() => setOpenQuarter(null)}>
 					<DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
 						<DialogHeader>
-							<DialogTitle>Detalle de partidos – {openQuarter && QUARTERS.find((q) => q.key === openQuarter)?.label}</DialogTitle>
+								<DialogTitle>{t("matchDetails", { quarter: openQuarter ? t("quarterNumber", { number: QUARTERS.findIndex((q) => q.key === openQuarter) + 1 }) : "" })}</DialogTitle>
 						</DialogHeader>
 
 						<div className="mt-4 rounded-xl border overflow-hidden bg-card">
@@ -246,10 +248,10 @@ export function QuarterGoalsChart({ matches, chartHeightClassName = "h-[180px] s
 								<Table className="min-w-[640px]">
 									<UITableHeader className="bg-card/95">
 										<TableRow className="hover:bg-transparent">
-											<TableHead>Rival</TableHead>
-											<TableHead className="text-right">GF</TableHead>
-											<TableHead className="text-right">GC</TableHead>
-											<TableHead className="text-right">DIF</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
+										<TableHead className="text-right">{t("goalsForShort")}</TableHead>
+										<TableHead className="text-right">{t("goalsAgainstShort")}</TableHead>
+										<TableHead className="text-right">{t("differenceShort")}</TableHead>
 										</TableRow>
 									</UITableHeader>
 

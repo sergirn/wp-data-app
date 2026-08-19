@@ -15,7 +15,10 @@ export function getGoalkeeperStatValue(stats: Record<string, any> | null | undef
 	return n(stats?.[key]);
 }
 
-export function getGoalkeeperStatsByCategory(category: GoalkeeperStatCategory, hiddenStats?: HiddenStatsInput): GoalkeeperStatDef[] {
+export function getGoalkeeperStatsByCategory(
+	category: GoalkeeperStatCategory,
+	hiddenStats?: HiddenStatsInput
+): GoalkeeperStatDef[] {
 	return GOALKEEPER_STATS.filter((s) => s.category === category && isVisibleStat(s.key, hiddenStats));
 }
 

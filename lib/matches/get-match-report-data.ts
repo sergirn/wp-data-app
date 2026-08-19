@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import type { Profile } from "@/lib/types"
 import {
   accumulatePlayerStats,
   getPlayerDerived,
@@ -74,10 +75,11 @@ const normalizeRel = <T,>(rel: T | T[] | null | undefined): T | null => {
   return Array.isArray(rel) ? (rel[0] ?? null) : rel
 }
 
-export async function getMatchReportData(matchId: number, profileId?: string | null) {
+export async function getMatchReportData(matchId: number, profile: Profile) {
   const supabase = await createClient()
+  if (!supabase) throw new Error("Supabase is not configured")
 
-  const { data: match, error } = await supabase
+  let matchQuery = supabase
     .from("matches")
     .select(`
       *,
@@ -89,21 +91,25 @@ export async function getMatchReportData(matchId: number, profileId?: string | n
       )
     `)
     .eq("id", matchId)
+
+  if (!profile.is_super_admin) {
+    if (!profile.club_id) throw new Error("Forbidden")
+    matchQuery = matchQuery.eq("club_id", profile.club_id)
+  }
+
+  const { data: match, error } = await matchQuery
     .maybeSingle()
 
   if (error || !match) {
     throw new Error("Match not found")
   }
 
-  const hiddenStats =
-    profileId != null
-      ? (
-          await supabase
-            .from("profile_hidden_stats")
-            .select("stat_key")
-            .eq("profile_id", profileId)
-        ).data?.map((row) => row.stat_key) ?? []
-      : []
+  const hiddenStats = (
+    await supabase
+      .from("profile_hidden_stats")
+      .select("stat_key")
+      .eq("profile_id", profile.id)
+  ).data?.map((row) => row.stat_key) ?? []
 
   const { data: penaltyRows } = await supabase
     .from("penalty_shootout_players")

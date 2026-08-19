@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PlayerHeroHeader } from "@/app/jugadores/[id]/playerHeader";
 import { Button } from "@/components/ui/button";
 import { GoalkeeperStatsSections } from "@/components/analytics-goalkeeper/GoalkeeperStatsSections";
+import { useTranslations } from "next-intl";
 
 type Props = {
 	open: boolean;
@@ -24,6 +25,7 @@ type Props = {
 };
 
 function usePlayerFavorites(playerId?: number, open?: boolean) {
+	const t = useTranslations("FavoritesModal");
 	const [initialKeys, setInitialKeys] = React.useState<string[]>([]);
 	const [draftKeys, setDraftKeys] = React.useState<string[]>([]);
 	const [saving, setSaving] = React.useState(false);
@@ -51,9 +53,9 @@ function usePlayerFavorites(playerId?: number, open?: boolean) {
 		} catch {
 			setInitialKeys([]);
 			setDraftKeys([]);
-			setError("No se pudieron cargar las favoritas");
+			setError(t("loadError"));
 		}
-	}, [playerId]);
+	}, [playerId, t]);
 
 	React.useEffect(() => {
 		if (!open || !playerId) return;
@@ -92,7 +94,7 @@ function usePlayerFavorites(playerId?: number, open?: boolean) {
 			}
 			setInitialKeys(draftKeys);
 		} catch {
-			setError("No se pudieron guardar los cambios");
+			setError(t("saveError"));
 			await load();
 		} finally {
 			setSaving(false);
@@ -103,6 +105,7 @@ function usePlayerFavorites(playerId?: number, open?: boolean) {
 }
 
 export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, derived, hiddenStats = [] }: Props) {
+	const t = useTranslations("FavoritesModal");
 	const playerId: number | undefined = player?.id ?? stat?.player_id;
 	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId, open);
 
@@ -163,8 +166,8 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 					"cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30",
 					isFav ? "bg-yellow-500/20 border-yellow-500/20 hover:bg-yellow-500/25" : "bg-muted/50 border-transparent hover:bg-muted/70"
 				].join(" ")}
-				aria-label={`${label}: ${isFav ? "favorita" : "no favorita"}`}
-				title="Pulsa para marcar/desmarcar como favorita"
+				aria-label={t("favoriteState", { label, state: isFav ? t("favorite") : t("notFavorite") })}
+				title={t("toggleHint")}
 			>
 				<span className="text-sm text-muted-foreground">{label}</span>
 
@@ -180,8 +183,8 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 						className={["h-7 w-7 grid place-items-center rounded-md text-xs", isFav ? "opacity-100" : "opacity-50 hover:opacity-90"].join(
 							" "
 						)}
-						aria-label={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
-						title={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
+						aria-label={isFav ? t("removeFavorite") : t("markFavorite")}
+						title={isFav ? t("removeFavorite") : t("markFavorite")}
 					>
 						<span className={isFav ? "opacity-100" : "opacity-30"}>★</span>
 					</button>
@@ -206,18 +209,18 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
           "
 				>
 					<VisuallyHidden>
-						<DialogTitle>{player?.name ?? "Estadísticas del portero"}</DialogTitle>
+						<DialogTitle>{player?.name ?? t("goalkeeperStats")}</DialogTitle>
 					</VisuallyHidden>
 
 					<div className="p-4">
 						<PlayerHeroHeader
 							player={{
-								name: player?.name ?? "Portero",
+								name: player?.name ?? t("goalkeeper"),
 								number: player?.number,
 								photo_url: player?.photo_url,
 								is_goalkeeper: true
 							}}
-							roleLabel="Portero"
+							roleLabel={t("goalkeeper")}
 						/>
 					</div>
 
@@ -225,15 +228,15 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 						<div className="sticky top-0 z-20 px-4 pb-2 bg-background/60 backdrop-blur">
 							<div className="rounded-xl border bg-background/80 backdrop-blur px-3 py-2 flex items-center justify-between gap-3">
 								<div className="text-xs text-muted-foreground">
-									Cambios sin guardar {error ? <span className="text-destructive">· {error}</span> : null}
+									{t("unsavedChanges")} {error ? <span className="text-destructive">· {error}</span> : null}
 								</div>
 
 								<div className="flex items-center gap-2">
 									<Button variant="outline" size="sm" onClick={discard} disabled={saving}>
-										Descartar
+										{t("discard")}
 									</Button>
 									<Button size="sm" onClick={save} disabled={saving}>
-										{saving ? "Guardando..." : "Guardar cambios"}
+										{saving ? t("saving") : t("saveChanges")}
 									</Button>
 								</div>
 							</div>
@@ -244,10 +247,10 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 
 					<div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-							<KpiBox label="Paradas" value={derived.paradas} className="bg-blue-500/5 border-blue-500/10" />
-							<KpiBox label="GC" value={derived.golesRecibidos} className="bg-white/5 border-blue-500/20" />
-							<KpiBox label="Eficiencia" value={`${derived.savePercentage}%`} className="bg-blue-500/5 border-blue-500/10" />
-							<KpiBox label="Tiros" value={derived.tirosRecibidos} className="bg-white/5 border-blue-500/20" />
+							<KpiBox label={t("saves")} value={derived.paradas} className="bg-blue-500/5 border-blue-500/10" />
+							<KpiBox label={t("goalsConcededShort")} value={derived.golesRecibidos} className="bg-white/5 border-blue-500/20" />
+							<KpiBox label={t("efficiency")} value={`${derived.savePercentage}%`} className="bg-blue-500/5 border-blue-500/10" />
+							<KpiBox label={t("shotsReceivedShort")} value={derived.tirosRecibidos} className="bg-white/5 border-blue-500/20" />
 						</div>
 
 						<GoalkeeperStatsSections
@@ -263,21 +266,21 @@ export function GoalkeeperMatchStatsModal({ open, onOpenChange, player, stat, de
 
 			<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 				<DialogContent className="sm:max-w-[480px]">
-					<DialogTitle>¿Salir sin guardar?</DialogTitle>
+					<DialogTitle>{t("leaveTitle")}</DialogTitle>
 
-					<div className="text-sm text-muted-foreground">Tienes cambios sin guardar en favoritas. ¿Qué quieres hacer?</div>
+					<div className="text-sm text-muted-foreground">{t("leaveDescription")}</div>
 
 					<div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
 						<Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={saving}>
-							Seguir editando
+							{t("continueEditing")}
 						</Button>
 
 						<Button variant="destructive" onClick={confirmCloseWithoutSaving} disabled={saving}>
-							Salir sin guardar
+							{t("leaveWithoutSaving")}
 						</Button>
 
 						<Button onClick={confirmSaveAndClose} disabled={saving}>
-							{saving ? "Guardando..." : "Guardar y salir"}
+							{saving ? t("saving") : t("saveAndExit")}
 						</Button>
 					</div>
 				</DialogContent>

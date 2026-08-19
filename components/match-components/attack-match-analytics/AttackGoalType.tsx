@@ -7,6 +7,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } 
 import { Target, TrendingUp, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
+import { useLocale, useTranslations } from "next-intl";
 
 interface MatchGoalMixChartProps {
 	match: any;
@@ -104,6 +105,8 @@ function CustomTooltip({
 }
 
 export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalMixChartProps) {
+	const t = useTranslations("MatchCharts");
+	const locale = useLocale();
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const summary = useMemo(() => {
@@ -134,12 +137,12 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 		const pct = (x: number) => (total > 0 ? (x / total) * 100 : 0);
 
 		const rawParts: GoalMixPart[] = [
-			{ key: "boya", label: "Boya/Jugada", value: boya, pct: pct(boya), color: "hsla(140, 70%, 45%, 1.00)" },
-			{ key: "lanzamiento", label: "Lanzamiento", value: lanzamiento, pct: pct(lanzamiento), color: "hsla(12, 85%, 60%, 1.00)" },
-			{ key: "dir5m", label: "Dir +6m", value: dir5m, pct: pct(dir5m), color: "hsla(220, 80%, 62%, 1.00)" },
-			{ key: "contra", label: "Contraataque", value: contra, pct: pct(contra), color: "hsla(205, 90%, 55%, 1.00)" },
-			{ key: "penalti", label: "Penalti", value: penalti, pct: pct(penalti), color: "hsla(330, 78%, 58%, 1.00)" },
-			{ key: "sup", label: "Superioridad", value: sup, pct: pct(sup), color: "hsla(59, 85%, 45%, 1.00)" }
+			{ key: "boya", label: t("buoyPlay"), value: boya, pct: pct(boya), color: "hsla(140, 70%, 45%, 1.00)" },
+			{ key: "lanzamiento", label: t("shot"), value: lanzamiento, pct: pct(lanzamiento), color: "hsla(12, 85%, 60%, 1.00)" },
+			{ key: "dir5m", label: t("direct6m"), value: dir5m, pct: pct(dir5m), color: "hsla(220, 80%, 62%, 1.00)" },
+			{ key: "contra", label: t("counterattack"), value: contra, pct: pct(contra), color: "hsla(205, 90%, 55%, 1.00)" },
+			{ key: "penalti", label: t("penalty"), value: penalti, pct: pct(penalti), color: "hsla(330, 78%, 58%, 1.00)" },
+			{ key: "sup", label: t("superiority"), value: sup, pct: pct(sup), color: "hsla(59, 85%, 45%, 1.00)" }
 		];
 
 		const parts = rawParts.filter((p) => p.value > 0);
@@ -151,7 +154,7 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 			total,
 			topType: topType && topType.value > 0 ? topType : null
 		};
-	}, [stats, hiddenSet]);
+	}, [stats, hiddenSet, t]);
 
 	const perMatch = useMemo(() => {
 		const boya = hiddenSet.has("goles_boya_jugada") ? 0 : (stats ?? []).reduce((sum: number, s: any) => sum + toNum(s.goles_boya_jugada), 0);
@@ -191,7 +194,7 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 						jornadaNumber,
 						jornada: `J${jornadaNumber}`,
 						rival: match?.opponent ?? "—",
-						fullDate: match?.match_date ? new Date(match.match_date).toLocaleDateString("es-ES") : "—",
+						fullDate: match?.match_date ? new Date(match.match_date).toLocaleDateString(locale) : "—",
 						boya,
 						lanzamiento,
 						dir5m,
@@ -208,30 +211,30 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 					}
 				]
 			: [];
-	}, [match, stats, hiddenSet]);
+	}, [match, stats, hiddenSet, locale]);
 
 	if (summary.total <= 0) return null;
 
-	const jornada = match?.jornada ? `J${match.jornada}` : "Partido";
+	const jornada = match?.jornada ? `J${match.jornada}` : t("match");
 	const rival = match?.opponent ?? "—";
-	const fecha = match?.match_date ? new Date(match.match_date).toLocaleDateString("es-ES") : "—";
+	const fecha = match?.match_date ? new Date(match.match_date).toLocaleDateString(locale) : "—";
 
 	return (
 		<ExpandableChartCard
-			title="Tipo de goles ofensivos"
-			description={`${jornada} · vs ${rival} · ${fecha}`}
+			title={t("goalTypesTitle")}
+			description={t("shootingDescription", { round: jornada, opponent: rival, date: fecha })}
 			icon={<Target className="w-5 h-5" />}
-			className="from-transparent"
+			className="h-full from-transparent"
 			rightHeader={<span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
 			renderChart={({ compact }) => {
-				const outer = compact ? 86 : 116;
-				const inner = compact ? 52 : 74;
+				const outer = compact ? 66 : 116;
+				const inner = compact ? 42 : 74;
 
 				return (
 					<div className="w-full">
 						<div className={`grid gap-5 ${compact ? "grid-cols-1" : "grid-cols-1 xl:grid-cols-[1.05fr_1fr]"}`}>
 							<div className="relative">
-								<div className={`${compact ? "h-[240px]" : "h-[320px]"} w-full rounded-3xl border border-border/60 bg-card/30 p-2`}>
+								<div className={`${compact ? "h-[180px]" : "h-[320px]"} w-full rounded-2xl border border-border/60 bg-card/30 p-2`}>
 									<ChartContainer
 										config={Object.fromEntries(
 											summary.rawParts.filter((p) => p.value > 0).map((p) => [p.key, { label: p.label, color: p.color }])
@@ -261,25 +264,25 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 									</ChartContainer>
 
 									<DonutCenter
-										title="Goles"
+									title={t("goals")}
 										value={summary.total}
 										subtitle={summary.topType ? `${summary.topType.label} · ${Math.round(summary.topType.pct)}%` : "—"}
 									/>
 								</div>
 							</div>
 
-							<div className="space-y-4">
+							{!compact ? <div className="space-y-4">
 								<div className="flex flex-wrap gap-2">
 									<TinyPill>
-										Total <span className="ml-1 font-semibold text-foreground tabular-nums">{summary.total}</span>
+									{t("total")} <span className="ml-1 font-semibold text-foreground tabular-nums">{summary.total}</span>
 									</TinyPill>
 									{summary.topType ? (
 										<TinyPill>
-											Top tipo <span className="ml-1 font-semibold text-foreground">{summary.topType.label}</span>
+										{t("topType")} <span className="ml-1 font-semibold text-foreground">{summary.topType.label}</span>
 										</TinyPill>
 									) : null}
 									<TinyPill>
-										Partido <span className="ml-1 font-semibold text-foreground">{jornada}</span>
+									{t("match")} <span className="ml-1 font-semibold text-foreground">{jornada}</span>
 									</TinyPill>
 								</div>
 
@@ -287,9 +290,9 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 
 								<div className="rounded-3xl border border-border/60 bg-card/40 p-4 shadow-sm">
 									<div className="flex items-center justify-between gap-3 mb-3">
-										<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Distribución</p>
+										<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("distribution")}</p>
 										<Badge variant="outline" className="bg-background/70 text-[11px]">
-											{summary.parts.length} tipos
+											{t("typesCount", { count: summary.parts.length })}
 										</Badge>
 									</div>
 
@@ -324,18 +327,16 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 										</div>
 
 										<div className="min-w-0">
-											<p className="text-sm font-semibold">Lectura rápida</p>
+											<p className="text-sm font-semibold">{t("quickRead")}</p>
 											<p className="mt-1 text-xs leading-relaxed text-muted-foreground">
 												{summary.topType
-													? `${summary.topType.label} fue la vía principal de gol del partido, con ${summary.topType.value} tantos (${fmtPct(
-															summary.topType.pct
-														)}).`
-													: "No hay suficientes datos para generar una lectura del partido."}
+												? t("goalQuickRead", { type: summary.topType.label, value: summary.topType.value, percentage: fmtPct(summary.topType.pct) })
+												: t("noQuickRead")}
 											</p>
 										</div>
 									</div>
 								</div>
-							</div>
+							</div> : null}
 						</div>
 					</div>
 				);
@@ -344,7 +345,7 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 				<div className="rounded-3xl border border-border/60 bg-card/40 overflow-hidden">
 					<div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-4 py-4">
 						<div className="min-w-0">
-							<p className="text-sm font-semibold">Detalle de tipo de goles</p>
+							<p className="text-sm font-semibold">{t("goalTypeDetail")}</p>
 							<p className="text-xs text-muted-foreground">
 								{jornada} · {rival} · {fecha}
 							</p>
@@ -352,11 +353,11 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 
 						<div className="flex flex-wrap gap-2">
 							<Badge variant="outline" className="bg-background/70 text-[11px] tabular-nums">
-								Total {summary.total}
+								{t("total")} {summary.total}
 							</Badge>
 							{summary.topType ? (
 								<Badge variant="outline" className="bg-background/70 text-[11px]">
-									Top {summary.topType.label}
+									{t("top", { label: summary.topType.label })}
 								</Badge>
 							) : null}
 						</div>
@@ -383,18 +384,18 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 									<Table className="min-w-[1180px]">
 										<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 											<TableRow className="hover:bg-transparent">
-												<TableHead className="w-[90px]">Jornada</TableHead>
-												<TableHead>Rival</TableHead>
-												{!hiddenSet.has("goles_boya_jugada") && <TableHead className="text-right">Boya</TableHead>}
-												{!hiddenSet.has("goles_lanzamiento") && <TableHead className="text-right">Lanz.</TableHead>}
-												{!hiddenSet.has("goles_dir_mas_5m") && <TableHead className="text-right">Dir +6m</TableHead>}
-												{!hiddenSet.has("goles_contraataque") && <TableHead className="text-right">Contra</TableHead>}
-												{!hiddenSet.has("goles_penalti_anotado") && <TableHead className="text-right">Penalti</TableHead>}
+										<TableHead className="w-[90px]">{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
+										{!hiddenSet.has("goles_boya_jugada") && <TableHead className="text-right">{t("buoyShort")}</TableHead>}
+										{!hiddenSet.has("goles_lanzamiento") && <TableHead className="text-right">{t("shotShort")}</TableHead>}
+										{!hiddenSet.has("goles_dir_mas_5m") && <TableHead className="text-right">{t("direct6mShort")}</TableHead>}
+										{!hiddenSet.has("goles_contraataque") && <TableHead className="text-right">{t("counterShort")}</TableHead>}
+										{!hiddenSet.has("goles_penalti_anotado") && <TableHead className="text-right">{t("penalty")}</TableHead>}
 												{(!hiddenSet.has("goles_hombre_mas") || !hiddenSet.has("gol_del_palo_sup")) && (
-													<TableHead className="text-right">Sup.</TableHead>
+											<TableHead className="text-right">{t("powerPlayShort")}</TableHead>
 												)}
-												<TableHead className="text-right">Total</TableHead>
-												<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="text-right">{t("total")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 											</TableRow>
 										</UITableHeader>
 
@@ -471,13 +472,11 @@ export function MatchGoalMixChart({ match, stats, hiddenStats = [] }: MatchGoalM
 								</div>
 
 								<div>
-									<p className="text-sm font-semibold">Conclusión</p>
+									<p className="text-sm font-semibold">{t("conclusion")}</p>
 									<p className="mt-1 text-xs leading-relaxed text-muted-foreground">
 										{summary.topType
-											? `La producción ofensiva del partido se apoyó sobre todo en ${summary.topType.label}, con ${summary.topType.value} goles y un peso de ${fmtPct(
-													summary.topType.pct
-											  )} sobre el total.`
-											: "No hay suficientes datos para generar una conclusión del partido."}
+										? t("goalConclusion", { type: summary.topType.label, value: summary.topType.value, percentage: fmtPct(summary.topType.pct) })
+										: t("noConclusion")}
 									</p>
 								</div>
 							</div>

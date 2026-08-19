@@ -33,6 +33,7 @@ import {
   Shield,
   RefreshCcw,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 interface MatchComparisonProps {
   matches: Match[]
@@ -40,6 +41,7 @@ interface MatchComparisonProps {
 }
 
 export function MatchComparison({ matches, stats }: MatchComparisonProps) {
+  const t = useTranslations("MatchComparison")
   const [open, setOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
 
@@ -76,10 +78,10 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
               ＋
             </div>
             <h3 className="text-lg font-semibold">
-              Añadir partidos para comparar
+              {t("addMatches")}
             </h3>
             <p className="text-muted-foreground max-w-md mx-auto text-sm">
-              Comparación avanzada por fases del juego
+              {t("advancedComparison")}
             </p>
           </CardContent>
         </Card>
@@ -97,6 +99,7 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
               <button
                 onClick={() => removeMatch(m.matchId)}
                 className="ml-1 h-4 w-4 rounded-full text-xs hover:bg-destructive hover:text-white"
+                aria-label={t("removeMatch", { opponent: m.opponent })}
               >
                 ×
               </button>
@@ -109,9 +112,9 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
       {comparisonData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Comparación Detallada de Partidos</CardTitle>
+            <CardTitle>{t("title")}</CardTitle>
             <CardDescription>
-              Verde = mejor · Rojo = peor
+              {t("colorLegend")}
             </CardDescription>
           </CardHeader>
 
@@ -119,7 +122,7 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Estadística</TableHead>
+                  <TableHead>{t("statistic")}</TableHead>
                   {comparisonData.map((m) => (
                     <TableHead key={m.matchId} className="text-center">
                       <div className="font-semibold">{m.jornada}</div>
@@ -133,17 +136,17 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
 
               <TableBody>
                 {/* ATAQUE */}
-                <Section title="Ataque" icon={<Swords className="h-4 w-4" />}>
-                  <ComparisonRow label="Goles" field="goles" data={comparisonData} />
-                  <ComparisonRow label="Tiros" field="tiros" data={comparisonData} />
+                <Section title={t("attack")} icon={<Swords className="h-4 w-4" />}>
+                  <ComparisonRow label={t("goals")} field="goles" data={comparisonData} />
+                  <ComparisonRow label={t("shots")} field="tiros" data={comparisonData} />
                   <ComparisonRow
-                    label="Eficiencia de tiro"
+                    label={t("shootingEfficiency")}
                     field="eficienciaTiro"
                     isPercentage
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="Asistencias"
+                    label={t("assists")}
                     field="asistencias"
                     data={comparisonData}
                   />
@@ -151,17 +154,17 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
 
                 {/* SUPERIORIDAD */}
                 <Section
-                  title="Superioridad numérica (H+)"
+                  title={t("powerPlay")}
                   icon={<PlusCircle className="h-4 w-4" />}
                 >
                   <ComparisonRow
-                    label="H+ (goles / fallos)"
+                    label={t("powerPlayGoalsMisses")}
                     field="golesHombreMas"
                     extraField="fallosHombreMas"
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="Eficiencia H+"
+                    label={t("powerPlayEfficiency")}
                     field="eficienciaHombreMas"
                     isPercentage
                     data={comparisonData}
@@ -170,34 +173,34 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
 
                 {/* DEFENSA / PORTERÍA */}
                 <Section
-                  title="Defensa y portería"
+                  title={t("defenseAndGoalkeeping")}
                   icon={<Shield className="h-4 w-4" />}
                 >
-                  <ComparisonRow label="Bloqueos" field="bloqueos" data={comparisonData} />
+                  <ComparisonRow label={t("blocks")} field="bloqueos" data={comparisonData} />
                   <ComparisonRow
-                    label="Goles recibidos"
+                    label={t("goalsConceded")}
                     field="golesRecibidos"
                     inverse
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="Paradas del portero"
+                    label={t("goalkeeperSaves")}
                     field="paradasPortero"
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="% Paradas"
+                    label={t("savePercentage")}
                     field="porcentajeParadas"
                     isPercentage
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="Paradas en inferioridad"
+                    label={t("disadvantageSaves")}
                     field="paradasHombreMenos"
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="Eficiencia defensiva en inferioridad"
+                    label={t("defensiveDisadvantageEfficiency")}
                     field="eficienciaDefensivaHombreMenos"
                     isPercentage
                     data={comparisonData}
@@ -206,22 +209,22 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
 
                 {/* POSESIÓN */}
                 <Section
-                  title="Posesión y acciones"
+                  title={t("possessionAndActions")}
                   icon={<RefreshCcw className="h-4 w-4" />}
                 >
                   <ComparisonRow
-                    label="Recuperaciones"
+                    label={t("recoveries")}
                     field="recuperaciones"
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="Pérdidas"
+                    label={t("turnovers")}
                     field="perdidas"
                     inverse
                     data={comparisonData}
                   />
                   <ComparisonRow
-                    label="Balance de posesión"
+                    label={t("possessionBalance")}
                     field="balancePosesion"
                     data={comparisonData}
                   />
@@ -236,9 +239,9 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Seleccionar partidos</DialogTitle>
+            <DialogTitle>{t("selectMatches")}</DialogTitle>
             <DialogDescription>
-              Pulsa sobre los partidos que quieras comparar
+              {t("selectMatchesDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -283,7 +286,7 @@ export function MatchComparison({ matches, stats }: MatchComparisonProps) {
 
           <div className="flex justify-end pt-2">
             <Button onClick={() => setOpen(false)}>
-              Confirmar ({selectedIds.length})
+              {t("confirm", { count: selectedIds.length })}
             </Button>
           </div>
         </DialogContent>

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useTranslations } from "next-intl"
 
 interface StatPlayerHighlightProps {
   label: string
@@ -8,11 +9,12 @@ interface StatPlayerHighlightProps {
 }
 
 export function StatPlayerHighlight({ label, player, statValue }: StatPlayerHighlightProps) {
+  const t = useTranslations("TeamCards")
   return (
     <Card className="border">
       <CardHeader>
         <CardTitle>{label}</CardTitle>
-        <CardDescription>Jugador más destacado</CardDescription>
+        <CardDescription>{t("standoutPlayer")}</CardDescription>
       </CardHeader>
       <CardContent className="flex items-center gap-4">
         <Avatar className="h-12 w-12">

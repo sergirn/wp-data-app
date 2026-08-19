@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bar, ComposedChart, Line, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
 import type { Match, MatchStats, Player } from "@/lib/types";
 import { Anchor } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 interface AttackBoyaFlowChartProps {
 	matches: Match[];
@@ -27,6 +28,8 @@ const sumVisible = (rows: Record<string, any>[], key: string, hiddenSet: Set<str
 };
 
 export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: AttackBoyaFlowChartProps) {
+	const t = useTranslations("AnalyticsCharts.buoy");
+	const locale = useLocale();
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showPaseBoya = !hiddenSet.has("pase_boya");
@@ -61,7 +64,7 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 				paseBoya,
 				paseBoyaFallado,
 				golesBoya,
@@ -70,7 +73,7 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 				exitoPaseBoya
 			};
 		});
-	}, [sortedMatches, stats, hiddenSet]);
+	}, [sortedMatches, stats, hiddenSet, locale]);
 
 	const jornadaByXLabel = useMemo(() => {
 		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
@@ -93,18 +96,18 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 
 	return (
 		<ExpandableChartCard
-			title="Juego con boya"
-			description={`Últimos ${partidos} · Conv.: ${totals.conversionBoya}% · Éxito pase: ${totals.exitoPaseBoya}%`}
+			title={t("title")}
+			description={t("description", { count: partidos, conversion: totals.conversionBoya, passSuccess: totals.exitoPaseBoya })}
 			icon={<Anchor className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{totals.conversionBoya}%</span>}
 			renderChart={({ compact }) => (
 				<ChartContainer
 					config={{
-						paseBoya: { label: "Pase boya", color: "hsla(221, 83%, 53%, 1.00)" },
-						paseBoyaFallado: { label: "Pase boya fallado", color: "hsla(0, 84%, 60%, 1.00)" },
-						golesBoya: { label: "Gol boya", color: "hsla(145, 63%, 42%, 1.00)" },
-						conversionBoya: { label: "Conversión boya %", color: "hsla(42, 96%, 55%, 1.00)" }
+						paseBoya: { label: t("centerPass"), color: "hsla(221, 83%, 53%, 1.00)" },
+						paseBoyaFallado: { label: t("failedCenterPass"), color: "hsla(0, 84%, 60%, 1.00)" },
+						golesBoya: { label: t("centerGoal"), color: "hsla(145, 63%, 42%, 1.00)" },
+						conversionBoya: { label: t("centerConversionPercentage"), color: "hsla(42, 96%, 55%, 1.00)" }
 					}}
 					className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}
 				>
@@ -141,7 +144,7 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
 											if (!p) return "";
-											return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Conv.: ${p.conversionBoya}%`;
+											return t("tooltip", { round: p.jornada, opponent: p.rival, date: p.fullDate, conversion: p.conversionBoya });
 										}}
 									/>
 								}
@@ -149,21 +152,21 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 
 							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
 
-							<Bar yAxisId="left" dataKey="paseBoya" name="Pase boya" fill="var(--color-paseBoya)" radius={[4, 4, 0, 0]} />
+							<Bar yAxisId="left" dataKey="paseBoya" name={t("centerPass")} fill="var(--color-paseBoya)" radius={[4, 4, 0, 0]} />
 							<Bar
 								yAxisId="left"
 								dataKey="paseBoyaFallado"
-								name="Pase boya fallado"
+								name={t("failedCenterPass")}
 								fill="var(--color-paseBoyaFallado)"
 								radius={[4, 4, 0, 0]}
 							/>
-							<Bar yAxisId="left" dataKey="golesBoya" name="Gol boya" fill="var(--color-golesBoya)" radius={[4, 4, 0, 0]} />
+							<Bar yAxisId="left" dataKey="golesBoya" name={t("centerGoal")} fill="var(--color-golesBoya)" radius={[4, 4, 0, 0]} />
 
 							<Line
 								yAxisId="right"
 								type="monotone"
 								dataKey="conversionBoya"
-								name="Conversión boya %"
+								name={t("centerConversionPercentage")}
 								stroke="var(--color-conversionBoya)"
 								strokeWidth={3}
 								dot={false}
@@ -180,15 +183,15 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 							<Table className="min-w-[1040px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										{showPaseBoya && <TableHead className="text-right">Pase boya</TableHead>}
-										{showPaseBoyaFallado && <TableHead className="text-right">P. boya fall.</TableHead>}
-										{showGolesBoya && <TableHead className="text-right">Gol boya</TableHead>}
-										<TableHead className="text-right">Intentos</TableHead>
-										<TableHead className="text-right">Éxito pase</TableHead>
-										<TableHead className="text-right">Conversión</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="w-[90px]">{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
+										{showPaseBoya && <TableHead className="text-right">{t("centerPass")}</TableHead>}
+										{showPaseBoyaFallado && <TableHead className="text-right">{t("failedCenterPassShort")}</TableHead>}
+										{showGolesBoya && <TableHead className="text-right">{t("centerGoal")}</TableHead>}
+										<TableHead className="text-right">{t("attempts")}</TableHead>
+										<TableHead className="text-right">{t("passSuccess")}</TableHead>
+										<TableHead className="text-right">{t("conversion")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -225,32 +228,32 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{partidos}</span> partidos
+								{t("matches", { count: partidos })}
 							</span>
 							<div className="flex flex-wrap gap-2">
 								{showPaseBoya && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Pase boya: <span className="font-semibold text-foreground">{totals.paseBoya}</span>
+										{t("centerPassCount", { count: totals.paseBoya })}
 									</span>
 								)}
 								{showPaseBoyaFallado && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										P. boya fallado: <span className="font-semibold text-foreground">{totals.paseBoyaFallado}</span>
+										{t("failedCenterPassCount", { count: totals.paseBoyaFallado })}
 									</span>
 								)}
 								{showGolesBoya && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Gol boya: <span className="font-semibold text-foreground">{totals.golesBoya}</span>
+										{t("centerGoalCount", { count: totals.golesBoya })}
 									</span>
 								)}
 								<span className="rounded-md border bg-card px-2 py-1">
-									Intentos: <span className="font-semibold text-foreground">{totals.intentosBoya}</span>
+									{t("attemptsCount", { count: totals.intentosBoya })}
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Éxito pase: <span className="font-semibold text-foreground">{totals.exitoPaseBoya}%</span>
+									{t("passSuccessValue", { value: totals.exitoPaseBoya })}
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Conversión: <span className="font-semibold text-foreground">{totals.conversionBoya}%</span>
+									{t("conversionValue", { value: totals.conversionBoya })}
 								</span>
 							</div>
 						</div>

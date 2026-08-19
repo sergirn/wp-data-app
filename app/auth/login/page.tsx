@@ -12,12 +12,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
+	const t = useTranslations("Auth");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
-	const [remember, setRemember] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -36,15 +37,14 @@ export default function LoginPage() {
 			if (error) throw error;
 
 			if (data.session) {
-				document.cookie = `sb-access-token=${data.session.access_token}; path=/; ${remember ? "max-age=2592000;" : ""}`;
 				window.location.href = "/";
 				return;
 			}
 
-			setError("No se pudo iniciar sesión. Inténtalo de nuevo.");
+			setError(t("loginFailed"));
 			setIsLoading(false);
 		} catch {
-			setError("Email o contraseña incorrectos");
+			setError(t("invalidCredentials"));
 			setIsLoading(false);
 		}
 	};
@@ -67,25 +67,25 @@ export default function LoginPage() {
 						</div>
 
 						<h1 className="text-2xl font-bold tracking-tight sm:text-3xl">WaterpoloStats</h1>
-						<p className="mt-1 text-sm text-muted-foreground">Sistema de estadísticas deportivas</p>
+						<p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
 					</div>
 
 					{/* Card */}
 					<Card className="border bg-card shadow-sm">
 						<CardContent className="p-5 sm:p-6 md:p-8">
 							<div className="mb-6 ">
-								<h2 className="text-xl font-semibold">Acceso al sistema</h2>
-								<p className="mt-1 text-sm text-muted-foreground">Gestiona el rendimiento de tu equipo</p>
+								<h2 className="text-xl font-semibold">{t("title")}</h2>
+								<p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
 							</div>
 
 							<form onSubmit={handleLogin} className="space-y-5">
 								{/* Email */}
 								<div className="space-y-2">
-									<Label htmlFor="email">Email</Label>
+									<Label htmlFor="email">{t("email")}</Label>
 									<Input
 										id="email"
 										type="email"
-										placeholder="tu@email.com"
+										placeholder={t("emailPlaceholder")}
 										value={email}
 										onChange={(e) => setEmail(e.target.value)}
 										disabled={isLoading}
@@ -98,9 +98,9 @@ export default function LoginPage() {
 								{/* Password */}
 								<div className="space-y-2">
 									<div className="flex items-center justify-between gap-3">
-										<Label htmlFor="password">Contraseña</Label>
+										<Label htmlFor="password">{t("password")}</Label>
 										<Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
-											¿Olvidaste tu contraseña?
+											{t("forgotPassword")}
 										</Link>
 									</div>
 
@@ -118,7 +118,7 @@ export default function LoginPage() {
 										<button
 											type="button"
 											onClick={() => setShowPassword((v) => !v)}
-											aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+											aria-label={showPassword ? t("hidePassword") : t("showPassword")}
 											className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
 										>
 											{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -137,22 +137,22 @@ export default function LoginPage() {
 									{isLoading ? (
 										<span className="flex items-center gap-2">
 											<Loader2 className="h-4 w-4 animate-spin" />
-											Entrando...
+											{t("signingIn")}
 										</span>
 									) : (
-										"Entrar"
+										t("signIn")
 									)}
 								</Button>
 							</form>
 
 							<div className="mt-4 space-y-2 text-center text-sm">
 								<p className="text-muted-foreground">
-									¿Aún no tienes acceso?{" "}
+									{t("noAccess")}{" "}
 									<a
 										href="mailto:sergirojasnavarro@gmail.com?subject=Solicitud%20de%20demo%20-%20WaterpoloStats"
 										className="font-medium text-primary underline underline-offset-4"
 									>
-										Solicitar demo
+										{t("requestDemo")}
 									</a>
 								</p>
 							</div>
@@ -162,7 +162,7 @@ export default function LoginPage() {
 					{/* Footer */}
 					<div className="mt-6 flex flex-col items-center gap-3 text-center">
 						<p className="text-xs text-muted-foreground">
-							POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+							{t("poweredBy")} <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
 						</p>
 
 						<div className="flex items-center justify-center gap-4 sm:gap-5">

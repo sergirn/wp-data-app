@@ -6,6 +6,7 @@ import type { MatchStats } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { MatchConversionChartTemplate } from "../templates/charts/MatchConversionChartTemplate";
 import { buildMatchPossessionData } from "@/lib/helpers/chartPossessionHelper";
+import { useTranslations } from "next-intl";
 
 type Props = {
 	stats: MatchStats[];
@@ -28,8 +29,10 @@ function Row({ label, value, subtle }: { label: string; value: React.ReactNode; 
 	);
 }
 
-export function MatchPossessionChart({ stats, rival = "Rival", matchDateLabel }: Props) {
-	const computed = useMemo(() => buildMatchPossessionData(stats as any[], rival, matchDateLabel), [stats, rival, matchDateLabel]);
+export function MatchPossessionChart({ stats, rival, matchDateLabel }: Props) {
+	const t = useTranslations("MatchCharts");
+	const rivalLabel = rival ?? t("opponent");
+	const computed = useMemo(() => buildMatchPossessionData(stats as any[], rivalLabel, matchDateLabel), [stats, rivalLabel, matchDateLabel]);
 
 	if (!stats?.length) return null;
 
@@ -37,8 +40,8 @@ export function MatchPossessionChart({ stats, rival = "Rival", matchDateLabel }:
 
 	return (
 		<MatchConversionChartTemplate
-			title="Posesión"
-			description={`Rec ${computed.recuperaciones} · Pérd ${computed.perdidas} · Bal ${balanceSign}${computed.balance}`}
+			title={t("possession")}
+			description={t("possessionDescription", { recoveries: computed.recuperaciones, losses: computed.perdidas, balance: `${balanceSign}${computed.balance}` })}
 			icon={<Repeat2 className="h-5 w-5" />}
 			data={{
 				scored: computed.recuperaciones,
@@ -46,10 +49,10 @@ export function MatchPossessionChart({ stats, rival = "Rival", matchDateLabel }:
 				attempts: computed.totalMov,
 				efficiency: computed.pctRec
 			}}
-			scoredLabel="Recuperaciones"
-			missedLabel="Pérdidas"
-			insightGood="Más recuperaciones que pérdidas. Balance positivo en posesión."
-			insightBad="Más pérdidas que recuperaciones. Balance mejorable en posesión."
+			scoredLabel={t("recoveries")}
+			missedLabel={t("losses")}
+			insightGood={t("possessionGood")}
+			insightBad={t("possessionBad")}
 			rightHeader={
 				<span className="text-xs text-muted-foreground tabular-nums">
 					{balanceSign}
@@ -62,17 +65,17 @@ export function MatchPossessionChart({ stats, rival = "Rival", matchDateLabel }:
 				<>
 					<div className="rounded-3xl border border-border/60 bg-card/40 p-4 shadow-sm">
 						<div className="flex items-center justify-between gap-3 mb-3">
-							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Detalle</p>
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("detail")}</p>
 							<Badge variant="outline" className="bg-background/70 text-[11px] tabular-nums">
-								Ratio {computed.ratioRecPer}
+								{t("ratio", { value: computed.ratioRecPer })}
 							</Badge>
 						</div>
 
 						<div className="grid grid-cols-2 gap-2">
-							<Row label="% Recuperaciones" value={`${computed.pctRec}%`} subtle />
-							<Row label="% Pérdidas" value={`${computed.pctPer}%`} subtle />
+							<Row label={t("recoveriesPercentage")} value={`${computed.pctRec}%`} subtle />
+							<Row label={t("lossesPercentage")} value={`${computed.pctPer}%`} subtle />
 							<div className="col-span-2">
-								<Row label="Contexto" value={computed.context.rival} subtle />
+								<Row label={t("context")} value={computed.context.rival} subtle />
 							</div>
 						</div>
 					</div>
@@ -81,14 +84,14 @@ export function MatchPossessionChart({ stats, rival = "Rival", matchDateLabel }:
 			renderExtraTableSummary={
 				<>
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-						<Row label="Recuperaciones" value={computed.recuperaciones} />
-						<Row label="Pérdidas" value={computed.perdidas} />
-						<Row label="Balance" value={`${balanceSign}${computed.balance}`} />
-						<Row label="Total movimientos" value={computed.totalMov} subtle />
-						<Row label="% Recuperaciones" value={`${computed.pctRec}%`} subtle />
-						<Row label="% Pérdidas" value={`${computed.pctPer}%`} subtle />
-						<Row label="Ratio Rec/Pérd" value={computed.ratioRecPer} subtle />
-						<Row label="Contexto" value={computed.context.rival} subtle />
+						<Row label={t("recoveries")} value={computed.recuperaciones} />
+						<Row label={t("losses")} value={computed.perdidas} />
+						<Row label={t("balance")} value={`${balanceSign}${computed.balance}`} />
+						<Row label={t("totalMovements")} value={computed.totalMov} subtle />
+						<Row label={t("recoveriesPercentage")} value={`${computed.pctRec}%`} subtle />
+						<Row label={t("lossesPercentage")} value={`${computed.pctPer}%`} subtle />
+						<Row label={t("recoveryLossRatio")} value={computed.ratioRecPer} subtle />
+						<Row label={t("context")} value={computed.context.rival} subtle />
 					</div>
 
 					<div
@@ -104,7 +107,7 @@ export function MatchPossessionChart({ stats, rival = "Rival", matchDateLabel }:
 								<div className={["p-2 rounded-full", computed.balance >= 0 ? "bg-emerald-500/20" : "bg-red-500/20"].join(" ")}>
 									<Minus className={`h-4 w-4 ${computed.balance >= 0 ? "text-emerald-600" : "text-red-600"}`} />
 								</div>
-								<span className="text-sm font-medium">Balance final</span>
+								<span className="text-sm font-medium">{t("finalBalance")}</span>
 							</div>
 
 							<span

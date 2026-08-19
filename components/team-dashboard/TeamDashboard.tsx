@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AttackBlock } from "./cards-templates/AttackBlock";
 import { DefenseBlock } from "./cards-templates/DefenseBlock";
 import { GoalkeeperBlock } from "./cards-templates/GoalkeeperBlock";
@@ -27,6 +28,7 @@ const toNum = (v: any) => {
 };
 
 export function TeamDashboard({ teamStats }: TeamDashboardProps) {
+	const t = useTranslations("TeamDashboardCards");
 	const [customCards, setCustomCards] = useState<Array<{ statField: string; statLabel: string }>>([]);
 	const [page, setPage] = useState(0);
 	const [perPage, setPerPage] = useState(3);
@@ -133,18 +135,18 @@ export function TeamDashboard({ teamStats }: TeamDashboardProps) {
 			{/* Header */}
 			<div className="flex items-center justify-between gap-3">
 				<div className="min-w-0">
-					<h3 className="text-base sm:text-lg font-semibold leading-tight">Destacados</h3>
+					<h3 className="text-base sm:text-lg font-semibold leading-tight">{t("highlights")}</h3>
 					<p className="text-xs sm:text-sm text-muted-foreground">
-						{cards.length} cards · página {totalPages ? page + 1 : 0}/{totalPages || 0}
+						{t("pagination", { count: cards.length, page: totalPages ? page + 1 : 0, total: totalPages || 0 })}
 					</p>
 				</div>
 
 				{/* Controles */}
 				<div className="flex items-center gap-2">
-					<Button type="button" size="icon" onClick={onPrev} disabled={page <= 0} aria-label="Anterior">
+					<Button type="button" size="icon" onClick={onPrev} disabled={page <= 0} aria-label={t("previous")}>
 						<ChevronLeft className="h-4 w-4" />
 					</Button>
-					<Button type="button" size="icon" onClick={onNext} disabled={page >= totalPages - 1} aria-label="Siguiente">
+					<Button type="button" size="icon" onClick={onNext} disabled={page >= totalPages - 1} aria-label={t("next")}>
 						<ChevronRight className="h-4 w-4" />
 					</Button>
 				</div>
@@ -191,7 +193,7 @@ export function TeamDashboard({ teamStats }: TeamDashboardProps) {
 				!h-5 !w-5 !min-h-5 !min-w-5
 				sm:!h-8 sm:!w-8 sm:!min-h-8 sm:!min-w-8
 			"
-			aria-label={`Ir a página ${i + 1}`}
+			aria-label={t("goToPage", { page: i + 1 })}
 		>
 			<span
 				className={`

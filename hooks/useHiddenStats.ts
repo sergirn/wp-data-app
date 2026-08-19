@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 type HiddenMap = Record<string, boolean>;
 
@@ -15,6 +16,7 @@ function mapsEqual(a: HiddenMap, b: HiddenMap): boolean {
 }
 
 export function useHiddenStats() {
+	const t = useTranslations("SettingsErrors");
 	const [hiddenStats, setHiddenStats] = React.useState<HiddenMap>({});
 	const [draftHiddenStats, setDraftHiddenStats] = React.useState<HiddenMap>({});
 	const [loaded, setLoaded] = React.useState(false);
@@ -30,7 +32,7 @@ export function useHiddenStats() {
 
 			if (!res.ok) {
 				const json = await res.json().catch(() => null);
-				throw new Error(json?.error || "Error al cargar los campos ocultos");
+				throw new Error(json?.error || t("loadHidden"));
 			}
 
 			const json = await res.json();
@@ -40,11 +42,11 @@ export function useHiddenStats() {
 			setHiddenStats(map);
 			setDraftHiddenStats(map);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Error al cargar los campos ocultos");
+			setError(err instanceof Error ? err.message : t("loadHidden"));
 		} finally {
 			setLoaded(true);
 		}
-	}, []);
+	}, [t]);
 
 	React.useEffect(() => {
 		load();
@@ -89,7 +91,7 @@ export function useHiddenStats() {
 
 			if (!res.ok) {
 				const json = await res.json().catch(() => null);
-				throw new Error(json?.error || "Error al guardar");
+				throw new Error(json?.error || t("save"));
 			}
 
 			const json = await res.json();
@@ -99,11 +101,11 @@ export function useHiddenStats() {
 			setHiddenStats(savedMap);
 			setDraftHiddenStats(savedMap);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Error al guardar los campos ocultos");
+			setError(err instanceof Error ? err.message : t("saveHidden"));
 		} finally {
 			setSaving(false);
 		}
-	}, [draftHiddenStats]);
+	}, [draftHiddenStats, t]);
 
 	return {
 		hiddenStats,

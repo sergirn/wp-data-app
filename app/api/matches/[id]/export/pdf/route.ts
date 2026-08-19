@@ -1,6 +1,7 @@
 import { getCurrentProfile } from "@/lib/auth"
 import { getMatchReportData } from "@/lib/matches/get-match-report-data"
 import { buildMatchPdf } from "@/lib/exports/build-match-pdf"
+import { getTranslations } from "next-intl/server"
 
 function sanitizeFilenamePart(value: string) {
   return value
@@ -13,14 +14,14 @@ function sanitizeFilenamePart(value: string) {
     .trim()
 }
 
-function buildPdfFilename(reportData: Awaited<ReturnType<typeof getMatchReportData>>) {
-  const opponentRaw = reportData.match?.opponent || "Rival"
+function buildPdfFilename(reportData: Awaited<ReturnType<typeof getMatchReportData>>, opponentFallback: string, roundFallback: string) {
+  const opponentRaw = reportData.match?.opponent || opponentFallback
   const opponent = sanitizeFilenamePart(opponentRaw)
 
   const jornada =
     reportData.match?.jornada != null
       ? `J${reportData.match.jornada}`
-      : "Jornada"
+      : roundFallback
 
   const dateObj =
     reportData.matchDate instanceof Date
@@ -38,18 +39,21 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const t = await getTranslations("Api")
+  const tExport = await getTranslations("Export")
   try {
     const { id } = await params
     const matchId = Number(id)
 
     if (!Number.isFinite(matchId)) {
-      return new Response("Invalid match id", { status: 400 })
+      return new Response(t("invalidMatchId"), { status: 400 })
     }
 
     const profile = await getCurrentProfile()
-    const reportData = await getMatchReportData(matchId, profile?.id ?? null)
+    if (!profile) return new Response(t("unauthenticated"), { status: 401 })
+    const reportData = await getMatchReportData(matchId, profile)
     const pdfBytes = await buildMatchPdf(reportData)
-    const filename = buildPdfFilename(reportData)
+    const filename = buildPdfFilename(reportData, tExport("opponentFallback"), tExport("roundFallback"))
 
     console.log("PDF filename:", filename)
 
@@ -65,6 +69,6 @@ export async function GET(
     })
   } catch (error) {
     console.error(error)
-    return new Response("Failed to generate PDF", { status: 500 })
+    return new Response(t("pdfGenerationFailed"), { status: 500 })
   }
 }

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { Competition } from "@/lib/admin"
+import { useTranslations } from "next-intl"
 
 
 interface ClubManagementFormProps {
@@ -15,6 +16,7 @@ interface ClubManagementFormProps {
 }
 
 export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
+  const t = useTranslations("AdminForms")
   const [name, setName] = useState("")
   const [shortName, setShortName] = useState("")
   const [logoUrl, setLogoUrl] = useState("")
@@ -59,10 +61,10 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Error al crear club")
+        throw new Error(data.error || t("clubCreateError"))
       }
 
-      setSuccess(`Club "${shortName || name}" creado exitosamente`)
+      setSuccess(t("clubCreated", {name: shortName || name}))
 
       // Reset
       setName("")
@@ -74,7 +76,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
 
       setTimeout(() => window.location.reload(), 2000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear club")
+      setError(err instanceof Error ? err.message : t("clubCreateError"))
     } finally {
       setIsLoading(false)
     }
@@ -86,7 +88,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="name">Nombre *</Label>
+          <Label htmlFor="name">{t("name")}</Label>
           <Input
             id="name"
             type="text"
@@ -98,7 +100,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="shortName">Nombre corto *</Label>
+          <Label htmlFor="shortName">{t("shortName")}</Label>
           <Input
             id="shortName"
             type="text"
@@ -111,7 +113,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="logoUrl">Logo URL</Label>
+        <Label htmlFor="logoUrl">{t("logoUrl")}</Label>
         <Input
           id="logoUrl"
           type="url"
@@ -124,7 +126,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="primaryColor">Color primario</Label>
+          <Label htmlFor="primaryColor">{t("primaryColor")}</Label>
           <Input
             id="primaryColor"
             type="text"
@@ -135,7 +137,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="secondaryColor">Color secundario</Label>
+          <Label htmlFor="secondaryColor">{t("secondaryColor")}</Label>
           <Input
             id="secondaryColor"
             type="text"
@@ -148,7 +150,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
 
       {/* Multi-select competiciones */}
       <div className="space-y-2">
-        <Label>Competiciones *</Label>
+        <Label>{t("competitions")}</Label>
         <div className="rounded-md border p-3 space-y-2">
           {competitions.map((c) => (
             <label key={c.id} className="flex items-center gap-3 cursor-pointer select-none">
@@ -167,11 +169,11 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
             </label>
           ))}
           {competitions.length === 0 && (
-            <p className="text-sm text-muted-foreground">No hay competiciones creadas.</p>
+            <p className="text-sm text-muted-foreground">{t("noCompetitions")}</p>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Selecciona al menos una (por ejemplo: Liga, Amistoso).
+          {t("competitionHint")}
         </p>
       </div>
 
@@ -190,7 +192,7 @@ export function ClubManagementForm({ competitions }: ClubManagementFormProps) {
       )}
 
       <Button type="submit" disabled={isLoading || !isValid}>
-        {isLoading ? "Creando..." : "Crear Club"}
+        {isLoading ? t("creating") : t("createClub")}
       </Button>
     </form>
   )

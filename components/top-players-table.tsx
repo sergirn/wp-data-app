@@ -33,31 +33,32 @@ interface TopPlayersTableProps {
 
 
 export function TopPlayersTable({ players, statType }: TopPlayersTableProps) {
+  const t = useTranslations("TopPlayers")
   const meta = {
     goals: {
-      title: "Goleadores",
-      description: "Máximos anotadores",
-      mainLabel: "Goles",
+      title: t("goals.title"),
+      description: t("goals.description"),
+      mainLabel: t("goals.label"),
     },
     assists: {
-      title: "Asistencias",
-      description: "Creadores de juego",
-      mainLabel: "Asist.",
+      title: t("assists.title"),
+      description: t("assists.description"),
+      mainLabel: t("assists.label"),
     },
     efficiency: {
-      title: "Eficiencia",
-      description: "Acierto ofensivo",
+      title: t("efficiency.title"),
+      description: t("efficiency.description"),
       mainLabel: "%",
     },
     blocks: {
-      title: "Bloqueos",
-      description: "Impacto defensivo",
-      mainLabel: "Bloq.",
+      title: t("blocks.title"),
+      description: t("blocks.description"),
+      mainLabel: t("blocks.label"),
     },
     turnovers: {
-      title: "Pérdidas",
-      description: "Riesgo ofensivo",
-      mainLabel: "Perd.",
+      title: t("turnovers.title"),
+      description: t("turnovers.description"),
+      mainLabel: t("turnovers.label"),
     },
   }[statType]
 
@@ -98,9 +99,9 @@ export function TopPlayersTable({ players, statType }: TopPlayersTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead className="w-12 text-center">#</TableHead>
-              <TableHead>Jugador</TableHead>
+              <TableHead>{t("player")}</TableHead>
               <TableHead className="hidden sm:table-cell text-center">
-                PJ
+                {t("matchesPlayedShort")}
               </TableHead>
               <TableHead className="text-center font-semibold">
                 {meta.mainLabel}
@@ -108,7 +109,7 @@ export function TopPlayersTable({ players, statType }: TopPlayersTableProps) {
               {statType === "goals" && (
                 <>
                   <TableHead className="hidden sm:table-cell text-center">
-                    Tiros
+                    {t("shots")}
                   </TableHead>
                   <TableHead className="hidden sm:table-cell text-center">
                     %
@@ -198,3 +199,6 @@ export function TopPlayersTable({ players, statType }: TopPlayersTableProps) {
     </Card>
   )
 }
+"use client"
+
+import { useTranslations } from "next-intl"

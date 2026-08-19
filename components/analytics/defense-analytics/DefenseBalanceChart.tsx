@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
@@ -24,7 +25,6 @@ const toNum = (v: unknown) => {
 type MetricDef = {
 	key: keyof MatchStats | string;
 	dataKey: string;
-	label: string;
 	color: string;
 	group: "positive" | "negative";
 };
@@ -33,34 +33,33 @@ const METRIC_DEFS: MetricDef[] = [
 	{
 		key: "acciones_bloqueo",
 		dataKey: "bloqueos",
-		label: "Bloq.",
 		color: "hsla(221, 83%, 53%, 1.00)",
 		group: "positive"
 	},
 	{
 		key: "acciones_recuperacion",
 		dataKey: "recuperaciones",
-		label: "Recup.",
 		color: "hsla(145, 63%, 42%, 1.00)",
 		group: "positive"
 	},
 	{
 		key: "acciones_rebote",
 		dataKey: "rebotes",
-		label: "Rebotes",
 		color: "hsla(42, 96%, 55%, 1.00)",
 		group: "positive"
 	},
 	{
 		key: "acciones_recibir_gol",
 		dataKey: "recibeGol",
-		label: "Recibe gol",
 		color: "hsla(0, 84%, 60%, 1.00)",
 		group: "negative"
 	}
 ];
 
 export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: DefenseBalanceChartProps) {
+	const t = useTranslations("DefenseCharts")
+	const tStat = useTranslations("StatLabels")
+	const locale = useLocale()
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibleDefs = useMemo(() => METRIC_DEFS.filter((def) => !hiddenSet.has(String(def.key))), [hiddenSet]);
@@ -96,7 +95,7 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 					xLabel: `${match.id}-${index}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 					...values,
 					positivas,
 					negativas,
@@ -105,7 +104,7 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 				};
 			})
 			.filter((row) => row.positivas > 0 || row.negativas > 0);
-	}, [matches, stats, hiddenSet, positiveDefs, negativeDefs]);
+	}, [matches, stats, hiddenSet, positiveDefs, negativeDefs, locale]);
 
 	const jornadaByXLabel = useMemo(() => {
 		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
@@ -120,7 +119,7 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 			visibleDefs.map((def) => [
 				def.dataKey,
 				{
-					label: def.label,
+					label: tStat(String(def.key)),
 					color: def.color
 				}
 			])
@@ -128,18 +127,18 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 
 		return {
 			...base,
-			positivas: { label: "Positivas", color: "hsla(145, 63%, 42%, 1.00)" },
-			negativasView: { label: "Negativas", color: "hsla(0, 84%, 60%, 1.00)" },
-			balance: { label: "Balance", color: "hsla(221, 83%, 53%, 1.00)" }
+			positivas: { label: t("positive"), color: "hsla(145, 63%, 42%, 1.00)" },
+			negativasView: { label: t("negative"), color: "hsla(0, 84%, 60%, 1.00)" },
+			balance: { label: t("balance"), color: "hsla(221, 83%, 53%, 1.00)" }
 		};
-	}, [visibleDefs]);
+	}, [visibleDefs, t, tStat]);
 
 	if (!visibleDefs.length || !matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Balance defensivo"
-			description={`Positivas ${totalPos} · Negativas ${totalNeg} · Balance ${totalBal >= 0 ? "+" : ""}${totalBal}`}
+			title={t("balanceTitle")}
+			description={t("balanceSummary", { positive: totalPos, negative: totalNeg, balance: `${totalBal >= 0 ? "+" : ""}${totalBal}` })}
 			icon={<Scale className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={
@@ -169,19 +168,19 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 									<ChartTooltipContent
 										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
-											return p ? `${p.jornada} · vs ${p.rival} · ${p.fullDate} · ${p.balance >= 0 ? "+" : ""}${p.balance}` : "";
+										return p ? t("tooltipBalance", { round: p.jornada, opponent: p.rival, date: p.fullDate, balance: `${p.balance >= 0 ? "+" : ""}${p.balance}` }) : "";
 										}}
 									/>
 								}
 							/>
 							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
 
-							<Bar dataKey="positivas" name="Positivas" fill="var(--color-positivas)" radius={[4, 4, 0, 0]} />
-							<Bar dataKey="negativasView" name="Negativas" fill="var(--color-negativasView)" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="positivas" name={t("positive")} fill="var(--color-positivas)" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="negativasView" name={t("negative")} fill="var(--color-negativasView)" radius={[4, 4, 0, 0]} />
 							<Line
 								type="monotone"
 								dataKey="balance"
-								name="Balance"
+								name={t("balance")}
 								stroke="var(--color-balance)"
 								strokeWidth={3}
 								dot={false}
@@ -198,16 +197,16 @@ export function DefenseBalanceChart({ matches, stats, hiddenStats = [] }: Defens
 							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
+										<TableHead>{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.dataKey} className="text-right">
-												{def.label}
+												{tStat(String(def.key))}
 											</TableHead>
 										))}
 
-										<TableHead className="text-right">Balance</TableHead>
+										<TableHead className="text-right">{t("balance")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 								<TableBody>

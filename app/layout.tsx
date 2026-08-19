@@ -8,6 +8,9 @@ import "./globals.css";
 import { getCurrentProfile, getCurrentClub, getAllClubs } from "@/lib/auth";
 import { Suspense } from "react";
 import { Bai_Jamjuree } from "next/font/google";
+import { SerwistProvider } from "@serwist/turbopack/react";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 
 const geistSans = Geist({
 	subsets: ["latin"],
@@ -26,11 +29,14 @@ const baiJamjuree = Bai_Jamjuree({
 	display: "swap",
 });
 
-export const metadata: Metadata = {
-	title: "Estadísticas Waterpolo - Sistema Multi-Club",
-	description: "Sistema de estadísticas para equipos de waterpolo",
-	generator: "v0.app"
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const t = await getTranslations("Metadata");
+	return {
+		title: t("title"),
+		description: t("description"),
+		generator: "v0.app"
+	};
+}
 
 export default async function RootLayout({
 	children
@@ -40,21 +46,26 @@ export default async function RootLayout({
 	const profile = await getCurrentProfile();
 	const currentClub = profile ? await getCurrentClub() : null;
 	const allClubs = profile ? await getAllClubs() : [];
+	const locale = await getLocale();
 
 	return (
-		<html lang="es" className={baiJamjuree.variable} suppressHydrationWarning>
+		<html lang={locale} className={baiJamjuree.variable} suppressHydrationWarning>
 			<head>
 				<link rel="manifest" href="/manifest.json" />
 				<meta name="theme-color" content="#000000" />
 			</head>
 
 			<body className={baiJamjuree.className}>
-				<Suspense fallback={<div>Loading...</div>}>
-					<ClientLayout profile={profile} currentClub={currentClub} allClubs={allClubs}>
-						{children}
-					</ClientLayout>
-				</Suspense>
-				<Analytics />
+				<NextIntlClientProvider>
+				<SerwistProvider swUrl="/serwist/sw.js">
+					<Suspense fallback={<div aria-hidden="true" className="min-h-screen" />}>
+						<ClientLayout profile={profile} currentClub={currentClub} allClubs={allClubs}>
+							{children}
+						</ClientLayout>
+					</Suspense>
+					<Analytics />
+				</SerwistProvider>
+				</NextIntlClientProvider>
 			</body>
 		</html>
 	);

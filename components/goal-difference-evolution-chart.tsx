@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, Line, ComposedChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
@@ -15,6 +16,8 @@ interface GoalDifferenceEvolutionChartProps {
 }
 
 export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutionChartProps) {
+	const t = useTranslations("GoalDifference")
+	const locale = useLocale()
 	const [view, setView] = useState<"chart" | "table">("chart");
 
 	const data = useMemo(() => {
@@ -40,7 +43,7 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: m.opponent,
-				fullDate: new Date(m.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(m.match_date).toLocaleDateString(locale),
 
 				anotados,
 				recibidos,
@@ -48,7 +51,7 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 				diferenciaAcumulada: acumulada
 			};
 		});
-	}, [matches]);
+	}, [matches, locale]);
 
 	const partidos = data.length;
 
@@ -69,9 +72,9 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 			<CardHeader className="space-y-1">
 				<div className="flex items-start justify-between gap-3">
 					<div className="min-w-0">
-						<CardTitle>Evolución Diferencia de Goles</CardTitle>
+						<CardTitle>{t("title")}</CardTitle>
 						<CardDescription className="truncate">
-							Balance acumulado jornada a jornada · Total:{" "}
+							{t("description")} · {t("total")}:{" "}
 							<span className="font-medium text-white">
 								{totalDiff > 0 ? "+" : ""}
 								{totalDiff}
@@ -96,19 +99,19 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 				{/* Resumen responsive (como los tuyos) */}
 				<div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
 					<div className="rounded-lg border bg-card p-2 text-center">
-						<p className="text-[12px] text-sm  text-muted-foreground leading-none">Goles Anotados</p>
+						<p className="text-[12px] text-sm  text-muted-foreground leading-none">{t("goalsFor")}</p>
 						<p className="text-md sm:text-xl font-bold leading-none text-green-600 dark:text-green-400">{totalFor}</p>
-						<p className="hidden sm:block text-[11px] text-muted-foreground leading-none mt-1">{avgFor}/partido</p>
+						<p className="hidden sm:block text-[11px] text-muted-foreground leading-none mt-1">{t("perMatch", { value: avgFor })}</p>
 					</div>
 
 					<div className="rounded-lg border bg-card p-2 text-center">
-						<p className="text-[12px] text-sm  text-muted-foreground leading-none">Goles Recibidos</p>
+						<p className="text-[12px] text-sm  text-muted-foreground leading-none">{t("goalsAgainst")}</p>
 						<p className="text-md sm:text-xl font-bold leading-none text-red-600 dark:text-red-400">{totalAgainst}</p>
-						<p className="hidden sm:block text-[11px] text-muted-foreground leading-none mt-1">{avgAgainst}/partido</p>
+						<p className="hidden sm:block text-[11px] text-muted-foreground leading-none mt-1">{t("perMatch", { value: avgAgainst })}</p>
 					</div>
 
 					<div className="rounded-lg border bg-card p-2 text-center">
-						<p className="text-[12px] text-sm  text-muted-foreground leading-none">Diferencia</p>
+						<p className="text-[12px] text-sm  text-muted-foreground leading-none">{t("difference")}</p>
 						<p
 							className={`text-md sm:text-xl font-bold leading-none ${
 								totalDiff >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"
@@ -117,16 +120,16 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 							{totalDiff > 0 ? "+" : ""}
 							{totalDiff}
 						</p>
-						<p className="hidden sm:block text-[11px] text-muted-foreground leading-none mt-1">{avgDiff}/partido</p>
+						<p className="hidden sm:block text-[11px] text-muted-foreground leading-none mt-1">{t("perMatch", { value: avgDiff })}</p>
 					</div>
 				</div>
 
 				{view === "chart" ? (
 					<ChartContainer
 						config={{
-							anotados: { label: "Goles anotados", color: "hsl(142 71% 45%)" },
-							recibidos: { label: "Goles recibidos", color: "hsl(0 84% 60%)" },
-							diferenciaAcumulada: { label: "Dif. acumulada", color: "hsl(217 91% 60%)" }
+							anotados: { label: t("goalsFor"), color: "hsl(142 71% 45%)" },
+							recibidos: { label: t("goalsAgainst"), color: "hsl(0 84% 60%)" },
+							diferenciaAcumulada: { label: t("cumulativeDifference"), color: "hsl(217 91% 60%)" }
 						}}
 						className="w-full h-[190px] sm:h-[190px]"
 					>
@@ -162,7 +165,7 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 											labelFormatter={(label, payload) => {
 												const p = payload?.[0]?.payload;
 												if (!p) return String(label);
-												return `${label} · vs ${p.rival} · ${p.fullDate} · Dif: ${p.diff > 0 ? "+" : ""}${p.diff}`;
+												return t("tooltip", { round: String(label), opponent: p.rival, date: p.fullDate, difference: `${p.diff > 0 ? "+" : ""}${p.diff}` });
 											}}
 										/>
 									}
@@ -170,14 +173,14 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 
 								<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
 
-								<Bar yAxisId="left" dataKey="anotados" name="Goles anotados" fill="var(--color-anotados)" radius={[4, 4, 0, 0]} />
-								<Bar yAxisId="left" dataKey="recibidos" name="Goles recibidos" fill="var(--color-recibidos)" radius={[4, 4, 0, 0]} />
+								<Bar yAxisId="left" dataKey="anotados" name={t("goalsFor")} fill="var(--color-anotados)" radius={[4, 4, 0, 0]} />
+								<Bar yAxisId="left" dataKey="recibidos" name={t("goalsAgainst")} fill="var(--color-recibidos)" radius={[4, 4, 0, 0]} />
 
 								<Line
 									yAxisId="right"
 									type="monotone"
 									dataKey="diferenciaAcumulada"
-									name="Dif. acumulada"
+									name={t("cumulativeDifference")}
 									stroke="var(--color-diferenciaAcumulada)"
 									strokeWidth={5}
 									dot={false}
@@ -193,13 +196,13 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 								<Table className="min-w-[980px]">
 									<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 										<TableRow className="hover:bg-transparent">
-											<TableHead className="w-[90px]">Jornada</TableHead>
-											<TableHead>Rival</TableHead>
-											<TableHead className="text-right">Anot.</TableHead>
-											<TableHead className="text-right">Recib.</TableHead>
-											<TableHead className="text-right">Dif.</TableHead>
-											<TableHead className="text-right">Dif. acum.</TableHead>
-											<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+											<TableHead className="w-[90px]">{t("round")}</TableHead>
+											<TableHead>{t("opponent")}</TableHead>
+											<TableHead className="text-right">{t("scoredShort")}</TableHead>
+											<TableHead className="text-right">{t("concededShort")}</TableHead>
+											<TableHead className="text-right">{t("differenceShort")}</TableHead>
+											<TableHead className="text-right">{t("cumulativeDifferenceShort")}</TableHead>
+											<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 										</TableRow>
 									</UITableHeader>
 
@@ -254,27 +257,27 @@ export function GoalDifferenceEvolutionChart({ matches }: GoalDifferenceEvolutio
 						<div className="border-t bg-muted/20 px-3 py-2">
 							<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 								<span>
-									<span className="font-medium text-foreground">{partidos}</span> partidos
+									{t("matches", { count: partidos })}
 								</span>
 
 								<div className="flex flex-wrap gap-2">
 									<span className="rounded-md border bg-card px-2 py-1">
-										Anotados: <span className="font-semibold text-foreground">{totalFor}</span>{" "}
-										<span className="text-muted-foreground">({avgFor}/p)</span>
+										{t("scored")}: <span className="font-semibold text-foreground">{totalFor}</span>{" "}
+										<span className="text-muted-foreground">({t("perMatchShort", { value: avgFor })})</span>
 									</span>
 									<span className="rounded-md border bg-card px-2 py-1">
-										Recibidos: <span className="font-semibold text-foreground">{totalAgainst}</span>{" "}
-										<span className="text-muted-foreground">({avgAgainst}/p)</span>
+										{t("conceded")}: <span className="font-semibold text-foreground">{totalAgainst}</span>{" "}
+										<span className="text-muted-foreground">({t("perMatchShort", { value: avgAgainst })})</span>
 									</span>
 									<span className="rounded-md border bg-card px-2 py-1">
-										Dif.:{" "}
+										{t("differenceShort")}:{" "}
 										<span
 											className={`font-semibold ${totalDiff >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
 										>
 											{totalDiff > 0 ? "+" : ""}
 											{totalDiff}
 										</span>{" "}
-										<span className="text-muted-foreground">({avgDiff}/p)</span>
+										<span className="text-muted-foreground">({t("perMatchShort", { value: avgDiff })})</span>
 									</span>
 								</div>
 							</div>

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import type { Profile } from "@/lib/types"
 import {
   getPlayerDerived,
   accumulatePlayerStats,
@@ -15,6 +16,7 @@ function gkN(v: any) {
 
 export async function getHiddenStatsForProfile(profileId?: string | null) {
   const supabase = await createClient()
+  if (!supabase) return []
 
   if (!profileId) return []
 
@@ -26,14 +28,22 @@ export async function getHiddenStatsForProfile(profileId?: string | null) {
   return data?.map((row) => row.stat_key) ?? []
 }
 
-export async function getPlayerTotalsReportData(playerId: number, profileId?: string | null) {
+export async function getPlayerTotalsReportData(playerId: number, profile: Profile) {
   const supabase = await createClient()
-  const hiddenStats = await getHiddenStatsForProfile(profileId)
+  if (!supabase) throw new Error("Supabase is not configured")
+  const hiddenStats = await getHiddenStatsForProfile(profile.id)
 
-  const { data: player, error: playerError } = await supabase
+  let playerQuery = supabase
     .from("players")
     .select("*")
     .eq("id", playerId)
+
+  if (!profile.is_super_admin) {
+    if (!profile.club_id) notFound()
+    playerQuery = playerQuery.eq("club_id", profile.club_id)
+  }
+
+  const { data: player, error: playerError } = await playerQuery
     .single()
 
   if (playerError || !player) notFound()
@@ -106,15 +116,23 @@ export async function getPlayerTotalsReportData(playerId: number, profileId?: st
 export async function getPlayerMatchReportData(
   playerId: number,
   matchStatId: number,
-  profileId?: string | null
+  profile: Profile,
 ) {
   const supabase = await createClient()
-  const hiddenStats = await getHiddenStatsForProfile(profileId)
+  if (!supabase) throw new Error("Supabase is not configured")
+  const hiddenStats = await getHiddenStatsForProfile(profile.id)
 
-  const { data: player, error: playerError } = await supabase
+  let playerQuery = supabase
     .from("players")
     .select("*")
     .eq("id", playerId)
+
+  if (!profile.is_super_admin) {
+    if (!profile.club_id) notFound()
+    playerQuery = playerQuery.eq("club_id", profile.club_id)
+  }
+
+  const { data: player, error: playerError } = await playerQuery
     .single()
 
   if (playerError || !player) notFound()

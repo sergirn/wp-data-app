@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle, Plus, Shield, Target, Trophy, Users, X, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export type Player = { id: number; name: string; number: number; is_goalkeeper?: boolean };
 
@@ -63,6 +64,7 @@ export function PenaltiesTab({
 
 	setShowPenaltyShooterDialog
 }: Props) {
+	const t = useTranslations("Penalties");
 	const myGoals = penaltyShooters.filter((s) => s.scored).length;
 	const rivalGoals = rivalPenalties.filter((p) => p.result === "scored").length;
 
@@ -77,20 +79,20 @@ export function PenaltiesTab({
 							</div>
 
 							<div>
-								<CardTitle className="text-lg sm:text-xl">Tanda de Penaltis</CardTitle>
+								<CardTitle className="text-lg sm:text-xl">{t("title")}</CardTitle>
 								<p className="text-sm text-muted-foreground mt-1">
-									Marcador:{" "}
+									{t("score")} {" "}
 									<span className="font-medium text-foreground tabular-nums">
 										{homeGoals}-{awayGoals}
 									</span>
-									. Registra los lanzamientos para determinar el ganador.
+									. {t("recordShots")}
 								</p>
-								<p className="text-xs text-muted-foreground mt-1">El mismo jugador puede lanzar más de una vez (muerte súbita).</p>
+								<p className="text-xs text-muted-foreground mt-1">{t("repeatHint")}</p>
 							</div>
 						</div>
 
 						<Badge variant="secondary" className="mt-1">
-							Obligatorio por empate
+							{t("requiredForTie")}
 						</Badge>
 					</div>
 				</CardHeader>
@@ -105,13 +107,13 @@ export function PenaltiesTab({
 										<Shield className="h-5 w-5 text-primary" />
 									</div>
 									<div className="min-w-0">
-										<p className="font-semibold leading-none truncate">{myClubName || "Mi Equipo"}</p>
-										<p className="text-xs text-muted-foreground mt-1">Lanzadores</p>
+										<p className="font-semibold leading-none truncate">{myClubName || t("myTeam")}</p>
+										<p className="text-xs text-muted-foreground mt-1">{t("shooters")}</p>
 									</div>
 								</div>
 
 								<div className="text-right">
-									<p className="text-xs text-muted-foreground">Goles</p>
+									<p className="text-xs text-muted-foreground">{t("goals")}</p>
 									<p className="text-2xl font-bold tabular-nums">{myGoals}</p>
 								</div>
 							</div>
@@ -120,7 +122,7 @@ export function PenaltiesTab({
 								{penaltyShooters.length === 0 ? (
 									<div className="rounded-lg border border-dashed p-6 text-center bg-muted/20">
 										<Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-										<p className="text-sm font-medium text-muted-foreground">Añade los jugadores que lanzaron penaltis</p>
+										<p className="text-sm font-medium text-muted-foreground">{t("addShootersHint")}</p>
 									</div>
 								) : (
 									<div className="space-y-2">
@@ -146,7 +148,7 @@ export function PenaltiesTab({
 
 															<div className="mt-1 flex items-center gap-2">
 																<Badge variant={shooter.scored ? "default" : "destructive"} className="text-[11px]">
-																	{shooter.scored ? "Gol" : "Fallado"}
+															{shooter.scored ? t("goal") : t("missed")}
 																</Badge>
 
 																<button
@@ -158,7 +160,7 @@ export function PenaltiesTab({
 																	}
 																	className="text-xs text-muted-foreground hover:text-foreground hover:underline"
 																>
-																	Cambiar resultado
+															{t("changeResult")}
 																</button>
 															</div>
 														</div>
@@ -166,7 +168,8 @@ export function PenaltiesTab({
 														<Button
 															type="button"
 															size="icon"
-															variant="ghost"
+														variant="ghost"
+														aria-label={t("removeShot")}
 															onClick={() => setPenaltyShooters((prev) => prev.filter((s) => s.id !== shooter.id))}
 															className="text-muted-foreground hover:text-destructive"
 														>
@@ -186,7 +189,7 @@ export function PenaltiesTab({
 									onClick={() => setShowPenaltyShooterDialog(true)}
 								>
 									<Plus className="mr-2 h-4 w-4" />
-									Añadir lanzador
+									{t("addShooter")}
 								</Button>
 							</div>
 						</section>
@@ -199,13 +202,13 @@ export function PenaltiesTab({
 										<Users className="h-5 w-5 text-muted-foreground" />
 									</div>
 									<div className="min-w-0">
-										<p className="font-semibold leading-none truncate">{opponent || "Rival"}</p>
-										<p className="text-xs text-muted-foreground mt-1">Lanzamientos</p>
+										<p className="font-semibold leading-none truncate">{opponent || t("opponent")}</p>
+										<p className="text-xs text-muted-foreground mt-1">{t("shots")}</p>
 									</div>
 								</div>
 
 								<div className="text-right">
-									<p className="text-xs text-muted-foreground">Goles</p>
+									<p className="text-xs text-muted-foreground">{t("goals")}</p>
 									<p className="text-2xl font-bold tabular-nums">{rivalGoals}</p>
 								</div>
 							</div>
@@ -214,7 +217,7 @@ export function PenaltiesTab({
 								{rivalPenalties.length === 0 ? (
 									<div className="rounded-lg border border-dashed p-6 text-center bg-muted/20">
 										<Target className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-										<p className="text-sm font-medium text-muted-foreground">Añade los lanzamientos del equipo rival</p>
+										<p className="text-sm font-medium text-muted-foreground">{t("addOpponentShotsHint")}</p>
 									</div>
 								) : (
 									<div className="space-y-2">
@@ -240,11 +243,12 @@ export function PenaltiesTab({
 
 														<div className="flex-1">
 															<div className="flex items-center justify-between gap-2">
-																<p className="text-sm font-medium">Lanzamiento #{index + 1}</p>
+																<p className="text-sm font-medium">{t("shotNumber", { number: index + 1 })}</p>
 																<Button
 																	type="button"
 																	size="icon"
 																	variant="ghost"
+																	aria-label={t("removeShot")}
 																	onClick={() => {
 																		setRivalPenalties((prev) => prev.filter((p) => p.id !== penalty.id));
 																		setPenaltyGoalkeeperMap((prev) => {
@@ -271,7 +275,7 @@ export function PenaltiesTab({
 																	}
 																>
 																	<Target className="mr-2 h-4 w-4" />
-																	Gol
+																	{t("goal")}
 																</Button>
 
 																<Button
@@ -285,7 +289,7 @@ export function PenaltiesTab({
 																	}
 																>
 																	<XCircle className="mr-2 h-4 w-4" />
-																	Falla
+																	{t("miss")}
 																</Button>
 
 																<Button
@@ -299,21 +303,21 @@ export function PenaltiesTab({
 																	}
 																>
 																	<Shield className="mr-2 h-4 w-4" />
-																	Parada
+																	{t("save")}
 																</Button>
 
 																<Badge variant="secondary" className="ml-auto text-[11px]">
-																	{isScored ? "Gol" : isSaved ? "Parada" : "Fallado"}
+																	{isScored ? t("goal") : isSaved ? t("save") : t("missed")}
 																</Badge>
 															</div>
 
 															{isSaved && (
 																<div className="mt-3 rounded-md border bg-background p-3">
 																	<div className="flex items-center justify-between gap-2">
-																		<Label className="text-xs text-muted-foreground">Portero que paró</Label>
+																		<Label className="text-xs text-muted-foreground">{t("savingGoalkeeper")}</Label>
 																		{needsGoalkeeper ? (
 																			<Badge variant="destructive" className="text-[11px]">
-																				Requerido
+																				{t("required")}
 																			</Badge>
 																		) : null}
 																	</div>
@@ -335,7 +339,7 @@ export function PenaltiesTab({
 																			}}
 																		>
 																			<SelectTrigger className="w-full">
-																				<SelectValue placeholder="Seleccionar portero..." />
+																				<SelectValue placeholder={t("selectGoalkeeper")} />
 																			</SelectTrigger>
 																			<SelectContent>
 																				{goalkeepers.map((gk) => (
@@ -350,11 +354,11 @@ export function PenaltiesTab({
 																	{penaltyGoalkeeperMap[penalty.id] ? (
 																		<p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
 																			<Shield className="h-3 w-3" />
-																			Se sumará a las estadísticas del portero
+																			{t("saveWillCount")}
 																		</p>
 																	) : (
 																		<p className="mt-2 text-xs text-muted-foreground">
-																			Selecciona el portero para contabilizar la parada.
+																			{t("selectGoalkeeperHint")}
 																		</p>
 																	)}
 																</div>
@@ -374,7 +378,7 @@ export function PenaltiesTab({
 									onClick={() => setRivalPenalties((prev) => [...prev, { id: makeId(), result: "missed" }])}
 								>
 									<Plus className="mr-2 h-4 w-4" />
-									Añadir lanzamiento rival
+									{t("addOpponentShot")}
 								</Button>
 							</div>
 						</section>
@@ -385,7 +389,7 @@ export function PenaltiesTab({
 						<div className="rounded-xl border bg-card p-4 sm:p-5">
 							<div className="flex items-center justify-between gap-3 flex-wrap">
 								<div className="min-w-0">
-									<p className="text-sm text-muted-foreground">Resultado tanda</p>
+									<p className="text-sm text-muted-foreground">{t("shootoutResult")}</p>
 									<p className="text-lg font-semibold">
 										{homeTeamName}{" "}
 										<span className="tabular-nums">
@@ -399,18 +403,18 @@ export function PenaltiesTab({
 									<Badge className="text-sm px-3 py-1" variant={myGoals > rivalGoals ? "default" : "destructive"}>
 										{myGoals > rivalGoals ? (
 											<span className="inline-flex items-center gap-2">
-												<Trophy className="h-4 w-4" /> Victoria
+												<Trophy className="h-4 w-4" /> {t("win")}
 											</span>
 										) : (
 											<span className="inline-flex items-center gap-2">
-												<XCircle className="h-4 w-4" /> Derrota
+												<XCircle className="h-4 w-4" /> {t("loss")}
 											</span>
 										)}
 									</Badge>
 								) : (
 									<Badge variant="secondary" className="text-sm px-3 py-1">
 										<span className="inline-flex items-center gap-2">
-											<AlertCircle className="h-4 w-4" /> No puede acabar en empate
+											<AlertCircle className="h-4 w-4" /> {t("cannotTie")}
 										</span>
 									</Badge>
 								)}

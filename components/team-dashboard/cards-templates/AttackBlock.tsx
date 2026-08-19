@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
@@ -14,6 +15,7 @@ const toNum = (v: any) => {
 }
 
 export function AttackBlock({ playerStats }: AttackBlockProps) {
+  const t = useTranslations("TeamDashboardCards")
   const bestEfficiency = useMemo(() => {
     return [...(playerStats ?? [])]
       .filter((p) => toNum(p.totalTiros) >= 10)
@@ -35,8 +37,8 @@ export function AttackBlock({ playerStats }: AttackBlockProps) {
   return (
     <div>
       <div>
-        <CardTitle>Ataque</CardTitle>
-        <CardDescription>Producción y calidad ofensiva</CardDescription>
+        <CardTitle>{t("attack.title")}</CardTitle>
+        <CardDescription>{t("attack.description")}</CardDescription>
       </div>
 
       <div className="mt-4">
@@ -50,27 +52,27 @@ export function AttackBlock({ playerStats }: AttackBlockProps) {
                 number: topEfficiencyPlayer.number,
                 photo_url: topEfficiencyPlayer.photo_url,
               }}
-              statLabel="Mayor Eficiencia"
+              statLabel={t("attack.highestEfficiency")}
               statValue={`${eff.toFixed(1)}%`}
               gradientColors="from-orange-500 to-red-500"
               details={[
-                { label: "Goles", value: topGoals },
-                { label: "Tiros", value: topShots },
-                { label: "G/part", value: goalsPerMatch.toFixed(1) },
-                { label: "T/part", value: shotsPerMatch.toFixed(1) },
+                { label: t("goals"), value: topGoals },
+                { label: t("shots"), value: topShots },
+                { label: t("goalsPerMatch"), value: goalsPerMatch.toFixed(1) },
+                { label: t("shotsPerMatch"), value: shotsPerMatch.toFixed(1) },
               ]}
             />
 
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="secondary" className="w-full" disabled={restPlayers.length === 0}>
-                  Ver más
+                  {t("viewMore")}
                 </Button>
               </DialogTrigger>
 
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Ranking de eficiencia (min. 10 tiros)</DialogTitle>
+                  <DialogTitle>{t("attack.ranking")}</DialogTitle>
                 </DialogHeader>
 
                 <div className="max-h-[70vh] overflow-y-auto space-y-3 pr-1">
@@ -92,14 +94,14 @@ export function AttackBlock({ playerStats }: AttackBlockProps) {
                           number: p.number,
                           photo_url: p.photo_url,
                         }}
-                        statLabel={`#${idx + 2} · Eficiencia`}
+                        statLabel={t("rankedMetric", { rank: idx + 2, metric: t("efficiency") })}
                         statValue={`${effP.toFixed(1)}%`}
                         gradientColors="from-orange-500 to-red-500"
                         details={[
-                          { label: "Goles", value: goles },
-                          { label: "Tiros", value: tiros },
-                          { label: "G/part", value: gPart.toFixed(1) },
-                          { label: "T/part", value: tPart.toFixed(1) },
+                          { label: t("goals"), value: goles },
+                          { label: t("shots"), value: tiros },
+                          { label: t("goalsPerMatch"), value: gPart.toFixed(1) },
+                          { label: t("shotsPerMatch"), value: tPart.toFixed(1) },
                         ]}
                       />
                     )

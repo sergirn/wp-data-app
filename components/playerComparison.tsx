@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils"
 import type { Player, MatchStats } from "@/lib/types"
 import { ComparisonRow } from "./comparisionRow"
 import { Swords, PlusCircle, Shield, Hand } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 // helpers
 const safe = (n: any) => (Number.isFinite(Number(n)) ? Number(n) : 0)
@@ -47,6 +48,7 @@ interface PlayerComparisonProps {
 }
 
 export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
+  const t = useTranslations("PlayerComparison")
   const [open, setOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
 
@@ -171,8 +173,8 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
             <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl">
               ＋
             </div>
-            <h3 className="text-lg font-semibold">Añadir jugadores para comparar</h3>
-            <p className="text-muted-foreground text-sm">Comparación avanzada por fases del juego</p>
+            <h3 className="text-lg font-semibold">{t("addPlayers")}</h3>
+            <p className="text-muted-foreground text-sm">{t("advancedComparison")}</p>
           </CardContent>
         </Card>
       )}
@@ -189,6 +191,7 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
               <button
                 onClick={() => removePlayer(p.playerId)}
                 className="ml-1 h-4 w-4 rounded-full text-xs hover:bg-destructive hover:text-white"
+                aria-label={t("removePlayer", { name: p.name })}
               >
                 ×
               </button>
@@ -201,7 +204,7 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
       {mixed && (
         <Card className="border-destructive">
           <CardContent className="py-6 text-center text-sm text-destructive">
-            No se pueden comparar porteros con jugadores de campo
+            {t("mixedPlayersError")}
           </CardContent>
         </Card>
       )}
@@ -210,15 +213,15 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
       {(allFieldPlayers || allGoalkeepers) && (
         <Card>
           <CardHeader>
-            <CardTitle>Comparación de {allGoalkeepers ? "Porteros" : "Jugadores"}</CardTitle>
-            <CardDescription>Verde = mejor · Rojo = peor</CardDescription>
+            <CardTitle>{t("comparisonOf", { type: allGoalkeepers ? t("goalkeepers") : t("players") })}</CardTitle>
+            <CardDescription>{t("colorLegend")}</CardDescription>
           </CardHeader>
 
           <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Estadística</TableHead>
+                  <TableHead>{t("statistic")}</TableHead>
                   {comparisonData.map((p) => (
                     <TableHead key={p.playerId} className="text-center">
                       <div className="font-semibold">#{p.number}</div>
@@ -231,47 +234,47 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
               <TableBody>
                 {!allGoalkeepers && (
                   <>
-                    <Section title="Ataque" icon={<Swords className="h-4 w-4" />}>
-                      <ComparisonRow label="Goles" field="goles" data={comparisonData} />
-                      <ComparisonRow label="Tiros" field="tiros" data={comparisonData} />
-                      <ComparisonRow label="Eficiencia tiro" field="eficienciaTiro" isPercentage data={comparisonData} />
-                      <ComparisonRow label="Asistencias" field="asistencias" data={comparisonData} />
+                    <Section title={t("attack")} icon={<Swords className="h-4 w-4" />}>
+                      <ComparisonRow label={t("goals")} field="goles" data={comparisonData} />
+                      <ComparisonRow label={t("shots")} field="tiros" data={comparisonData} />
+                      <ComparisonRow label={t("shootingEfficiency")} field="eficienciaTiro" isPercentage data={comparisonData} />
+                      <ComparisonRow label={t("assists")} field="asistencias" data={comparisonData} />
                     </Section>
 
-                    <Section title="Superioridad (H+)" icon={<PlusCircle className="h-4 w-4" />}>
+                    <Section title={t("powerPlay")} icon={<PlusCircle className="h-4 w-4" />}>
                       <ComparisonRow
-                        label="H+ (goles/fallos)"
+                        label={t("powerPlayGoalsMisses")}
                         field="golesHombreMas"
                         extraField="fallosHombreMas"
                         data={comparisonData}
                       />
                       <ComparisonRow
-                        label="Eficiencia H+"
+                        label={t("powerPlayEfficiency")}
                         field="eficienciaHombreMas"
                         isPercentage
                         data={comparisonData}
                       />
                     </Section>
 
-                    <Section title="Defensa y acciones" icon={<Shield className="h-4 w-4" />}>
-                      <ComparisonRow label="Bloqueos" field="bloqueos" data={comparisonData} />
-                      <ComparisonRow label="Recuperaciones" field="recuperaciones" data={comparisonData} />
-                      <ComparisonRow label="Pérdidas" field="perdidas" inverse data={comparisonData} />
-                      <ComparisonRow label="Balance posesión" field="balancePosesion" data={comparisonData} />
-                      <ComparisonRow label="Expulsiones provocadas" field="expulsionesProvocadas" data={comparisonData} />
-                      <ComparisonRow label="Penaltis provocados" field="penaltisProvocados" data={comparisonData} />
+                    <Section title={t("defenseAndActions")} icon={<Shield className="h-4 w-4" />}>
+                      <ComparisonRow label={t("blocks")} field="bloqueos" data={comparisonData} />
+                      <ComparisonRow label={t("recoveries")} field="recuperaciones" data={comparisonData} />
+                      <ComparisonRow label={t("turnovers")} field="perdidas" inverse data={comparisonData} />
+                      <ComparisonRow label={t("possessionBalance")} field="balancePosesion" data={comparisonData} />
+                      <ComparisonRow label={t("exclusionsDrawn")} field="expulsionesProvocadas" data={comparisonData} />
+                      <ComparisonRow label={t("penaltiesDrawn")} field="penaltisProvocados" data={comparisonData} />
                     </Section>
                   </>
                 )}
 
                 {allGoalkeepers && (
-                  <Section title="Portería" icon={<Hand className="h-4 w-4" />}>
-                    <ComparisonRow label="Paradas" field="paradas" data={comparisonData} />
-                    <ComparisonRow label="Goles recibidos" field="golesRecibidos" inverse data={comparisonData} />
-                    <ComparisonRow label="% Paradas" field="porcentajeParadas" isPercentage data={comparisonData} />
-                    <ComparisonRow label="Paradas en inferioridad" field="paradasHombreMenos" data={comparisonData} />
-                    <ComparisonRow label="Eficiencia inferioridad" field="eficienciaInferioridad" isPercentage data={comparisonData} />
-                    <ComparisonRow label="Paradas + recuperación" field="paradasRecuperacion" data={comparisonData} />
+                  <Section title={t("goalkeeping")} icon={<Hand className="h-4 w-4" />}>
+                    <ComparisonRow label={t("saves")} field="paradas" data={comparisonData} />
+                    <ComparisonRow label={t("goalsConceded")} field="golesRecibidos" inverse data={comparisonData} />
+                    <ComparisonRow label={t("savePercentage")} field="porcentajeParadas" isPercentage data={comparisonData} />
+                    <ComparisonRow label={t("disadvantageSaves")} field="paradasHombreMenos" data={comparisonData} />
+                    <ComparisonRow label={t("disadvantageEfficiency")} field="eficienciaInferioridad" isPercentage data={comparisonData} />
+                    <ComparisonRow label={t("savesAndRecovery")} field="paradasRecuperacion" data={comparisonData} />
                   </Section>
                 )}
               </TableBody>
@@ -284,8 +287,8 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Seleccionar jugadores</DialogTitle>
-            <DialogDescription>Pulsa sobre los jugadores que quieras comparar</DialogDescription>
+            <DialogTitle>{t("selectPlayers")}</DialogTitle>
+            <DialogDescription>{t("selectPlayersDescription")}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
@@ -304,7 +307,7 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
                   <p className="font-medium">
                     #{p.number} · {p.name}
                     {p.is_goalkeeper && (
-                      <span className="ml-2 text-xs text-muted-foreground">(Portero)</span>
+                      <span className="ml-2 text-xs text-muted-foreground">({t("goalkeeper")})</span>
                     )}
                   </p>
 
@@ -324,7 +327,7 @@ export function PlayerComparison({ players, stats }: PlayerComparisonProps) {
           </div>
 
           <div className="flex justify-end pt-2">
-            <Button onClick={() => setOpen(false)}>Confirmar ({selectedIds.length})</Button>
+            <Button onClick={() => setOpen(false)}>{t("confirm", { count: selectedIds.length })}</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { CardTitle, CardDescription } from "@/components/ui/card"
 import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,7 @@ const toNum = (v: any) => {
 }
 
 export function MostAssistsFeaturedCard({ playerStats }: MostAssistsFeaturedCardProps) {
+  const t = useTranslations("TeamDashboardCards")
   const ranking = useMemo(() => {
     return [...(playerStats ?? [])]
       .filter((p) => toNum(p.acciones_asistencias) > 0)
@@ -31,8 +33,8 @@ export function MostAssistsFeaturedCard({ playerStats }: MostAssistsFeaturedCard
   return (
     <div>
       <div>
-        <CardTitle>Más asistidor</CardTitle>
-        <CardDescription>Ranking por asistencias</CardDescription>
+        <CardTitle>{t("assistsCard.title")}</CardTitle>
+        <CardDescription>{t("assistsCard.description")}</CardDescription>
       </div>
 
       <div className="mt-4">
@@ -40,29 +42,29 @@ export function MostAssistsFeaturedCard({ playerStats }: MostAssistsFeaturedCard
           <div className="space-y-2">
             <TopPlayerCard
               player={{ id: top.id, name: top.name, number: top.number, photo_url: top.photo_url }}
-              statLabel="Asistencias"
+              statLabel={t("assists")}
               statValue={`${toNum(top.acciones_asistencias)}`}
               gradientColors="from-lime-500 to-green-500"
               details={[
-                { label: "Ast", value: toNum(top.acciones_asistencias) },
+                { label: t("assistsShort"), value: toNum(top.acciones_asistencias) },
                 {
-                  label: "Ast/part",
+                  label: t("assistsPerMatch"),
                   value: (getMatches(top) > 0 ? toNum(top.acciones_asistencias) / getMatches(top) : 0).toFixed(1),
                 },
-                { label: "Partidos", value: getMatches(top) },
+                { label: t("matches"), value: getMatches(top) },
               ]}
             />
 
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="secondary" className="w-full" disabled={rest.length === 0}>
-                  Ver más
+                  {t("viewMore")}
                 </Button>
               </DialogTrigger>
 
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Ranking · Asistencias</DialogTitle>
+                  <DialogTitle>{t("assistsCard.ranking")}</DialogTitle>
                 </DialogHeader>
 
                 <div className="max-h-[70vh] overflow-y-auto space-y-3 pr-1">
@@ -75,13 +77,13 @@ export function MostAssistsFeaturedCard({ playerStats }: MostAssistsFeaturedCard
                       <TopPlayerCard
                         key={p.id ?? `${p.name}-${idx}`}
                         player={{ id: p.id, name: p.name, number: p.number, photo_url: p.photo_url }}
-                        statLabel={`#${idx + 2} · Asistencias`}
+                        statLabel={t("rankedMetric", { rank: idx + 2, metric: t("assists") })}
                         statValue={`${assists}`}
                         gradientColors="from-lime-500 to-green-500"
                         details={[
-                          { label: "Ast", value: assists },
-                          { label: "Ast/part", value: apm.toFixed(1) },
-                          { label: "Partidos", value: matches },
+                          { label: t("assistsShort"), value: assists },
+                          { label: t("assistsPerMatch"), value: apm.toFixed(1) },
+                          { label: t("matches"), value: matches },
                         ]}
                       />
                     )

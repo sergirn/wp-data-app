@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getTranslations } from "next-intl/server";
 
 // GET: devuelve los campos ocultos del usuario actual
 export async function GET() {
+	const t = await getTranslations("Api");
 	const supabase = await createClient();
+	if (!supabase) return NextResponse.json({ error: t("serviceNotConfigured") }, { status: 503 });
 	const { data: auth } = await supabase.auth.getUser();
 	const userId = auth?.user?.id;
 
@@ -14,7 +17,7 @@ export async function GET() {
 	const { data, error } = await supabase.from("profile_hidden_stats").select("stat_key").eq("profile_id", userId);
 
 	if (error) {
-		return NextResponse.json({ hiddenStats: [], error: error.message }, { status: 200 });
+		return NextResponse.json({ hiddenStats: [], error: t("requestFailed") }, { status: 200 });
 	}
 
 	const hiddenStats = (data ?? []).map((row) => row.stat_key);
@@ -24,22 +27,24 @@ export async function GET() {
 
 // PUT: reemplaza todos los campos ocultos del usuario actual
 export async function PUT(req: Request) {
+	const t = await getTranslations("Api");
 	const supabase = await createClient();
+	if (!supabase) return NextResponse.json({ error: t("serviceNotConfigured") }, { status: 503 });
 	const { data: auth } = await supabase.auth.getUser();
 	const userId = auth?.user?.id;
 
 	if (!userId) {
-		return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+		return NextResponse.json({ ok: false, error: t("unauthenticated") }, { status: 401 });
 	}
 
 	const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", userId).single();
 
 	if (profileError) {
-		return NextResponse.json({ ok: false, error: profileError.message }, { status: 500 });
+		return NextResponse.json({ ok: false, error: t("requestFailed") }, { status: 500 });
 	}
 
 	if (!profile || (profile.role !== "admin" && profile.role !== "coach")) {
-		return NextResponse.json({ ok: false, error: "No autorizado" }, { status: 403 });
+		return NextResponse.json({ ok: false, error: t("unauthorized") }, { status: 403 });
 	}
 
 	const body = await req.json();
@@ -51,7 +56,7 @@ export async function PUT(req: Request) {
 	const { error: deleteError } = await supabase.from("profile_hidden_stats").delete().eq("profile_id", userId);
 
 	if (deleteError) {
-		return NextResponse.json({ ok: false, error: deleteError.message }, { status: 500 });
+		return NextResponse.json({ ok: false, error: t("requestFailed") }, { status: 500 });
 	}
 
 	// Inserta los nuevos
@@ -65,7 +70,7 @@ export async function PUT(req: Request) {
 		const { error: insertError } = await supabase.from("profile_hidden_stats").insert(rowsToInsert);
 
 		if (insertError) {
-			return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
+			return NextResponse.json({ ok: false, error: t("requestFailed") }, { status: 500 });
 		}
 	}
 
@@ -73,7 +78,7 @@ export async function PUT(req: Request) {
 	const { data: finalData, error: finalError } = await supabase.from("profile_hidden_stats").select("stat_key").eq("profile_id", userId);
 
 	if (finalError) {
-		return NextResponse.json({ ok: false, error: finalError.message }, { status: 500 });
+		return NextResponse.json({ ok: false, error: t("requestFailed") }, { status: 500 });
 	}
 
 	const finalHiddenStats = (finalData ?? []).map((row) => row.stat_key);

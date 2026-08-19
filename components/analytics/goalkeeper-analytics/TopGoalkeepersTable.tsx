@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import type { Match, MatchStats, Player } from "@/lib/types";
 
@@ -20,29 +21,29 @@ const toNum = (v: unknown) => {
 };
 
 const SAVE_DEFS = [
-	{ key: "paradasRecup", statKey: "portero_tiros_parada_recup", label: "P. Recup" },
-	{ key: "paradasFuera", statKey: "portero_paradas_fuera", label: "P. Fuera" },
-	{ key: "paradasPenalti", statKey: "portero_paradas_penalti_parado", label: "P. Pen." },
-	{ key: "paradasInf", statKey: "portero_paradas_hombre_menos", label: "P. Inf." },
-	{ key: "paradasCornerInf", statKey: "portero_parada_fuera_inf", label: "P. Córner Inf." }
+	{ key: "paradasRecup", statKey: "portero_tiros_parada_recup" },
+	{ key: "paradasFuera", statKey: "portero_paradas_fuera" },
+	{ key: "paradasPenalti", statKey: "portero_paradas_penalti_parado" },
+	{ key: "paradasInf", statKey: "portero_paradas_hombre_menos" },
+	{ key: "paradasCornerInf", statKey: "portero_parada_fuera_inf" }
 ] as const;
 
 const GOAL_DEFS = [
-	{ key: "gcBoya", statKey: "portero_goles_boya_parada", label: "GC Boya" },
-	{ key: "gcHm", statKey: "portero_goles_hombre_menos", label: "GC Inf." },
-	{ key: "gcDir", statKey: "portero_goles_dir_mas_5m", label: "GC +6m" },
-	{ key: "gcContra", statKey: "portero_goles_contraataque", label: "GC Contra" },
-	{ key: "gcPen", statKey: "portero_goles_penalti", label: "GC Pen." },
-	{ key: "gcLanz", statKey: "portero_goles_lanzamiento", label: "GC Lanz." },
-	{ key: "gcPalo", statKey: "portero_gol_palo", label: "GC Palo" }
+	{ key: "gcBoya", statKey: "portero_goles_boya_parada" },
+	{ key: "gcHm", statKey: "portero_goles_hombre_menos" },
+	{ key: "gcDir", statKey: "portero_goles_dir_mas_5m" },
+	{ key: "gcContra", statKey: "portero_goles_contraataque" },
+	{ key: "gcPen", statKey: "portero_goles_penalti" },
+	{ key: "gcLanz", statKey: "portero_goles_lanzamiento" },
+	{ key: "gcPalo", statKey: "portero_gol_palo" }
 ] as const;
 
-function getPlayerLabel(player: Player | null) {
-	if (!player) return "Portero";
+function getPlayerLabel(player: Player | null, fallback: string) {
+	if (!player) return fallback;
 	return player.number != null ? `#${player.number} ${player.name}` : player.name;
 }
 
-function PlayerRowMini({ player }: { player: Player | null }) {
+function PlayerRowMini({ player, fallback, noNumber }: { player: Player | null; fallback: string; noNumber: string }) {
 	return (
 		<div className="flex items-center gap-3 min-w-0">
 			<div className="h-10 w-10 rounded-full overflow-hidden bg-muted shrink-0 border">
@@ -56,8 +57,8 @@ function PlayerRowMini({ player }: { player: Player | null }) {
 			</div>
 
 			<div className="min-w-0">
-				<p className="text-sm font-medium truncate">{player?.name ?? "Portero"}</p>
-				<p className="text-xs text-muted-foreground">{player?.number != null ? `#${player.number}` : "Sin dorsal"}</p>
+				<p className="text-sm font-medium truncate">{player?.name ?? fallback}</p>
+				<p className="text-xs text-muted-foreground">{player?.number != null ? `#${player.number}` : noNumber}</p>
 			</div>
 		</div>
 	);
@@ -67,11 +68,14 @@ export function GoalkeeperRankingTable({
 	matches,
 	stats,
 	players,
-	title = "Ranking de porteros",
+	title,
 	className,
 	minActions = 5,
 	hiddenStats = []
 }: GoalkeeperRankingTableProps) {
+	const t = useTranslations("TopGoalkeepers")
+	const tStat = useTranslations("StatLabels")
+	const resolvedTitle = title ?? t("title")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibleSaveDefs = useMemo(() => SAVE_DEFS.filter((def) => !hiddenSet.has(def.statKey)), [hiddenSet]);
@@ -210,9 +214,9 @@ export function GoalkeeperRankingTable({
 			<div className="px-4 py-3 border-b bg-card/60">
 				<div className="flex items-center justify-between gap-3">
 					<div>
-						<h3 className="text-sm sm:text-base font-semibold">{title}</h3>
+						<h3 className="text-sm sm:text-base font-semibold">{resolvedTitle}</h3>
 						<p className="text-xs text-muted-foreground">
-							{leader ? `${getPlayerLabel(leader.player)} lidera con ${leader.pctParadas}% de paradas` : "Sin datos"}
+							{leader ? t("leaderSummary", { player: getPlayerLabel(leader.player, t("goalkeeper")), percentage: leader.pctParadas }) : t("noData")}
 						</p>
 					</div>
 				</div>
@@ -224,19 +228,19 @@ export function GoalkeeperRankingTable({
 						<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 							<TableRow className="hover:bg-transparent">
 								<TableHead className="w-[64px]">#</TableHead>
-								<TableHead>Portero</TableHead>
-								<TableHead className="text-right">% Paradas</TableHead>
-								<TableHead className="text-right">Paradas</TableHead>
-								<TableHead className="text-right">GC</TableHead>
-								<TableHead className="text-right">Balance</TableHead>
+								<TableHead>{t("goalkeeper")}</TableHead>
+								<TableHead className="text-right">{t("savePercentage")}</TableHead>
+								<TableHead className="text-right">{t("saves")}</TableHead>
+								<TableHead className="text-right">{t("goalsConcededShort")}</TableHead>
+								<TableHead className="text-right">{t("balance")}</TableHead>
 
 								{visibleSaveDefs.map((def) => (
 									<TableHead key={def.key} className="text-right">
-										{def.label}
+										{tStat(def.statKey)}
 									</TableHead>
 								))}
 
-								<TableHead className="text-right">Acciones</TableHead>
+								<TableHead className="text-right">{t("actions")}</TableHead>
 							</TableRow>
 						</UITableHeader>
 
@@ -248,7 +252,7 @@ export function GoalkeeperRankingTable({
 								>
 									<TableCell className="font-semibold">{idx + 1}</TableCell>
 									<TableCell>
-										<PlayerRowMini player={r.player} />
+										<PlayerRowMini player={r.player} fallback={t("goalkeeper")} noNumber={t("noNumber")} />
 									</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">{r.pctParadas}%</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">{r.paradas}</TableCell>
@@ -274,20 +278,19 @@ export function GoalkeeperRankingTable({
 			<div className="border-t bg-muted/20 px-3 py-2">
 				<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 					<span>
-						<span className="font-medium text-foreground">{ranking.length}</span> porteros con al menos{" "}
-						<span className="font-medium text-foreground">{minActions}</span> acciones
+						{t("qualifiedGoalkeepers", { count: ranking.length, actions: minActions })}
 					</span>
 
 					<div className="flex flex-wrap gap-2">
 						<span className="rounded-md border bg-card px-2 py-1">
-							Paradas: <span className="font-semibold text-foreground">{totalParadas}</span>
+							{t("saves")}: <span className="font-semibold text-foreground">{totalParadas}</span>
 						</span>
 						<span className="rounded-md border bg-card px-2 py-1">
-							GC: <span className="font-semibold text-foreground">{totalGC}</span>
+							{t("goalsConcededShort")}: <span className="font-semibold text-foreground">{totalGC}</span>
 						</span>
 						{leader ? (
 							<span className="rounded-md border bg-card px-2 py-1">
-								Líder: <span className="font-semibold text-foreground">{getPlayerLabel(leader.player)}</span>
+								{t("leader")}: <span className="font-semibold text-foreground">{getPlayerLabel(leader.player, t("goalkeeper"))}</span>
 							</span>
 						) : null}
 					</div>

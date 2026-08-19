@@ -8,6 +8,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import type { Player, MatchStats, Match } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import { useStatWeights } from "@/hooks/useStatWeights";
+import { useLocale, useTranslations } from "next-intl";
 
 type ViewMode = "chart" | "table";
 type MatchStatsWithMatch = MatchStats & { matches: Match };
@@ -22,22 +23,15 @@ function computeWeightedScore(row: Record<string, any>, weights: Record<string, 
 	return Math.round(score);
 }
 
-const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString("es-ES", { year: "numeric", month: "2-digit", day: "2-digit" }) : "");
+const formatDate = (d: string | undefined, locale: string) =>
+	d ? new Date(d).toLocaleDateString(locale, { year: "numeric", month: "2-digit", day: "2-digit" }) : "";
 
 export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
 	const [view, setView] = useState<ViewMode>("chart");
+	const t = useTranslations("Evolution");
+	const locale = useLocale();
 	const { weights, loaded } = useStatWeights();
 	const hasWeights = loaded && Object.keys(weights).length > 0;
-
-	if (!matchStats?.length) {
-		return (
-			<Card>
-				<CardContent className="py-12 text-center">
-					<p className="text-muted-foreground">No hay datos suficientes para mostrar la evolución</p>
-				</CardContent>
-			</Card>
-		);
-	}
 
 	// ✅ Data 1:1 desde matchStats y orden cronológico + media acumulada
 	const data = useMemo(() => {
@@ -63,12 +57,12 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 			return {
 				match: String(jornada),
 				opponent: match?.opponent ?? "—",
-				date: formatDate(match?.match_date),
+				date: formatDate(match?.match_date, locale),
 				puntos,
 				mediaPuntos // ✅ MEDIA ACUMULADA (varía por jornada)
 			};
 		});
-	}, [matchStats, hasWeights, weights]);
+	}, [matchStats, hasWeights, weights, locale]);
 
 	const avgPts = useMemo(() => {
 		if (!data.length) return "0.0";
@@ -76,10 +70,20 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 		return v.toFixed(1);
 	}, [data]);
 
+	if (!matchStats?.length) {
+		return (
+			<Card>
+				<CardContent className="py-12 text-center">
+					<p className="text-muted-foreground">{t("noData")}</p>
+				</CardContent>
+			</Card>
+		);
+	}
+
 	const HeaderSwitch = (
 		<div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
 			<BarChart3 className={`h-4 w-4 ${view === "chart" ? "text-foreground" : "text-muted-foreground"}`} />
-			<Switch checked={view === "table"} onCheckedChange={(v) => setView(v ? "table" : "chart")} />
+			<Switch checked={view === "table"} onCheckedChange={(v) => setView(v ? "table" : "chart")} aria-label={t("switchView")} />
 			<Table2 className={`h-4 w-4 ${view === "table" ? "text-foreground" : "text-muted-foreground"}`} />
 		</div>
 	);
@@ -90,9 +94,9 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 				<CardHeader className="space-y-1">
 					<div className="flex items-start justify-between gap-3">
 						<div className="min-w-0">
-							<CardTitle>Evolución de Puntos</CardTitle>
+							<CardTitle>{t("title")}</CardTitle>
 							<CardDescription className="truncate">
-								Puntos por partido según valoraciones · <span className="font-medium text-foreground">Media final: {avgPts} pts</span>
+								{t("description")} · <span className="font-medium text-foreground">{t("finalAverage")} {avgPts} {t("pointsAbbr")}</span>
 							</CardDescription>
 						</div>
 						{HeaderSwitch}
@@ -101,12 +105,12 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 					{!loaded ? (
 						<div className="flex items-center gap-2 text-xs text-muted-foreground">
 							<Loader2 className="h-3.5 w-3.5 animate-spin" />
-							Cargando valoraciones…
+							{t("loadingRatings")}
 						</div>
 					) : null}
 
 					{loaded && !hasWeights ? (
-						<div className="text-xs text-muted-foreground">Configura valoraciones en Ajustes para calcular puntos.</div>
+						<div className="text-xs text-muted-foreground">{t("configureRatings")}</div>
 					) : null}
 				</CardHeader>
 
@@ -143,10 +147,10 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 													</div>
 													<div className="mt-1 text-sm font-semibold tabular-nums flex items-center gap-1.5">
 														<TrendingUp className="h-4 w-4 text-muted-foreground" />
-														{p?.puntos ?? 0} pts
+											{p?.puntos ?? 0} {t("pointsAbbr")}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Media acumulada: {Number(p?.mediaPuntos ?? 0).toFixed(1)} pts
+											{t("cumulativeAverage", { value: Number(p?.mediaPuntos ?? 0).toFixed(1) })}
 													</div>
 												</div>
 											);
@@ -170,7 +174,7 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 										activeDot={{ r: 5, fill: "currentcolor", stroke: "hsl(var(--foreground))", strokeWidth: 2 }}
 										isAnimationActive={false}
 										connectNulls
-										name="Puntos"
+									name={t("points")}
 									/>
 
 									{/* ✅ Media acumulada (varía por jornada y es visible) */}
@@ -183,7 +187,7 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 										opacity={0.95}
 										dot={false}
 										isAnimationActive={false}
-										name="Media acumulada"
+									name={t("cumulativeAverageLabel")}
 									/>
 								</LineChart>
 							</ResponsiveContainer>
@@ -195,11 +199,11 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 									<Table className="min-w-[900px]">
 										<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 											<TableRow className="hover:bg-transparent">
-												<TableHead className="w-[90px]">Jornada</TableHead>
-												<TableHead>Rival</TableHead>
-												<TableHead className="text-right">Pts</TableHead>
-												<TableHead className="text-right">Media</TableHead>
-												<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="w-[90px]">{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
+										<TableHead className="text-right">{t("pointsAbbr")}</TableHead>
+										<TableHead className="text-right">{t("average")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 											</TableRow>
 										</UITableHeader>
 
@@ -238,11 +242,11 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 							<div className="border-t bg-muted/20 px-3 py-2">
 								<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 									<span>
-										<span className="font-medium text-foreground">{data.length}</span> partidos
+										{t("matches", { count: data.length })}
 									</span>
 
 									<span className="rounded-md border bg-card px-2 py-1">
-										Media final: <span className="font-semibold text-foreground tabular-nums">{avgPts}</span>
+									{t("finalAverage")} <span className="font-semibold text-foreground tabular-nums">{avgPts}</span>
 									</span>
 								</div>
 							</div>

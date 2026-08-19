@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bar, Line, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
 import type { Match, MatchStats, Player } from "@/lib/types";
 import { Shield } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 interface DefenseInferiorityEfficiencyChartProps {
 	matches: Match[];
@@ -22,6 +23,9 @@ const toNum = (v: unknown) => {
 };
 
 export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats = [] }: DefenseInferiorityEfficiencyChartProps) {
+	const locale = useLocale();
+	const t = useTranslations("DefenseAnalyticsCharts");
+	const common = useTranslations("AnalyticsCommon");
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showGolesInf = !hiddenSet.has("portero_goles_hombre_menos");
@@ -66,7 +70,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 					xLabel: `${match.id}-${idx}`,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 
 					golesInf,
 					golPaloInf,
@@ -84,7 +88,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 				};
 			})
 			.filter((row) => row.totalAcciones > 0);
-	}, [matches, stats, showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf]);
+	}, [matches, stats, showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf, locale]);
 
 	const compactMatchData = useMemo(() => allMatchData.slice(-15), [allMatchData]);
 
@@ -119,36 +123,36 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 		const entries: Record<string, { label: string; color: string }> = {};
 
 		if (showGolesInf || showGolPaloInf) {
-			entries.golesRecibidos = { label: "Goles recibidos", color: "hsla(0, 84%, 60%, 1.00)" };
+			entries.golesRecibidos = { label: t("goalsConceded"), color: "hsla(0, 84%, 60%, 1.00)" };
 		}
 		if (showParadasInf) {
-			entries.paradasInf = { label: "Paradas Inf.-", color: "hsla(145, 63%, 42%, 1.00)" };
+			entries.paradasInf = { label: t("inferioritySaves"), color: "hsla(145, 63%, 42%, 1.00)" };
 		}
 		if (showParadaFueraInf) {
-			entries.paradaFueraInf = { label: "Parada corner Inf.-", color: "hsla(160, 70%, 38%, 1.00)" };
+			entries.paradaFueraInf = { label: t("inferiorityCornerSave"), color: "hsla(160, 70%, 38%, 1.00)" };
 		}
 		if (showLanzPaloInf) {
-			entries.lanzPaloInf = { label: "Palo Inf.-", color: "hsla(280, 70%, 52%, 1.00)" };
+			entries.lanzPaloInf = { label: t("inferiorityPost"), color: "hsla(280, 70%, 52%, 1.00)" };
 		}
 		if (showFueraInf) {
-			entries.fueraInf = { label: "Fuera Inf.-", color: "hsla(42, 96%, 55%, 1.00)" };
+			entries.fueraInf = { label: t("inferiorityOut"), color: "hsla(42, 96%, 55%, 1.00)" };
 		}
 		if (showBloqueoInf) {
-			entries.bloqueoInf = { label: "Bloqueo Inf.-", color: "hsla(221, 83%, 53%, 1.00)" };
+			entries.bloqueoInf = { label: t("inferiorityBlock"), color: "hsla(221, 83%, 53%, 1.00)" };
 		}
 
-		entries.efic = { label: "Evitados %", color: "hsla(190, 95%, 45%, 1.00)" };
-		entries.eficAcum = { label: "Evitados acum. %", color: "hsla(221, 83%, 53%, 1.00)" };
+		entries.efic = { label: t("avoidedPercent"), color: "hsla(190, 95%, 45%, 1.00)" };
+		entries.eficAcum = { label: t("cumulativeAvoided"), color: "hsla(221, 83%, 53%, 1.00)" };
 
 		return entries;
-	}, [showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf]);
+	}, [showGolesInf, showGolPaloInf, showParadasInf, showParadaFueraInf, showLanzPaloInf, showFueraInf, showBloqueoInf, t]);
 
 	if (!hasVisibleInferiorityStats || !allMatchData.length) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Inferioridad: recibidos vs evitados"
-			description={`Jornadas registradas ${allMatchData.length} · Evitados ${overall}% · ${totalEvitados}/${totalAcciones}`}
+			title={t("inferiorityTitle")}
+			description={t("inferiorityDescription", { count: allMatchData.length, percentage: overall, avoided: totalEvitados, total: totalAcciones })}
 			icon={<Shield className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{overall}%</span>}
@@ -202,7 +206,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									<Bar
 										yAxisId="left"
 										dataKey="golesRecibidos"
-										name="Goles recibidos"
+									name={t("goalsConceded")}
 										fill="var(--color-golesRecibidos)"
 										radius={[4, 4, 0, 0]}
 									/>
@@ -212,7 +216,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									<Bar
 										yAxisId="left"
 										dataKey="paradasInf"
-										name="Paradas Inf.-"
+									name={t("inferioritySaves")}
 										fill="var(--color-paradasInf)"
 										radius={[4, 4, 0, 0]}
 									/>
@@ -222,7 +226,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									<Bar
 										yAxisId="left"
 										dataKey="paradaFueraInf"
-										name="Parada corner Inf.-"
+									name={t("inferiorityCornerSave")}
 										fill="var(--color-paradaFueraInf)"
 										radius={[4, 4, 0, 0]}
 									/>
@@ -232,21 +236,21 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									<Bar
 										yAxisId="left"
 										dataKey="lanzPaloInf"
-										name="Palo Inf.-"
+									name={t("inferiorityPost")}
 										fill="var(--color-lanzPaloInf)"
 										radius={[4, 4, 0, 0]}
 									/>
 								)}
 
 								{showFueraInf && (
-									<Bar yAxisId="left" dataKey="fueraInf" name="Fuera Inf.-" fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
+									<Bar yAxisId="left" dataKey="fueraInf" name={t("inferiorityOut")} fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
 								)}
 
 								{showBloqueoInf && (
 									<Bar
 										yAxisId="left"
 										dataKey="bloqueoInf"
-										name="Bloqueo Inf.-"
+									name={t("inferiorityBlock")}
 										fill="var(--color-bloqueoInf)"
 										radius={[4, 4, 0, 0]}
 									/>
@@ -256,7 +260,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									yAxisId="right"
 									type="monotone"
 									dataKey="efic"
-									name="Evitados %"
+									name={t("avoidedPercent")}
 									stroke="var(--color-efic)"
 									strokeWidth={2.5}
 									dot={false}
@@ -267,7 +271,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									yAxisId="right"
 									type="monotone"
 									dataKey="eficAcum"
-									name="Evitados acum. %"
+									name={t("cumulativeAvoided")}
 									stroke="var(--color-eficAcum)"
 									strokeWidth={3.5}
 									strokeDasharray="6 4"
@@ -286,17 +290,17 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead>Fecha</TableHead>
-										{(showGolesInf || showGolPaloInf) && <TableHead className="text-right">Recibidos</TableHead>}
-										{showParadasInf && <TableHead className="text-right">Paradas</TableHead>}
-										{showParadaFueraInf && <TableHead className="text-right">P. corner</TableHead>}
-										{showLanzPaloInf && <TableHead className="text-right">Palo</TableHead>}
-										{showFueraInf && <TableHead className="text-right">Fuera</TableHead>}
-										{showBloqueoInf && <TableHead className="text-right">Bloqueo</TableHead>}
-										<TableHead className="text-right">Total</TableHead>
-										<TableHead className="text-right">Evitados</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead>{common("date")}</TableHead>
+										{(showGolesInf || showGolPaloInf) && <TableHead className="text-right">{common("received")}</TableHead>}
+										{showParadasInf && <TableHead className="text-right">{common("saved")}</TableHead>}
+										{showParadaFueraInf && <TableHead className="text-right">{t("cornerSaveShort")}</TableHead>}
+										{showLanzPaloInf && <TableHead className="text-right">{common("post")}</TableHead>}
+										{showFueraInf && <TableHead className="text-right">{common("out")}</TableHead>}
+										{showBloqueoInf && <TableHead className="text-right">{common("blocked")}</TableHead>}
+										<TableHead className="text-right">{common("total")}</TableHead>
+										<TableHead className="text-right">{common("avoided")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -342,60 +346,60 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{allMatchData.length}</span> partidos
+								{common("matches", { count: allMatchData.length })}
 							</span>
 
 							<div className="flex flex-wrap gap-2">
 								{showGolesInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Goles Inf.-: <span className="font-semibold text-foreground">{totalGolesInf}</span>
+										{t("inferiorityGoals")}: <span className="font-semibold text-foreground">{totalGolesInf}</span>
 									</span>
 								)}
 
 								{showGolPaloInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Gol palo: <span className="font-semibold text-foreground">{totalGolPaloInf}</span>
+										{t("postGoal")}: <span className="font-semibold text-foreground">{totalGolPaloInf}</span>
 									</span>
 								)}
 
 								{(showGolesInf || showGolPaloInf) && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Recibidos: <span className="font-semibold text-foreground">{totalGolesRecibidos}</span>
+										{common("received")}: <span className="font-semibold text-foreground">{totalGolesRecibidos}</span>
 									</span>
 								)}
 
 								{showParadasInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Paradas: <span className="font-semibold text-foreground">{totalParadas}</span>
+										{common("saved")}: <span className="font-semibold text-foreground">{totalParadas}</span>
 									</span>
 								)}
 
 								{showParadaFueraInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										P. corner: <span className="font-semibold text-foreground">{totalParadaFueraInf}</span>
+										{t("cornerSaveShort")}: <span className="font-semibold text-foreground">{totalParadaFueraInf}</span>
 									</span>
 								)}
 
 								{showLanzPaloInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Palo: <span className="font-semibold text-foreground">{totalLanzPaloInf}</span>
+										{common("post")}: <span className="font-semibold text-foreground">{totalLanzPaloInf}</span>
 									</span>
 								)}
 
 								{showFueraInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Fuera: <span className="font-semibold text-foreground">{totalFuera}</span>
+										{common("out")}: <span className="font-semibold text-foreground">{totalFuera}</span>
 									</span>
 								)}
 
 								{showBloqueoInf && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Bloqueo: <span className="font-semibold text-foreground">{totalBloqueo}</span>
+										{common("blocked")}: <span className="font-semibold text-foreground">{totalBloqueo}</span>
 									</span>
 								)}
 
 								<span className="rounded-md border bg-card px-2 py-1">
-									Evitados %: <span className="font-semibold text-foreground">{overall}%</span>
+									{t("avoidedPercent")}: <span className="font-semibold text-foreground">{overall}%</span>
 								</span>
 							</div>
 						</div>

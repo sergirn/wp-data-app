@@ -15,6 +15,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useClub } from "@/lib/club-context";
 import type { Profile } from "@/lib/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { LanguageSelector } from "@/components/language-selector";
+import { useTranslations } from "next-intl";
 
 import {
   AlertDialog,
@@ -32,17 +34,19 @@ interface NavigationProps {
 }
 
 const NAV_LINKS = [
-  { href: "/", label: "Inicio", icon: Home },
-  { href: "/nuevo-partido", label: "Nuevo Partido", icon: PlusCircle, requiresEdit: true },
-  { href: "/partidos", label: "Partidos", icon: Calendar },
-  { href: "/jugadores", label: "Jugadores", icon: UsersRound },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 }
-];
+  { href: "/", labelKey: "home", icon: Home, requiresEdit: false },
+  { href: "/nuevo-partido", labelKey: "newMatch", icon: PlusCircle, requiresEdit: true },
+  { href: "/partidos", labelKey: "matches", icon: Calendar, requiresEdit: false },
+  { href: "/jugadores", labelKey: "players", icon: UsersRound, requiresEdit: false },
+  { href: "/analytics", labelKey: "analytics", icon: BarChart3, requiresEdit: false }
+] as const;
 
 export const Navigation = memo(function Navigation({ profile }: NavigationProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { currentClub } = useClub();
+  const t = useTranslations("Navigation");
+  const common = useTranslations("Common");
 
   const [openSheet, setOpenSheet] = useState(false);
 
@@ -126,7 +130,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
             {/* Logo (también protegido si estás en nuevo partido) */}
             <Link href="/" onClick={onNavClick("/")} className="flex items-center gap-3">
               <div className="relative h-9 w-9 rounded-full overflow-hidden border shadow-sm">
-                <Image src={currentClub?.logo_url || "/none"} alt="Club Logo" fill className="object-cover" priority />
+                <Image src={currentClub?.logo_url || "/none"} alt={t("clubLogo")} fill sizes="36px" className="object-cover" priority />
               </div>
               <span className="hidden sm:block font-semibold tracking-tight">
                 {currentClub?.short_name || "WaterpoloStats"}
@@ -135,7 +139,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
 
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-1">
-              {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) => {
+              {NAV_LINKS.map(({ href, labelKey, icon: Icon, requiresEdit }) => {
                 if (requiresEdit && !canEdit) return null;
                 const active = isActive(href);
 
@@ -152,7 +156,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                   >
                     <Link href={href} onClick={onNavClick(href)} className="relative flex items-center gap-2">
                       <Icon className={["h-4 w-4", active ? "text-blue-600 dark:text-blue-400" : ""].join(" ")} />
-                      <span className="hidden xl:inline">{label}</span>
+                      <span className="hidden xl:inline">{t(labelKey)}</span>
 
                       <span
                         className={[
@@ -175,7 +179,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                     <Button
                       asChild
                       size="sm"
-                      variant="transparent"
+                      variant="ghost"
                       className={[
                         "group relative gap-2 rounded-full px-3",
                         "bg-transparent hover:bg-transparent",
@@ -184,7 +188,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                     >
                       <Link href="/admin" onClick={onNavClick("/admin")} className="relative flex items-center gap-2">
                         <Shield className={["h-4 w-4", active ? "text-blue-600 dark:text-blue-400" : ""].join(" ")} />
-                        <span className="hidden xl:inline">Admin</span>
+                        <span className="hidden xl:inline">{t("admin")}</span>
 
                         <span
                           className={[
@@ -205,6 +209,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
             <div className="flex items-center gap-2">
               <ThemeToggle />
               <ClubSelector className="hidden md:flex" />
+              <LanguageSelector />
               {profile && <UserMenu profile={profile} />}
 
               {/* Sheet SOLO tablet / desktop pequeño (no móvil) */}
@@ -230,7 +235,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                     )}
 
                     <div className="space-y-1">
-                      {NAV_LINKS.map(({ href, label, icon: Icon, requiresEdit }) => {
+                      {NAV_LINKS.map(({ href, labelKey, icon: Icon, requiresEdit }) => {
                         if (requiresEdit && !canEdit) return null;
                         const active = isActive(href);
 
@@ -260,7 +265,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
                                     active ? "text-blue-600 dark:text-blue-400" : "text-foreground"
                                   ].join(" ")}
                                 />
-                                {label}
+                                {t(labelKey)}
                               </span>
 
                               <ChevronRight className="h-4 w-4 opacity-50" />
@@ -287,21 +292,21 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Salir de Nuevo Partido?</AlertDialogTitle>
+            <AlertDialogTitle>{t("leaveTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Si sales ahora, perderás el formulario actual.
+              {t("leaveDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelLeave}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelLeave}>{common("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
                 confirmLeave();
               }}
             >
-              Salir igualmente
+              {t("leaveAnyway")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

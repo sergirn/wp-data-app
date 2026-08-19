@@ -16,8 +16,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { EditPlayersModal } from "@/components/players-components/EditPlayersModal";
 import { useIsMobile } from "@/hooks/player-movile";
+import { useTranslations } from "next-intl";
 
 export default function PlayersPage() {
+	const t = useTranslations("Pages");
+	const playersT = useTranslations("Players");
 	const { currentClub } = useClub();
 	const [players, setPlayers] = useState<any[]>([]);
 	const [error, setError] = useState<string | null>(null);
@@ -99,9 +102,8 @@ export default function PlayersPage() {
 				}
 			} catch (e) {
 				if (!abortController.signal.aborted && isMounted) {
-					const errorMsg = e instanceof Error ? e.message : "Error al conectar con la base de datos";
-					setError(errorMsg);
-					console.error("Error fetching players:", errorMsg);
+					setError(playersT("databaseError"));
+					console.error("Error fetching players:", e);
 				}
 			} finally {
 				if (isMounted) {
@@ -116,19 +118,19 @@ export default function PlayersPage() {
 			isMounted = false;
 			abortController.abort();
 		};
-	}, [currentClub]);
+	}, [currentClub, playersT]);
 
 	if (error) {
 		return (
 			<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
 				<Alert variant="destructive">
 					<AlertCircle className="h-4 w-4" />
-					<AlertTitle>Error de Conexión</AlertTitle>
+					<AlertTitle>{playersT("connectionError")}</AlertTitle>
 					<AlertDescription>
 						{error}
 						<br />
 						<br />
-						Por favor, configura la integración de Supabase desde la sección Connect en el panel lateral.
+						{playersT("connectionDescription")}
 					</AlertDescription>
 				</Alert>
 			</main>
@@ -139,7 +141,7 @@ export default function PlayersPage() {
 		return (
 			<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
 				<div className="text-center py-12">
-					<p className="text-muted-foreground">Cargando jugadores...</p>
+					<p className="text-muted-foreground">{playersT("loading")}</p>
 				</div>
 			</main>
 		);
@@ -151,19 +153,19 @@ export default function PlayersPage() {
 	return (
 		<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
 			<div className="mb-6">
-				<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Jugadores</h1>
-				<p className="text-sm sm:text-base text-muted-foreground">Estadísticas individuales de {currentClub?.short_name || "la plantilla"}</p>
+				<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{t("players")}</h1>
+				<p className="text-sm sm:text-base text-muted-foreground">{playersT("individualStats", { club: currentClub?.short_name || playersT("squad") })}</p>
 			</div>
 
 			{players.length === 0 ? (
 				<Alert>
 					<AlertCircle className="h-4 w-4" />
-					<AlertTitle>No hay jugadores</AlertTitle>
+					<AlertTitle>{playersT("noPlayers")}</AlertTitle>
 					<AlertDescription>
-						No se encontraron jugadores para {currentClub?.short_name}.
+						{playersT("noPlayersForClub", { club: currentClub?.short_name || playersT("squad") })} {" "}
 						{currentClub?.short_name === "CN Sant Andreu"
-							? " Los jugadores de ejemplo están disponibles para este club."
-							: " Puedes agregar jugadores desde el panel de administración."}
+							? playersT("samplePlayersHint")
+							: playersT("addPlayersHint")}
 					</AlertDescription>
 				</Alert>
 			) : (
@@ -171,10 +173,10 @@ export default function PlayersPage() {
 					<div className="mb-4 sm:mb-6 flex items-center gap-3">
 						<TabsList className="grid w-1/2 grid-cols-2">
 							<TabsTrigger value="field-players" className="text-xs sm:text-sm">
-								Jugadores ({fieldPlayers.length})
+								{playersT("fieldPlayersCount", { count: fieldPlayers.length })}
 							</TabsTrigger>
 							<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm">
-								Porteros ({goalkeepers.length})
+								{playersT("goalkeepersCount", { count: goalkeepers.length })}
 							</TabsTrigger>
 						</TabsList>
 
@@ -188,7 +190,7 @@ export default function PlayersPage() {
 							onClick={() => setEditOpen(true)}
 						>
 							<Edit className="h-4 w-4" />
-							Editar jugadores
+							{playersT("editPlayers")}
 						</Button>
 					</div>
 
@@ -202,8 +204,8 @@ export default function PlayersPage() {
 						) : (
 							<Alert>
 								<AlertCircle className="h-4 w-4" />
-								<AlertTitle>No hay jugadores de campo</AlertTitle>
-								<AlertDescription>No se encontraron jugadores de campo para {currentClub?.short_name}.</AlertDescription>
+								<AlertTitle>{playersT("noFieldPlayers")}</AlertTitle>
+								<AlertDescription>{playersT("noFieldPlayersForClub", { club: currentClub?.short_name || playersT("squad") })}</AlertDescription>
 							</Alert>
 						)}
 					</TabsContent>
@@ -218,8 +220,8 @@ export default function PlayersPage() {
 						) : (
 							<Alert>
 								<AlertCircle className="h-4 w-4" />
-								<AlertTitle>No hay porteros</AlertTitle>
-								<AlertDescription>No se encontraron porteros para {currentClub?.short_name}.</AlertDescription>
+								<AlertTitle>{playersT("noGoalkeepers")}</AlertTitle>
+								<AlertDescription>{playersT("noGoalkeepersForClub", { club: currentClub?.short_name || playersT("squad") })}</AlertDescription>
 							</Alert>
 						)}
 					</TabsContent>
@@ -228,7 +230,7 @@ export default function PlayersPage() {
 			<EditPlayersModal open={editOpen} players={players} onClose={() => setEditOpen(false)} onSaved={(updated) => setPlayers(updated)} />
 			<div className="mt-6 flex flex-col items-center gap-2 text-center">
 				<p className="text-xs text-muted-foreground">
-					POWERED BY <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
+					{playersT("poweredBy")} <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
 				</p>
 
 				<div className="flex items-center gap-4 opacity-70">
@@ -259,6 +261,7 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
 	};
 	matchStats: any[];
 }) {
+	const t = useTranslations("Players");
 	const router = useRouter();
 	const isMobile = useIsMobile();
 
@@ -289,13 +292,13 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
 				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
 			"
 		>
-			<PlayerHero player={player} role="Jugador de campo" />
+			<PlayerHero player={player} role={t("fieldPlayer")} />
 
 			<div className="space-y-3 p-3 sm:p-4">
 				<div className="grid grid-cols-3 gap-2">
-					<MiniStat label="Goles" value={player.totalGoles || 0} />
-					<MiniStat label="Asist." value={player.totalAsistencias || 0} />
-					<MiniStat label="Ef." value={`${efficiency}%`} />
+					<MiniStat label={t("goals")} value={player.totalGoles || 0} />
+					<MiniStat label={t("assistsShort")} value={player.totalAsistencias || 0} />
+					<MiniStat label={t("efficiencyShort")} value={`${efficiency}%`} />
 				</div>
 
 				<div
@@ -329,6 +332,7 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
 	};
 	matchStats: any[];
 }) {
+	const t = useTranslations("Players");
 	const router = useRouter();
 	const isMobile = useIsMobile();
 
@@ -357,13 +361,13 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
 				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
 			"
 		>
-			<PlayerHero player={player} role="Portero" />
+			<PlayerHero player={player} role={t("goalkeeper")} />
 
 			<div className="space-y-3 p-3 sm:p-4">
 				<div className="grid grid-cols-3 gap-2">
-					<MiniStat label="Paradas" value={player.totalParadas || 0} />
-					<MiniStat label="Goles" value={player.totalRivalGoles || 0} />
-					<MiniStat label="Partidos" value={player.matchesPlayed || 0} />
+					<MiniStat label={t("saves")} value={player.totalParadas || 0} />
+					<MiniStat label={t("goals")} value={player.totalRivalGoles || 0} />
+					<MiniStat label={t("matches")} value={player.matchesPlayed || 0} />
 				</div>
 
 				<div
@@ -395,6 +399,7 @@ function PlayerHero({
 	};
 	role: string;
 }) {
+	const t = useTranslations("Players");
 	return (
 		<div className="relative aspect-[4/5] overflow-hidden bg-muted sm:aspect-[5/4]">
 			{player.photo_url ? (
@@ -415,7 +420,7 @@ function PlayerHero({
 							#{player.number}
 						</div>
 						<div className="mt-1 text-xs text-muted-foreground">
-							Sin foto
+							{t("noPhoto")}
 						</div>
 					</div>
 				</div>
@@ -432,7 +437,7 @@ function PlayerHero({
 					{player.name}
 				</h3>
 				<p className="mt-0.5 text-[11px] text-white/75 sm:text-xs">
-					{role} · {player.matchesPlayed || 0} partidos
+					{t("roleMatches", { role, count: player.matchesPlayed || 0 })}
 				</p>
 			</div>
 		</div>

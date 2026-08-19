@@ -1,6 +1,7 @@
 import { getCurrentProfile } from "@/lib/auth"
 import { getPlayerTotalsReportData } from "@/lib/players/get-player-report-data"
 import { buildPlayerTotalsPdf } from "@/lib/exports/build-player-pdf"
+import { getTranslations } from "next-intl/server"
 
 function sanitizeFilenamePart(value: string) {
   return value
@@ -17,19 +18,22 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const t = await getTranslations("Api")
+  const tExport = await getTranslations("Export")
   try {
     const { id } = await params
     const playerId = Number(id)
 
     if (!Number.isFinite(playerId)) {
-      return new Response("Invalid player id", { status: 400 })
+      return new Response(t("invalidPlayerId"), { status: 400 })
     }
 
     const profile = await getCurrentProfile()
-    const reportData = await getPlayerTotalsReportData(playerId, profile?.id ?? null)
+    if (!profile) return new Response(t("unauthenticated"), { status: 401 })
+    const reportData = await getPlayerTotalsReportData(playerId, profile)
     const pdfBytes = await buildPlayerTotalsPdf(reportData)
 
-    const filename = `${sanitizeFilenamePart(reportData.player.name || "Jugador")}_totales.pdf`
+    const filename = `${sanitizeFilenamePart(reportData.player.name || tExport("playerFallback"))}_${tExport("totalsSuffix")}.pdf`
 
     return new Response(new Uint8Array(pdfBytes), {
       status: 200,
@@ -40,6 +44,6 @@ export async function GET(
     })
   } catch (error) {
     console.error(error)
-    return new Response("Failed to generate PDF", { status: 500 })
+    return new Response(t("pdfGenerationFailed"), { status: 500 })
   }
 }

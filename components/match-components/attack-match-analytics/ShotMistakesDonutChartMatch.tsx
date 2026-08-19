@@ -8,6 +8,7 @@ import { ExpandableChartCard } from "@/components/analytics-player/ExpandableCha
 import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { buildShotMistakesMatchData } from "@/lib/helpers/chartMistakeShootHelper";
+import { useLocale, useTranslations } from "next-intl";
 
 type PlayerLiteInput = {
 	id: number;
@@ -112,6 +113,8 @@ export function ShotMistakesDonutChartMatch({
 	players,
 	hiddenStats = []
 }: ShotMistakesDonutChartMatchProps) {
+	const t = useTranslations("MatchCharts");
+	const locale = useLocale();
 	const playersById = useMemo(() => {
 		const m = new Map<number, { id: number; name: string; number?: number | null; photo_url?: string | null }>();
 
@@ -120,14 +123,14 @@ export function ShotMistakesDonutChartMatch({
 
 			m.set(p.id, {
 				id: p.id,
-				name: candidate.length ? candidate : `Jugador ${p.id}`,
+				name: candidate.length ? candidate : t("playerFallback", { id: p.id }),
 				number: p.number ?? null,
 				photo_url: p.photo_url ?? null
 			});
 		});
 
 		return m;
-	}, [players]);
+	}, [players, t]);
 
 	const data = useMemo(
 		() => buildShotMistakesMatchData(match, stats ?? [], playersById, { hiddenStats }),
@@ -135,37 +138,43 @@ export function ShotMistakesDonutChartMatch({
 	);
 
 	if (!data?.summary?.total) return null;
+	const labelByKey: Record<string, string> = {
+		pen: t("penaltyMissed"), corner: t("corner"), out: t("out"), palo: t("post"),
+		saved: t("saved"), blocked: t("blocked"), sup: t("powerPlayMiss")
+	};
+	const parts = data.summary.parts.map((part) => ({ ...part, label: labelByKey[part.key] ?? part.label }));
+	const topType = data.summary.topType ? { ...data.summary.topType, label: labelByKey[data.summary.topType.key] ?? data.summary.topType.label } : null;
 
-	const jornada = match?.jornada ? `J${match.jornada}` : "Partido";
+	const jornada = match?.jornada ? `J${match.jornada}` : t("match");
 	const rival = match?.opponent ?? "—";
-	const fecha = match?.match_date ? new Date(match.match_date).toLocaleDateString("es-ES") : "—";
+	const fecha = match?.match_date ? new Date(match.match_date).toLocaleDateString(locale) : "—";
 
 	return (
 		<ExpandableChartCard
-			title="Distribución de fallos de tiro"
-			description={`${jornada} · vs ${rival} · ${fecha}`}
+			title={t("shotMistakesTitle")}
+			description={t("shootingDescription", { round: jornada, opponent: rival, date: fecha })}
 			icon={<Target className="w-5 h-5" />}
-			className="from-transparent"
-			rightHeader={<span className="text-xs text-muted-foreground">{data.summary.topType?.label ?? "—"}</span>}
+			className="h-full from-transparent"
+			rightHeader={<span className="text-xs text-muted-foreground">{topType?.label ?? "—"}</span>}
 			renderChart={({ compact }) => {
-				const outer = compact ? 86 : 116;
-				const inner = compact ? 52 : 74;
+				const outer = compact ? 66 : 116;
+				const inner = compact ? 42 : 74;
 
 				return (
 					<div className="w-full">
 						<div className={`grid gap-5 ${compact ? "grid-cols-1" : "grid-cols-1 xl:grid-cols-[1.05fr_1fr]"}`}>
 							<div className="relative">
-								<div className={`${compact ? "h-[240px]" : "h-[320px]"} w-full rounded-3xl border border-border/60 bg-card/30 p-2`}>
+								<div className={`${compact ? "h-[180px]" : "h-[320px]"} w-full rounded-2xl border border-border/60 bg-card/30 p-2`}>
 									<ChartContainer
 										config={Object.fromEntries(
-											data.summary.parts.map((p) => [p.key, { label: p.label, color: p.color }])
+										parts.map((p) => [p.key, { label: p.label, color: p.color }])
 										)}
 										className="w-full h-full"
 									>
 										<ResponsiveContainer width="100%" height="100%">
 											<PieChart>
 												<Pie
-													data={data.summary.parts}
+											data={parts}
 													dataKey="value"
 													nameKey="label"
 													cx="50%"
@@ -175,7 +184,7 @@ export function ShotMistakesDonutChartMatch({
 													paddingAngle={2}
 													stroke="transparent"
 												>
-													{data.summary.parts.map((p) => (
+											{parts.map((p) => (
 														<Cell key={p.key} fill={p.color} />
 													))}
 												</Pie>
@@ -185,37 +194,37 @@ export function ShotMistakesDonutChartMatch({
 									</ChartContainer>
 
 									<DonutCenter
-										title="Fallos"
+									title={t("misses")}
 										value={data.summary.total}
 									/>
 								</div>
 							</div>
 
-							<div className="space-y-4">
+							{!compact ? <div className="space-y-4">
 								<div className="flex flex-wrap gap-2">
 									<TinyPill>
-										Total <span className="ml-1 font-semibold text-foreground tabular-nums">{data.summary.total}</span>
+									{t("total")} <span className="ml-1 font-semibold text-foreground tabular-nums">{data.summary.total}</span>
 									</TinyPill>
-									{data.summary.topType ? (
+								{topType ? (
 										<TinyPill>
-											Top tipo <span className="ml-1 font-semibold text-foreground">{data.summary.topType.label}</span>
+										{t("topType")} <span className="ml-1 font-semibold text-foreground">{topType.label}</span>
 										</TinyPill>
 									) : null}
 									<TinyPill>
-										Partido <span className="ml-1 font-semibold text-foreground">{jornada}</span>
+									{t("match")} <span className="ml-1 font-semibold text-foreground">{jornada}</span>
 									</TinyPill>
 								</div>
 
 								<div className="rounded-3xl border border-border/60 bg-card/40 p-4 shadow-sm">
 									<div className="flex items-center justify-between gap-3 mb-3">
-										<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Distribución</p>
+									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("distribution")}</p>
 										<Badge variant="outline" className="bg-background/70 text-[11px]">
-											{data.summary.parts.length} tipos
+										{t("typesCount", { count: parts.length })}
 										</Badge>
 									</div>
 
 									<div className="space-y-2">
-										{data.summary.parts.map((p) => (
+								{parts.map((p) => (
 											<Row
 												key={p.key}
 												label={p.label}
@@ -231,7 +240,7 @@ export function ShotMistakesDonutChartMatch({
 								</div>
 
 
-							</div>
+							</div> : null}
 						</div>
 					</div>
 				);
@@ -240,7 +249,7 @@ export function ShotMistakesDonutChartMatch({
 				<div className="rounded-3xl border border-border/60 bg-card/40 overflow-hidden">
 					<div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/20 px-4 py-4">
 						<div className="min-w-0">
-							<p className="text-sm font-semibold">Detalle de fallos de tiro</p>
+							<p className="text-sm font-semibold">{t("shotMistakeDetail")}</p>
 							<p className="text-xs text-muted-foreground">
 								{jornada} · {rival} · {fecha}
 							</p>
@@ -248,11 +257,11 @@ export function ShotMistakesDonutChartMatch({
 
 						<div className="flex flex-wrap gap-2">
 							<Badge variant="outline" className="bg-background/70 text-[11px] tabular-nums">
-								Total {data.summary.total}
+								{t("total")} {data.summary.total}
 							</Badge>
-							{data.summary.topType ? (
+							{topType ? (
 								<Badge variant="outline" className="bg-background/70 text-[11px]">
-									Top {data.summary.topType.label}
+									{t("top", { label: topType.label })}
 								</Badge>
 							) : null}
 						</div>
@@ -260,7 +269,7 @@ export function ShotMistakesDonutChartMatch({
 
 					<div className="p-4 space-y-4">
 						<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-							{data.summary.parts.map((p) => (
+						{parts.map((p) => (
 								<StatBox
 									key={p.key}
 									label={p.label}
@@ -279,17 +288,17 @@ export function ShotMistakesDonutChartMatch({
 									<Table className="min-w-[1180px]">
 										<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 											<TableRow className="hover:bg-transparent">
-												<TableHead className="w-[90px]">Jornada</TableHead>
-												<TableHead>Rival</TableHead>
-												{data.perMatch[0]?.pen !== undefined && <TableHead className="text-right">Penalti</TableHead>}
-												{data.perMatch[0]?.corner !== undefined && <TableHead className="text-right">Corner</TableHead>}
-												{data.perMatch[0]?.out !== undefined && <TableHead className="text-right">Fuera</TableHead>}
-												{data.perMatch[0]?.palo !== undefined && <TableHead className="text-right">Palo</TableHead>}
-												{data.perMatch[0]?.saved !== undefined && <TableHead className="text-right">Parado</TableHead>}
-												{data.perMatch[0]?.blocked !== undefined && <TableHead className="text-right">Bloq.</TableHead>}
-												{data.perMatch[0]?.sup !== undefined && <TableHead className="text-right">Sup.</TableHead>}
-												<TableHead className="text-right">Total</TableHead>
-												<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="w-[90px]">{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
+										{data.perMatch[0]?.pen !== undefined && <TableHead className="text-right">{t("penalty")}</TableHead>}
+										{data.perMatch[0]?.corner !== undefined && <TableHead className="text-right">{t("corner")}</TableHead>}
+										{data.perMatch[0]?.out !== undefined && <TableHead className="text-right">{t("out")}</TableHead>}
+										{data.perMatch[0]?.palo !== undefined && <TableHead className="text-right">{t("post")}</TableHead>}
+										{data.perMatch[0]?.saved !== undefined && <TableHead className="text-right">{t("saved")}</TableHead>}
+										{data.perMatch[0]?.blocked !== undefined && <TableHead className="text-right">{t("blockedShort")}</TableHead>}
+										{data.perMatch[0]?.sup !== undefined && <TableHead className="text-right">{t("powerPlayShort")}</TableHead>}
+										<TableHead className="text-right">{t("total")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 											</TableRow>
 										</UITableHeader>
 
@@ -340,7 +349,7 @@ export function ShotMistakesDonutChartMatch({
 						<div className="rounded-3xl border border-border/60 bg-gradient-to-br from-background to-muted/25 p-4">
 							<div className="flex items-start gap-3">
 								<div className="mt-0.5">
-									{data.summary.topType && data.summary.topType.pct >= 40 ? (
+							{topType && topType.pct >= 40 ? (
 										<div className="rounded-full border border-border/60 bg-background/80 p-2">
 											<TrendingUp className="h-4 w-4 text-muted-foreground" />
 										</div>
@@ -352,13 +361,11 @@ export function ShotMistakesDonutChartMatch({
 								</div>
 
 								<div>
-									<p className="text-sm font-semibold">Conclusión</p>
+								<p className="text-sm font-semibold">{t("conclusion")}</p>
 									<p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-										{data.summary.topType
-											? `El fallo más frecuente del partido fue ${data.summary.topType.label}, con ${data.summary.topType.value} acciones y un peso de ${fmtPct(
-													data.summary.topType.pct
-											  )} sobre el total.`
-											: "No hay suficientes datos para generar una conclusión del partido."}
+									{topType
+										? t("shotMistakeConclusion", { type: topType.label, value: topType.value, percentage: fmtPct(topType.pct) })
+										: t("noConclusion")}
 									</p>
 								</div>
 							</div>

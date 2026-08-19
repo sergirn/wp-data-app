@@ -62,7 +62,10 @@ function goalkeeperRowsOnly(rows: any[]) {
 	return (rows ?? []).filter((s) => s?.players?.is_goalkeeper);
 }
 
-export function buildGoalkeeperGoalsAgainstSummary(rows: any[]): GoalkeeperBreakdownSummary {
+export function buildGoalkeeperGoalsAgainstSummary(
+	rows: any[],
+	translateLabel: (key: string) => string = (key) => key
+): GoalkeeperBreakdownSummary {
 	const gkRows = goalkeeperRowsOnly(rows);
 
 	const boya = gkRows.reduce((sum, s) => sum + n(s?.portero_goles_boya_parada), 0);
@@ -76,13 +79,13 @@ export function buildGoalkeeperGoalsAgainstSummary(rows: any[]): GoalkeeperBreak
 	const total = boya + dir6m + contra + penalti + lanzamiento + infGol + infPaloGol;
 
 	const parts: GoalkeeperBreakdownPart[] = [
-		{ key: "boya", label: "Boya", value: boya, pct: pct(boya, total), color: GOALS_AGAINST_COLORS.boya },
-		{ key: "dir6m", label: "+6m", value: dir6m, pct: pct(dir6m, total), color: GOALS_AGAINST_COLORS.dir6m },
-		{ key: "contra", label: "Contraataque", value: contra, pct: pct(contra, total), color: GOALS_AGAINST_COLORS.contra },
-		{ key: "penalti", label: "Penalti", value: penalti, pct: pct(penalti, total), color: GOALS_AGAINST_COLORS.penalti },
-		{ key: "lanzamiento", label: "Lanzamiento", value: lanzamiento, pct: pct(lanzamiento, total), color: GOALS_AGAINST_COLORS.lanzamiento },
-		{ key: "infGol", label: "Gol en inferioridad", value: infGol, pct: pct(infGol, total), color: GOALS_AGAINST_COLORS.infGol },
-		{ key: "infPaloGol", label: "Gol del palo (Inf.-)", value: infPaloGol, pct: pct(infPaloGol, total), color: GOALS_AGAINST_COLORS.infPaloGol }
+		{ key: "boya", label: translateLabel("portero_goles_boya_parada"), value: boya, pct: pct(boya, total), color: GOALS_AGAINST_COLORS.boya },
+		{ key: "dir6m", label: translateLabel("portero_goles_dir_mas_5m"), value: dir6m, pct: pct(dir6m, total), color: GOALS_AGAINST_COLORS.dir6m },
+		{ key: "contra", label: translateLabel("portero_goles_contraataque"), value: contra, pct: pct(contra, total), color: GOALS_AGAINST_COLORS.contra },
+		{ key: "penalti", label: translateLabel("portero_goles_penalti"), value: penalti, pct: pct(penalti, total), color: GOALS_AGAINST_COLORS.penalti },
+		{ key: "lanzamiento", label: translateLabel("portero_goles_lanzamiento"), value: lanzamiento, pct: pct(lanzamiento, total), color: GOALS_AGAINST_COLORS.lanzamiento },
+		{ key: "infGol", label: translateLabel("portero_goles_hombre_menos"), value: infGol, pct: pct(infGol, total), color: GOALS_AGAINST_COLORS.infGol },
+		{ key: "infPaloGol", label: translateLabel("portero_gol_palo"), value: infPaloGol, pct: pct(infPaloGol, total), color: GOALS_AGAINST_COLORS.infPaloGol }
 	].filter((p) => p.value > 0 || total === 0);
 
 	const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;
@@ -133,7 +136,10 @@ export function buildGoalkeeperGoalsAgainstPerPlayer(
 		.sort((a, b) => b.total - a.total);
 }
 
-export function buildGoalkeeperSavesSummary(rows: any[]): GoalkeeperBreakdownSummary {
+export function buildGoalkeeperSavesSummary(
+	rows: any[],
+	translateLabel: (key: string) => string = (key) => key
+): GoalkeeperBreakdownSummary {
 	const gkRows = goalkeeperRowsOnly(rows);
 
 	const paradaRecup = gkRows.reduce((sum, s) => sum + n(s?.portero_tiros_parada_recup), 0);
@@ -144,10 +150,10 @@ export function buildGoalkeeperSavesSummary(rows: any[]): GoalkeeperBreakdownSum
 	const total = paradaRecup + paradaFuera + penaltiParado + infParada;
 
 	const parts: GoalkeeperBreakdownPart[] = [
-		{ key: "paradaRecup", label: "Parada + Recup", value: paradaRecup, pct: pct(paradaRecup, total), color: SAVES_COLORS.paradaRecup },
-		{ key: "paradaFuera", label: "Fuera (parada)", value: paradaFuera, pct: pct(paradaFuera, total), color: SAVES_COLORS.paradaFuera },
-		{ key: "penaltiParado", label: "Penalti parado", value: penaltiParado, pct: pct(penaltiParado, total), color: SAVES_COLORS.penaltiParado },
-		{ key: "infParada", label: "Paradas inferioridad -", value: infParada, pct: pct(infParada, total), color: SAVES_COLORS.infParada }
+		{ key: "paradaRecup", label: translateLabel("portero_tiros_parada_recup"), value: paradaRecup, pct: pct(paradaRecup, total), color: SAVES_COLORS.paradaRecup },
+		{ key: "paradaFuera", label: translateLabel("portero_paradas_fuera"), value: paradaFuera, pct: pct(paradaFuera, total), color: SAVES_COLORS.paradaFuera },
+		{ key: "penaltiParado", label: translateLabel("portero_paradas_penalti_parado"), value: penaltiParado, pct: pct(penaltiParado, total), color: SAVES_COLORS.penaltiParado },
+		{ key: "infParada", label: translateLabel("portero_paradas_hombre_menos"), value: infParada, pct: pct(infParada, total), color: SAVES_COLORS.infParada }
 	].filter((p) => p.value > 0 || total === 0);
 
 	const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;

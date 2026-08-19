@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, Shield, XCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type LocalShooter = {
 	id: number;
@@ -20,6 +21,7 @@ type RivalShot = {
 };
 
 function ResultPill({ variant }: { variant: "scored" | "missed" | "saved" }) {
+	const t = useTranslations("PenaltyShootoutList");
 	const styles =
 		variant === "scored"
 			? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
@@ -31,15 +33,15 @@ function ResultPill({ variant }: { variant: "scored" | "missed" | "saved" }) {
 		<span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold ${styles}`}>
 			{variant === "scored" ? (
 				<>
-					<CheckCircle className="h-3.5 w-3.5" /> Gol
+					<CheckCircle className="h-3.5 w-3.5" /> {t("goal")}
 				</>
 			) : variant === "saved" ? (
 				<>
-					<Shield className="h-3.5 w-3.5" /> Parada
+					<Shield className="h-3.5 w-3.5" /> {t("save")}
 				</>
 			) : (
 				<>
-					<XCircle className="h-3.5 w-3.5" /> Fallo
+					<XCircle className="h-3.5 w-3.5" /> {t("miss")}
 				</>
 			)}
 		</span>
@@ -121,6 +123,7 @@ export function PenaltyShootoutList({
 	homePenaltyShooters: LocalShooter[];
 	rivalPenaltyShots: RivalShot[];
 }) {
+	const t = useTranslations("PenaltyShootoutList");
 	return (
 		<div className="grid md:grid-cols-2 gap-6">
 			{/* Local */}
@@ -141,7 +144,7 @@ export function PenaltyShootoutList({
 						))}
 					</div>
 				) : (
-					<div className="rounded-xl border bg-muted/20 p-6 text-center text-sm text-muted-foreground">No hay lanzadores registrados</div>
+					<div className="rounded-xl border bg-muted/20 p-6 text-center text-sm text-muted-foreground">{t("noShooters")}</div>
 				)}
 			</div>
 
@@ -176,7 +179,7 @@ export function PenaltyShootoutList({
 						})}
 					</div>
 				) : (
-					<div className="rounded-xl border bg-muted/20 p-6 text-center text-sm text-muted-foreground">No hay lanzamientos registrados</div>
+					<div className="rounded-xl border bg-muted/20 p-6 text-center text-sm text-muted-foreground">{t("noShots")}</div>
 				)}
 			</div>
 		</div>

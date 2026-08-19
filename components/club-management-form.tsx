@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 export function ClubManagementForm() {
+  const t = useTranslations("AdminForms")
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -24,10 +26,11 @@ export function ClubManagementForm() {
     const formData = new FormData(e.currentTarget)
     const data = {
       name: formData.get("name") as string,
-      short_name: formData.get("short_name") as string,
-      logo_url: formData.get("logo_url") as string,
-      primary_color: formData.get("primary_color") as string,
-      secondary_color: formData.get("secondary_color") as string,
+      shortName: formData.get("short_name") as string,
+      logoUrl: (formData.get("logo_url") as string) || null,
+      primaryColor: formData.get("primary_color") as string,
+      secondaryColor: formData.get("secondary_color") as string,
+      competitionIds: [],
     }
 
     try {
@@ -37,17 +40,15 @@ export function ClubManagementForm() {
         body: JSON.stringify(data),
       })
 
-      const result = await response.json()
-
       if (!response.ok) {
-        throw new Error(result.error || "Error al crear el club")
+        throw new Error(t("clubCreateError"))
       }
 
-      setSuccess("Club creado exitosamente")
+      setSuccess(t("clubCreatedGeneric"))
       e.currentTarget.reset()
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido")
+      setError(err instanceof Error ? err.message : t("clubCreateError"))
     } finally {
       setLoading(false)
     }
@@ -57,22 +58,22 @@ export function ClubManagementForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="name">Nombre Completo *</Label>
-          <Input id="name" name="name" placeholder="Club Natació Sant Andreu" required />
+          <Label htmlFor="name">{t("name")}</Label>
+          <Input id="name" name="name" placeholder={t("clubNamePlaceholder")} required />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="short_name">Nombre Corto *</Label>
-          <Input id="short_name" name="short_name" placeholder="CN Sant Andreu" required />
+          <Label htmlFor="short_name">{t("shortName")}</Label>
+          <Input id="short_name" name="short_name" placeholder={t("clubShortNamePlaceholder")} required />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="logo_url">URL del Logo</Label>
-          <Input id="logo_url" name="logo_url" type="url" placeholder="https://ejemplo.com/logo.png" />
+          <Label htmlFor="logo_url">{t("logoUrl")}</Label>
+          <Input id="logo_url" name="logo_url" type="url" placeholder={t("logoPlaceholder")} />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="primary_color">Color Primario</Label>
+          <Label htmlFor="primary_color">{t("primaryColor")}</Label>
           <div className="flex gap-2">
             <Input id="primary_color" name="primary_color" type="color" defaultValue="#1e40af" className="w-20" />
             <Input type="text" placeholder="#1e40af" className="flex-1" />
@@ -80,7 +81,7 @@ export function ClubManagementForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="secondary_color">Color Secundario</Label>
+          <Label htmlFor="secondary_color">{t("secondaryColor")}</Label>
           <div className="flex gap-2">
             <Input id="secondary_color" name="secondary_color" type="color" defaultValue="#dc2626" className="w-20" />
             <Input type="text" placeholder="#dc2626" className="flex-1" />
@@ -102,7 +103,7 @@ export function ClubManagementForm() {
 
       <Button type="submit" disabled={loading} className="w-full">
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Crear Club
+        {loading ? t("creating") : t("createClub")}
       </Button>
     </form>
   )

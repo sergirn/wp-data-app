@@ -15,8 +15,11 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import { useTranslations } from "next-intl";
 
 export function DeleteMatchButton({ matchId, className = "", onClick }: { matchId: number; className?: string; onClick?: (e?: any) => void }) {
+	const t = useTranslations("DeleteMatch");
+	const common = useTranslations("Common");
 	const router = useRouter();
 	const [deleting, setDeleting] = useState(false);
 	const supabase = createClient();
@@ -32,7 +35,7 @@ export function DeleteMatchButton({ matchId, className = "", onClick }: { matchI
 			router.refresh();
 		} catch (error) {
 			console.error("Error deleting match:", error);
-			alert("Error al eliminar el partido");
+			alert(t("error"));
 		} finally {
 			setDeleting(false);
 		}
@@ -42,9 +45,8 @@ export function DeleteMatchButton({ matchId, className = "", onClick }: { matchI
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<button
-					className={`group flex h-8 w-8 items-center justify-center rounded-md 
-                               text-red-500/40 hover:text-red-600 
-                               transition-all duration-200 ${className}`}
+					className={`group flex h-8 w-8 items-center justify-center rounded-md text-red-500/40 hover:text-red-600 transition-all duration-200 ${className}`}
+					aria-label={t("buttonLabel")}
 					onClick={(e) => {
 						e.stopPropagation();
 						onClick?.(e);
@@ -56,14 +58,14 @@ export function DeleteMatchButton({ matchId, className = "", onClick }: { matchI
 
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+					<AlertDialogTitle>{t("title")}</AlertDialogTitle>
 					<AlertDialogDescription>
-						Esta acción no se puede deshacer. Se eliminará el partido y todas sus estadísticas de forma permanente.
+						{t("description")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancelar</AlertDialogCancel>
+					<AlertDialogCancel>{common("cancel")}</AlertDialogCancel>
 
 					<AlertDialogAction
 						onClick={handleDelete}
@@ -73,10 +75,10 @@ export function DeleteMatchButton({ matchId, className = "", onClick }: { matchI
 						{deleting ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Eliminando...
+								{t("deleting")}
 							</>
 						) : (
-							"Eliminar"
+							t("delete")
 						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>

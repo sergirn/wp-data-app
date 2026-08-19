@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { Player } from "@/lib/types"
+import { useTranslations } from "next-intl"
 
 type Quarter = 1 | 2 | 3 | 4
 
@@ -24,6 +25,8 @@ export function SprintWinnerModal({
   onClose,
   onConfirm,
 }: Props) {
+  const t = useTranslations("NewMatch")
+  const common = useTranslations("Common")
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
   const available = useMemo(
@@ -43,7 +46,7 @@ export function SprintWinnerModal({
     >
       <DialogContent className="w-[90vw] sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Ganador del sprint {quarter ?? ""}</DialogTitle>
+          <DialogTitle>{t("winner")} {quarter ?? ""}</DialogTitle>
         </DialogHeader>
 
         <div className="mt-3 max-h-[520px] overflow-auto rounded-md p-3">
@@ -100,7 +103,7 @@ export function SprintWinnerModal({
               onClose()
             }}
           >
-            Cancelar
+            {common("cancel")}
           </Button>
 
           <Button
@@ -111,7 +114,7 @@ export function SprintWinnerModal({
               setSelectedId(null)
             }}
           >
-            Guardar
+            {common("save")}
           </Button>
         </div>
       </DialogContent>

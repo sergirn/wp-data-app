@@ -1,27 +1,30 @@
 import ExcelJS from "exceljs";
 import { getPlayerDerived, getPlayerStatsByCategory } from "@/lib/stats/playerStatsHelpers";
-import { PLAYER_CATEGORY_TITLES, type PlayerStatCategory } from "@/lib/stats/playerStatsConfig";
+import { type PlayerStatCategory } from "@/lib/stats/playerStatsConfig";
 import { getGoalkeeperDerived, getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
-import { GOALKEEPER_CATEGORY_TITLES, type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { getLocale, getTranslations } from "next-intl/server";
+
+type ReportTranslator = (key: string, values?: Record<string, string | number>) => string;
 
 type MatchReportData = Awaited<ReturnType<typeof import("@/lib/matches/get-match-report-data").getMatchReportData>>;
 
-function formatDate(date?: string | Date | null) {
+function formatDate(date: string | Date | null | undefined, locale: string) {
 	if (!date) return "-";
 	const parsed = date instanceof Date ? date : new Date(date);
-	return parsed.toLocaleDateString("es-ES", {
+	return parsed.toLocaleDateString(locale, {
 		year: "numeric",
 		month: "long",
 		day: "numeric"
 	});
 }
 
-function sanitizeSheetName(value: string) {
+function sanitizeSheetName(value: string, fallback: string) {
 	return (
 		value
 			.replace(/[:\\/?*\[\]]/g, "")
 			.slice(0, 31)
-			.trim() || "Hoja"
+			.trim() || fallback
 	);
 }
 
@@ -161,105 +164,105 @@ function addCategoryBlocks(ws: ExcelJS.Worksheet, startRow: number, cards: Array
 	return rowIndex;
 }
 
-function buildPlayerCategoryRows(category: PlayerStatCategory, stats: Record<string, any>, hiddenStats?: string[] | Set<string>) {
+function buildPlayerCategoryRows(category: PlayerStatCategory, stats: Record<string, any>, hiddenStats: string[] | Set<string> | undefined, tStat: ReportTranslator) {
 	return getPlayerStatsByCategory(category, hiddenStats).map((def) => ({
-		label: def.label,
+		label: tStat(def.key),
 		value: String(stats?.[def.key] ?? 0)
 	}));
 }
 
-function buildGoalkeeperCategoryRows(category: GoalkeeperStatCategory, stats: Record<string, any>, hiddenStats?: string[] | Set<string>) {
+function buildGoalkeeperCategoryRows(category: GoalkeeperStatCategory, stats: Record<string, any>, hiddenStats: string[] | Set<string> | undefined, tStat: ReportTranslator) {
 	return getGoalkeeperStatsByCategory(category, hiddenStats).map((def) => ({
-		label: def.label,
+		label: tStat(def.key),
 		value: String(stats?.[def.key] ?? 0)
 	}));
 }
 
-function buildMergedGoalkeeperActionRows(stats: Record<string, any>, hiddenStats?: string[] | Set<string>) {
+function buildMergedGoalkeeperActionRows(stats: Record<string, any>, hiddenStats: string[] | Set<string> | undefined, tStat: ReportTranslator) {
 	const actionRows = getGoalkeeperStatsByCategory("acciones", hiddenStats).map((def) => ({
-		label: def.label,
+		label: tStat(def.key),
 		value: String(stats?.[def.key] ?? 0)
 	}));
 
 	const attackRows = getGoalkeeperStatsByCategory("ataque", hiddenStats).map((def) => ({
-		label: def.label,
+		label: tStat(def.key),
 		value: String(stats?.[def.key] ?? 0)
 	}));
 
 	return [...actionRows, ...attackRows];
 }
 
-function buildAttackCards(data: MatchReportData) {
+function buildAttackCards(data: MatchReportData, t: ReportTranslator, tStat: ReportTranslator) {
 	const { attackTotals, hiddenStats } = data;
 
 	return [
 		{
-			title: PLAYER_CATEGORY_TITLES.goles,
-			rows: buildPlayerCategoryRows("goles", attackTotals, hiddenStats)
+			title: t("categories.playerGoals"),
+			rows: buildPlayerCategoryRows("goles", attackTotals, hiddenStats, tStat)
 		},
 		{
-			title: PLAYER_CATEGORY_TITLES.fallos,
-			rows: buildPlayerCategoryRows("fallos", attackTotals, hiddenStats)
+			title: t("categories.playerMisses"),
+			rows: buildPlayerCategoryRows("fallos", attackTotals, hiddenStats, tStat)
 		},
 		{
-			title: PLAYER_CATEGORY_TITLES.faltas,
-			rows: buildPlayerCategoryRows("faltas", attackTotals, hiddenStats)
+			title: t("categories.fouls"),
+			rows: buildPlayerCategoryRows("faltas", attackTotals, hiddenStats, tStat)
 		},
 		{
-			title: PLAYER_CATEGORY_TITLES.acciones,
-			rows: buildPlayerCategoryRows("acciones", attackTotals, hiddenStats)
+			title: t("categories.actions"),
+			rows: buildPlayerCategoryRows("acciones", attackTotals, hiddenStats, tStat)
 		}
 	].filter((card) => card.rows.length > 0);
 }
 
-function buildDefenseCards(data: MatchReportData) {
+function buildDefenseCards(data: MatchReportData, t: ReportTranslator, tStat: ReportTranslator) {
 	const { defenseTotals, hiddenStats } = data;
 
 	return [
 		{
-			title: PLAYER_CATEGORY_TITLES.faltas,
-			rows: buildPlayerCategoryRows("faltas", defenseTotals, hiddenStats)
+			title: t("categories.fouls"),
+			rows: buildPlayerCategoryRows("faltas", defenseTotals, hiddenStats, tStat)
 		},
 		{
-			title: PLAYER_CATEGORY_TITLES.acciones,
-			rows: buildPlayerCategoryRows("acciones", defenseTotals, hiddenStats)
+			title: t("categories.actions"),
+			rows: buildPlayerCategoryRows("acciones", defenseTotals, hiddenStats, tStat)
 		}
 	].filter((card) => card.rows.length > 0);
 }
 
-function buildGoalkeeperCards(data: MatchReportData) {
+function buildGoalkeeperCards(data: MatchReportData, t: ReportTranslator, tStat: ReportTranslator) {
 	const { goalkeeperTotals, hiddenStats } = data;
 
 	return [
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.goles,
-			rows: buildGoalkeeperCategoryRows("goles", goalkeeperTotals, hiddenStats)
+			title: t("categories.goalkeeperGoals"),
+			rows: buildGoalkeeperCategoryRows("goles", goalkeeperTotals, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.paradas,
-			rows: buildGoalkeeperCategoryRows("paradas", goalkeeperTotals, hiddenStats)
+			title: t("categories.saves"),
+			rows: buildGoalkeeperCategoryRows("paradas", goalkeeperTotals, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.paradas_penalti,
-			rows: buildGoalkeeperCategoryRows("paradas_penalti", goalkeeperTotals, hiddenStats)
+			title: t("categories.penalties"),
+			rows: buildGoalkeeperCategoryRows("paradas_penalti", goalkeeperTotals, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.otros_tiros,
-			rows: buildGoalkeeperCategoryRows("otros_tiros", goalkeeperTotals, hiddenStats)
+			title: t("categories.otherShots"),
+			rows: buildGoalkeeperCategoryRows("otros_tiros", goalkeeperTotals, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.inferioridad,
-			rows: buildGoalkeeperCategoryRows("inferioridad", goalkeeperTotals, hiddenStats)
+			title: t("categories.inferiority"),
+			rows: buildGoalkeeperCategoryRows("inferioridad", goalkeeperTotals, hiddenStats, tStat)
 		},
 		{
-			title: "Acciones",
-			rows: buildMergedGoalkeeperActionRows(goalkeeperTotals, hiddenStats)
+			title: t("categories.actions"),
+			rows: buildMergedGoalkeeperActionRows(goalkeeperTotals, hiddenStats, tStat)
 		}
 	].filter((card) => card.rows.length > 0);
 }
 
-function createMatchTotalsSheet(workbook: ExcelJS.Workbook, data: MatchReportData) {
-	const ws = workbook.addWorksheet("Resumen", {
+function createMatchTotalsSheet(workbook: ExcelJS.Workbook, data: MatchReportData, t: ReportTranslator, tStat: ReportTranslator, locale: string) {
+	const ws = workbook.addWorksheet(t("summarySheet"), {
 		views: [{ state: "frozen", ySplit: 1 }]
 	});
 
@@ -279,45 +282,49 @@ function createMatchTotalsSheet(workbook: ExcelJS.Workbook, data: MatchReportDat
 		goalkeeperSummary
 	} = data;
 
-	ws.getCell("A1").value = "REPORTE DE PARTIDO";
+	ws.getCell("A1").value = t("matchReportTitle");
 	ws.mergeCells("A1:F1");
 	styleTitleRow(ws.getRow(1));
 
 	let row = 3;
 
-	row = addKeyValueBlock(ws, row, "Información general", [
-		{ label: "Partido", value: `${clubName} vs ${match.opponent}` },
-		{ label: "Marcador", value: `${match.home_score} - ${match.away_score}` },
-		{ label: "Resultado", value: result },
-		{ label: "Competición", value: match.competitions?.name ?? "-" },
-		{ label: "Fecha", value: formatDate(matchDate) },
-		{ label: "Ubicación", value: match.location ?? "-" },
-		{ label: "Temporada", value: match.season ?? "-" },
-		{ label: "Jornada", value: String(match.jornada ?? "-") },
+	const localizedClubName = clubName === "Nuestro Equipo" ? t("ourTeam") : clubName;
+	const localizedResult = hasPenalties
+		? (match.penalty_home_score ?? 0) > (match.penalty_away_score ?? 0) ? t("winPenalties") : t("lossPenalties")
+		: match.home_score > match.away_score ? t("win") : match.home_score < match.away_score ? t("loss") : t("draw");
+	row = addKeyValueBlock(ws, row, t("generalInformation"), [
+		{ label: t("match"), value: t("versus", { team: localizedClubName, opponent: match.opponent }) },
+		{ label: t("score"), value: `${match.home_score} - ${match.away_score}` },
+		{ label: t("result"), value: localizedResult },
+		{ label: t("competition"), value: match.competitions?.name ?? "-" },
+		{ label: t("date"), value: formatDate(matchDate, locale) },
+		{ label: t("location"), value: match.location ?? "-" },
+		{ label: t("season"), value: match.season ?? "-" },
+		{ label: t("round"), value: String(match.jornada ?? "-") },
 		{
-			label: "Penaltis",
-			value: hasPenalties ? `${match.penalty_home_score ?? 0} - ${match.penalty_away_score ?? 0}` : "No"
+			label: t("penalties"),
+			value: hasPenalties ? `${match.penalty_home_score ?? 0} - ${match.penalty_away_score ?? 0}` : t("no")
 		}
 	]);
 
 	row = addTableBlock(
 		ws,
 		row,
-		"Parciales",
-		["Periodo", "Nosotros", "Rival", "Ganador sprint"],
-		periods.map((period) => [`Q${period.q}`, period.home, period.away, period.winner ? `#${period.winner.number} ${period.winner.name}` : "-"])
+		t("periods"),
+		[t("period"), t("us"), t("opponent"), t("sprintWinner")],
+		periods.map((period) => [t("quarter", { number: period.q }), period.home, period.away, period.winner ? `#${period.winner.number} ${period.winner.name}` : "-"])
 	);
 
 	if (hasPenalties) {
 		row = addTableBlock(
 			ws,
 			row,
-			"Lanzadores propios",
-			["Orden", "Jugador", "Resultado", "Tipo"],
+			t("homeShooters"),
+			[t("order"), t("player"), t("result"), t("type")],
 			homePenaltyShooters.map((shot) => [
 				shot.shot_order,
-				shot.players ? `#${shot.players.number} ${shot.players.name}` : "Unknown",
-				shot.scored ? "Gol" : "Fallado",
+				shot.players ? `#${shot.players.number} ${shot.players.name}` : t("unknown"),
+				shot.scored ? t("goal") : t("missed"),
 				shot.result_type ?? "-"
 			])
 		);
@@ -325,47 +332,47 @@ function createMatchTotalsSheet(workbook: ExcelJS.Workbook, data: MatchReportDat
 		row = addTableBlock(
 			ws,
 			row,
-			"Lanzamientos rival",
-			["Orden", "Portero", "Resultado", "Tipo"],
+			t("opponentShots"),
+			[t("order"), t("goalkeeper"), t("result"), t("type")],
 			rivalPenaltyShots.map((shot) => [
 				shot.shot_order,
-				shot.goalkeeper ? `#${shot.goalkeeper.number} ${shot.goalkeeper.name}` : "Unknown",
-				shot.scored ? "Gol" : "Parado/Fallado",
+				shot.goalkeeper ? `#${shot.goalkeeper.number} ${shot.goalkeeper.name}` : t("unknown"),
+				shot.scored ? t("goal") : t("savedOrMissed"),
 				shot.result_type ?? "-"
 			])
 		);
 	}
 
 	if (match.notes) {
-		row = addKeyValueBlock(ws, row, "Notas", [{ label: "Observaciones", value: match.notes }]);
+		row = addKeyValueBlock(ws, row, t("notes"), [{ label: t("observations"), value: match.notes }]);
 	}
 
-	row = addKeyValueBlock(ws, row, "KPIs ataque", [
-		{ label: "Goles", value: attackSummary.topBar.goals },
-		{ label: "Tiros", value: attackSummary.topBar.shots },
-		{ label: "Eficiencia", value: `${attackSummary.topBar.efficiency}%` },
-		{ label: "Asistencias", value: attackSummary.topBar.assists }
+	row = addKeyValueBlock(ws, row, t("attackKpis"), [
+		{ label: t("goals"), value: attackSummary.topBar.goals },
+		{ label: t("shots"), value: attackSummary.topBar.shots },
+		{ label: t("efficiency"), value: `${attackSummary.topBar.efficiency}%` },
+		{ label: t("assists"), value: attackSummary.topBar.assists }
 	]);
 
-	row = addCategoryBlocks(ws, row, buildAttackCards(data));
+	row = addCategoryBlocks(ws, row, buildAttackCards(data, t, tStat));
 
-	row = addKeyValueBlock(ws, row, "KPIs defensa", [
-		{ label: "Faltas", value: defenseSummary.defense.fouls },
-		{ label: "Bloqueos", value: defenseSummary.defense.blocks },
-		{ label: "Recuperaciones", value: defenseSummary.defense.recoveries },
-		{ label: "Rebotes", value: defenseSummary.defense.rebounds }
+	row = addKeyValueBlock(ws, row, t("defenseKpis"), [
+		{ label: t("fouls"), value: defenseSummary.defense.fouls },
+		{ label: t("blocks"), value: defenseSummary.defense.blocks },
+		{ label: t("recoveries"), value: defenseSummary.defense.recoveries },
+		{ label: t("rebounds"), value: defenseSummary.defense.rebounds }
 	]);
 
-	row = addCategoryBlocks(ws, row, buildDefenseCards(data));
+	row = addCategoryBlocks(ws, row, buildDefenseCards(data, t, tStat));
 
-	row = addKeyValueBlock(ws, row, "KPIs portería", [
-		{ label: "Paradas", value: goalkeeperSummary.topBar.saves },
-		{ label: "Goles encajados", value: goalkeeperSummary.topBar.goalsConceded },
-		{ label: "Tiros recibidos", value: goalkeeperSummary.topBar.shotsReceived },
-		{ label: "Save %", value: `${goalkeeperSummary.topBar.savePct}%` }
+	row = addKeyValueBlock(ws, row, t("goalkeeperKpis"), [
+		{ label: t("saves"), value: goalkeeperSummary.topBar.saves },
+		{ label: t("goalsConceded"), value: goalkeeperSummary.topBar.goalsConceded },
+		{ label: t("shotsReceived"), value: goalkeeperSummary.topBar.shotsReceived },
+		{ label: t("savePercentage"), value: `${goalkeeperSummary.topBar.savePct}%` }
 	]);
 
-	row = addCategoryBlocks(ws, row, buildGoalkeeperCards(data));
+	row = addCategoryBlocks(ws, row, buildGoalkeeperCards(data, t, tStat));
 
 	ws.columns = [
 		{ key: "c1", width: 28 },
@@ -379,9 +386,9 @@ function createMatchTotalsSheet(workbook: ExcelJS.Workbook, data: MatchReportDat
 	autoFitColumns(ws);
 }
 
-function createFieldPlayerSheet(workbook: ExcelJS.Workbook, stat: any, hiddenStats: string[]) {
-	const playerName = stat.players?.name ?? "Jugador";
-	const sheetName = sanitizeSheetName(`Jugador - ${playerName}`);
+function createFieldPlayerSheet(workbook: ExcelJS.Workbook, stat: any, hiddenStats: string[], t: ReportTranslator, tStat: ReportTranslator) {
+	const playerName = stat.players?.name ?? t("player");
+	const sheetName = sanitizeSheetName(t("playerSheet", { player: playerName }), t("sheetFallback"));
 	const ws = workbook.addWorksheet(sheetName);
 
 	ws.properties.defaultRowHeight = 20;
@@ -394,35 +401,35 @@ function createFieldPlayerSheet(workbook: ExcelJS.Workbook, stat: any, hiddenSta
 
 	let row = 3;
 
-	row = addKeyValueBlock(ws, row, "Información jugador", [
-		{ label: "Nombre", value: playerName },
-		{ label: "Número", value: stat.players?.number ?? "-" },
-		{ label: "Rol", value: "Jugador" }
+	row = addKeyValueBlock(ws, row, t("playerInformation"), [
+		{ label: t("name"), value: playerName },
+		{ label: t("number"), value: stat.players?.number ?? "-" },
+		{ label: t("role"), value: t("fieldPlayer") }
 	]);
 
-	row = addKeyValueBlock(ws, row, "KPIs", [
-		{ label: "Goles", value: derived.goals },
-		{ label: "Tiros", value: derived.shots },
-		{ label: "Eficiencia", value: `${derived.efficiency}%` },
-		{ label: "Asistencias", value: derived.assists }
+	row = addKeyValueBlock(ws, row, t("kpis"), [
+		{ label: t("goals"), value: derived.goals },
+		{ label: t("shots"), value: derived.shots },
+		{ label: t("efficiency"), value: `${derived.efficiency}%` },
+		{ label: t("assists"), value: derived.assists }
 	]);
 
 	const cards = [
 		{
-			title: PLAYER_CATEGORY_TITLES.goles,
-			rows: buildPlayerCategoryRows("goles", stat, hiddenStats)
+			title: t("categories.playerGoals"),
+			rows: buildPlayerCategoryRows("goles", stat, hiddenStats, tStat)
 		},
 		{
-			title: PLAYER_CATEGORY_TITLES.fallos,
-			rows: buildPlayerCategoryRows("fallos", stat, hiddenStats)
+			title: t("categories.playerMisses"),
+			rows: buildPlayerCategoryRows("fallos", stat, hiddenStats, tStat)
 		},
 		{
-			title: PLAYER_CATEGORY_TITLES.faltas,
-			rows: buildPlayerCategoryRows("faltas", stat, hiddenStats)
+			title: t("categories.fouls"),
+			rows: buildPlayerCategoryRows("faltas", stat, hiddenStats, tStat)
 		},
 		{
-			title: PLAYER_CATEGORY_TITLES.acciones,
-			rows: buildPlayerCategoryRows("acciones", stat, hiddenStats)
+			title: t("categories.actions"),
+			rows: buildPlayerCategoryRows("acciones", stat, hiddenStats, tStat)
 		}
 	].filter((card) => card.rows.length > 0);
 
@@ -438,9 +445,9 @@ function createFieldPlayerSheet(workbook: ExcelJS.Workbook, stat: any, hiddenSta
 	autoFitColumns(ws);
 }
 
-function createGoalkeeperSheet(workbook: ExcelJS.Workbook, stat: any, hiddenStats: string[]) {
-	const playerName = stat.players?.name ?? "Portero";
-	const sheetName = sanitizeSheetName(`Portero - ${playerName}`);
+function createGoalkeeperSheet(workbook: ExcelJS.Workbook, stat: any, hiddenStats: string[], t: ReportTranslator, tStat: ReportTranslator) {
+	const playerName = stat.players?.name ?? t("goalkeeper");
+	const sheetName = sanitizeSheetName(t("goalkeeperSheet", { player: playerName }), t("sheetFallback"));
 	const ws = workbook.addWorksheet(sheetName);
 
 	ws.properties.defaultRowHeight = 20;
@@ -453,43 +460,43 @@ function createGoalkeeperSheet(workbook: ExcelJS.Workbook, stat: any, hiddenStat
 
 	let row = 3;
 
-	row = addKeyValueBlock(ws, row, "Información portero", [
-		{ label: "Nombre", value: playerName },
-		{ label: "Número", value: stat.players?.number ?? "-" },
-		{ label: "Rol", value: "Portero" }
+	row = addKeyValueBlock(ws, row, t("goalkeeperInformation"), [
+		{ label: t("name"), value: playerName },
+		{ label: t("number"), value: stat.players?.number ?? "-" },
+		{ label: t("role"), value: t("goalkeeper") }
 	]);
 
-	row = addKeyValueBlock(ws, row, "KPIs", [
-		{ label: "Paradas", value: derived.saves },
-		{ label: "Goles encajados", value: derived.goalsConceded },
-		{ label: "Save %", value: `${derived.savePct}%` },
-		{ label: "Tiros recibidos", value: derived.shotsReceived }
+	row = addKeyValueBlock(ws, row, t("kpis"), [
+		{ label: t("saves"), value: derived.saves },
+		{ label: t("goalsConceded"), value: derived.goalsConceded },
+		{ label: t("savePercentage"), value: `${derived.savePct}%` },
+		{ label: t("shotsReceived"), value: derived.shotsReceived }
 	]);
 
 	const cards = [
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.goles,
-			rows: buildGoalkeeperCategoryRows("goles", stat, hiddenStats)
+			title: t("categories.goalkeeperGoals"),
+			rows: buildGoalkeeperCategoryRows("goles", stat, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.paradas,
-			rows: buildGoalkeeperCategoryRows("paradas", stat, hiddenStats)
+			title: t("categories.saves"),
+			rows: buildGoalkeeperCategoryRows("paradas", stat, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.paradas_penalti,
-			rows: buildGoalkeeperCategoryRows("paradas_penalti", stat, hiddenStats)
+			title: t("categories.penalties"),
+			rows: buildGoalkeeperCategoryRows("paradas_penalti", stat, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.otros_tiros,
-			rows: buildGoalkeeperCategoryRows("otros_tiros", stat, hiddenStats)
+			title: t("categories.otherShots"),
+			rows: buildGoalkeeperCategoryRows("otros_tiros", stat, hiddenStats, tStat)
 		},
 		{
-			title: GOALKEEPER_CATEGORY_TITLES.inferioridad,
-			rows: buildGoalkeeperCategoryRows("inferioridad", stat, hiddenStats)
+			title: t("categories.inferiority"),
+			rows: buildGoalkeeperCategoryRows("inferioridad", stat, hiddenStats, tStat)
 		},
 		{
-			title: "Acciones",
-			rows: buildMergedGoalkeeperActionRows(stat, hiddenStats)
+			title: t("categories.actions"),
+			rows: buildMergedGoalkeeperActionRows(stat, hiddenStats, tStat)
 		}
 	].filter((card) => card.rows.length > 0);
 
@@ -506,18 +513,23 @@ function createGoalkeeperSheet(workbook: ExcelJS.Workbook, stat: any, hiddenStat
 }
 
 export async function buildMatchExcel(data: MatchReportData) {
+	const reportTranslations = await getTranslations("Reports");
+	const statTranslations = await getTranslations("StatLabels");
+	const locale = await getLocale();
+	const t: ReportTranslator = (key, values) => reportTranslations(key as never, values as never);
+	const tStat: ReportTranslator = (key) => statTranslations(key as never);
 	const workbook = new ExcelJS.Workbook();
 	workbook.creator = "Waterpolo Stats App";
 	workbook.created = new Date();
 
-	createMatchTotalsSheet(workbook, data);
+	createMatchTotalsSheet(workbook, data, t, tStat, locale);
 
 	for (const stat of data.fieldPlayersStats) {
-		createFieldPlayerSheet(workbook, stat, data.hiddenStats);
+		createFieldPlayerSheet(workbook, stat, data.hiddenStats, t, tStat);
 	}
 
 	for (const stat of data.goalkeepersStats) {
-		createGoalkeeperSheet(workbook, stat, data.hiddenStats);
+		createGoalkeeperSheet(workbook, stat, data.hiddenStats, t, tStat);
 	}
 
 	return await workbook.xlsx.writeBuffer();

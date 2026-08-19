@@ -5,6 +5,7 @@ import { ExpandableChartCard } from "@/components/analytics-player/ExpandableCha
 import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
+import { useTranslations } from "next-intl";
 
 type BreakdownPart = {
 	key: string;
@@ -41,21 +42,22 @@ type Props = {
 const fmtPct = (v: number) => `${(Number.isFinite(v) ? v : 0).toFixed(1)}%`;
 
 export function GoalkeeperBreakdownChartBase({ title, description, icon, summary, perPlayer, topLineCompact, topLineFull, rightHeader }: Props) {
+	const t = useTranslations("ChartTemplates");
 	if (!summary?.total) return null;
 
-	const resolvedTopLineCompact = topLineCompact ?? "Sin datos";
-	const resolvedTopLineFull = topLineFull ?? "Sin datos";
+	const resolvedTopLineCompact = topLineCompact ?? t("noData");
+	const resolvedTopLineFull = topLineFull ?? t("noData");
 
 	return (
 		<ExpandableChartCard
-			title={title ?? "Distribución"}
-			description={description ?? `${summary.topType?.label ?? "Sin datos"} · ${resolvedTopLineCompact}`}
+			title={title ?? t("distribution")}
+			description={description ?? `${summary.topType?.label ?? t("noData")} · ${resolvedTopLineCompact}`}
 			icon={icon}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={rightHeader ?? <span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
 			renderChart={({ compact }) => {
-				const outer = compact ? 88 : 108;
-				const inner = compact ? 54 : 68;
+				const outer = compact ? 66 : 108;
+				const inner = compact ? 42 : 68;
 
 				const chartConfig = Object.fromEntries(
 					summary.parts.map((p) => [
@@ -71,7 +73,7 @@ export function GoalkeeperBreakdownChartBase({ title, description, icon, summary
 					<div className="w-full h-full min-h-0 flex flex-col">
 						<div className="space-y-3 sm:space-y-4 h-full min-h-0 flex flex-col">
 							<ChartContainer config={chartConfig} className="w-full h-full min-h-0">
-								<div className="w-full h-full min-h-[240px] sm:min-h-[260px] lg:min-h-[300px] flex-1">
+								<div className={`${compact ? "h-[180px]" : "min-h-[300px]"} w-full`}>
 									<ResponsiveContainer width="100%" height="100%">
 										<PieChart margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
 											<Pie
@@ -104,7 +106,7 @@ export function GoalkeeperBreakdownChartBase({ title, description, icon, summary
 								</div>
 							</ChartContainer>
 
-							<div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+							{!compact ? <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
 								{summary.parts.map((p) => (
 									<div key={p.key} className="inline-flex items-center gap-2">
 										<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
@@ -114,9 +116,9 @@ export function GoalkeeperBreakdownChartBase({ title, description, icon, summary
 										</span>
 									</div>
 								))}
-							</div>
+							</div> : null}
 
-							<div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
+							{!compact ? <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-3">
 								{summary.parts.map((p) => (
 									<div
 										key={p.key}
@@ -131,7 +133,7 @@ export function GoalkeeperBreakdownChartBase({ title, description, icon, summary
 										</p>
 									</div>
 								))}
-							</div>
+							</div> : null}
 
 							{!compact ? (
 								<div className="rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground">
@@ -148,13 +150,13 @@ export function GoalkeeperBreakdownChartBase({ title, description, icon, summary
 						<Table className="min-w-[820px]">
 							<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 								<TableRow className="hover:bg-transparent">
-									<TableHead>Jugador</TableHead>
+									<TableHead>{t("player")}</TableHead>
 									{summary.parts.map((p) => (
 										<TableHead key={p.key} className="text-right">
 											{p.label}
 										</TableHead>
 									))}
-									<TableHead className="text-right">Total</TableHead>
+									<TableHead className="text-right">{t("total")}</TableHead>
 								</TableRow>
 							</UITableHeader>
 
@@ -179,7 +181,7 @@ export function GoalkeeperBreakdownChartBase({ title, description, icon, summary
 					</div>
 
 					<div className="border-t bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-						Total: <span className="font-semibold text-foreground tabular-nums">{summary.total}</span>
+					{t("total")}: <span className="font-semibold text-foreground tabular-nums">{summary.total}</span>
 					</div>
 				</div>
 			)}

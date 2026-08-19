@@ -4,6 +4,7 @@ import { CardHeader, CardTitle } from "@/components/ui/card";
 import { useClub } from "@/lib/club-context";
 import { useStatWeights } from "@/hooks/useStatWeights";
 import { Loader2, TrendingUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type PlayerLike = {
 	name: string;
@@ -37,8 +38,9 @@ export function PlayerHeroHeader({
 	statTotals?: Record<string, number>;
 }) {
 	const { currentClub } = useClub();
+	const t = useTranslations("PlayerDetail");
 	const { weights, loaded } = useStatWeights();
-	const role = roleLabel ?? (player.is_goalkeeper ? "Portero" : "Jugador de Campo");
+	const role = roleLabel ?? (player.is_goalkeeper ? t("goalkeeper") : t("fieldPlayer"));
 
 	const hasWeights = loaded && Object.keys(weights).length > 0;
 	const score = statTotals && hasWeights ? computeWeightedScore(statTotals, weights) : null;
@@ -106,10 +108,10 @@ export function PlayerHeroHeader({
 											{score > 0 ? "+ " : ""}
 											{score}
 										</span>
-										<span className="text-[13px] text-muted-foreground">pts</span>
+										<span className="text-[13px] text-muted-foreground">{t("points")}</span>
 									</div>
 								) : (
-									<span className="text-[10px] text-muted-foreground">Configura valoraciones en Ajustes</span>
+									<span className="text-[10px] text-muted-foreground">{t("configureRatings")}</span>
 								)}
 							</div>
 						)}

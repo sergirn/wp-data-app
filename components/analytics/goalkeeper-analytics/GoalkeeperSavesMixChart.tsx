@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
@@ -24,51 +25,43 @@ const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
 type SavePartDef = {
 	key: "recup" | "fuera" | "pen" | "hm" | "hmFuera";
-	label: string;
 	statKey: string;
 	color: string;
-	shortLabel: string;
 };
 
 const SAVE_PART_DEFS: SavePartDef[] = [
 	{
 		key: "recup",
-		label: "Parada recup.",
-		shortLabel: "Recup.",
 		statKey: "portero_tiros_parada_recup",
 		color: "hsla(145, 63%, 42%, 1.00)"
 	},
 	{
 		key: "fuera",
-		label: "Parada fuera",
-		shortLabel: "Fuera",
 		statKey: "portero_paradas_fuera",
 		color: "hsla(221, 83%, 53%, 1.00)"
 	},
 	{
 		key: "pen",
-		label: "Penalti parado",
-		shortLabel: "Pen.",
 		statKey: "portero_paradas_penalti_parado",
 		color: "hsla(330, 78%, 58%, 1.00)"
 	},
 	{
 		key: "hm",
-		label: "Parada Inf.-",
-		shortLabel: "Inf.",
 		statKey: "portero_paradas_hombre_menos",
 		color: "hsla(42, 96%, 55%, 1.00)"
 	},
 	{
 		key: "hmFuera",
-		label: "Parada corner Inf.-",
-		shortLabel: "Inf. corner",
 		statKey: "portero_parada_fuera_inf",
 		color: "hsla(160, 70%, 38%, 1.00)"
 	}
 ];
 
 export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: GoalkeeperSavesMixChartProps) {
+	const tChart = useTranslations("GoalkeeperCharts");
+	const common = useTranslations("AnalyticsCommon");
+	const locale = useLocale();
+	const tStat = useTranslations("StatLabels")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const visibleDefs = useMemo(() => SAVE_PART_DEFS.filter((def) => !hiddenSet.has(def.statKey)), [hiddenSet]);
@@ -88,8 +81,8 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 
 		const parts = SAVE_PART_DEFS.filter((def) => !hiddenSet.has(def.statKey)).map((def) => ({
 			key: def.key,
-			label: def.label,
-			shortLabel: def.shortLabel,
+			label: tStat(def.statKey),
+			shortLabel: tStat(def.statKey),
 			value: rawValues[def.key],
 			pct: pct(rawValues[def.key]),
 			color: def.color
@@ -98,7 +91,7 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 		const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;
 
 		return { parts, total, topType, totalMatches: (matches ?? []).length || 0 };
-	}, [matches, stats, hiddenSet]);
+	}, [matches, stats, hiddenSet, tStat]);
 
 	const perMatch = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -125,20 +118,20 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 					matchId: match.id,
 					jornada: `J${jornadaNumber}`,
 					rival: match.opponent,
-					fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+					fullDate: new Date(match.match_date).toLocaleDateString(locale),
 					...values,
 					total: Object.values(values).reduce((sum, v) => sum + v, 0)
 				};
 			})
 			.filter((row) => row.total > 0);
-	}, [matches, stats, hiddenSet]);
+	}, [matches, stats, hiddenSet, locale]);
 
 	if (!summary.totalMatches || visibleDefs.length === 0 || summary.total === 0) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Mix de paradas"
-			description={`${summary.topType?.label ?? "Sin datos"} · Total ${summary.total}`}
+			title={tChart("savesMix")}
+			description={`${summary.topType?.label ?? common("noData")} · ${common("total")} ${summary.total}`}
 			icon={<Hand className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
@@ -217,17 +210,17 @@ export function GoalkeeperSavesMixChart({ matches, stats, hiddenStats = [] }: Go
 							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead>Fecha</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead>{common("date")}</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
-												{def.shortLabel}
+												{tStat(def.statKey)}
 											</TableHead>
 										))}
 
-										<TableHead className="text-right">Total</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 								<TableBody>

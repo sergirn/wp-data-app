@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Target } from "lucide-react";
 import { buildShotMistakesSeasonData } from "@/lib/helpers/chartMistakeShootHelper";
 import { ShotMistakesChartBase } from "@/components/templates/charts/ShotMistakesChartTemplate";
@@ -33,6 +34,7 @@ function playerLabelFull(p: { id: number; name: string; number?: number | null; 
 }
 
 export function ShotMistakesDonutChart({ matches, stats, players, hiddenStats = [] }: ShotMistakesDonutChartProps) {
+	const t = useTranslations("ShotMistakesTemplate")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const playersById = useMemo(() => {
@@ -43,14 +45,14 @@ export function ShotMistakesDonutChart({ matches, stats, players, hiddenStats = 
 
 			m.set(p.id, {
 				id: p.id,
-				name: candidate.length ? candidate : `Jugador ${p.id}`,
+				name: candidate.length ? candidate : t("playerFallback", { id: p.id }),
 				number: p.number ?? null,
 				photo_url: p.photo_url ?? null
 			});
 		});
 
 		return m;
-	}, [players]);
+	}, [players, t]);
 
 	const data = useMemo(
 		() =>
@@ -62,6 +64,16 @@ export function ShotMistakesDonutChart({ matches, stats, players, hiddenStats = 
 	);
 
 	if (!data?.summary?.total) return null;
+
+	const labelByKey: Record<string, string> = {
+		pen: t("penaltyShort"), corner: t("corner"), out: t("out"), palo: t("post"),
+		saved: t("saved"), blocked: t("blockedShort"), sup: t("powerPlayShort")
+	}
+	const parts = data.summary.parts.map((part) => ({ ...part, label: labelByKey[part.key] ?? part.label }))
+	const topType = data.summary.topType
+		? { ...data.summary.topType, label: labelByKey[data.summary.topType.key] ?? data.summary.topType.label }
+		: null
+	const localizedSummary = { ...data.summary, parts, topType }
 
 	const getTopPlayerByKey = (key: "pen" | "corner" | "out" | "palo" | "saved" | "blocked" | "sup") => {
 		let best = data.perPlayer[0] ?? null;
@@ -90,40 +102,40 @@ export function ShotMistakesDonutChart({ matches, stats, players, hiddenStats = 
 
 	const topLineCompact =
 		data.summary.total > 0
-			? `Fuera ${playerLabelShort(topPlayers.out.player, topPlayers.out.value)} · Parado ${playerLabelShort(
-					topPlayers.saved.player,
-					topPlayers.saved.value
-				)} · Bloq ${playerLabelShort(topPlayers.blocked.player, topPlayers.blocked.value)}`
-			: "Sin datos";
+			? t("topCompact", {
+				out: playerLabelShort(topPlayers.out.player, topPlayers.out.value),
+				saved: playerLabelShort(topPlayers.saved.player, topPlayers.saved.value),
+				blocked: playerLabelShort(topPlayers.blocked.player, topPlayers.blocked.value)
+			})
+			: t("noData");
 
 	const topLineFull =
 		data.summary.total > 0
-			? `Top (temporada): Penalti ${playerLabelFull(topPlayers.pen.player, topPlayers.pen.value)} · Corner ${playerLabelFull(
-					topPlayers.corner.player,
-					topPlayers.corner.value
-				)} · Fuera ${playerLabelFull(topPlayers.out.player, topPlayers.out.value)} · Palo ${playerLabelFull(
-					topPlayers.palo.player,
-					topPlayers.palo.value
-				)} · Parado ${playerLabelFull(topPlayers.saved.player, topPlayers.saved.value)} · Bloqueado ${playerLabelFull(
-					topPlayers.blocked.player,
-					topPlayers.blocked.value
-				)} · Sup.+ ${playerLabelFull(topPlayers.sup.player, topPlayers.sup.value)}`
-			: "Top (temporada): —";
+			? t("topSeason", {
+				penalty: playerLabelFull(topPlayers.pen.player, topPlayers.pen.value),
+				corner: playerLabelFull(topPlayers.corner.player, topPlayers.corner.value),
+				out: playerLabelFull(topPlayers.out.player, topPlayers.out.value),
+				post: playerLabelFull(topPlayers.palo.player, topPlayers.palo.value),
+				saved: playerLabelFull(topPlayers.saved.player, topPlayers.saved.value),
+				blocked: playerLabelFull(topPlayers.blocked.player, topPlayers.blocked.value),
+				powerPlay: playerLabelFull(topPlayers.sup.player, topPlayers.sup.value)
+			})
+			: t("topSeasonEmpty");
 
-	const mostFrequentText = data.summary.total > 0 && data.summary.topType ? `${data.summary.topType.label}` : "Sin datos de fallos";
+	const mostFrequentText = data.summary.total > 0 && topType ? topType.label : t("noMissData");
 
 	return (
 		<ShotMistakesChartBase
-			title="Distribución de fallos de tiro"
+			title={t("title")}
 			description={`${mostFrequentText} · ${topLineCompact}`}
 			icon={<Target className="w-5 h-5" />}
-			summary={data.summary}
+			summary={localizedSummary}
 			perPlayer={data.perPlayer}
 			perMatch={data.perMatch}
 			mode="season"
 			topLineCompact={topLineCompact}
 			topLineFull={topLineFull}
-			rightHeader={<span className="text-xs text-muted-foreground">{data.summary.total ? `${data.summary.topType?.label ?? "—"}` : "—"}</span>}
+			rightHeader={<span className="text-xs text-muted-foreground">{data.summary.total ? topType?.label ?? "—" : "—"}</span>}
 		/>
 	);
 }

@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MatchConversionChartTemplate } from "@/components/templates/charts/MatchConversionChartTemplate";
+import { useLocale, useTranslations } from "next-intl";
 
 
 interface MatchShootingEfficiencyChartProps {
@@ -34,6 +35,8 @@ export function MatchShootingEfficiencyChart({
 	stats,
 	hiddenStats = []
 }: MatchShootingEfficiencyChartProps) {
+	const t = useTranslations("MatchCharts");
+	const locale = useLocale();
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const data = useMemo(() => {
@@ -108,13 +111,13 @@ export function MatchShootingEfficiencyChart({
 	if (data.attempts <= 0) return null;
 
 	const rival = match?.opponent ?? "—";
-	const jornada = match?.jornada ? `J${match.jornada}` : "Partido";
-	const fullDate = match?.match_date ? new Date(match.match_date).toLocaleDateString("es-ES") : "—";
+	const jornada = match?.jornada ? `J${match.jornada}` : t("match");
+	const fullDate = match?.match_date ? new Date(match.match_date).toLocaleDateString(locale) : "—";
 
 	const extraSummary = (
 		<div className="rounded-3xl border border-border/60 bg-card/40 p-4 shadow-sm">
 			<div className="flex items-center justify-between gap-2 mb-3">
-				<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Superioridad</p>
+				<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("superiority")}</p>
 				<Badge variant="outline" className="bg-background/70 text-[11px] tabular-nums">
 					{data.efficiencySup}%
 				</Badge>
@@ -122,17 +125,17 @@ export function MatchShootingEfficiencyChart({
 
 			<div className="grid grid-cols-3 gap-2">
 				<div className="rounded-2xl border bg-background/60 p-3">
-					<p className="text-[11px] text-muted-foreground">Goles Sup.</p>
+					<p className="text-[11px] text-muted-foreground">{t("powerPlayGoalsShort")}</p>
 					<p className="mt-1 text-base font-semibold tabular-nums">{data.scoredSup}</p>
 				</div>
 
 				<div className="rounded-2xl border bg-background/60 p-3">
-					<p className="text-[11px] text-muted-foreground">Tiros Sup.</p>
+					<p className="text-[11px] text-muted-foreground">{t("powerPlayShotsShort")}</p>
 					<p className="mt-1 text-base font-semibold tabular-nums">{data.attemptsSup}</p>
 				</div>
 
 				<div className="rounded-2xl border bg-background/60 p-3">
-					<p className="text-[11px] text-muted-foreground">Eficacia Sup.</p>
+					<p className="text-[11px] text-muted-foreground">{t("powerPlayEfficiencyShort")}</p>
 					<p className="mt-1 text-base font-semibold tabular-nums">{data.efficiencySup}%</p>
 				</div>
 			</div>
@@ -141,8 +144,8 @@ export function MatchShootingEfficiencyChart({
 
 	return (
 		<MatchConversionChartTemplate
-			title="Eficiencia de tiros"
-			description={`${jornada} · vs ${rival} · ${fullDate}`}
+			title={t("shootingEfficiency")}
+			description={t("shootingDescription", { round: jornada, opponent: rival, date: fullDate })}
 			icon={<Target className="w-5 h-5" />}
 			data={{
 				scored: data.goals,
@@ -152,12 +155,12 @@ export function MatchShootingEfficiencyChart({
 				reboundsRecovered: data.reboundsRecovered,
 				reboundsLost: data.reboundsLost
 			}}
-			scoredLabel="Goles"
-			missedLabel="Fallos"
-			recoveredLabel="Reb. recuperados"
-			lostLabel="Reb. perdidos"
-			insightGood="Buen rendimiento en la finalización del partido."
-			insightBad="La eficiencia de tiro del partido fue mejorable."
+			scoredLabel={t("goals")}
+			missedLabel={t("shootingMisses")}
+			recoveredLabel={t("reboundsRecoveredShort")}
+			lostLabel={t("reboundsLostShort")}
+			insightGood={t("shootingGood")}
+			insightBad={t("shootingBad")}
 			rightHeader={<span className="text-xs text-muted-foreground tabular-nums">{data.efficiency}%</span>}
 			okColor="hsla(0, 91%, 60%, 1.00)"
 			badColor="hsla(215, 16%, 32%, 0.95)"

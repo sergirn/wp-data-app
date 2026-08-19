@@ -15,83 +15,61 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Sparkles } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 interface CustomStatCardDialogProps {
   onAddCard: (statField: string, statLabel: string) => void
 }
 
-type StatItem = { value: string; label: string; category: string }
+type CategoryKey = "goals" | "shots" | "actions" | "fouls" | "goalkeeper"
+type StatItem = { value: string; category: CategoryKey }
 
 const AVAILABLE_STATS: StatItem[] = [
   // Goles
-  { value: "goles_totales", label: "Total de Goles", category: "Goles" },
-  { value: "goles_lanzamiento", label: "Goles de Lanzamiento", category: "Goles" },
-  { value: "goles_corner", label: "Goles de Corner", category: "Goles" },
-  { value: "goles_contraataque", label: "Goles de Contraataque", category: "Goles" },
-  { value: "goles_boya_cada", label: "Goles Boya Cada", category: "Goles" },
-  { value: "goles_boya_jugada", label: "Goles Boya Jugada", category: "Goles" },
-  { value: "goles_hombre_mas", label: "Goles en Superioridad", category: "Goles" },
-  { value: "goles_penalti_anotado", label: "Penaltis Anotados", category: "Goles" },
+  { value: "goles_totales", category: "goals" }, { value: "goles_lanzamiento", category: "goals" },
+  { value: "goles_corner", category: "goals" }, { value: "goles_contraataque", category: "goals" },
+  { value: "goles_boya_cada", category: "goals" }, { value: "goles_boya_jugada", category: "goals" },
+  { value: "goles_hombre_mas", category: "goals" }, { value: "goles_penalti_anotado", category: "goals" },
 
   // Tiros
-  { value: "tiros_totales", label: "Total de Tiros", category: "Tiros" },
-  { value: "tiros_fuera", label: "Tiros Fuera", category: "Tiros" },
-  { value: "tiros_parados", label: "Tiros Parados", category: "Tiros" },
-  { value: "tiros_bloqueado", label: "Tiros Bloqueados", category: "Tiros" },
+  { value: "tiros_totales", category: "shots" }, { value: "tiros_fuera", category: "shots" },
+  { value: "tiros_parados", category: "shots" }, { value: "tiros_bloqueado", category: "shots" },
 
   // Acciones
-  { value: "acciones_asistencias", label: "Asistencias", category: "Acciones" },
-  { value: "acciones_recuperacion", label: "Recuperaciones", category: "Acciones" },
-  { value: "acciones_bloqueo", label: "Bloqueos", category: "Acciones" },
-  { value: "acciones_rebote", label: "Rebotes", category: "Acciones" },
-  { value: "rebote_recup_hombre_mas", label: "Rebotes Recuperados (Sup.)", category: "Acciones" },
+  { value: "acciones_asistencias", category: "actions" }, { value: "acciones_recuperacion", category: "actions" },
+  { value: "acciones_bloqueo", category: "actions" }, { value: "acciones_rebote", category: "actions" },
+  { value: "rebote_recup_hombre_mas", category: "actions" },
 
   // Faltas
-  { value: "faltas_penalti", label: "Penaltis Provocados", category: "Faltas" },
-  { value: "faltas_exp_3_bruta", label: "Exclusiones Brutales", category: "Faltas" },
-  { value: "faltas_exp_3_int", label: "Exclusiones Intencionales", category: "Faltas" },
-  { value: "faltas_exp_20_1c1", label: 'Expulsiones 20s (1c1)', category: "Faltas" },
-  { value: "faltas_exp_20_boya", label: 'Expulsiones 20s (Boya)', category: "Faltas" },
+  { value: "faltas_penalti", category: "fouls" }, { value: "faltas_exp_3_bruta", category: "fouls" },
+  { value: "faltas_exp_3_int", category: "fouls" }, { value: "faltas_exp_20_1c1", category: "fouls" },
+  { value: "faltas_exp_20_boya", category: "fouls" },
 
   // Portero
-  { value: "portero_paradas_totales", label: "Paradas Totales", category: "Portero" },
-  { value: "portero_paradas_penalti_parado", label: "Penaltis Parados", category: "Portero" },
-  { value: "portero_paradas_hombre_menos", label: "Paradas en Inferioridad", category: "Portero" },
-  { value: "portero_goles_totales", label: "Goles Recibidos", category: "Portero" },
+  { value: "portero_paradas_totales", category: "goalkeeper" }, { value: "portero_paradas_penalti_parado", category: "goalkeeper" },
+  { value: "portero_paradas_hombre_menos", category: "goalkeeper" }, { value: "portero_goles_totales", category: "goalkeeper" },
 ]
 
-const CATEGORY_META: Record<
-  string,
-  { label: string; hint: string; badgeClass: string }
-> = {
-  Goles: {
-    label: "Goles",
-    hint: "Anotación y tipos de gol",
+const CATEGORY_META: Record<CategoryKey, { badgeClass: string }> = {
+  goals: {
     badgeClass: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
   },
-  Tiros: {
-    label: "Tiros",
-    hint: "Volumen y resultados del tiro",
+  shots: {
     badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
   },
-  Acciones: {
-    label: "Acciones",
-    hint: "Aportes generales",
+  actions: {
     badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
   },
-  Faltas: {
-    label: "Faltas",
-    hint: "Sanciones, exclusiones y penaltis",
+  fouls: {
     badgeClass: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
   },
-  Portero: {
-    label: "Portero",
-    hint: "Paradas y goles recibidos",
+  goalkeeper: {
     badgeClass: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/20",
   },
 }
 
 export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
+  const t = useTranslations("CustomStatCard")
   const [open, setOpen] = useState(false)
 
   const categories = useMemo(() => {
@@ -99,17 +77,16 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
     return Array.from(set)
   }, [])
 
-  const [category, setCategory] = useState(categories[0] ?? "Goles")
+  const [category, setCategory] = useState<CategoryKey>(categories[0] ?? "goals")
   const [query, setQuery] = useState("")
   const [selectedStat, setSelectedStat] = useState("")
-  const [selectedLabel, setSelectedLabel] = useState("")
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return AVAILABLE_STATS
       .filter((s) => s.category === category)
-      .filter((s) => (q ? `${s.label} ${s.value}`.toLowerCase().includes(q) : true))
-  }, [category, query])
+      .filter((s) => (q ? `${t(`stats.${s.value}` as any)} ${s.value}`.toLowerCase().includes(q) : true))
+  }, [category, query, t])
 
   const selected = useMemo(
     () => AVAILABLE_STATS.find((s) => s.value === selectedStat),
@@ -118,13 +95,12 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
 
   const reset = () => {
     setSelectedStat("")
-    setSelectedLabel("")
     setQuery("")
   }
 
   const handleAdd = () => {
-    if (selectedStat && selectedLabel) {
-      onAddCard(selectedStat, selectedLabel)
+    if (selectedStat && selected) {
+      onAddCard(selectedStat, t(`stats.${selected.value}` as any))
       setOpen(false)
       reset()
     }
@@ -153,8 +129,8 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
           <div className="mx-auto w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
             <Plus className="w-5 h-5" />
           </div>
-          <h3 className="text-base sm:text-lg font-semibold">Añadir Card Personalizada</h3>
-          <p className="text-xs text-muted-foreground">Elige categoría y estadística</p>
+          <h3 className="text-base sm:text-lg font-semibold">{t("addCustomCard")}</h3>
+          <p className="text-xs text-muted-foreground">{t("chooseCategoryAndStat")}</p>
         </div>
       </div>
     </Button>
@@ -172,10 +148,10 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
-          Crear Card Personalizada
+          {t("createCustomCard")}
         </DialogTitle>
         <DialogDescription>
-          Selecciona una categoría y después una estadística. A la derecha verás la previsualización.
+          {t("dialogDescription")}
         </DialogDescription>
       </DialogHeader>
     </div>
@@ -186,27 +162,26 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
         <div className="space-y-5">
           {/* Categoría */}
           <div className="space-y-2">
-            <Label htmlFor="category">Categoría</Label>
+            <Label htmlFor="category">{t("category")}</Label>
 
             <div className="flex items-center gap-3">
               <Select
                 value={category}
                 onValueChange={(v) => {
-                  setCategory(v)
+                  setCategory(v as CategoryKey)
                   setSelectedStat("")
-                  setSelectedLabel("")
                   setQuery("")
                 }}
               >
                 <SelectTrigger id="category" className="h-11">
-                  <SelectValue placeholder="Elige una categoría" />
+                  <SelectValue placeholder={t("chooseCategory")} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => {
                     const meta = CATEGORY_META[c]
                     return (
                       <SelectItem key={c} value={c}>
-                        {meta?.label ?? c}
+                        {t(`categories.${c}`)}
                       </SelectItem>
                     )
                   })}
@@ -215,31 +190,29 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
 
               <div className="hidden sm:flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
                 <Badge variant="outline" className={CATEGORY_META[category]?.badgeClass ?? ""}>
-                  {CATEGORY_META[category]?.label ?? category}
+                  {t(`categories.${category}`)}
                 </Badge>
-                <span className="text-xs text-muted-foreground">{filtered.length} opciones</span>
+                <span className="text-xs text-muted-foreground">{t("options", { count: filtered.length })}</span>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              {CATEGORY_META[category]?.hint ?? "—"}
+              {t(`hints.${category}`)}
             </p>
           </div>
           {/* Selector stats (más limpio, con scroll controlado) */}
           <div className="space-y-2">
-            <Label htmlFor="stat">Estadística</Label>
+            <Label htmlFor="stat">{t("stat")}</Label>
 
             <Select
               value={selectedStat}
               onValueChange={(value) => {
                 setSelectedStat(value)
-                const stat = AVAILABLE_STATS.find((s) => s.value === value)
-                if (stat) setSelectedLabel(stat.label)
               }}
               disabled={!category}
             >
               <SelectTrigger id="stat" className="h-11">
-                <SelectValue placeholder="Selecciona una estadística" />
+                <SelectValue placeholder={t("chooseStat")} />
               </SelectTrigger>
 
               <SelectContent className="max-h-[340px]">
@@ -247,14 +220,14 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
                   filtered.map((stat) => (
                     <SelectItem key={stat.value} value={stat.value}>
                       <div className="flex flex-col">
-                        <span className="font-medium">{stat.label}</span>
+                        <span className="font-medium">{t(`stats.${stat.value}` as any)}</span>
                         <span className="text-[11px] text-muted-foreground">{stat.value}</span>
                       </div>
                     </SelectItem>
                   ))
                 ) : (
                   <div className="px-3 py-2 text-sm text-muted-foreground">
-                    No hay resultados para “{query}”
+                    {t("noResults", { query })}
                   </div>
                 )}
               </SelectContent>
@@ -267,21 +240,21 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
       <div className="border-t md:border-t-0 md:border-l bg-muted/20">
         <div className="p-6 pt-5 h-full flex flex-col">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold">Previsualización</p>
+            <p className="text-sm font-semibold">{t("preview")}</p>
 
             {selected ? (
               <Badge variant="outline" className={CATEGORY_META[selected.category]?.badgeClass ?? ""}>
-                {selected.category}
+                {t(`categories.${selected.category}`)}
               </Badge>
             ) : (
               <Badge variant="secondary" className="text-xs">
-                Sin selección
+                {t("noSelection")}
               </Badge>
             )}
           </div>
 
           <p className="mt-1 text-xs text-muted-foreground">
-            Así quedará la card en el dashboard.
+            {t("previewHint")}
           </p>
 
           {/* Card preview grande */}
@@ -290,20 +263,20 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
               {selected ? (
                 <>
                   <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground">Título</div>
-                    <div className="text-lg font-semibold leading-snug">{selected.label}</div>
+                    <div className="text-xs text-muted-foreground">{t("title")}</div>
+                    <div className="text-lg font-semibold leading-snug">{t(`stats.${selected.value}` as any)}</div>
 
                     <div className="mt-3 rounded-lg border bg-muted/30 p-3">
-                      <div className="text-xs text-muted-foreground">Campo</div>
+                      <div className="text-xs text-muted-foreground">{t("field")}</div>
                       <div className="font-mono text-xs break-all">{selected.value}</div>
                     </div>
                   </div>
 
                   <div className="mt-6">
-                    <div className="text-xs text-muted-foreground">Ejemplo de valor</div>
+                    <div className="text-xs text-muted-foreground">{t("exampleValue")}</div>
                     <div className="text-4xl font-extrabold tabular-nums mt-1">12</div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      (El valor real depende del jugador/club)
+                      {t("realValueHint")}
                     </div>
                   </div>
                 </>
@@ -312,9 +285,9 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                     <Plus className="w-5 h-5" />
                   </div>
-                  <p className="mt-3 font-semibold">Elige una estadística</p>
+                  <p className="mt-3 font-semibold">{t("emptyTitle")}</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
-                    Selecciona categoría y estadística para ver la previsualización aquí.
+                    {t("emptyDescription")}
                   </p>
                 </div>
               )}
@@ -324,10 +297,10 @@ export function CustomStatCardDialog({ onAddCard }: CustomStatCardDialogProps) {
           {/* Acciones abajo (alineadas y limpias) */}
           <div className="mt-5 flex justify-end gap-3">
             <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
+              {t("cancel")}
             </Button>
             <Button onClick={handleAdd} disabled={!selectedStat} className="min-w-[140px]">
-              Añadir Card
+              {t("addCard")}
             </Button>
           </div>
         </div>

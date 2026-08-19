@@ -10,10 +10,11 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Minus, Plus, RotateCcw, Save } from "lucide-react";
 
 import { getPlayerStatsByCategory } from "@/lib/stats/playerStatsHelpers";
-import { PLAYER_CATEGORY_TITLES, type PlayerStatCategory } from "@/lib/stats/playerStatsConfig";
+import { type PlayerStatCategory } from "@/lib/stats/playerStatsConfig";
 
 import { getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
-import { GOALKEEPER_CATEGORY_TITLES, type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { useTranslations } from "next-intl";
 
 interface StatDef {
 	key: string;
@@ -25,29 +26,29 @@ interface StatGroup {
 	stats: StatDef[];
 }
 
-function buildPlayerGroups(): StatGroup[] {
+function buildPlayerGroups(statLabel: (key: string) => string, categoryTitle: (category: PlayerStatCategory) => string): StatGroup[] {
 	const orderedCategories: PlayerStatCategory[] = ["goles", "fallos", "faltas", "acciones"];
 
 	return orderedCategories
 		.map((category) => ({
-			title: PLAYER_CATEGORY_TITLES[category],
+			title: categoryTitle(category),
 			stats: getPlayerStatsByCategory(category).map((s) => ({
 				key: s.key,
-				label: s.label
+				label: statLabel(s.key)
 			}))
 		}))
 		.filter((group) => group.stats.length > 0);
 }
 
-function buildGoalkeeperGroups(): StatGroup[] {
+function buildGoalkeeperGroups(statLabel: (key: string) => string, categoryTitle: (category: GoalkeeperStatCategory) => string): StatGroup[] {
 	const orderedCategories: GoalkeeperStatCategory[] = ["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"];
 
 	return orderedCategories
 		.map((category) => ({
-			title: GOALKEEPER_CATEGORY_TITLES[category],
+			title: categoryTitle(category),
 			stats: getGoalkeeperStatsByCategory(category).map((s) => ({
 				key: s.key,
-				label: s.label
+				label: statLabel(s.key)
 			}))
 		}))
 		.filter((group) => group.stats.length > 0);
@@ -66,6 +67,7 @@ function WeightRow({
 	onChange: (v: number) => void;
 	onToggleHidden: (hidden: boolean) => void;
 }) {
+	const t = useTranslations("StatWeights");
 	const decrement = () => onChange(value - 1);
 	const increment = () => onChange(value + 1);
 
@@ -84,12 +86,12 @@ function WeightRow({
 			<div className="flex items-center justify-between gap-3">
 				<div className="min-w-0 flex-1">
 					<span className="text-sm text-foreground block truncate">{stat.label}</span>
-					<p className="text-xs text-muted-foreground">{hidden ? "Campo oculto para este usuario" : "Campo activo"}</p>
+					<p className="text-xs text-muted-foreground">{hidden ? t("hiddenField") : t("activeField")}</p>
 				</div>
 
 				<div className="flex items-center gap-2 shrink-0">
-					<span className="text-xs text-muted-foreground">Ocultar</span>
-					<Switch checked={hidden} onCheckedChange={onToggleHidden} aria-label={`Ocultar ${stat.label}`} />
+					<span className="text-xs text-muted-foreground">{t("hide")}</span>
+					<Switch checked={hidden} onCheckedChange={onToggleHidden} aria-label={t("hideStat", { stat: stat.label })} />
 				</div>
 			</div>
 
@@ -101,7 +103,7 @@ function WeightRow({
 					className="h-7 w-7 shrink-0"
 					onClick={decrement}
 					disabled={hidden}
-					aria-label={`Reducir valor de ${stat.label}`}
+					aria-label={t("decreaseValue", { stat: stat.label })}
 				>
 					<Minus className="h-3.5 w-3.5" />
 				</Button>
@@ -112,7 +114,7 @@ function WeightRow({
 					onChange={handleInput}
 					disabled={hidden}
 					className="h-7 w-14 text-center text-sm tabular-nums px-1 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-					aria-label={`Valoracion de ${stat.label}`}
+					aria-label={t("rating", { stat: stat.label })}
 				/>
 
 				<Button
@@ -122,7 +124,7 @@ function WeightRow({
 					className="h-7 w-7 shrink-0"
 					onClick={increment}
 					disabled={hidden}
-					aria-label={`Aumentar valor de ${stat.label}`}
+					aria-label={t("increaseValue", { stat: stat.label })}
 				>
 					<Plus className="h-3.5 w-3.5" />
 				</Button>
@@ -164,13 +166,18 @@ function GroupSection({
 }
 
 export function StatWeightsConfig() {
+	const t = useTranslations("StatWeights");
+	const tStat = useTranslations("StatLabels");
+	const tCategories = useTranslations("StatsSections.categories");
 	const weightsState = useStatWeights();
 	const hiddenState = useHiddenStats();
 
 	const [tab, setTab] = React.useState<"field" | "goalkeeper">("field");
 
-	const fieldGroups = React.useMemo(() => buildPlayerGroups(), []);
-	const goalkeeperGroups = React.useMemo(() => buildGoalkeeperGroups(), []);
+	const playerCategoryKeys: Record<PlayerStatCategory, string> = { goles: "playerGoals", fallos: "playerMisses", faltas: "fouls", acciones: "actions" };
+	const goalkeeperCategoryKeys: Record<GoalkeeperStatCategory, string> = { goles: "goalkeeperGoals", paradas: "saves", paradas_penalti: "penalties", otros_tiros: "otherShots", inferioridad: "inferiority", acciones: "actions", ataque: "goalkeeperAttack" };
+	const fieldGroups = React.useMemo(() => buildPlayerGroups((key) => tStat(key), (category) => tCategories(playerCategoryKeys[category])), [tStat, tCategories]);
+	const goalkeeperGroups = React.useMemo(() => buildGoalkeeperGroups((key) => tStat(key), (category) => tCategories(goalkeeperCategoryKeys[category])), [tStat, tCategories]);
 
 	const loaded = weightsState.loaded && hiddenState.loaded;
 	const dirty = weightsState.dirty || hiddenState.dirty;
@@ -202,21 +209,20 @@ export function StatWeightsConfig() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Valoraciones de Estadísticas</CardTitle>
+				<CardTitle>{t("title")}</CardTitle>
 				<CardDescription>
-					Asigna un peso a cada campo y oculta los que no quieras utilizar. Los campos ocultos no deberían mostrarse en formularios,
-					resúmenes ni gráficas de este usuario.
+					{t("description")}
 				</CardDescription>
 			</CardHeader>
 
 			<CardContent className="space-y-4">
 				<div className="flex gap-2">
 					<Button variant={tab === "field" ? "default" : "outline"} size="sm" onClick={() => setTab("field")}>
-						Jugador de campo
+						{t("fieldPlayer")}
 					</Button>
 
 					<Button variant={tab === "goalkeeper" ? "default" : "outline"} size="sm" onClick={() => setTab("goalkeeper")}>
-						Portero
+						{t("goalkeeper")}
 					</Button>
 				</div>
 
@@ -237,19 +243,19 @@ export function StatWeightsConfig() {
 					<div className="sticky bottom-4 z-20">
 						<div className="rounded-xl border bg-background/80 backdrop-blur px-4 py-3 flex items-center justify-between gap-3">
 							<div className="text-sm text-muted-foreground">
-								Cambios sin guardar
+								{t("unsavedChanges")}
 								{error && <span className="text-destructive ml-2">· {error}</span>}
 							</div>
 
 							<div className="flex items-center gap-2">
 								<Button variant="outline" size="sm" onClick={handleDiscard} disabled={saving}>
 									<RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-									Descartar
+									{t("discard")}
 								</Button>
 
 								<Button size="sm" onClick={handleSave} disabled={saving}>
 									{saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
-									{saving ? "Guardando..." : "Guardar"}
+									{saving ? t("saving") : t("save")}
 								</Button>
 							</div>
 						</div>

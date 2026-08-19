@@ -5,10 +5,11 @@ import { CardContent } from "@/components/ui/card";
 import type { MatchStats } from "@/lib/types";
 
 import { getPlayerDerived, getPlayerStatsByCategory, accumulatePlayerStats } from "@/lib/stats/playerStatsHelpers";
-import { PLAYER_CATEGORY_TITLES, type PlayerStatCategory } from "@/lib/stats/playerStatsConfig";
+import { type PlayerStatCategory } from "@/lib/stats/playerStatsConfig";
 
 import { getGoalkeeperDerived, getGoalkeeperStatsByCategory, accumulateGoalkeeperStats } from "@/lib/stats/goalkeeperStatsHelpers";
-import { GOALKEEPER_CATEGORY_TITLES, type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { useTranslations } from "next-intl";
 
 function MiniKpi({ label, value }: { label: string; value: React.ReactNode }) {
 	return (
@@ -52,6 +53,7 @@ function PlayerCategorySection({
 	stats: Record<string, any>;
 	hiddenStats?: string[] | Set<string>;
 }) {
+	const tStat = useTranslations("StatLabels");
 	const defs = getPlayerStatsByCategory(category, hiddenStats);
 
 	if (!defs.length) return null;
@@ -59,7 +61,7 @@ function PlayerCategorySection({
 	return (
 		<Section title={title}>
 			{defs.map((def) => (
-				<Row key={def.key} label={def.label} value={stats?.[def.key] ?? 0} />
+				<Row key={def.key} label={tStat(def.key)} value={stats?.[def.key] ?? 0} />
 			))}
 		</Section>
 	);
@@ -76,6 +78,7 @@ function GoalkeeperCategorySection({
 	stats: Record<string, any>;
 	hiddenStats?: string[] | Set<string>;
 }) {
+	const tStat = useTranslations("StatLabels");
 	const defs = getGoalkeeperStatsByCategory(category, hiddenStats);
 
 	if (!defs.length) return null;
@@ -83,13 +86,15 @@ function GoalkeeperCategorySection({
 	return (
 		<Section title={title}>
 			{defs.map((def) => (
-				<Row key={def.key} label={def.label} value={stats?.[def.key] ?? 0} />
+				<Row key={def.key} label={tStat(def.key)} value={stats?.[def.key] ?? 0} />
 			))}
 		</Section>
 	);
 }
 
 export function SeasonAttackTotals({ stats, hiddenStats }: { stats: MatchStats[]; hiddenStats?: string[] | Set<string> }) {
+	const t = useTranslations("SeasonTotals");
+	const categories = useTranslations("StatsSections.categories");
 	const totals = useMemo(() => accumulatePlayerStats(stats as any[], hiddenStats), [stats, hiddenStats]);
 	const derived = useMemo(() => getPlayerDerived(totals, hiddenStats), [totals, hiddenStats]);
 
@@ -97,17 +102,17 @@ export function SeasonAttackTotals({ stats, hiddenStats }: { stats: MatchStats[]
 		<div className="bg-transparent shadow-none">
 			<CardContent className="p-0 space-y-3">
 				<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-					<MiniKpi label="Goles" value={derived.goals} />
-					<MiniKpi label="Tiros" value={derived.shots} />
-					<MiniKpi label="Efectividad" value={`${derived.efficiency}%`} />
-					<MiniKpi label="Asistencias" value={derived.assists} />
+					<MiniKpi label={t("goals")} value={derived.goals} />
+					<MiniKpi label={t("shots")} value={derived.shots} />
+					<MiniKpi label={t("efficiency")} value={`${derived.efficiency}%`} />
+					<MiniKpi label={t("assists")} value={derived.assists} />
 				</div>
 
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-					<PlayerCategorySection title={PLAYER_CATEGORY_TITLES.goles} category="goles" stats={totals} hiddenStats={hiddenStats} />
-					<PlayerCategorySection title={PLAYER_CATEGORY_TITLES.fallos} category="fallos" stats={totals} hiddenStats={hiddenStats} />
-					<PlayerCategorySection title={PLAYER_CATEGORY_TITLES.faltas} category="faltas" stats={totals} hiddenStats={hiddenStats} />
-					<PlayerCategorySection title={PLAYER_CATEGORY_TITLES.acciones} category="acciones" stats={totals} hiddenStats={hiddenStats} />
+					<PlayerCategorySection title={categories("playerGoals")} category="goles" stats={totals} hiddenStats={hiddenStats} />
+					<PlayerCategorySection title={categories("playerMisses")} category="fallos" stats={totals} hiddenStats={hiddenStats} />
+					<PlayerCategorySection title={categories("fouls")} category="faltas" stats={totals} hiddenStats={hiddenStats} />
+					<PlayerCategorySection title={categories("actions")} category="acciones" stats={totals} hiddenStats={hiddenStats} />
 				</div>
 			</CardContent>
 		</div>
@@ -115,6 +120,8 @@ export function SeasonAttackTotals({ stats, hiddenStats }: { stats: MatchStats[]
 }
 
 export function SeasonDefenseTotals({ stats, hiddenStats }: { stats: MatchStats[]; hiddenStats?: string[] | Set<string> }) {
+	const t = useTranslations("SeasonTotals");
+	const categories = useTranslations("StatsSections.categories");
 	const totals = useMemo(() => accumulatePlayerStats(stats as any[], hiddenStats), [stats, hiddenStats]);
 	const derived = useMemo(() => getPlayerDerived(totals, hiddenStats), [totals, hiddenStats]);
 
@@ -122,15 +129,15 @@ export function SeasonDefenseTotals({ stats, hiddenStats }: { stats: MatchStats[
 		<div className="bg-transparent shadow-none">
 			<CardContent className="p-0 space-y-3">
 				<div className="grid grid-cols-4 lg:grid-cols-4 gap-2">
-					<MiniKpi label="Faltas" value={derived.totalFouls} />
-					<MiniKpi label="Bloqueos" value={derived.blocks} />
-					<MiniKpi label="Recuperaciones" value={derived.recoveries} />
-					<MiniKpi label="Rebotes" value={derived.rebounds} />
+					<MiniKpi label={t("fouls")} value={derived.totalFouls} />
+					<MiniKpi label={t("blocks")} value={derived.blocks} />
+					<MiniKpi label={t("recoveries")} value={derived.recoveries} />
+					<MiniKpi label={t("rebounds")} value={derived.rebounds} />
 				</div>
 
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-					<PlayerCategorySection title={PLAYER_CATEGORY_TITLES.faltas} category="faltas" stats={totals} hiddenStats={hiddenStats} />
-					<PlayerCategorySection title={PLAYER_CATEGORY_TITLES.acciones} category="acciones" stats={totals} hiddenStats={hiddenStats} />
+					<PlayerCategorySection title={categories("fouls")} category="faltas" stats={totals} hiddenStats={hiddenStats} />
+					<PlayerCategorySection title={categories("actions")} category="acciones" stats={totals} hiddenStats={hiddenStats} />
 				</div>
 			</CardContent>
 		</div>
@@ -138,6 +145,8 @@ export function SeasonDefenseTotals({ stats, hiddenStats }: { stats: MatchStats[
 }
 
 export function SeasonGoalkeeperTotals({ stats, hiddenStats }: { stats: MatchStats[]; hiddenStats?: string[] | Set<string> }) {
+	const t = useTranslations("SeasonTotals");
+	const categories = useTranslations("StatsSections.categories");
 	const totals = useMemo(() => accumulateGoalkeeperStats(stats as any[], hiddenStats), [stats, hiddenStats]);
 	const derived = useMemo(() => getGoalkeeperDerived(totals, hiddenStats), [totals, hiddenStats]);
 
@@ -145,45 +154,45 @@ export function SeasonGoalkeeperTotals({ stats, hiddenStats }: { stats: MatchSta
 		<div className="bg-transparent shadow-none">
 			<CardContent className="p-0 space-y-3">
 				<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-					<MiniKpi label="Paradas" value={derived.saves} />
-					<MiniKpi label="Goles recibidos" value={derived.goalsConceded} />
-					<MiniKpi label="Lanz. recibidos" value={derived.shotsReceived} />
-					<MiniKpi label="% Paradas" value={`${derived.savePct}%`} />
+					<MiniKpi label={t("saves")} value={derived.saves} />
+					<MiniKpi label={t("goalsConceded")} value={derived.goalsConceded} />
+					<MiniKpi label={t("shotsReceived")} value={derived.shotsReceived} />
+					<MiniKpi label={t("savePercentage")} value={`${derived.savePct}%`} />
 				</div>
 
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-					<GoalkeeperCategorySection title={GOALKEEPER_CATEGORY_TITLES.goles} category="goles" stats={totals} hiddenStats={hiddenStats} />
+					<GoalkeeperCategorySection title={categories("goalkeeperGoals")} category="goles" stats={totals} hiddenStats={hiddenStats} />
 					<GoalkeeperCategorySection
-						title={GOALKEEPER_CATEGORY_TITLES.paradas}
+						title={categories("saves")}
 						category="paradas"
 						stats={totals}
 						hiddenStats={hiddenStats}
 					/>
 					<GoalkeeperCategorySection
-						title={GOALKEEPER_CATEGORY_TITLES.paradas_penalti}
+						title={categories("penalties")}
 						category="paradas_penalti"
 						stats={totals}
 						hiddenStats={hiddenStats}
 					/>
 					<GoalkeeperCategorySection
-						title={GOALKEEPER_CATEGORY_TITLES.otros_tiros}
+						title={categories("otherShots")}
 						category="otros_tiros"
 						stats={totals}
 						hiddenStats={hiddenStats}
 					/>
 					<GoalkeeperCategorySection
-						title={GOALKEEPER_CATEGORY_TITLES.inferioridad}
+						title={categories("inferiority")}
 						category="inferioridad"
 						stats={totals}
 						hiddenStats={hiddenStats}
 					/>
 					<GoalkeeperCategorySection
-						title={GOALKEEPER_CATEGORY_TITLES.acciones}
+						title={categories("actions")}
 						category="acciones"
 						stats={totals}
 						hiddenStats={hiddenStats}
 					/>
-					<GoalkeeperCategorySection title={GOALKEEPER_CATEGORY_TITLES.ataque} category="ataque" stats={totals} hiddenStats={hiddenStats} />
+					<GoalkeeperCategorySection title={categories("goalkeeperAttack")} category="ataque" stats={totals} hiddenStats={hiddenStats} />
 				</div>
 			</CardContent>
 		</div>

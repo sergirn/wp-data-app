@@ -3,46 +3,48 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart3, Users, TrendingUp, Shield, Activity, Target, CheckCircle2, ArrowRight, Clock3, Database } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function LandingPage() {
+	const t = useTranslations("Landing");
 	const features = [
 		{
 			icon: Activity,
-			title: "Registro de partidos",
-			description: "Captura goles, asistencias, exclusiones, paradas, superioridades y mucho más, con una interfaz rápida y clara."
+			title: t("features.matchRecording.title"),
+			description: t("features.matchRecording.description")
 		},
 		{
 			icon: Users,
-			title: "Gestión de jugadores",
-			description: "Consulta perfiles completos, histórico de rendimiento, progresión individual y comparativas entre jugadores."
+			title: t("features.playerManagement.title"),
+			description: t("features.playerManagement.description")
 		},
 		{
 			icon: BarChart3,
-			title: "Analítica avanzada",
-			description: "Visualiza tendencias, ratios clave y métricas de equipo para convertir datos en decisiones deportivas."
+			title: t("features.advancedAnalytics.title"),
+			description: t("features.advancedAnalytics.description")
 		},
 		{
 			icon: Shield,
-			title: "Multi-club seguro",
-			description: "Administra varios clubes o categorías desde una sola plataforma, con datos aislados y permisos controlados."
+			title: t("features.secureMultiClub.title"),
+			description: t("features.secureMultiClub.description")
 		},
 		{
 			icon: Target,
-			title: "Roles y permisos",
-			description: "Define accesos por perfil: administración, cuerpo técnico, analistas o visualización únicamente."
+			title: t("features.roles.title"),
+			description: t("features.roles.description")
 		},
 		{
 			icon: TrendingUp,
-			title: "Seguimiento temporal",
-			description: "Analiza la evolución del equipo a lo largo de la temporada y detecta patrones de mejora o caída de rendimiento."
+			title: t("features.tracking.title"),
+			description: t("features.tracking.description")
 		}
 	];
 
 	const benefits = [
-		"Centraliza toda la información del club en un solo lugar",
-		"Ahorra tiempo en el registro y consulta de estadísticas",
-		"Mejora el análisis del rendimiento individual y colectivo",
-		"Facilita decisiones técnicas basadas en datos reales"
+		t("benefits.centralize"),
+		t("benefits.saveTime"),
+		t("benefits.improveAnalysis"),
+		t("benefits.dataDecisions")
 	];
 
 	return (
@@ -54,7 +56,7 @@ export function LandingPage() {
 						<div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border bg-card shadow-sm">
 							<Image
 								src="/icons/icon-192.png"
-								alt="Logo WaterpoloStats"
+								alt={t("logoAlt")}
 								width={40}
 								height={40}
 								className="h-full w-full object-cover"
@@ -66,23 +68,23 @@ export function LandingPage() {
 
 					<nav className="hidden items-center gap-6 md:flex">
 						<Link href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-							Funcionalidades
+							{t("navFeatures")}
 						</Link>
 						<Link href="#benefits" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-							Beneficios
+							{t("navBenefits")}
 						</Link>
 						<Link href="#cta" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-							Acceso
+							{t("navAccess")}
 						</Link>
 					</nav>
 
 					<div className="flex items-center gap-3">
 						<Button asChild variant="outline" className="hidden sm:inline-flex">
-							<a href="mailto:sergirojasnavarro@gmail.com?subject=Solicitud%20de%20demo%20-%20WaterpoloStats">Solicitar demo</a>
+							<a href="mailto:sergirojasnavarro@gmail.com?subject=Solicitud%20de%20demo%20-%20WaterpoloStats">{t("requestDemo")}</a>
 						</Button>
 
 						<Button asChild>
-							<Link href="/auth/login">Acceder</Link>
+							<Link href="/auth/login">{t("signIn")}</Link>
 						</Button>
 					</div>
 				</div>
@@ -98,47 +100,46 @@ export function LandingPage() {
 						<div className="text-center lg:text-left">
 							<div className="mb-6 inline-flex items-center rounded-full border bg-background/80 px-4 py-1.5 text-sm text-muted-foreground shadow-sm">
 								<CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
-								Plataforma profesional para clubes de waterpolo
+								{t("heroBadge")}
 							</div>
 
 							<h1 className="text-balance text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl">
-								Las estadísticas de tu club, <span className="text-primary">claras, centralizadas y accionables</span>
+								{t("heroTitle")} <span className="text-primary">{t("heroHighlight")}</span>
 							</h1>
 
 							<p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-								Registra partidos, analiza jugadores y toma decisiones con datos reales. Todo en una única plataforma diseñada para el
-								día a día del waterpolo.
+								{t("heroDescription")}
 							</p>
 
 							<div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
 								<Button asChild size="lg" className="text-base px-8">
 									<Link href="/auth/login">
-										Acceder a la plataforma
+										{t("openPlatform")}
 										<ArrowRight className="ml-2 h-4 w-4" />
 									</Link>
 								</Button>
 
 								<Button asChild size="lg" variant="outline" className="text-base px-8 bg-background/60">
-									<a href="mailto:sergirojasnavarro@gmail.com?subject=Solicitud%20de%20demo%20-%20WaterpoloStats">Solicitar demo</a>
+									<a href="mailto:sergirojasnavarro@gmail.com?subject=Solicitud%20de%20demo%20-%20WaterpoloStats">{t("requestDemo")}</a>
 								</Button>
 							</div>
 
 							<div className="mt-8 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
 								<div className="flex items-center gap-2">
 									<CheckCircle2 className="h-4 w-4 text-primary" />
-									<span>Estadísticas en tiempo real</span>
+									<span>{t("proofRealtime")}</span>
 								</div>
 								<div className="flex items-center gap-2">
 									<CheckCircle2 className="h-4 w-4 text-primary" />
-									<span>Gestión multi-equipo</span>
+									<span>{t("proofMultiTeam")}</span>
 								</div>
 								<div className="flex items-center gap-2">
 									<CheckCircle2 className="h-4 w-4 text-primary" />
-									<span>Histórico por jugador</span>
+									<span>{t("proofPlayerHistory")}</span>
 								</div>
 								<div className="flex items-center gap-2">
 									<CheckCircle2 className="h-4 w-4 text-primary" />
-									<span>Control de acceso por roles</span>
+									<span>{t("proofRoleAccess")}</span>
 								</div>
 							</div>
 						</div>
@@ -148,10 +149,10 @@ export function LandingPage() {
 								<div className="rounded-2xl border bg-background p-5">
 									<div className="mb-4 flex items-center justify-between">
 										<div>
-											<p className="text-sm text-muted-foreground">Resumen del equipo</p>
-											<h3 className="text-xl font-semibold">Equipo 1</h3>
+											<p className="text-sm text-muted-foreground">{t("teamSummary")}</p>
+											<h3 className="text-xl font-semibold">{t("sampleTeam")}</h3>
 										</div>
-										<div className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">Temporada 2025/26</div>
+										<div className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">{t("sampleSeason")}</div>
 									</div>
 
 									<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -159,7 +160,7 @@ export function LandingPage() {
 											<CardContent className="p-4">
 												<div className="flex items-center gap-2 text-muted-foreground">
 													<Activity className="h-4 w-4" />
-													<span className="text-xs">Partidos</span>
+													<span className="text-xs">{t("matches")}</span>
 												</div>
 												<p className="mt-3 text-2xl font-bold">28</p>
 											</CardContent>
@@ -169,7 +170,7 @@ export function LandingPage() {
 											<CardContent className="p-4">
 												<div className="flex items-center gap-2 text-muted-foreground">
 													<Target className="h-4 w-4" />
-													<span className="text-xs">Goles</span>
+													<span className="text-xs">{t("goals")}</span>
 												</div>
 												<p className="mt-3 text-2xl font-bold">312</p>
 											</CardContent>
@@ -179,7 +180,7 @@ export function LandingPage() {
 											<CardContent className="p-4">
 												<div className="flex items-center gap-2 text-muted-foreground">
 													<Users className="h-4 w-4" />
-													<span className="text-xs">Jugadores</span>
+													<span className="text-xs">{t("players")}</span>
 												</div>
 												<p className="mt-3 text-2xl font-bold">21</p>
 											</CardContent>
@@ -189,7 +190,7 @@ export function LandingPage() {
 											<CardContent className="p-4">
 												<div className="flex items-center gap-2 text-muted-foreground">
 													<TrendingUp className="h-4 w-4" />
-													<span className="text-xs">Victorias</span>
+													<span className="text-xs">{t("wins")}</span>
 												</div>
 												<p className="mt-3 text-2xl font-bold">71%</p>
 											</CardContent>
@@ -199,7 +200,7 @@ export function LandingPage() {
 									<div className="mt-5 grid gap-4 md:grid-cols-2">
 										<Card className="rounded-2xl border shadow-none">
 											<CardContent className="p-4">
-												<p className="text-sm font-medium">Rendimiento reciente</p>
+												<p className="text-sm font-medium">{t("recentPerformance")}</p>
 												<div className="mt-4 flex h-24 items-end gap-2">
 													<div className="h-10 w-full rounded-t-md bg-primary/30" />
 													<div className="h-14 w-full rounded-t-md bg-primary/50" />
@@ -212,11 +213,11 @@ export function LandingPage() {
 
 										<Card className="rounded-2xl border shadow-none">
 											<CardContent className="p-4">
-												<p className="text-sm font-medium">Indicadores clave</p>
+												<p className="text-sm font-medium">{t("keyIndicators")}</p>
 												<div className="mt-4 space-y-4">
 													<div>
 														<div className="mb-1 flex justify-between text-xs text-muted-foreground">
-															<span>Eficacia ofensiva</span>
+															<span>{t("attackEfficiency")}</span>
 															<span>78%</span>
 														</div>
 														<div className="h-2 rounded-full bg-muted">
@@ -226,7 +227,7 @@ export function LandingPage() {
 
 													<div>
 														<div className="mb-1 flex justify-between text-xs text-muted-foreground">
-															<span>Paradas del portero</span>
+															<span>{t("goalkeeperSaves")}</span>
 															<span>69%</span>
 														</div>
 														<div className="h-2 rounded-full bg-muted">
@@ -236,7 +237,7 @@ export function LandingPage() {
 
 													<div>
 														<div className="mb-1 flex justify-between text-xs text-muted-foreground">
-															<span>Superioridades convertidas</span>
+															<span>{t("convertedAdvantages")}</span>
 															<span>74%</span>
 														</div>
 														<div className="h-2 rounded-full bg-muted">
@@ -256,8 +257,8 @@ export function LandingPage() {
 										<Clock3 className="h-5 w-5 text-primary" />
 									</div>
 									<div>
-										<p className="text-sm font-medium">Actualización instantánea</p>
-										<p className="text-xs text-muted-foreground">Datos disponibles al momento</p>
+										<p className="text-sm font-medium">{t("instantUpdate")}</p>
+										<p className="text-xs text-muted-foreground">{t("instantData")}</p>
 									</div>
 								</div>
 							</div>
@@ -268,8 +269,8 @@ export function LandingPage() {
 										<Database className="h-5 w-5 text-primary" />
 									</div>
 									<div>
-										<p className="text-sm font-medium">Histórico centralizado</p>
-										<p className="text-xs text-muted-foreground">Toda la temporada en un solo panel</p>
+										<p className="text-sm font-medium">{t("centralHistory")}</p>
+										<p className="text-xs text-muted-foreground">{t("seasonInOnePanel")}</p>
 									</div>
 								</div>
 							</div>
@@ -283,16 +284,16 @@ export function LandingPage() {
 				<div className="container mx-auto px-4 py-14">
 					<div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 text-center md:grid-cols-3">
 						<div>
-							<p className="text-3xl font-bold tracking-tight md:text-4xl">Multi-club</p>
-							<p className="mt-2 text-muted-foreground">Gestiona varios equipos y categorías desde un mismo entorno</p>
+							<p className="text-3xl font-bold tracking-tight md:text-4xl">{t("statsMultiClubTitle")}</p>
+							<p className="mt-2 text-muted-foreground">{t("statsMultiClubDescription")}</p>
 						</div>
 						<div>
-							<p className="text-3xl font-bold tracking-tight md:text-4xl">Tiempo real</p>
-							<p className="mt-2 text-muted-foreground">Actualización inmediata para seguimiento técnico y análisis</p>
+							<p className="text-3xl font-bold tracking-tight md:text-4xl">{t("statsRealtimeTitle")}</p>
+							<p className="mt-2 text-muted-foreground">{t("statsRealtimeDescription")}</p>
 						</div>
 						<div>
-							<p className="text-3xl font-bold tracking-tight md:text-4xl">Analítica</p>
-							<p className="mt-2 text-muted-foreground">Convierte estadísticas en decisiones deportivas más precisas</p>
+							<p className="text-3xl font-bold tracking-tight md:text-4xl">{t("statsAnalyticsTitle")}</p>
+							<p className="mt-2 text-muted-foreground">{t("statsAnalyticsDescription")}</p>
 						</div>
 					</div>
 				</div>
@@ -303,10 +304,10 @@ export function LandingPage() {
 				<div className="mx-auto max-w-6xl">
 					<div className="mx-auto max-w-3xl text-center">
 						<h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-							Todo lo que necesitas para gestionar tu equipo
+							{t("featuresTitle")}
 						</h2>
 						<p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-							Herramientas diseñadas específicamente para la realidad diaria de los clubes de waterpolo.
+							{t("featuresDescription")}
 						</p>
 					</div>
 
@@ -339,11 +340,10 @@ export function LandingPage() {
 					<div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2 lg:items-center">
 						<div>
 							<h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-								Menos intuición. Más decisiones basadas en datos.
+								{t("benefitsTitle")}
 							</h2>
 							<p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-								La plataforma te ayuda a profesionalizar el análisis del rendimiento, simplificar la gestión y dar contexto real a
-								cada partido y cada jugador.
+								{t("benefitsDescription")}
 							</p>
 
 							<div className="mt-8 space-y-4">
@@ -358,28 +358,28 @@ export function LandingPage() {
 
 						<Card className="rounded-3xl border bg-card shadow-lg">
 							<CardContent className="p-8">
-								<p className="text-sm font-medium text-primary">Pensado para</p>
-								<h3 className="mt-2 text-2xl font-semibold tracking-tight">Clubes, entrenadores y analistas</h3>
+								<p className="text-sm font-medium text-primary">{t("designedFor")}</p>
+								<h3 className="mt-2 text-2xl font-semibold tracking-tight">{t("audienceTitle")}</h3>
 								<p className="mt-3 leading-relaxed text-muted-foreground">
-									Desde el seguimiento de categorías base hasta el análisis competitivo del primer equipo.
+									{t("audienceDescription")}
 								</p>
 
 								<div className="mt-8 grid gap-4 sm:grid-cols-2">
 									<div className="rounded-2xl bg-muted p-4">
-										<p className="font-medium">Entrenadores</p>
-										<p className="mt-1 text-sm text-muted-foreground">Evalúa rendimiento y detecta áreas de mejora.</p>
+										<p className="font-medium">{t("coaches")}</p>
+										<p className="mt-1 text-sm text-muted-foreground">{t("coachesDescription")}</p>
 									</div>
 									<div className="rounded-2xl bg-muted p-4">
-										<p className="font-medium">Coordinación deportiva</p>
-										<p className="mt-1 text-sm text-muted-foreground">Centraliza datos de todos los equipos.</p>
+										<p className="font-medium">{t("coordination")}</p>
+										<p className="mt-1 text-sm text-muted-foreground">{t("coordinationDescription")}</p>
 									</div>
 									<div className="rounded-2xl bg-muted p-4">
-										<p className="font-medium">Analistas</p>
-										<p className="mt-1 text-sm text-muted-foreground">Explora patrones, comparativas y evolución.</p>
+										<p className="font-medium">{t("analysts")}</p>
+										<p className="mt-1 text-sm text-muted-foreground">{t("analystsDescription")}</p>
 									</div>
 									<div className="rounded-2xl bg-muted p-4">
-										<p className="font-medium">Clubes multi-sede</p>
-										<p className="mt-1 text-sm text-muted-foreground">Trabaja con estructura segura y escalable.</p>
+										<p className="font-medium">{t("multiSiteClubs")}</p>
+										<p className="mt-1 text-sm text-muted-foreground">{t("multiSiteClubsDescription")}</p>
 									</div>
 								</div>
 							</CardContent>
@@ -393,16 +393,16 @@ export function LandingPage() {
 				<div className="container mx-auto px-4">
 					<div className="mx-auto max-w-5xl rounded-[2rem] border bg-primary px-6 py-14 text-center text-primary-foreground shadow-2xl shadow-primary/20 md:px-12">
 						<h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-							Empieza a gestionar tu club con una visión mucho más clara
+							{t("ctaTitle")}
 						</h2>
 						<p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed opacity-90">
-							Accede a una plataforma creada para convertir estadísticas dispersas en información útil para competir mejor.
+							{t("ctaDescription")}
 						</p>
 
 						<div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
 							<Button asChild size="lg" variant="secondary" className="text-base px-8">
 								<Link href="/auth/login">
-									Acceder a la plataforma
+									{t("openPlatform")}
 									<ArrowRight className="ml-2 h-4 w-4" />
 								</Link>
 							</Button>
@@ -413,12 +413,12 @@ export function LandingPage() {
 								variant="outline"
 								className="border-primary-foreground/30 bg-transparent px-8 text-base text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
 							>
-								<a href="mailto:sergirojasnavarro@gmail.com?subject=Solicitud%20de%20demo%20-%20WaterpoloStats">Solicitar demo</a>
+								<a href="mailto:sergirojasnavarro@gmail.com?subject=Solicitud%20de%20demo%20-%20WaterpoloStats">{t("requestDemo")}</a>
 							</Button>
 						</div>
 
 						<p className="mt-4 text-sm opacity-80">
-							¿Aún no tienes acceso? Solicita una demo personalizada y descubre la plataforma en acción.
+							{t("ctaHint")}
 						</p>
 					</div>
 				</div>
@@ -427,7 +427,7 @@ export function LandingPage() {
 			{/* Footer */}
 			<footer className="border-t">
 				<div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-					<p>© 2026 WaterpoloStats. Plataforma de gestión y análisis para clubes de waterpolo.</p>
+					<p>{t("footer")}</p>
 				</div>
 			</footer>
 		</div>

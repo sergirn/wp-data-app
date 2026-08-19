@@ -7,8 +7,11 @@ import { UserManagementForm } from "@/components/user-management-form"
 
 import { Shield, Users, Building2 } from "lucide-react"
 import { ClubManagementForm } from "@/components/admin-settings/ClubManagementForm"
+import { getLocale, getTranslations } from "next-intl/server"
 
 export default async function AdminPage() {
+  const t = await getTranslations("Admin")
+  const locale = await getLocale()
   await requireAuth()
   const profile = await getCurrentProfile()
 
@@ -19,7 +22,7 @@ export default async function AdminPage() {
 
   const supabase = await createClient()
   if (!supabase) {
-    return <div>Error de configuración</div>
+    return <div>{t("configurationError")}</div>
   }
 
   // Get all users
@@ -39,13 +42,19 @@ export default async function AdminPage() {
 
   const { count: totalClubs } = await supabase.from("clubs").select("*", { count: "exact", head: true })
 
+  const roleLabels: Record<string, string> = {
+    admin: t("roles.admin"),
+    coach: t("roles.coach"),
+    viewer: t("roles.viewer"),
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
         <Shield className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">Panel de Administración</h1>
-          <p className="text-muted-foreground">Gestión de usuarios y clubes</p>
+          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
       </div>
 
@@ -53,7 +62,7 @@ export default async function AdminPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("totalUsers")}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -62,7 +71,7 @@ export default async function AdminPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Clubes</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("totalClubs")}</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -71,7 +80,7 @@ export default async function AdminPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Super Admins</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("superAdmins")}</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -83,8 +92,8 @@ export default async function AdminPage() {
       {/* Create Club Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Crear Nuevo Club</CardTitle>
-          <CardDescription>Crea un club y selecciona las competiciones en las que participa</CardDescription>
+          <CardTitle>{t("createClubTitle")}</CardTitle>
+          <CardDescription>{t("createClubDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <ClubManagementForm competitions={competitions || []} />
@@ -94,8 +103,8 @@ export default async function AdminPage() {
       {/* Create User Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Crear Nuevo Usuario</CardTitle>
-          <CardDescription>Crea usuarios y asígnalos a clubes específicos</CardDescription>
+          <CardTitle>{t("createUserTitle")}</CardTitle>
+          <CardDescription>{t("createUserDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <UserManagementForm clubs={clubs || []} />
@@ -105,37 +114,39 @@ export default async function AdminPage() {
       {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuarios Registrados</CardTitle>
-          <CardDescription>Lista de todos los usuarios del sistema</CardDescription>
+          <CardTitle>{t("registeredUsers", { count: users?.length || 0 })}</CardTitle>
+          <CardDescription>{t("usersDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {users?.map((user) => (
+            {users && users.length > 0 ? users.map((user) => (
               <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{user.full_name || user.email}</p>
                     {user.is_super_admin && (
                       <Badge variant="destructive" className="text-xs">
-                        Super Admin
+                        {t("superAdmin")}
                       </Badge>
                     )}
                     <Badge variant="secondary" className="text-xs">
-                      {user.role}
+                      {roleLabels[user.role] ?? user.role}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
                   {user.clubs && (
                     <p className="text-sm text-muted-foreground">
-                      Club: <span className="font-medium">{user.clubs.short_name}</span>
+                      {t("clubLabel")} <span className="font-medium">{user.clubs.short_name}</span>
                     </p>
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {new Date(user.created_at).toLocaleDateString("es-ES")}
+                  {new Intl.DateTimeFormat(locale).format(new Date(user.created_at))}
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-center text-muted-foreground py-8">{t("noUsers")}</p>
+            )}
           </div>
         </CardContent>
       </Card>

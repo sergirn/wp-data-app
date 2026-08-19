@@ -12,8 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ChevronDown } from "lucide-react"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
-export function ClubSelector() {
+export function ClubSelector({ className }: { className?: string }) {
+  const t = useTranslations("Common")
   const { currentClub, availableClubs, setCurrentClub } = useClub()
 
   if (availableClubs.length <= 1) {
@@ -24,23 +27,24 @@ export function ClubSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+        <Button variant="outline" size="sm" className={cn("gap-2 bg-transparent", className)}>
           {currentClub?.logo_url && (
             <div className="relative w-5 h-5">
               <Image
                 src={currentClub.logo_url || "/placeholder.svg"}
                 alt={currentClub.short_name}
                 fill
+                sizes="20px"
                 className="object-contain"
               />
             </div>
           )}
-          <span className="max-w-[120px] truncate">{currentClub?.short_name || "Seleccionar club"}</span>
+          <span className="max-w-[120px] truncate">{currentClub?.short_name || t("selectClub")}</span>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
-        <DropdownMenuLabel>Cambiar de club</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("switchClub")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {availableClubs.map((club) => (
           <DropdownMenuItem
@@ -57,6 +61,7 @@ export function ClubSelector() {
                   src={club.logo_url || "/placeholder.svg"}
                   alt={club.short_name}
                   fill
+                  sizes="20px"
                   className="object-contain"
                 />
               </div>

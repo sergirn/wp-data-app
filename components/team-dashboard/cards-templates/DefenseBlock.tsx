@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { TopPlayerCard } from "../TopPlayerCard"
 import { Button } from "@/components/ui/button"
@@ -24,6 +25,7 @@ const getRecuperaciones = (p: any) =>
 const getMatches = (p: any) => toNum(p?.matchesPlayed ?? p?.partidos ?? 0)
 
 export function DefenseBlock({ playerStats }: DefenseBlockProps) {
+  const t = useTranslations("TeamDashboardCards")
   // Rankings (para el popup)
   const topBlocks = useMemo(() => {
     return [...(playerStats ?? [])]
@@ -63,15 +65,15 @@ export function DefenseBlock({ playerStats }: DefenseBlockProps) {
   return (
     <div>
       <div>
-        <CardTitle>Defensa</CardTitle>
-        <CardDescription>Capacidad defensiva y recuperación de balón</CardDescription>
+        <CardTitle>{t("defense.title")}</CardTitle>
+        <CardDescription>{t("defense.description")}</CardDescription>
       </div>
 
       <div className="mt-4">
 
         {(!playerStats || playerStats.length === 0) && (
           <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-            No hay estadísticas de jugadores para mostrar.
+            {t("defense.noData")}
           </div>
         )}
 
@@ -84,33 +86,33 @@ export function DefenseBlock({ playerStats }: DefenseBlockProps) {
                 number: topDefender.number,
                 photo_url: topDefender.photo_url,
               }}
-              statLabel="Mejor defensor (impacto)"
+              statLabel={t("defense.bestDefender")}
               statValue={impact}
               gradientColors="from-indigo-500 to-sky-500"
               details={[
-                { label: "Bloqueos", value: blocks },
-                { label: "Recup.", value: rec },
-                { label: "B/part", value: bPart.toFixed(1) },
-                { label: "R/part", value: rPart.toFixed(1) },
+                { label: t("blocks"), value: blocks },
+                { label: t("recoveriesShort"), value: rec },
+                { label: t("blocksPerMatch"), value: bPart.toFixed(1) },
+                { label: t("recoveriesPerMatch"), value: rPart.toFixed(1) },
               ]}
             />
 
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="secondary" className="w-full">
-                  Ver más
+                  {t("viewMore")}
                 </Button>
               </DialogTrigger>
 
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Defensa · Rankings</DialogTitle>
+                  <DialogTitle>{t("defense.ranking")}</DialogTitle>
                 </DialogHeader>
 
                 <div className="max-h-[70vh] overflow-y-auto space-y-4 pr-1">
                   {/* Ranking bloqueos */}
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-muted-foreground">Bloqueos</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{t("blocks")}</p>
                     {restBlocks.map((p, idx) => {
                       const b = getBloqueos(p)
                       const r = getRecuperaciones(p)
@@ -127,14 +129,14 @@ export function DefenseBlock({ playerStats }: DefenseBlockProps) {
                             number: p.number,
                             photo_url: p.photo_url,
                           }}
-                          statLabel={`#${idx + 1} · Bloqueos`}
+                          statLabel={t("rankedMetric", { rank: idx + 1, metric: t("blocks") })}
                           statValue={b}
                           gradientColors="from-indigo-500 to-sky-500"
                           details={[
-                            { label: "Bloqueos", value: b },
-                            { label: "Recup.", value: r },
-                            { label: "B/part", value: bp.toFixed(1) },
-                            { label: "R/part", value: rp.toFixed(1) },
+                            { label: t("blocks"), value: b },
+                            { label: t("recoveriesShort"), value: r },
+                            { label: t("blocksPerMatch"), value: bp.toFixed(1) },
+                            { label: t("recoveriesPerMatch"), value: rp.toFixed(1) },
                           ]}
                         />
                       )
@@ -143,7 +145,7 @@ export function DefenseBlock({ playerStats }: DefenseBlockProps) {
 
                   {/* Ranking recuperaciones */}
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-muted-foreground">Recuperaciones</p>
+                    <p className="text-sm font-semibold text-muted-foreground">{t("recoveries")}</p>
                     {restRecoveries.map((p, idx) => {
                       const r = getRecuperaciones(p)
                       const b = getBloqueos(p)
@@ -160,14 +162,14 @@ export function DefenseBlock({ playerStats }: DefenseBlockProps) {
                             number: p.number,
                             photo_url: p.photo_url,
                           }}
-                          statLabel={`#${idx + 1} · Recuperaciones`}
+                          statLabel={t("rankedMetric", { rank: idx + 1, metric: t("recoveries") })}
                           statValue={r}
                           gradientColors="from-emerald-500 to-teal-500"
                           details={[
-                            { label: "Recup.", value: r },
-                            { label: "Bloqueos", value: b },
-                            { label: "R/part", value: rp.toFixed(1) },
-                            { label: "B/part", value: bp.toFixed(1) },
+                            { label: t("recoveriesShort"), value: r },
+                            { label: t("blocks"), value: b },
+                            { label: t("recoveriesPerMatch"), value: rp.toFixed(1) },
+                            { label: t("blocksPerMatch"), value: bp.toFixed(1) },
                           ]}
                         />
                       )

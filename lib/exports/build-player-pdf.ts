@@ -1,15 +1,16 @@
 import {
   PDFDocument,
-  StandardFonts,
-  rgb,
   type PDFPage,
   type PDFFont,
   type PDFImage,
 } from "pdf-lib"
 import { getPlayerStatsByCategory } from "@/lib/stats/playerStatsHelpers"
-import { PLAYER_CATEGORY_TITLES } from "@/lib/stats/playerStatsConfig"
 import { getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers"
-import { GOALKEEPER_CATEGORY_TITLES } from "@/lib/stats/goalkeeperStatsConfig"
+import { fetchRemoteImage } from "@/lib/safe-image-fetch"
+import { getLocale, getTranslations } from "next-intl/server"
+import { PDF_COLORS as COLORS, createThemedPage, drawAccentLabel, embedReportFonts } from "@/lib/exports/pdf-theme"
+
+type ReportTranslator = (key: string, values?: Record<string, string | number>) => string
 
 const PAGE_WIDTH = 595.28
 const PAGE_HEIGHT = 841.89
@@ -18,20 +19,8 @@ const MARGIN_TOP = 32
 const MARGIN_BOTTOM = 34
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_X * 2
 
-const COLORS = {
-  text: rgb(0.09, 0.11, 0.14),
-  textSoft: rgb(0.43, 0.47, 0.54),
-  border: rgb(0.86, 0.89, 0.93),
-  borderSoft: rgb(0.91, 0.94, 0.97),
-  surface: rgb(1, 1, 1),
-  surfaceAlt: rgb(0.975, 0.982, 0.992),
-  panel: rgb(0.965, 0.978, 0.995),
-  blue: rgb(0.17, 0.36, 0.72),
-  blueSoft: rgb(0.9, 0.95, 1),
-}
-
 function createPage(pdfDoc: PDFDocument) {
-  return pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+  return createThemedPage(pdfDoc, PAGE_WIDTH, PAGE_HEIGHT)
 }
 
 function ensureSpace(pdfDoc: PDFDocument, page: PDFPage, y: number, needed = 80) {
@@ -40,7 +29,7 @@ function ensureSpace(pdfDoc: PDFDocument, page: PDFPage, y: number, needed = 80)
   return { page: newPage, y: PAGE_HEIGHT - MARGIN_TOP }
 }
 
-function drawFooter(page: PDFPage, font: PDFFont, pageNumber: number, pageCount: number) {
+function drawFooter(page: PDFPage, font: PDFFont, pageNumber: number, pageCount: number, t: ReportTranslator) {
   page.drawLine({
     start: { x: MARGIN_X, y: 24 },
     end: { x: PAGE_WIDTH - MARGIN_X, y: 24 },
@@ -53,10 +42,10 @@ function drawFooter(page: PDFPage, font: PDFFont, pageNumber: number, pageCount:
     y: 12,
     size: 8,
     font,
-    color: COLORS.textSoft,
+    color: COLORS.primary,
   })
 
-  const text = `Page ${pageNumber} / ${pageCount}`
+  const text = t("pageNumber", { page: pageNumber, total: pageCount })
   page.drawText(text, {
     x: PAGE_WIDTH - MARGIN_X - 48,
     y: 12,
@@ -74,8 +63,9 @@ function drawSectionTitle(
   y: number,
   subtitle?: string
 ) {
+  drawAccentLabel(page, MARGIN_X, y + 8)
   page.drawText(text, {
-    x: MARGIN_X,
+    x: MARGIN_X + 38,
     y,
     size: 15,
     font: fontBold,
@@ -84,7 +74,7 @@ function drawSectionTitle(
 
   if (subtitle) {
     page.drawText(subtitle, {
-      x: MARGIN_X,
+      x: MARGIN_X + 38,
       y: y - 12,
       size: 9,
       font,
@@ -117,12 +107,21 @@ function drawCompactKpiRow(
       color: COLORS.surfaceAlt,
     })
 
+    page.drawRectangle({
+      x,
+      y: yTop - 3,
+      width: w,
+      height: 3,
+      borderWidth: 0,
+      color: COLORS.primary,
+    })
+
     page.drawText(item.value, {
       x: x + 10,
       y: yTop - 18,
       size: 13,
       font: fontBold,
-      color: COLORS.text,
+      color: COLORS.primary,
     })
 
     page.drawText(item.label, {
@@ -155,7 +154,7 @@ function drawRowBox(
     height: h,
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
-    color: COLORS.surfaceAlt,
+    color: COLORS.primarySoft,
   })
 
   const paddingX = 8
@@ -170,7 +169,7 @@ function drawRowBox(
     y: yTop - 14,
     size: labelSize,
     font,
-    color: COLORS.text,
+    color: COLORS.primary,
     maxWidth: Math.max(60, w - valueWidth - 24),
   })
 
@@ -217,10 +216,19 @@ function drawCategoryCard(
 
   page.drawRectangle({
     x,
+    y: yTop - totalH,
+    width: 5,
+    height: totalH,
+    borderWidth: 0,
+    color: COLORS.primary,
+  })
+
+  page.drawRectangle({
+    x,
     y: yTop - headerH,
     width: w,
     height: headerH,
-    color: COLORS.surfaceAlt,
+    color: COLORS.primarySoft,
     borderWidth: 0,
   })
 
@@ -229,7 +237,7 @@ function drawCategoryCard(
     y: yTop - 16,
     size: 9.5,
     font: fontBold,
-    color: COLORS.text,
+    color: COLORS.primary,
   })
 
   let rowY = yTop - headerH - 6
@@ -281,19 +289,10 @@ async function fetchImageAsPdfImage(
   if (!url) return null
 
   try {
-    const response = await fetch(url)
-    if (!response.ok) return null
-
-    const contentType = response.headers.get("content-type") || ""
-    const bytes = await response.arrayBuffer()
+    const { contentType, bytes } = await fetchRemoteImage(url)
 
     if (contentType.includes("png")) return await pdfDoc.embedPng(bytes)
     if (contentType.includes("jpeg") || contentType.includes("jpg")) return await pdfDoc.embedJpg(bytes)
-    if (url.toLowerCase().endsWith(".png")) return await pdfDoc.embedPng(bytes)
-    if (url.toLowerCase().endsWith(".jpg") || url.toLowerCase().endsWith(".jpeg")) {
-      return await pdfDoc.embedJpg(bytes)
-    }
-
     return null
   } catch {
     return null
@@ -311,7 +310,8 @@ async function drawPlayerHeader(
     roleLabel: string
     photoUrl?: string | null
     subtitle: string
-  }
+  },
+  t: ReportTranslator
 ) {
   const x = MARGIN_X
   const yTop = PAGE_HEIGHT - MARGIN_TOP
@@ -332,18 +332,27 @@ async function drawPlayerHeader(
   page.drawRectangle({
     x,
     y: yTop - cardH,
+    width: 5,
+    height: cardH,
+    borderWidth: 0,
+    color: COLORS.primary,
+  })
+
+  page.drawRectangle({
+    x,
+    y: yTop - cardH,
     width: CONTENT_WIDTH,
     height: 26,
     borderWidth: 0,
     color: COLORS.surfaceAlt,
   })
 
-  page.drawText("PLAYER REPORT", {
-    x: x + 14,
+  page.drawText(t("playerReportTitle"), {
+    x: x + photoW + 28,
     y: yTop - 17,
     size: 9,
     font: fontBold,
-    color: COLORS.textSoft,
+    color: COLORS.primary,
   })
 
   const photoX = x + 12
@@ -403,7 +412,7 @@ async function drawPlayerHeader(
     height: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    color: COLORS.surfaceAlt,
+    color: COLORS.primarySoft,
   })
 
   page.drawText(opts.roleLabel, {
@@ -411,91 +420,91 @@ async function drawPlayerHeader(
     y: yTop - 85,
     size: 9,
     font: fontBold,
-    color: COLORS.text,
+    color: COLORS.primary,
   })
 
   return yTop - cardH - 18
 }
 
-function buildFieldCategoryCards(stats: Record<string, any>, hiddenStats?: string[]) {
+function buildFieldCategoryCards(stats: Record<string, any>, hiddenStats: string[] | undefined, t: ReportTranslator, tStat: ReportTranslator) {
   return [
     {
-      title: PLAYER_CATEGORY_TITLES.goles,
+      title: t("categories.playerGoals"),
       rows: getPlayerStatsByCategory("goles", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: PLAYER_CATEGORY_TITLES.fallos,
+      title: t("categories.playerMisses"),
       rows: getPlayerStatsByCategory("fallos", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: PLAYER_CATEGORY_TITLES.faltas,
+      title: t("categories.fouls"),
       rows: getPlayerStatsByCategory("faltas", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: PLAYER_CATEGORY_TITLES.acciones,
+      title: t("categories.actions"),
       rows: getPlayerStatsByCategory("acciones", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
   ].filter((card) => card.rows.length > 0)
 }
 
-function buildGoalkeeperCategoryCards(stats: Record<string, any>, hiddenStats?: string[]) {
+function buildGoalkeeperCategoryCards(stats: Record<string, any>, hiddenStats: string[] | undefined, t: ReportTranslator, tStat: ReportTranslator) {
   return [
     {
-      title: GOALKEEPER_CATEGORY_TITLES.goles,
+      title: t("categories.goalkeeperGoals"),
       rows: getGoalkeeperStatsByCategory("goles", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: GOALKEEPER_CATEGORY_TITLES.paradas,
+      title: t("categories.saves"),
       rows: getGoalkeeperStatsByCategory("paradas", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: GOALKEEPER_CATEGORY_TITLES.paradas_penalti,
+      title: t("categories.penalties"),
       rows: getGoalkeeperStatsByCategory("paradas_penalti", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: GOALKEEPER_CATEGORY_TITLES.otros_tiros,
+      title: t("categories.otherShots"),
       rows: getGoalkeeperStatsByCategory("otros_tiros", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: GOALKEEPER_CATEGORY_TITLES.inferioridad,
+      title: t("categories.inferiority"),
       rows: getGoalkeeperStatsByCategory("inferioridad", hiddenStats).map((def) => ({
-        label: def.label,
+        label: tStat(def.key),
         value: String(stats?.[def.key] ?? 0),
       })),
     },
     {
-      title: "Acciones",
+      title: t("categories.actions"),
       rows: [
         ...getGoalkeeperStatsByCategory("acciones", hiddenStats).map((def) => ({
-          label: def.label,
+          label: tStat(def.key),
           value: String(stats?.[def.key] ?? 0),
         })),
         ...getGoalkeeperStatsByCategory("ataque", hiddenStats).map((def) => ({
-          label: def.label,
+          label: tStat(def.key),
           value: String(stats?.[def.key] ?? 0),
         })),
       ],
@@ -508,12 +517,14 @@ function drawMatchContextRows(
   state: { page: PDFPage; y: number },
   font: PDFFont,
   fontBold: PDFFont,
-  match: any
+  match: any,
+  t: ReportTranslator,
+  locale: string
 ) {
   let { page, y } = state
 
   const matchDate = match?.match_date
-    ? new Date(match.match_date).toLocaleDateString("es-ES", {
+    ? new Date(match.match_date).toLocaleDateString(locale, {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -521,12 +532,12 @@ function drawMatchContextRows(
     : "-"
 
   const matchInfoRows = [
-    { label: "Rival", value: String(match?.opponent ?? "-") },
-    { label: "Fecha", value: matchDate },
-    { label: "Marcador", value: `${match?.home_score ?? 0} - ${match?.away_score ?? 0}` },
-    { label: "Jornada", value: String(match?.jornada ?? "-") },
-    { label: "Temporada", value: String(match?.season ?? "-") },
-    { label: "Ubicación", value: String(match?.location ?? "-") },
+    { label: t("opponent"), value: String(match?.opponent ?? "-") },
+    { label: t("date"), value: matchDate },
+    { label: t("score"), value: `${match?.home_score ?? 0} - ${match?.away_score ?? 0}` },
+    { label: t("round"), value: String(match?.jornada ?? "-") },
+    { label: t("season"), value: String(match?.season ?? "-") },
+    { label: t("location"), value: String(match?.location ?? "-") },
   ]
 
   const gap = 12
@@ -562,36 +573,41 @@ function drawDetailedMatchSection(
     stat: any
     derived: any
     hiddenStats?: string[]
+    t: ReportTranslator
+    tStat: ReportTranslator
+    locale: string
   }
 ) {
   let { page, y } = state
+  const t = opts.t
+  const tStat = opts.tStat
 
   ;({ page, y } = ensureSpace(pdfDoc, page, y, 180))
   drawSectionTitle(page, fontBold, font, opts.title, y, opts.subtitle)
   y -= 26
 
-  ;({ page, y } = drawMatchContextRows(pdfDoc, { page, y }, font, fontBold, opts.match))
+  ;({ page, y } = drawMatchContextRows(pdfDoc, { page, y }, font, fontBold, opts.match, opts.t, opts.locale))
   y -= 10
 
   if (opts.kind === "goalkeeper") {
     y = drawCompactKpiRow(page, font, fontBold, y, [
-      { label: "Paradas", value: String(opts.derived.saves) },
-      { label: "Goles recibidos", value: String(opts.derived.goalsConceded) },
-      { label: "Save %", value: `${opts.derived.savePct}%` },
-      { label: "Tiros recibidos", value: String(opts.derived.shotsReceived) },
+      { label: t("saves"), value: String(opts.derived.saves) },
+      { label: t("goalsConceded"), value: String(opts.derived.goalsConceded) },
+      { label: t("savePercentage"), value: `${opts.derived.savePct}%` },
+      { label: t("shotsReceived"), value: String(opts.derived.shotsReceived) },
     ])
 
-    const cards = buildGoalkeeperCategoryCards(opts.stat, opts.hiddenStats)
+    const cards = buildGoalkeeperCategoryCards(opts.stat, opts.hiddenStats, t, tStat)
     ;({ page, y } = drawTwoColumnGrid(pdfDoc, { page, y }, font, fontBold, cards))
   } else {
     y = drawCompactKpiRow(page, font, fontBold, y, [
-      { label: "Goles", value: String(opts.derived.goals) },
-      { label: "Tiros", value: String(opts.derived.shots) },
-      { label: "Eficiencia", value: `${opts.derived.efficiency}%` },
-      { label: "Asistencias", value: String(opts.derived.assists) },
+      { label: t("goals"), value: String(opts.derived.goals) },
+      { label: t("shots"), value: String(opts.derived.shots) },
+      { label: t("efficiency"), value: `${opts.derived.efficiency}%` },
+      { label: t("assists"), value: String(opts.derived.assists) },
     ])
 
-    const cards = buildFieldCategoryCards(opts.stat, opts.hiddenStats)
+    const cards = buildFieldCategoryCards(opts.stat, opts.hiddenStats, t, tStat)
     ;({ page, y } = drawTwoColumnGrid(pdfDoc, { page, y }, font, fontBold, cards))
   }
 
@@ -599,40 +615,44 @@ function drawDetailedMatchSection(
 }
 
 export async function buildPlayerTotalsPdf(data: any) {
+  const reportTranslations = await getTranslations("Reports")
+  const statTranslations = await getTranslations("StatLabels")
+  const locale = await getLocale()
+  const t: ReportTranslator = (key, values) => reportTranslations(key as never, values as never)
+  const tStat: ReportTranslator = (key) => statTranslations(key as never)
   const pdfDoc = await PDFDocument.create()
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+  const { font, fontBold } = await embedReportFonts(pdfDoc)
 
   let page = createPage(pdfDoc)
 
-  const roleLabel = data.kind === "goalkeeper" ? "Portero" : "Jugador de Campo"
+  const roleLabel = data.kind === "goalkeeper" ? t("goalkeeper") : t("fieldPlayer")
   let y = await drawPlayerHeader(pdfDoc, page, font, fontBold, {
     playerName: data.player.name,
     playerNumber: data.player.number,
     roleLabel,
     photoUrl: data.player.photo_url,
-    subtitle: `Temporada · ${data.matchCount} partidos`,
-  })
+    subtitle: t("seasonMatches", { count: data.matchCount }),
+  }, t)
 
   if (data.kind === "goalkeeper") {
     y = drawCompactKpiRow(page, font, fontBold, y, [
-      { label: "Paradas", value: String(data.derived.saves) },
-      { label: "Goles recibidos", value: String(data.derived.goalsConceded) },
-      { label: "Save %", value: `${data.derived.savePct}%` },
-      { label: "Tiros recibidos", value: String(data.derived.shotsReceived) },
+      { label: t("saves"), value: String(data.derived.saves) },
+      { label: t("goalsConceded"), value: String(data.derived.goalsConceded) },
+      { label: t("savePercentage"), value: `${data.derived.savePct}%` },
+      { label: t("shotsReceived"), value: String(data.derived.shotsReceived) },
     ])
 
-    const cards = buildGoalkeeperCategoryCards(data.totals, data.hiddenStats)
+    const cards = buildGoalkeeperCategoryCards(data.totals, data.hiddenStats, t, tStat)
     ;({ page, y } = drawTwoColumnGrid(pdfDoc, { page, y }, font, fontBold, cards))
   } else {
     y = drawCompactKpiRow(page, font, fontBold, y, [
-      { label: "Goles", value: String(data.derived.goals) },
-      { label: "Tiros", value: String(data.derived.shots) },
-      { label: "Eficiencia", value: `${data.derived.efficiency}%` },
-      { label: "Asistencias", value: String(data.derived.assists) },
+      { label: t("goals"), value: String(data.derived.goals) },
+      { label: t("shots"), value: String(data.derived.shots) },
+      { label: t("efficiency"), value: `${data.derived.efficiency}%` },
+      { label: t("assists"), value: String(data.derived.assists) },
     ])
 
-    const cards = buildFieldCategoryCards(data.totals, data.hiddenStats)
+    const cards = buildFieldCategoryCards(data.totals, data.hiddenStats, t, tStat)
     ;({ page, y } = drawTwoColumnGrid(pdfDoc, { page, y }, font, fontBold, cards))
   }
 
@@ -644,7 +664,7 @@ export async function buildPlayerTotalsPdf(data: any) {
     y -= 14
 
     const matchDate = match.match_date
-      ? new Date(match.match_date).toLocaleDateString("es-ES", {
+      ? new Date(match.match_date).toLocaleDateString(locale, {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -657,33 +677,40 @@ export async function buildPlayerTotalsPdf(data: any) {
       font,
       fontBold,
       {
-        title: `Partido ${i + 1}`,
-        subtitle: `${match.opponent ?? "Rival"} · ${matchDate}`,
+        title: t("matchNumber", { number: i + 1 }),
+        subtitle: t("opponentDate", { opponent: match.opponent ?? t("opponent"), date: matchDate }),
         match,
         kind: data.kind,
         stat,
         derived: data.kind === "goalkeeper" ? data.getGoalkeeperDerived?.(stat) ?? stat.derived ?? {} : data.getPlayerDerived?.(stat) ?? stat.derived ?? {},
         hiddenStats: data.hiddenStats,
+        t,
+        tStat,
+        locale,
       }
     ))
   }
 
   const pages = pdfDoc.getPages()
-  pages.forEach((p, index) => drawFooter(p, font, index + 1, pages.length))
+  pages.forEach((p, index) => drawFooter(p, font, index + 1, pages.length, t))
 
   return await pdfDoc.save()
 }
 
 export async function buildPlayerMatchPdf(data: any) {
+  const reportTranslations = await getTranslations("Reports")
+  const statTranslations = await getTranslations("StatLabels")
+  const locale = await getLocale()
+  const t: ReportTranslator = (key, values) => reportTranslations(key as never, values as never)
+  const tStat: ReportTranslator = (key) => statTranslations(key as never)
   const pdfDoc = await PDFDocument.create()
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+  const { font, fontBold } = await embedReportFonts(pdfDoc)
 
   let page = createPage(pdfDoc)
 
-  const roleLabel = data.kind === "goalkeeper" ? "Portero" : "Jugador de Campo"
+  const roleLabel = data.kind === "goalkeeper" ? t("goalkeeper") : t("fieldPlayer")
   const matchDate = data.match?.match_date
-    ? new Date(data.match.match_date).toLocaleDateString("es-ES", {
+    ? new Date(data.match.match_date).toLocaleDateString(locale, {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -695,8 +722,8 @@ export async function buildPlayerMatchPdf(data: any) {
     playerNumber: data.player.number,
     roleLabel,
     photoUrl: data.player.photo_url,
-    subtitle: `${data.match?.opponent ?? "Rival"} · ${matchDate}`,
-  })
+    subtitle: t("opponentDate", { opponent: data.match?.opponent ?? t("opponent"), date: matchDate }),
+  }, t)
 
   ;({ page, y } = drawDetailedMatchSection(
     pdfDoc,
@@ -704,18 +731,21 @@ export async function buildPlayerMatchPdf(data: any) {
     font,
     fontBold,
     {
-      title: "Partido",
-      subtitle: "Detalle completo",
+      title: t("match"),
+      subtitle: t("fullDetails"),
       match: data.match,
       kind: data.kind,
       stat: data.stat,
       derived: data.derived,
       hiddenStats: data.hiddenStats,
+      t,
+      tStat,
+      locale,
     }
   ))
 
   const pages = pdfDoc.getPages()
-  pages.forEach((p, index) => drawFooter(p, font, index + 1, pages.length))
+  pages.forEach((p, index) => drawFooter(p, font, index + 1, pages.length, t))
 
   return await pdfDoc.save()
 }

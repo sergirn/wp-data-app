@@ -7,8 +7,11 @@ import { UserManagementForm } from "@/components/user-management-form"
 import { Users, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { getLocale, getTranslations } from "next-intl/server"
 
 export default async function UsersManagementPage() {
+  const t = await getTranslations("Admin")
+  const locale = await getLocale()
   await requireAuth()
   const profile = await getCurrentProfile()
 
@@ -19,7 +22,7 @@ export default async function UsersManagementPage() {
 
   const supabase = await createClient()
   if (!supabase) {
-    return <div>Error de configuración</div>
+    return <div>{t("configurationError")}</div>
   }
 
   // Get all users
@@ -31,28 +34,32 @@ export default async function UsersManagementPage() {
   // Get all clubs for the form
   const { data: clubs } = await supabase.from("clubs").select("*").order("name")
 
+  const roleLabels: Record<string, string> = {
+    admin: t("roles.admin"),
+    coach: t("roles.coach"),
+    viewer: t("roles.viewer"),
+  }
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
         <Button asChild variant="ghost" size="icon">
-          <Link href="/admin">
+          <Link href="/admin" aria-label={t("backToAdmin")}>
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
         <Users className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
-          <p className="text-muted-foreground">Crea y administra usuarios del sistema</p>
+          <h1 className="text-3xl font-bold">{t("usersTitle")}</h1>
+          <p className="text-muted-foreground">{t("usersSubtitle")}</p>
         </div>
       </div>
 
       {/* Create User Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Crear Nuevo Usuario</CardTitle>
-          <CardDescription>
-            Crea usuarios y asígnalos a clubes específicos con sus roles correspondientes
-          </CardDescription>
+          <CardTitle>{t("createUserTitle")}</CardTitle>
+          <CardDescription>{t("createUserDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <UserManagementForm clubs={clubs || []} />
@@ -62,8 +69,8 @@ export default async function UsersManagementPage() {
       {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuarios Registrados ({users?.length || 0})</CardTitle>
-          <CardDescription>Lista de todos los usuarios del sistema</CardDescription>
+          <CardTitle>{t("registeredUsers", { count: users?.length || 0 })}</CardTitle>
+          <CardDescription>{t("usersDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -75,27 +82,27 @@ export default async function UsersManagementPage() {
                       <p className="font-medium">{user.full_name || user.email}</p>
                       {user.is_super_admin && (
                         <Badge variant="destructive" className="text-xs">
-                          Super Admin
+                          {t("superAdmin")}
                         </Badge>
                       )}
                       <Badge variant="secondary" className="text-xs">
-                        {user.role}
+                        {roleLabels[user.role] ?? user.role}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{user.email}</p>
                     {user.clubs && (
                       <p className="text-sm text-muted-foreground">
-                        Club: <span className="font-medium">{user.clubs.short_name}</span>
+                        {t("clubLabel")} <span className="font-medium">{user.clubs.short_name}</span>
                       </p>
                     )}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {new Date(user.created_at).toLocaleDateString("es-ES")}
+                    {new Intl.DateTimeFormat(locale).format(new Date(user.created_at))}
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-center text-muted-foreground py-8">No hay usuarios registrados</p>
+              <p className="text-center text-muted-foreground py-8">{t("noUsers")}</p>
             )}
           </div>
         </CardContent>

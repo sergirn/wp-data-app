@@ -5,6 +5,7 @@ import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buildBlocksChartData } from "@/lib/helpers/chartHelpers";
 import { MatchConversionChartTemplate } from "./templates/charts/MatchConversionChartTemplate";
+import { useTranslations } from "next-intl";
 
 type BlocksStats = {
 	bloqueos: number;
@@ -38,15 +39,17 @@ function Row({ label, value, subtle }: { label: string; value: React.ReactNode; 
 	);
 }
 
-export function MatchBlocksChart({ stats, matchStats, clubName = "Equipo" }: { stats: BlocksStats; matchStats: MatchStatRow[]; clubName?: string }) {
+export function MatchBlocksChart({ stats, matchStats, clubName }: { stats: BlocksStats; matchStats: MatchStatRow[]; clubName?: string }) {
+	const t = useTranslations("MatchCharts");
+	const teamName = clubName ?? "—";
 	const computed = useMemo(() => buildBlocksChartData(stats, matchStats), [stats, matchStats]);
 
 	if (!stats) return null;
 
 	return (
 		<MatchConversionChartTemplate
-			title="Bloqueos"
-			description={`${computed.ok}/${computed.total} · ${computed.efficiency}% · Jug ${computed.playersCount}`}
+			title={t("blocksTitle")}
+			description={t("blocksDescription", { blocks: computed.ok, total: computed.total, efficiency: computed.efficiency, players: computed.playersCount })}
 			icon={<Shield className="h-5 w-5" />}
 			data={{
 				scored: computed.ok,
@@ -54,18 +57,18 @@ export function MatchBlocksChart({ stats, matchStats, clubName = "Equipo" }: { s
 				attempts: computed.total,
 				efficiency: computed.efficiency
 			}}
-			scoredLabel="Bloqueos"
-			missedLabel="Goles"
-			insightGood="Buen rendimiento defensivo: alto porcentaje de bloqueos."
-			insightBad="Rendimiento defensivo mejorable: revisa oposición al tiro."
+			scoredLabel={t("blocks")}
+			missedLabel={t("goals")}
+			insightGood={t("blocksGood")}
+			insightBad={t("blocksBad")}
 			rightHeader={<span className="text-xs text-muted-foreground tabular-nums">{computed.efficiency}%</span>}
 			renderExtraChartSummary={
 				computed.top3.length > 0 ? (
 					<div className="rounded-2xl border bg-card/40 p-3">
 						<div className="flex items-center justify-between gap-2">
-							<p className="text-xs font-semibold text-muted-foreground">Top bloqueador</p>
+							<p className="text-xs font-semibold text-muted-foreground">{t("topBlocker")}</p>
 							<Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
-								top {Math.min(1, computed.playersCount)}
+								{t("topCount", { count: Math.min(1, computed.playersCount) })}
 							</Badge>
 						</div>
 
@@ -84,7 +87,7 @@ export function MatchBlocksChart({ stats, matchStats, clubName = "Equipo" }: { s
 												{idx + 1}. {p.number != null ? `#${p.number} · ` : ""}
 												{p.name}
 											</p>
-											<p className="text-xs text-muted-foreground truncate">{clubName}</p>
+										<p className="text-xs text-muted-foreground truncate">{teamName}</p>
 										</div>
 
 										<Badge variant="outline" className="bg-muted/30 text-[11px] tabular-nums">
@@ -97,19 +100,19 @@ export function MatchBlocksChart({ stats, matchStats, clubName = "Equipo" }: { s
 						</div>
 					</div>
 				) : (
-					<div className="rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">No hay bloqueos registrados por jugador.</div>
+					<div className="rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">{t("noPlayerBlocks")}</div>
 				)
 			}
 			renderExtraTableSummary={
 				<div className="space-y-4">
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-						<Row label="Jugadores con bloqueos" value={computed.playersCount} subtle />
+						<Row label={t("playersWithBlocks")} value={computed.playersCount} subtle />
 					</div>
 
 					<div className="rounded-2xl border bg-background/50 overflow-hidden">
 						<div className="px-4 py-3 border-b bg-muted/20">
-							<p className="text-sm font-semibold">Ranking de bloqueos</p>
-							<p className="text-xs text-muted-foreground">Ordenado de mayor a menor</p>
+							<p className="text-sm font-semibold">{t("blocksRanking")}</p>
+							<p className="text-xs text-muted-foreground">{t("descendingOrder")}</p>
 						</div>
 
 						<div className="p-3">
@@ -146,7 +149,7 @@ export function MatchBlocksChart({ stats, matchStats, clubName = "Equipo" }: { s
 															{idx + 1}. {player.number != null ? `#${player.number} · ` : ""}
 															{player.name}
 														</p>
-														<p className="text-xs text-muted-foreground truncate">{clubName}</p>
+												<p className="text-xs text-muted-foreground truncate">{teamName}</p>
 													</div>
 												</div>
 
@@ -161,7 +164,7 @@ export function MatchBlocksChart({ stats, matchStats, clubName = "Equipo" }: { s
 							) : (
 								<div className="text-center py-10">
 									<Shield className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
-									<p className="text-sm text-muted-foreground">No hay bloqueos registrados en este partido</p>
+									<p className="text-sm text-muted-foreground">{t("noMatchBlocks")}</p>
 								</div>
 							)}
 						</div>

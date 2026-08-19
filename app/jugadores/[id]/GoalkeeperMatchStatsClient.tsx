@@ -13,9 +13,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 import { Loader2, TrendingUp } from "lucide-react";
 
-import { GOALKEEPER_CATEGORY_HINTS, GOALKEEPER_CATEGORY_TITLES } from "@/lib/stats/goalkeeperStatsConfig";
 import { getGoalkeeperDerived, getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
 import { ExportPlayerMatchPdfButton } from "@/components/export-buttons/export-player-match-pdf-button";
+import { useLocale, useTranslations } from "next-intl";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -53,22 +53,31 @@ export function GoalkeeperMatchStatsClient({
 	player: Player;
 	hiddenStats?: string[] | Set<string>;
 }) {
+	const { weights, loaded } = useStatWeights();
+	const locale = useLocale();
+	const t = useTranslations("FavoritesModal");
+	const page = useTranslations("PlayerDetail");
+	const sections = useTranslations("StatsSections");
+	const details = useTranslations("MatchDetails");
+	const tStat = useTranslations("StatLabels");
+	const playerId = player.id ?? matchStats?.[0]?.player_id;
+	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId);
+
 	if (!matchStats?.length) {
 		return (
 			<Card className="mb-6">
 				<CardContent className="py-12 text-center">
-					<p className="text-muted-foreground">No hay estadísticas de partidos registradas</p>
+					<p className="text-muted-foreground">{page("noMatchStats")}</p>
 				</CardContent>
 			</Card>
 		);
 	}
 
-	const { weights, loaded } = useStatWeights();
 	const hasWeights = loaded && Object.keys(weights).length > 0;
 
 	const formatDate = (d?: string) =>
 		d
-			? new Date(d).toLocaleDateString("es-ES", {
+			? new Date(d).toLocaleDateString(locale, {
 					year: "numeric",
 					month: "long",
 					day: "numeric"
@@ -96,9 +105,6 @@ export function GoalkeeperMatchStatsClient({
 		</div>
 	);
 
-	const playerId: number | undefined = (player as any)?.id ?? (matchStats?.[0] as any)?.player_id ?? undefined;
-	const { favSet, toggleLocal, dirty, save, discard, saving, error } = usePlayerFavorites(playerId);
-
 	const KV = ({ label, value, statKey }: { label: string; value: React.ReactNode; statKey: string }) => {
 		const isFav = favSet.has(statKey);
 		const onToggle = () => toggleLocal(statKey);
@@ -121,8 +127,8 @@ export function GoalkeeperMatchStatsClient({
 						? "bg-yellow-500/20 border border-yellow-500/20 hover:bg-yellow-500/25"
 						: "bg-muted/40 border border-transparent hover:bg-muted/55"
 				].join(" ")}
-				aria-label={`${label}: ${isFav ? "favorita" : "no favorita"}`}
-				title="Pulsa para marcar/desmarcar como favorita"
+				aria-label={t("favoriteState", { label, state: isFav ? t("favorite") : t("notFavorite") })}
+				title={t("toggleHint")}
 			>
 				<span className="text-sm text-muted-foreground min-w-0 truncate">{label}</span>
 
@@ -138,8 +144,8 @@ export function GoalkeeperMatchStatsClient({
 						className={["h-7 w-7 grid place-items-center rounded-md text-xs", isFav ? "opacity-100" : "opacity-50 hover:opacity-90"].join(
 							" "
 						)}
-						aria-label={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
-						title={isFav ? "Quitar de favoritas" : "Marcar como favorita"}
+						aria-label={isFav ? t("removeFavorite") : t("markFavorite")}
+						title={isFav ? t("removeFavorite") : t("markFavorite")}
 					>
 						<span className={isFav ? "opacity-100" : "opacity-30"}>★</span>
 					</button>
@@ -164,15 +170,15 @@ export function GoalkeeperMatchStatsClient({
 				<div className="sticky top-2 z-20">
 					<div className="rounded-xl border bg-background/60 backdrop-blur px-3 py-2 flex items-center justify-between gap-3">
 						<div className="text-xs text-muted-foreground">
-							Cambios sin guardar{error ? <span className="text-destructive"> · {error}</span> : null}
+							{t("unsavedChanges")}{error ? <span className="text-destructive"> · {error}</span> : null}
 						</div>
 
 						<div className="flex items-center gap-2">
 							<Button variant="outline" size="sm" onClick={discard} disabled={saving}>
-								Descartar
+								{t("discard")}
 							</Button>
 							<Button size="sm" onClick={save} disabled={saving}>
-								{saving ? "Guardando..." : "Guardar cambios"}
+								{saving ? t("saving") : t("saveChanges")}
 							</Button>
 						</div>
 					</div>
@@ -215,7 +221,7 @@ export function GoalkeeperMatchStatsClient({
 																{score > 0 ? "+ " : ""}
 																{score}
 															</span>
-															<span className="text-[11px] text-muted-foreground">pts</span>
+												<span className="text-[11px] text-muted-foreground">{page("points")}</span>
 														</div>
 													) : null}
 												</div>
@@ -225,7 +231,7 @@ export function GoalkeeperMatchStatsClient({
 												</span>
 
 												<div className="flex items-center gap-2">
-												<ExportPlayerMatchPdfButton playerId={player.id} matchStatId={stat.id} />
+										{stat.id != null && <ExportPlayerMatchPdfButton playerId={player.id} matchStatId={stat.id} />}
 
 												<Button
 													asChild
@@ -234,7 +240,7 @@ export function GoalkeeperMatchStatsClient({
 													className="bg-transparent"
 													onClick={(e) => e.stopPropagation()}
 												>
-													<Link href={`/partidos/${match?.id}`}>Ver Partido</Link>
+											<Link href={`/partidos/${match?.id}`}>{page("viewMatch")}</Link>
 												</Button>
 												</div>
 											</div>
@@ -246,79 +252,79 @@ export function GoalkeeperMatchStatsClient({
 									<CardContent className="space-y-4">
 										<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 											<KpiBox
-												label="Paradas"
+								label={details("saves")}
 												value={derived.saves}
 												className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
 											/>
 											<KpiBox
-												label="Goles Recibidos"
+								label={details("goalsConceded")}
 												value={derived.goalsConceded}
 												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
 											/>
 											<KpiBox
-												label="Eficiencia"
+								label={details("efficiency")}
 												value={`${derived.savePct}%`}
 												className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
 											/>
 											<KpiBox
-												label="Tiros Totales"
+								label={details("shotsReceived")}
 												value={derived.shotsReceived}
 												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
 											/>
 										</div>
 
 										<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-											<Section title={GOALKEEPER_CATEGORY_TITLES.goles} hint={GOALKEEPER_CATEGORY_HINTS.goles ?? "Partido"}>
+							<Section title={sections("categories.goalkeeperGoals")} hint={sections("hints.goalkeeperGoals")}>
 												{goalItems.map((it) => (
-													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+									<KV key={it.key} label={tStat(it.key)} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
 
-											<Section title={GOALKEEPER_CATEGORY_TITLES.paradas} hint={GOALKEEPER_CATEGORY_HINTS.paradas ?? "Partido"}>
+							<Section title={sections("categories.saves")} hint={sections("hints.saves")}>
 												{saveItems.map((it) => (
-													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+									<KV key={it.key} label={tStat(it.key)} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
 
 											<Section
-												title={GOALKEEPER_CATEGORY_TITLES.paradas_penalti}
-												hint={GOALKEEPER_CATEGORY_HINTS.paradas_penalti ?? "Partido"}
+								title={sections("categories.penalties")}
+								hint={sections("hints.penalties")}
 											>
 												{penaltyItems.map((it) => (
-													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+									<KV key={it.key} label={tStat(it.key)} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
 
 											<Section
-												title={GOALKEEPER_CATEGORY_TITLES.otros_tiros}
-												hint={GOALKEEPER_CATEGORY_HINTS.otros_tiros ?? "Partido"}
+								title={sections("categories.otherShots")}
+								hint={sections("hints.otherShots")}
 											>
 												{otherShotItems.map((it) => (
-													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+									<KV key={it.key} label={tStat(it.key)} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
 
 											<Section
-												title={GOALKEEPER_CATEGORY_TITLES.inferioridad}
-												hint={GOALKEEPER_CATEGORY_HINTS.inferioridad ?? "Partido"}
+								title={sections("categories.inferiority")}
+								hint={sections("hints.inferiority")}
 											>
 												{inferiorityItems.map((it) => (
-													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+									<KV key={it.key} label={tStat(it.key)} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
 
 											<Section
-												title={GOALKEEPER_CATEGORY_TITLES.acciones}
-												hint={GOALKEEPER_CATEGORY_HINTS.acciones ?? "Partido"}
+								title={sections("categories.actions")}
+								hint={sections("hints.goalkeeperActions")}
 											>
 												{actionItems.map((it) => (
-													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+									<KV key={it.key} label={tStat(it.key)} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
 
-											<Section title={GOALKEEPER_CATEGORY_TITLES.ataque} hint={GOALKEEPER_CATEGORY_HINTS.ataque ?? "Partido"}>
+							<Section title={sections("categories.goalkeeperAttack")} hint={sections("hints.goalkeeperAttack")}>
 												{attackItems.map((it) => (
-													<KV key={it.key} label={it.label} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
+									<KV key={it.key} label={tStat(it.key)} value={(stat as any)?.[it.key] ?? 0} statKey={it.key} />
 												))}
 											</Section>
 										</div>

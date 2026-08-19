@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 type WeightsMap = Record<string, number>;
 
@@ -15,6 +16,7 @@ function mapsEqual(a: WeightsMap, b: WeightsMap): boolean {
 }
 
 export function useStatWeights() {
+	const t = useTranslations("SettingsErrors");
 	const [weights, setWeights] = React.useState<WeightsMap>({});
 	const [draftWeights, setDraftWeights] = React.useState<WeightsMap>({});
 	const [loaded, setLoaded] = React.useState(false);
@@ -33,10 +35,10 @@ export function useStatWeights() {
 			setDraftWeights(w);
 			setLoaded(true);
 		} catch {
-			setError("Error al cargar las valoraciones");
+			setError(t("loadWeights"));
 			setLoaded(true);
 		}
-	}, []);
+	}, [t]);
 
 	React.useEffect(() => {
 		load();
@@ -87,7 +89,7 @@ export function useStatWeights() {
 
 			if (!res.ok) {
 				const json = await res.json();
-				setError(json.error || "Error al guardar");
+				setError(json.error || t("save"));
 				setSaving(false);
 				return;
 			}
@@ -97,10 +99,10 @@ export function useStatWeights() {
 			setWeights(saved);
 			setDraftWeights(saved);
 		} catch {
-			setError("Error al guardar las valoraciones");
+			setError(t("saveWeights"));
 		}
 		setSaving(false);
-	}, [draftWeights]);
+	}, [draftWeights, weights, t]);
 
 	return {
 		weights,

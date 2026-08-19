@@ -6,6 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { Target } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
+import { useLocale, useTranslations } from "next-intl";
 
 interface ShootingEfficiencyChartProps {
 	matches: any[];
@@ -31,6 +32,9 @@ const sumVisibleKeys = (rows: any[], keys: string[], hiddenSet: Set<string>) => 
 };
 
 export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: ShootingEfficiencyChartProps) {
+	const locale = useLocale();
+	const t = useTranslations("AttackCharts");
+	const common = useTranslations("AnalyticsCommon");
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const allData = useMemo(() => {
@@ -94,7 +98,7 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 
 				general: Number(general.toFixed(1)),
 				superiority: Number(superiority.toFixed(1)),
@@ -106,7 +110,7 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 				tirosSup: intentosSup
 			};
 		});
-	}, [matches, stats, hiddenSet]);
+	}, [matches, stats, hiddenSet, locale]);
 
 	const compactData = useMemo(() => allData.slice(-15), [allData]);
 
@@ -124,8 +128,8 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 
 	return (
 		<ExpandableChartCard
-			title="Eficiencia de tiros"
-			description={`Jornadas registradas ${allData.length} · Media: ${avgGeneral}% (General) · ${avgSup}% (Sup.)`}
+			title={t("shootingEfficiency")}
+			description={t("shootingDescription", { count: allData.length, general: avgGeneral, powerPlay: avgSup })}
 			icon={<Target className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{avgGeneral}%</span>}
@@ -136,8 +140,8 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 				return (
 					<ChartContainer
 						config={{
-							general: { label: "Eficiencia General (%)", color: "hsla(0, 91%, 60%, 1.00)" },
-							superiority: { label: "Eficiencia Superioridad (%)", color: "hsla(59, 85%, 45%, 1.00)" }
+							general: { label: t("generalEfficiency"), color: "hsla(0, 91%, 60%, 1.00)" },
+							superiority: { label: t("powerPlayEfficiency"), color: "hsla(59, 85%, 45%, 1.00)" }
 						}}
 						className="w-full h-full"
 					>
@@ -186,7 +190,7 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 								<Area
 									type="monotone"
 									dataKey="general"
-									name="Eficiencia General"
+									name={t("generalEfficiency")}
 									stroke="var(--color-general)"
 									fill="url(#fillGeneral)"
 									strokeWidth={2}
@@ -197,7 +201,7 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 								<Area
 									type="monotone"
 									dataKey="superiority"
-									name="Eficiencia Superioridad"
+									name={t("powerPlayEfficiency")}
 									stroke="var(--color-superiority)"
 									fill="url(#fillSup)"
 									strokeWidth={2}
@@ -216,15 +220,15 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead className="text-right">General</TableHead>
-										<TableHead className="text-right">Sup.</TableHead>
-										<TableHead className="text-right">Goles</TableHead>
-										<TableHead className="text-right">Tiros</TableHead>
-										<TableHead className="text-right">Goles Sup.</TableHead>
-										<TableHead className="text-right">Tiros Sup.</TableHead>
-										<TableHead className="text-right">Fecha</TableHead>
+										<TableHead className="w-[90px]">{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead className="text-right">{common("general")}</TableHead>
+										<TableHead className="text-right">{common("powerPlayShort")}</TableHead>
+										<TableHead className="text-right">{common("goals")}</TableHead>
+										<TableHead className="text-right">{common("shots")}</TableHead>
+										<TableHead className="text-right">{common("goals")} {common("powerPlayShort")}</TableHead>
+										<TableHead className="text-right">{common("shots")} {common("powerPlayShort")}</TableHead>
+										<TableHead className="text-right">{common("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -264,15 +268,15 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{allData.length}</span> partidos
+								{common("matches", { count: allData.length })}
 							</span>
 
 							<div className="flex flex-wrap gap-2">
 								<span className="rounded-md border bg-card px-2 py-1">
-									Media General: <span className="font-semibold text-white">{avgGeneral}%</span>
+									{t("generalAverage")}: <span className="font-semibold text-white">{avgGeneral}%</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Media Sup.: <span className="font-semibold text-white">{avgSup}%</span>
+									{t("powerPlayAverage")}: <span className="font-semibold text-white">{avgSup}%</span>
 								</span>
 							</div>
 						</div>

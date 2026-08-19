@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import type { Match, MatchStats, Player } from "@/lib/types";
 
@@ -18,12 +19,12 @@ const toNum = (v: unknown) => {
 	return Number.isFinite(n) ? n : 0;
 };
 
-function getPlayerLabel(player: Player | null) {
-	if (!player) return "Jugador";
+function getPlayerLabel(player: Player | null, fallback: string) {
+	if (!player) return fallback;
 	return player.number != null ? `#${player.number} ${player.name}` : player.name;
 }
 
-function PlayerRowMini({ player }: { player: Player | null }) {
+function PlayerRowMini({ player, fallback, noNumber }: { player: Player | null; fallback: string; noNumber: string }) {
 	return (
 		<div className="flex items-center gap-3 min-w-0">
 			<div className="h-10 w-10 rounded-full overflow-hidden bg-muted shrink-0 border">
@@ -37,14 +38,16 @@ function PlayerRowMini({ player }: { player: Player | null }) {
 			</div>
 
 			<div className="min-w-0">
-				<p className="text-sm font-medium truncate">{player?.name ?? "Jugador"}</p>
-				<p className="text-xs text-muted-foreground">{player?.number != null ? `#${player.number}` : "Sin dorsal"}</p>
+				<p className="text-sm font-medium truncate">{player?.name ?? fallback}</p>
+				<p className="text-xs text-muted-foreground">{player?.number != null ? `#${player.number}` : noNumber}</p>
 			</div>
 		</div>
 	);
 }
 
-export function TopScorersTable({ matches, stats, players, title = "Máximos goleadores", className, hiddenStats = [] }: TopScorersTableProps) {
+export function TopScorersTable({ matches, stats, players, title, className, hiddenStats = [] }: TopScorersTableProps) {
+	const t = useTranslations("TopScorers")
+	const resolvedTitle = title ?? t("title")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showBoya = !hiddenSet.has("goles_boya_jugada");
@@ -183,9 +186,9 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 			<div className="px-4 py-3 border-b bg-card/60">
 				<div className="flex items-center justify-between gap-3">
 					<div>
-						<h3 className="text-sm sm:text-base font-semibold">{title}</h3>
+						<h3 className="text-sm sm:text-base font-semibold">{resolvedTitle}</h3>
 						<p className="text-xs text-muted-foreground">
-							{leader ? `${getPlayerLabel(leader.player)} lidera con ${leader.goles} goles` : "Sin datos"}
+							{leader ? t("leaderSummary", { player: getPlayerLabel(leader.player, t("player")), goals: leader.goles }) : t("noData")}
 						</p>
 					</div>
 				</div>
@@ -197,16 +200,16 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 						<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 							<TableRow className="hover:bg-transparent">
 								<TableHead className="w-[64px]">#</TableHead>
-								<TableHead>Jugador</TableHead>
-								<TableHead className="text-right">Goles</TableHead>
-								<TableHead className="text-right">Tiros</TableHead>
-								<TableHead className="text-right">Eficiencia</TableHead>
-								{showBoya && <TableHead className="text-right">Boya</TableHead>}
-								{showLanzamiento && <TableHead className="text-right">Lanz.</TableHead>}
-								{showDir5m && <TableHead className="text-right">Dir +6m</TableHead>}
-								{showContra && <TableHead className="text-right">Contra</TableHead>}
-								{showPenalti && <TableHead className="text-right">Pen.</TableHead>}
-								{showSup && <TableHead className="text-right">Sup.</TableHead>}
+								<TableHead>{t("player")}</TableHead>
+								<TableHead className="text-right">{t("goals")}</TableHead>
+								<TableHead className="text-right">{t("shots")}</TableHead>
+								<TableHead className="text-right">{t("efficiency")}</TableHead>
+								{showBoya && <TableHead className="text-right">{t("buoy")}</TableHead>}
+								{showLanzamiento && <TableHead className="text-right">{t("shotShort")}</TableHead>}
+								{showDir5m && <TableHead className="text-right">{t("direct6mShort")}</TableHead>}
+								{showContra && <TableHead className="text-right">{t("counterattackShort")}</TableHead>}
+								{showPenalti && <TableHead className="text-right">{t("penaltyShort")}</TableHead>}
+								{showSup && <TableHead className="text-right">{t("superiorityShort")}</TableHead>}
 							</TableRow>
 						</UITableHeader>
 
@@ -218,7 +221,7 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 								>
 									<TableCell className="font-semibold">{idx + 1}</TableCell>
 									<TableCell>
-										<PlayerRowMini player={r.player} />
+										<PlayerRowMini player={r.player} fallback={t("player")} noNumber={t("noNumber")} />
 									</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">{r.goles}</TableCell>
 									<TableCell className="text-right tabular-nums font-semibold">{r.tiros}</TableCell>
@@ -239,16 +242,16 @@ export function TopScorersTable({ matches, stats, players, title = "Máximos gol
 			<div className="border-t bg-muted/20 px-3 py-2">
 				<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 					<span>
-						<span className="font-medium text-foreground">{ranking.length}</span> jugadores con producción ofensiva
+						{t("playersWithProduction", { count: ranking.length })}
 					</span>
 
 					<div className="flex flex-wrap gap-2">
 						<span className="rounded-md border bg-card px-2 py-1">
-							Total goles: <span className="font-semibold text-foreground">{totalGoals}</span>
+							{t("totalGoals")}: <span className="font-semibold text-foreground">{totalGoals}</span>
 						</span>
 						{leader ? (
 							<span className="rounded-md border bg-card px-2 py-1">
-								Líder: <span className="font-semibold text-foreground">{getPlayerLabel(leader.player)}</span>
+								{t("leader")}: <span className="font-semibold text-foreground">{getPlayerLabel(leader.player, t("player"))}</span>
 							</span>
 						) : null}
 					</div>

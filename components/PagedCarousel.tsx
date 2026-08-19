@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 function chunk<T>(arr: T[], size: number) {
   const out: T[][] = []
@@ -32,6 +33,7 @@ type PagedCarouselProps = {
 }
 
 export function PagedCarousel({ title, description, items, className }: PagedCarouselProps) {
+  const t = useTranslations("CommonUI")
   const isLg = useMediaQuery("(min-width: 1024px)")
   const isMd = useMediaQuery("(min-width: 768px) and (max-width: 1023px)")
   const perPage = isLg ? 3 : isMd ? 2 : 1
@@ -83,7 +85,7 @@ export function PagedCarousel({ title, description, items, className }: PagedCar
 
           {showControls ? (
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="icon" onClick={onPrev} disabled={page <= 0} aria-label="Anterior">
+              <Button type="button" variant="outline" size="icon" onClick={onPrev} disabled={page <= 0} aria-label={t("previous")}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
@@ -92,7 +94,7 @@ export function PagedCarousel({ title, description, items, className }: PagedCar
                 size="icon"
                 onClick={onNext}
                 disabled={page >= totalPages - 1}
-                aria-label="Siguiente"
+                aria-label={t("next")}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -139,7 +141,7 @@ export function PagedCarousel({ title, description, items, className }: PagedCar
               className={`h-2 w-2 rounded-full transition ${
                 i === page ? "bg-foreground" : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
               }`}
-              aria-label={`Ir a página ${i + 1}`}
+              aria-label={t("goToPage", { page: i + 1 })}
             />
           ))}
         </div>

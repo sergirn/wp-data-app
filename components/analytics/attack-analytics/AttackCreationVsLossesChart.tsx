@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bar, ComposedChart, Line, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
 import type { Match, MatchStats, Player } from "@/lib/types";
 import { Scale } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 interface AttackCreationVsLossesChartProps {
 	matches: Match[];
@@ -27,6 +28,9 @@ const sumVisible = (rows: Record<string, any>[], key: string, hiddenSet: Set<str
 };
 
 export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }: AttackCreationVsLossesChartProps) {
+	const locale = useLocale();
+	const t = useTranslations("AttackCharts");
+	const common = useTranslations("AnalyticsCommon");
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showAsistencias = !hiddenSet.has("acciones_asistencias");
@@ -71,7 +75,7 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 
 				asistencias,
 				expProvocada,
@@ -88,7 +92,7 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 				balance
 			};
 		});
-	}, [sortedMatches, stats, hiddenSet]);
+	}, [sortedMatches, stats, hiddenSet, locale]);
 
 	const jornadaByXLabel = useMemo(() => {
 		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
@@ -125,19 +129,17 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 	}, [matchData]);
 
 	const chartConfig = {
-		positivas: { label: "Positivas", color: "hsla(160, 84%, 39%, 1.00)" },
-		negativasView: { label: "Negativas", color: "hsla(0, 84%, 60%, 1.00)" },
-		balance: { label: "Balance", color: "hsla(221, 83%, 53%, 1.00)" }
+		positivas: { label: t("positive"), color: "hsla(160, 84%, 39%, 1.00)" },
+		negativasView: { label: t("negative"), color: "hsla(0, 84%, 60%, 1.00)" },
+		balance: { label: t("balance"), color: "hsla(221, 83%, 53%, 1.00)" }
 	};
 
 	if (!matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Creación vs pérdidas ofensivas"
-			description={`Últimos ${partidos} · Positivas: ${totals.positivas} · Negativas: ${totals.negativas} · Balance: ${
-				totals.balance >= 0 ? "+" : ""
-			}${totals.balance}`}
+			title={t("creationTitle")}
+			description={t("creationDescription", { count: partidos, positive: totals.positivas, negative: totals.negativas, balance: `${totals.balance >= 0 ? "+" : ""}${totals.balance}` })}
 			icon={<Scale className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={
@@ -171,7 +173,7 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 										labelFormatter={(_, payload) => {
 											const p = payload?.[0]?.payload;
 											if (!p) return "";
-											return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Balance: ${p.balance >= 0 ? "+" : ""}${p.balance}`;
+											return t("creationTooltip", { round: p.jornada, opponent: p.rival, date: p.fullDate, balance: `${p.balance >= 0 ? "+" : ""}${p.balance}` });
 										}}
 									/>
 								}
@@ -179,12 +181,12 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 
 							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
 
-							<Bar dataKey="positivas" name="Positivas" fill="var(--color-positivas)" radius={[4, 4, 0, 0]} />
-							<Bar dataKey="negativasView" name="Negativas" fill="var(--color-negativasView)" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="positivas" name={t("positive")} fill="var(--color-positivas)" radius={[4, 4, 0, 0]} />
+							<Bar dataKey="negativasView" name={t("negative")} fill="var(--color-negativasView)" radius={[4, 4, 0, 0]} />
 							<Line
 								type="monotone"
 								dataKey="balance"
-								name="Balance"
+								name={t("balance")}
 								stroke="var(--color-balance)"
 								strokeWidth={3}
 								dot={false}
@@ -201,17 +203,17 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 							<Table className="min-w-[1280px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										{showAsistencias && <TableHead className="text-right">Asist.</TableHead>}
-										{showExpProvocada && <TableHead className="text-right">Exp. Prov.</TableHead>}
-										{showPenaltiProvocado && <TableHead className="text-right">Pen. Prov.</TableHead>}
-										{showPaseBoya && <TableHead className="text-right">Pase boya</TableHead>}
-										{showPaseBoyaFallado && <TableHead className="text-right">P. boya fall.</TableHead>}
-										{showPerdidas && <TableHead className="text-right">Pérdidas</TableHead>}
-										{showContrafaltas && <TableHead className="text-right">Contraf.</TableHead>}
-										<TableHead className="text-right">Balance</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="w-[90px]">{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										{showAsistencias && <TableHead className="text-right">{t("assistsShort")}</TableHead>}
+										{showExpProvocada && <TableHead className="text-right">{t("exclusionsDrawnShort")}</TableHead>}
+										{showPenaltiProvocado && <TableHead className="text-right">{t("penaltiesDrawnShort")}</TableHead>}
+										{showPaseBoya && <TableHead className="text-right">{t("centerPass")}</TableHead>}
+										{showPaseBoyaFallado && <TableHead className="text-right">{t("failedCenterPassShort")}</TableHead>}
+										{showPerdidas && <TableHead className="text-right">{t("turnovers")}</TableHead>}
+										{showContrafaltas && <TableHead className="text-right">{t("counterFoulsShort")}</TableHead>}
+										<TableHead className="text-right">{t("balance")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{common("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -255,55 +257,53 @@ export function AttackCreationVsLossesChart({ matches, stats, hiddenStats = [] }
 
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-							<span>
-								<span className="font-medium text-foreground">{partidos}</span> partidos
-							</span>
+							<span>{common("matches", { count: partidos })}</span>
 
 							<div className="flex flex-wrap gap-2">
 								{showAsistencias && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Asist.: <span className="font-semibold text-foreground">{totals.asistencias}</span>
+										{t("assistsShort")}: <span className="font-semibold text-foreground">{totals.asistencias}</span>
 									</span>
 								)}
 								{showExpProvocada && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Exp. Prov.: <span className="font-semibold text-foreground">{totals.expProvocada}</span>
+										{t("exclusionsDrawnShort")}: <span className="font-semibold text-foreground">{totals.expProvocada}</span>
 									</span>
 								)}
 								{showPenaltiProvocado && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Pen. Prov.: <span className="font-semibold text-foreground">{totals.penaltiProvocado}</span>
+										{t("penaltiesDrawnShort")}: <span className="font-semibold text-foreground">{totals.penaltiProvocado}</span>
 									</span>
 								)}
 								{showPaseBoya && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Pase boya: <span className="font-semibold text-foreground">{totals.paseBoya}</span>
+										{t("centerPass")}: <span className="font-semibold text-foreground">{totals.paseBoya}</span>
 									</span>
 								)}
 								{showPaseBoyaFallado && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										P. boya fall.: <span className="font-semibold text-foreground">{totals.paseBoyaFallado}</span>
+										{t("failedCenterPassShort")}: <span className="font-semibold text-foreground">{totals.paseBoyaFallado}</span>
 									</span>
 								)}
 								{showPerdidas && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Pérdidas: <span className="font-semibold text-foreground">{totals.perdidas}</span>
+										{t("turnovers")}: <span className="font-semibold text-foreground">{totals.perdidas}</span>
 									</span>
 								)}
 								{showContrafaltas && (
 									<span className="rounded-md border bg-card px-2 py-1">
-										Contraf.: <span className="font-semibold text-foreground">{totals.contrafaltas}</span>
+										{t("counterFoulsShort")}: <span className="font-semibold text-foreground">{totals.contrafaltas}</span>
 									</span>
 								)}
 
 								<span className="rounded-md border bg-card px-2 py-1">
-									Positivas: <span className="font-semibold text-foreground">{totals.positivas}</span>
+									{t("positive")}: <span className="font-semibold text-foreground">{totals.positivas}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Negativas: <span className="font-semibold text-foreground">{totals.negativas}</span>
+									{t("negative")}: <span className="font-semibold text-foreground">{totals.negativas}</span>
 								</span>
 								<span className="rounded-md border bg-card px-2 py-1">
-									Balance:{" "}
+									{t("balance")}:{" "}
 									<span className="font-semibold text-foreground">
 										{totals.balance >= 0 ? "+" : ""}
 										{totals.balance}

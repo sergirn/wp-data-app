@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
@@ -26,6 +27,8 @@ const sumVisible = (rows: Record<string, any>[], key: string, hiddenSet: Set<str
 };
 
 export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [] }: AttackMistakeTypesByMatchChartProps) {
+	const t = useTranslations("AttackByMatch")
+	const locale = useLocale()
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const showPen = !hiddenSet.has("tiros_penalti_fallado");
@@ -71,7 +74,7 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 				jornadaNumber,
 				jornada: `J${jornadaNumber}`,
 				rival: match.opponent,
-				fullDate: new Date(match.match_date).toLocaleDateString("es-ES"),
+				fullDate: new Date(match.match_date).toLocaleDateString(locale),
 
 				pen,
 				corner,
@@ -88,7 +91,7 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 				total
 			};
 		});
-	}, [sortedMatches, stats, hiddenSet]);
+	}, [sortedMatches, stats, hiddenSet, locale]);
 
 	const jornadaByXLabel = useMemo(() => {
 		return new Map(matchData.map((item) => [item.xLabel, item.jornada]));
@@ -111,15 +114,15 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 		const total = matchData.reduce((sum, m) => sum + m.total, 0);
 
 		const parts = [
-			showPen && { key: "pen", label: "Pen. fallado", value: pen, color: "hsla(330, 78%, 58%, 1.00)" },
-			showCorner && { key: "corner", label: "Corner", value: corner, color: "hsla(35, 90%, 55%, 1.00)" },
-			showFuera && { key: "fuera", label: "Fuera", value: fuera, color: "hsla(0, 85%, 60%, 1.00)" },
-			showPalo && { key: "palo", label: "Palo", value: palo, color: "hsla(140, 70%, 45%, 1.00)" },
-			showParados && { key: "parados", label: "Parado", value: parados, color: "hsla(205, 90%, 55%, 1.00)" },
-			showBloqueado && { key: "bloqueado", label: "Bloqueado", value: bloqueado, color: "hsla(270, 75%, 60%, 1.00)" },
-			showSupFuera && { key: "supFuera", label: "Sup.+ fuera", value: supFuera, color: "hsla(59, 85%, 45%, 1.00)" },
-			showSupParada && { key: "supParada", label: "Sup.+ parada", value: supParada, color: "hsla(47, 95%, 50%, 1.00)" },
-			showSupBloqueo && { key: "supBloqueo", label: "Sup.+ bloqueo", value: supBloqueo, color: "hsla(52, 85%, 40%, 1.00)" }
+			showPen && { key: "pen", label: t("missedPenalty"), value: pen, color: "hsla(330, 78%, 58%, 1.00)" },
+			showCorner && { key: "corner", label: t("corner"), value: corner, color: "hsla(35, 90%, 55%, 1.00)" },
+			showFuera && { key: "fuera", label: t("offTarget"), value: fuera, color: "hsla(0, 85%, 60%, 1.00)" },
+			showPalo && { key: "palo", label: t("post"), value: palo, color: "hsla(140, 70%, 45%, 1.00)" },
+			showParados && { key: "parados", label: t("saved"), value: parados, color: "hsla(205, 90%, 55%, 1.00)" },
+			showBloqueado && { key: "bloqueado", label: t("blocked"), value: bloqueado, color: "hsla(270, 75%, 60%, 1.00)" },
+			showSupFuera && { key: "supFuera", label: t("powerPlayOffTarget"), value: supFuera, color: "hsla(59, 85%, 45%, 1.00)" },
+			showSupParada && { key: "supParada", label: t("powerPlaySaved"), value: supParada, color: "hsla(47, 95%, 50%, 1.00)" },
+			showSupBloqueo && { key: "supBloqueo", label: t("powerPlayBlocked"), value: supBloqueo, color: "hsla(52, 85%, 40%, 1.00)" }
 		]
 			.filter(Boolean)
 			.map((p: any) => ({
@@ -130,26 +133,26 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 		const topType = [...parts].sort((a, b) => b.value - a.value)[0] ?? null;
 
 		return { parts, topType, total };
-	}, [matchData, showPen, showCorner, showFuera, showPalo, showParados, showBloqueado, showSupFuera, showSupParada, showSupBloqueo]);
+	}, [matchData, showPen, showCorner, showFuera, showPalo, showParados, showBloqueado, showSupFuera, showSupParada, showSupBloqueo, t]);
 
 	const chartConfig = {
-		...(showPen && { pen: { label: "Pen. fallado", color: "hsla(330, 78%, 58%, 1.00)" } }),
-		...(showCorner && { corner: { label: "Corner", color: "hsla(35, 90%, 55%, 1.00)" } }),
-		...(showFuera && { fuera: { label: "Fuera", color: "hsla(0, 85%, 60%, 1.00)" } }),
-		...(showPalo && { palo: { label: "Palo", color: "hsla(140, 70%, 45%, 1.00)" } }),
-		...(showParados && { parados: { label: "Parado", color: "hsla(205, 90%, 55%, 1.00)" } }),
-		...(showBloqueado && { bloqueado: { label: "Bloqueado", color: "hsla(270, 75%, 60%, 1.00)" } }),
-		...(showSupFuera && { supFuera: { label: "Sup.+ fuera", color: "hsla(59, 85%, 45%, 1.00)" } }),
-		...(showSupParada && { supParada: { label: "Sup.+ parada", color: "hsla(47, 95%, 50%, 1.00)" } }),
-		...(showSupBloqueo && { supBloqueo: { label: "Sup.+ bloqueo", color: "hsla(52, 85%, 40%, 1.00)" } })
+		...(showPen && { pen: { label: t("missedPenalty"), color: "hsla(330, 78%, 58%, 1.00)" } }),
+		...(showCorner && { corner: { label: t("corner"), color: "hsla(35, 90%, 55%, 1.00)" } }),
+		...(showFuera && { fuera: { label: t("offTarget"), color: "hsla(0, 85%, 60%, 1.00)" } }),
+		...(showPalo && { palo: { label: t("post"), color: "hsla(140, 70%, 45%, 1.00)" } }),
+		...(showParados && { parados: { label: t("saved"), color: "hsla(205, 90%, 55%, 1.00)" } }),
+		...(showBloqueado && { bloqueado: { label: t("blocked"), color: "hsla(270, 75%, 60%, 1.00)" } }),
+		...(showSupFuera && { supFuera: { label: t("powerPlayOffTarget"), color: "hsla(59, 85%, 45%, 1.00)" } }),
+		...(showSupParada && { supParada: { label: t("powerPlaySaved"), color: "hsla(47, 95%, 50%, 1.00)" } }),
+		...(showSupBloqueo && { supBloqueo: { label: t("powerPlayBlocked"), color: "hsla(52, 85%, 40%, 1.00)" } })
 	};
 
 	if (!matchData.length) return null;
 
 	return (
 		<ExpandableChartCard
-			title="Fallos por tipo por jornada"
-			description={`Últimos ${partidos} · Total: ${totals.total} · Predomina: ${totals.topType?.label ?? "—"}`}
+			title={t("missesTitle")}
+			description={t("summary", { count: partidos, total: totals.total, top: totals.topType?.label ?? "—" })}
 			icon={<CircleOff className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{totals.topType?.label ?? "—"}</span>}
@@ -180,7 +183,7 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 												labelFormatter={(_, payload) => {
 													const p = payload?.[0]?.payload;
 													if (!p) return "";
-													return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · Total: ${p.total}`;
+											return t("tooltip", { round: p.jornada, opponent: p.rival, date: p.fullDate, total: p.total });
 												}}
 											/>
 										}
@@ -189,17 +192,17 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 									<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
 
 									{showPen && (
-										<Bar dataKey="pen" name="Pen. fallado" stackId="misses" fill="var(--color-pen)" radius={[4, 4, 0, 0]} />
+										<Bar dataKey="pen" name={t("missedPenalty")} stackId="misses" fill="var(--color-pen)" radius={[4, 4, 0, 0]} />
 									)}
-									{showCorner && <Bar dataKey="corner" name="Corner" stackId="misses" fill="var(--color-corner)" />}
-									{showFuera && <Bar dataKey="fuera" name="Fuera" stackId="misses" fill="var(--color-fuera)" />}
-									{showPalo && <Bar dataKey="palo" name="Palo" stackId="misses" fill="var(--color-palo)" />}
-									{showParados && <Bar dataKey="parados" name="Parado" stackId="misses" fill="var(--color-parados)" />}
-									{showBloqueado && <Bar dataKey="bloqueado" name="Bloqueado" stackId="misses" fill="var(--color-bloqueado)" />}
-									{showSupFuera && <Bar dataKey="supFuera" name="Sup.+ fuera" stackId="misses" fill="var(--color-supFuera)" />}
-									{showSupParada && <Bar dataKey="supParada" name="Sup.+ parada" stackId="misses" fill="var(--color-supParada)" />}
+									{showCorner && <Bar dataKey="corner" name={t("corner")} stackId="misses" fill="var(--color-corner)" />}
+									{showFuera && <Bar dataKey="fuera" name={t("offTarget")} stackId="misses" fill="var(--color-fuera)" />}
+									{showPalo && <Bar dataKey="palo" name={t("post")} stackId="misses" fill="var(--color-palo)" />}
+									{showParados && <Bar dataKey="parados" name={t("saved")} stackId="misses" fill="var(--color-parados)" />}
+									{showBloqueado && <Bar dataKey="bloqueado" name={t("blocked")} stackId="misses" fill="var(--color-bloqueado)" />}
+									{showSupFuera && <Bar dataKey="supFuera" name={t("powerPlayOffTarget")} stackId="misses" fill="var(--color-supFuera)" />}
+									{showSupParada && <Bar dataKey="supParada" name={t("powerPlaySaved")} stackId="misses" fill="var(--color-supParada)" />}
 									{showSupBloqueo && (
-										<Bar dataKey="supBloqueo" name="Sup.+ bloqueo" stackId="misses" fill="var(--color-supBloqueo)" />
+										<Bar dataKey="supBloqueo" name={t("powerPlayBlocked")} stackId="misses" fill="var(--color-supBloqueo)" />
 									)}
 								</ComposedChart>
 							</ResponsiveContainer>
@@ -229,19 +232,19 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 							<Table className="min-w-[1320px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead className="w-[90px]">Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										{showPen && <TableHead className="text-right">Pen.</TableHead>}
-										{showCorner && <TableHead className="text-right">Corner</TableHead>}
-										{showFuera && <TableHead className="text-right">Fuera</TableHead>}
-										{showPalo && <TableHead className="text-right">Palo</TableHead>}
-										{showParados && <TableHead className="text-right">Parado</TableHead>}
-										{showBloqueado && <TableHead className="text-right">Bloq</TableHead>}
-										{showSupFuera && <TableHead className="text-right">Sup. fuera</TableHead>}
-										{showSupParada && <TableHead className="text-right">Sup. parada</TableHead>}
-										{showSupBloqueo && <TableHead className="text-right">Sup. bloqueo</TableHead>}
-										<TableHead className="text-right">Total</TableHead>
-										<TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+										<TableHead className="w-[90px]">{t("round")}</TableHead>
+										<TableHead>{t("opponent")}</TableHead>
+										{showPen && <TableHead className="text-right">{t("penaltyShort")}</TableHead>}
+										{showCorner && <TableHead className="text-right">{t("corner")}</TableHead>}
+										{showFuera && <TableHead className="text-right">{t("offTarget")}</TableHead>}
+										{showPalo && <TableHead className="text-right">{t("post")}</TableHead>}
+										{showParados && <TableHead className="text-right">{t("saved")}</TableHead>}
+										{showBloqueado && <TableHead className="text-right">{t("blockedShort")}</TableHead>}
+										{showSupFuera && <TableHead className="text-right">{t("powerPlayOffTargetShort")}</TableHead>}
+										{showSupParada && <TableHead className="text-right">{t("powerPlaySavedShort")}</TableHead>}
+										{showSupBloqueo && <TableHead className="text-right">{t("powerPlayBlockedShort")}</TableHead>}
+										<TableHead className="text-right">{t("total")}</TableHead>
+										<TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 
@@ -276,7 +279,7 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 					<div className="border-t bg-muted/20 px-3 py-2">
 						<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
 							<span>
-								<span className="font-medium text-foreground">{partidos}</span> partidos
+								{t("matches", { count: partidos })}
 							</span>
 							<div className="flex flex-wrap gap-2">
 								{totals.parts.map((p) => (
@@ -285,7 +288,7 @@ export function AttackMistakeTypesByMatchChart({ matches, stats, hiddenStats = [
 									</span>
 								))}
 								<span className="rounded-md border bg-card px-2 py-1">
-									Total: <span className="font-semibold text-foreground">{totals.total}</span>
+									{t("total")}: <span className="font-semibold text-foreground">{totals.total}</span>
 								</span>
 							</div>
 						</div>

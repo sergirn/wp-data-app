@@ -1,6 +1,7 @@
 import { getCurrentProfile } from "@/lib/auth";
 import { getPlayerTotalsReportData } from "@/lib/players/get-player-report-data";
 import { buildPlayerTotalsExcel } from "@/lib/exports/build-player-excel";
+import { getTranslations } from "next-intl/server";
 
 function sanitizeFilenamePart(value: string) {
 	return value
@@ -14,19 +15,22 @@ function sanitizeFilenamePart(value: string) {
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+	const t = await getTranslations("Api");
+	const tExport = await getTranslations("Export");
 	try {
 		const { id } = await params;
 		const playerId = Number(id);
 
 		if (!Number.isFinite(playerId)) {
-			return new Response("Invalid player id", { status: 400 });
+			return new Response(t("invalidPlayerId"), { status: 400 });
 		}
 
 		const profile = await getCurrentProfile();
-		const reportData = await getPlayerTotalsReportData(playerId, profile?.id ?? null);
+		if (!profile) return new Response(t("unauthenticated"), { status: 401 });
+		const reportData = await getPlayerTotalsReportData(playerId, profile);
 		const excelBytes = await buildPlayerTotalsExcel(reportData);
 
-		const filename = `${sanitizeFilenamePart(reportData.player.name || "Jugador")}_totales.xlsx`;
+		const filename = `${sanitizeFilenamePart(reportData.player.name || tExport("playerFallback"))}_${tExport("totalsSuffix")}.xlsx`;
 
 		return new Response(excelBytes, {
 			status: 200,
@@ -37,6 +41,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 		});
 	} catch (error) {
 		console.error(error);
-		return new Response("Failed to generate Excel", { status: 500 });
+		return new Response(t("excelGenerationFailed"), { status: 500 });
 	}
 }

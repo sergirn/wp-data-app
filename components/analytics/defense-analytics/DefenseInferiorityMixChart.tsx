@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer } from "@/components/ui/chart";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
@@ -21,6 +22,10 @@ const toNum = (v: unknown) => {
 };
 
 export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }: DefenseInferiorityMixChartProps) {
+	const tChart = useTranslations("DefenseAnalyticsCharts");
+	const common = useTranslations("AnalyticsCommon");
+	const locale = useLocale();
+	const tStat = useTranslations("StatLabels")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
 
 	const isVisible = (key: string) => !hiddenSet.has(key);
@@ -31,50 +36,36 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 				{
 					key: "goles",
 					statKey: "portero_goles_hombre_menos",
-					label: "Gol inferioridad",
-					shortLabel: "Gol",
 					color: "hsla(0, 84%, 60%, 1.00)"
 				},
 				{
 					key: "golPalo",
 					statKey: "portero_gol_palo",
-					label: "Gol del palo",
-					shortLabel: "Gol palo",
 					color: "hsla(12, 85%, 58%, 1.00)"
 				},
 				{
 					key: "paradas",
 					statKey: "portero_paradas_hombre_menos",
-					label: "Parada",
-					shortLabel: "Parada",
 					color: "hsla(145, 63%, 42%, 1.00)"
 				},
 				{
 					key: "paradaFueraInf",
 					statKey: "portero_parada_fuera_inf",
-					label: "Parada corner inferioridad",
-					shortLabel: "P. corner",
 					color: "hsla(160, 70%, 38%, 1.00)"
 				},
 				{
 					key: "paloInf",
 					statKey: "portero_lanz_palo_inf",
-					label: "Palo inferioridad",
-					shortLabel: "Palo",
 					color: "hsla(280, 70%, 52%, 1.00)"
 				},
 				{
 					key: "fuera",
 					statKey: "portero_inferioridad_fuera",
-					label: "Fuera",
-					shortLabel: "Fuera",
 					color: "hsla(221, 83%, 53%, 1.00)"
 				},
 				{
 					key: "bloqueo",
 					statKey: "portero_inferioridad_bloqueo",
-					label: "Bloqueo",
-					shortLabel: "Bloqueo",
 					color: "hsla(42, 96%, 55%, 1.00)"
 				}
 			].filter((def) => isVisible(def.statKey)),
@@ -89,8 +80,8 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 			return {
 				key: def.key,
 				statKey: def.statKey,
-				label: def.label,
-				shortLabel: def.shortLabel,
+				label: tStat(def.statKey),
+				shortLabel: tStat(def.statKey),
 				value,
 				color: def.color
 			};
@@ -121,7 +112,7 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 			topType,
 			totalMatches: (matches ?? []).length
 		};
-	}, [matches, stats, visibleDefs]);
+	}, [matches, stats, visibleDefs, tStat]);
 
 	const perMatch = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
@@ -150,14 +141,14 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 					matchId: match?.id,
 					jornada: `J${jornadaNumber}`,
 					rival: match?.opponent ?? "—",
-					fullDate: match?.match_date ? new Date(match.match_date).toLocaleDateString("es-ES") : "—",
+					fullDate: match?.match_date ? new Date(match.match_date).toLocaleDateString(locale) : "—",
 					total,
 					efficiency,
 					...values
 				};
 			})
 			.filter((row) => row.total > 0);
-	}, [matches, stats, visibleDefs]);
+	}, [matches, stats, visibleDefs, locale]);
 
 	const chartConfig = useMemo(() => {
 		return Object.fromEntries(
@@ -175,8 +166,8 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 
 	return (
 		<ExpandableChartCard
-			title="Mix de inferioridad"
-			description={`${summary.topType?.label ?? "Sin datos"} · Eficacia ${summary.efficiency}% · Total ${summary.total}`}
+			title={tChart("inferiorityMix")}
+			description={`${summary.topType?.label ?? common("noData")} · ${common("efficiency")} ${summary.efficiency}% · ${common("total")} ${summary.total}`}
 			icon={<Shield className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5 h-full"
 			rightHeader={<span className="text-xs text-muted-foreground">{summary.efficiency}%</span>}
@@ -249,18 +240,18 @@ export function DefenseInferiorityMixChart({ matches, stats, hiddenStats = [] }:
 							<Table className="min-w-[980px]">
 								<UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
 									<TableRow className="hover:bg-transparent">
-										<TableHead>Jornada</TableHead>
-										<TableHead>Rival</TableHead>
-										<TableHead>Fecha</TableHead>
+										<TableHead>{common("round")}</TableHead>
+										<TableHead>{common("opponent")}</TableHead>
+										<TableHead>{common("date")}</TableHead>
 
 										{visibleDefs.map((def) => (
 											<TableHead key={def.key} className="text-right">
-												{def.shortLabel}
+												{tStat(def.statKey)}
 											</TableHead>
 										))}
 
-										<TableHead className="text-right">Total</TableHead>
-										<TableHead className="text-right">Efic.</TableHead>
+										<TableHead className="text-right">{common("total")}</TableHead>
+										<TableHead className="text-right">{common("efficiency")}</TableHead>
 									</TableRow>
 								</UITableHeader>
 

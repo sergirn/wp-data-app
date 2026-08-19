@@ -12,14 +12,18 @@ import { MatchPeriodsAndPenaltiesCard } from "@/components/match-components/Matc
 import { MatchPlayersTabs } from "./MatchPlayersTabs";
 import { ExportMatchPdfButton } from "@/components/export-buttons/export-match-pdf-button";
 import { ExportMatchExcelButton } from "@/components/export-buttons/export-match-excel-button";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
+	const t = await getTranslations("Matches");
+	const locale = await getLocale();
 	const { id } = await params;
 	const matchId = Number(id);
 	const profile = await getCurrentProfile();
 	const supabase = await createClient();
+	if (!profile || !supabase) notFound();
 
-	const { data: match, error } = await supabase
+	let matchQuery = supabase
 		.from("matches")
 		.select(
 			`
@@ -32,7 +36,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
       )
     `
 		)
-		.eq("id", id)
+		.eq("id", id);
+
+	if (!profile.is_super_admin) {
+		if (!profile.club_id) notFound();
+		matchQuery = matchQuery.eq("club_id", profile.club_id);
+	}
+
+	const { data: match, error } = await matchQuery
 		.maybeSingle();
 
 	if (error || !match) {
@@ -115,24 +126,17 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 		{ q: 4 as const, home: match.q4_score ?? 0, away: match.q4_score_rival ?? 0, winner: getWinner(match.sprint4_winner_player_id) }
 	];
 
-	let result: string;
-	let resultColor: string;
-
-	if (hasPenalties) {
-		result = match.penalty_home_score! > match.penalty_away_score! ? "Victoria (Penaltis)" : "Derrota (Penaltis)";
-		resultColor =
-			match.penalty_home_score! > match.penalty_away_score!
-				? "bg-green-500/10 text-green-700 dark:text-green-300"
-				: "bg-red-500/10 text-red-700 dark:text-red-300";
-	} else {
-		result = match.home_score > match.away_score ? "Victoria" : match.home_score < match.away_score ? "Derrota" : "Empate";
-		resultColor =
-			result === "Victoria"
-				? "bg-green-500/10 text-green-700 dark:text-green-300"
-				: result === "Derrota"
-					? "bg-red-500/10 text-red-700 dark:text-red-300"
-					: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300";
-	}
+	const outcome = hasPenalties
+		? match.penalty_home_score! > match.penalty_away_score! ? "win" : "loss"
+		: match.home_score > match.away_score ? "win" : match.home_score < match.away_score ? "loss" : "draw";
+	const result = hasPenalties
+		? t(outcome === "win" ? "results.penaltyWin" : "results.penaltyLoss")
+		: t(`results.${outcome}`);
+	const resultColor = outcome === "win"
+		? "bg-green-500/10 text-green-700 dark:text-green-300"
+		: outcome === "loss"
+			? "bg-red-500/10 text-red-700 dark:text-red-300"
+			: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300";
 
 	const fieldPlayersStats = match.match_stats
 		.filter((stat: any) => !stat.players.is_goalkeeper)
@@ -142,14 +146,19 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 		.filter((stat: any) => stat.players.is_goalkeeper)
 		.sort((a: any, b: any) => a.players.number - b.players.number);
 
-	const superioridadStats = calculateSuperioridadStats(match.match_stats);
-	const inferioridadStats = calculateInferioridadStats(match.match_stats);
 	const blocksStats = calculateBlocksStats(match.match_stats, match.away_score);
 	const players = match.match_stats.map((s: any) => s.players);
 
 	const stats = match.match_stats;
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
-	const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo";
+	const clubName = match.clubs?.short_name || match.clubs?.name || t("ourTeam");
+	const isClubHome = match.is_home !== false;
+	const localTeam = isClubHome ? clubName : match.opponent;
+	const visitingTeam = isClubHome ? match.opponent : clubName;
+	const localScore = isClubHome ? match.home_score : match.away_score;
+	const visitingScore = isClubHome ? match.away_score : match.home_score;
+	const localPenaltyScore = isClubHome ? match.penalty_home_score : match.penalty_away_score;
+	const visitingPenaltyScore = isClubHome ? match.penalty_away_score : match.penalty_home_score;
 	const matchDate = new Date(match.match_date);
 	const competitionImage = match.competitions?.image_url?.trim() || null;
 
@@ -169,9 +178,9 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
 	const goalkeeperId = goalkeeperIdFromShots ?? goalkeeperIdFromStats ?? null;
 
-	const logoGlow = result.startsWith("Victoria")
+	const logoGlow = outcome === "win"
 		? "from-green-500/80 via-emerald-400/40 to-transparent"
-		: result.startsWith("Derrota")
+		: outcome === "loss"
 			? "from-red-500/80 via-rose-400/40 to-transparent"
 			: "from-yellow-500/80 via-amber-400/40 to-transparent";
 
@@ -182,7 +191,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					<Button variant="ghost" asChild>
 						<Link href="/partidos">
 							<ArrowLeft className="mr-2 h-4 w-4" />
-							Volver a Partidos
+							{t("backToMatches")}
 						</Link>
 					</Button>
 
@@ -200,6 +209,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 								src={competitionImage ?? logo}
 								alt={match.competitions?.name ?? "LEWaterpolo"}
 								fill
+								sizes="(max-width: 640px) 280px, 420px"
 								className="object-contain opacity-30 transition-opacity duration-200"
 								priority
 							/>
@@ -213,7 +223,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 							<div className="flex-1 min-w-0">
 								<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
 									<h2 className="text-xl sm:text-2xl font-bold truncate">
-										{clubName} vs {match.opponent}
+										{localTeam} {t("versus")} {visitingTeam}
 									</h2>
 
 									<span className={`text-xs sm:text-sm font-semibold ${resultColor}`}>{result}</span>
@@ -221,7 +231,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
 								<div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
 									<span>
-										{matchDate.toLocaleDateString("es-ES", {
+										{matchDate.toLocaleDateString(locale, {
 											weekday: "long",
 											year: "numeric",
 											month: "long",
@@ -230,30 +240,30 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 									</span>
 									{match.location && <span>• {match.location}</span>}
 									{match.season && <span>• {match.season}</span>}
-									{match.jornada && <span>• Jornada {match.jornada}</span>}
+									{match.jornada && <span>• {t("matchday", { number: match.jornada })}</span>}
 								</div>
 							</div>
 
 							<div className="flex flex-col items-center justify-center gap-2 w-full md:w-auto">
 								<div className="flex items-center gap-4 sm:gap-6">
 									<div className="text-center">
-										<p className="text-3xl sm:text-4xl font-bold tabular-nums">{match.home_score}</p>
-										<p className="text-xs text-muted-foreground truncate max-w-[140px]">{clubName}</p>
+										<p className="text-3xl sm:text-4xl font-bold tabular-nums">{localScore}</p>
+										<p className="text-xs text-muted-foreground truncate max-w-[140px]">{localTeam}</p>
 									</div>
 
 									<div className="text-2xl sm:text-3xl font-bold text-muted-foreground">-</div>
 
 									<div className="text-center">
-										<p className="text-3xl sm:text-4xl font-bold tabular-nums">{match.away_score}</p>
-										<p className="text-xs text-muted-foreground truncate max-w-[140px]">{match.opponent}</p>
+										<p className="text-3xl sm:text-4xl font-bold tabular-nums">{visitingScore}</p>
+										<p className="text-xs text-muted-foreground truncate max-w-[140px]">{visitingTeam}</p>
 									</div>
 								</div>
 
 								{hasPenalties && (
 									<div className="text-xs sm:text-sm text-muted-foreground font-medium">
-										Penaltis:{" "}
+										{t("penaltiesLabel")} {" "}
 										<span className="font-bold tabular-nums text-foreground">
-											{match.penalty_home_score} - {match.penalty_away_score}
+											{localPenaltyScore} - {visitingPenaltyScore}
 										</span>
 									</div>
 								)}
@@ -263,7 +273,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 						{match.notes && (
 							<div className="mt-4 pt-4 border-t border-border/40">
 								<p className="text-sm text-muted-foreground">
-									<span className="font-semibold">Notas:</span> {match.notes}
+									<span className="font-semibold">{t("notes")}</span> {match.notes}
 								</p>
 							</div>
 						)}
@@ -274,6 +284,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			<MatchPeriodsAndPenaltiesCard
 				opponentName={match.opponent}
 				clubName={clubName}
+				isClubHome={isClubHome}
 				hasPenalties={hasPenalties}
 				periods={periods}
 				penaltyHomeScore={match.penalty_home_score}
@@ -288,11 +299,9 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				matchId={match.id}
 				clubName={clubName}
 				opponentName={match.opponent}
-				matchDateLabel={matchDate.toLocaleDateString("es-ES")}
+				matchDateLabel={matchDate.toLocaleDateString(locale)}
 				match={match}
 				matchStats={match.match_stats}
-				superioridadStats={superioridadStats}
-				inferioridadStats={inferioridadStats}
 				blocksStats={blocksStats}
 				allGoalkeeperShots={allGoalkeeperShots}
 				goalkeeperId={goalkeeperId}
@@ -306,7 +315,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 						<Button asChild>
 							<Link href={`/nuevo-partido?matchId=${match.id}`}>
 								<Edit className="mr-2 h-4 w-4" />
-								Editar Partido
+								{t("editMatch")}
 							</Link>
 						</Button>
 					)}
@@ -314,14 +323,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					{canEdit && (
 						<div className="flex items-center gap-2 bg-muted rounded-md">
 							<DeleteMatchButton matchId={match.id} />
-							<span className="hidden sm:inline text-sm text-red-600 dark:text-red-400">Eliminar Partido</span>
+							<span className="hidden sm:inline text-sm text-red-600 dark:text-red-400">{t("deleteMatch")}</span>
 						</div>
 					)}
 				</div>
 			</div>
 
 			<div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-				<span>POWERED BY</span>
+				<span>{t("poweredBy")}</span>
 
 				<Image
 					src="/images/logo-sponsor/TFT_LOGO.webp"
@@ -337,43 +346,6 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			</div>
 		</main>
 	);
-}
-
-function calculateSuperioridadStats(stats: any[]) {
-	const anotadas = stats.reduce((acc, stat) => acc + (stat.goles_hombre_mas || 0), 0);
-	const anotadas_palo = stats.reduce((acc, stat) => acc + (stat.gol_del_palo_sup || 0), 0);
-	const falladas = stats.reduce((acc, stat) => acc + (stat.tiros_hombre_mas || 0), 0);
-
-	const rebotesRecuperados = stats.reduce((acc, stat) => acc + (stat.rebote_recup_hombre_mas || 0), 0);
-	const rebotesPerdidos = stats.reduce((acc, stat) => acc + (stat.rebote_perd_hombre_mas || 0), 0);
-
-	const goles = anotadas + anotadas_palo;
-	const total = goles + falladas;
-	const eficiencia = total > 0 ? ((goles / total) * 100).toFixed(1) : "0.0";
-
-	return {
-		anotadas,
-		anotadas_palo,
-		falladas,
-		total,
-		eficiencia: Number.parseFloat(eficiencia),
-		rebotesRecuperados,
-		rebotesPerdidos
-	};
-}
-
-function calculateInferioridadStats(stats: any[]) {
-	const paradas = stats.reduce((acc, stat) => acc + (stat.portero_paradas_hombre_menos ?? 0), 0);
-	const fuera = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_fuera ?? 0), 0);
-	const bloqueo = stats.reduce((acc, stat) => acc + (stat.portero_inferioridad_bloqueo ?? 0), 0);
-
-	const evitados = paradas + fuera + bloqueo;
-	const recibidos = stats.reduce((acc, stat) => acc + (stat.portero_goles_hombre_menos ?? 0) + (stat.portero_gol_palo ?? 0), 0);
-
-	const total = evitados + recibidos;
-	const eficiencia = total > 0 ? Math.round((evitados / total) * 1000) / 10 : 0;
-
-	return { evitados, recibidos, paradas, fuera, bloqueo, total, eficiencia };
 }
 
 function calculateBlocksStats(stats: any[], golesRecibidos: number) {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 function getFilenameFromDisposition(disposition: string | null) {
 	if (!disposition) return null;
@@ -21,6 +22,7 @@ function getFilenameFromDisposition(disposition: string | null) {
 }
 
 export function ExportMatchPdfButton({ matchId }: { matchId: number | string }) {
+	const t = useTranslations("Export");
 	const [loading, setLoading] = useState(false);
 
 	const handleDownload = async () => {
@@ -32,14 +34,14 @@ export function ExportMatchPdfButton({ matchId }: { matchId: number | string }) 
 			});
 
 			if (!response.ok) {
-				throw new Error("Failed to download PDF");
+				throw new Error(t("pdfDownloadFailed"));
 			}
 
 			const blob = await response.blob();
 			const blobUrl = window.URL.createObjectURL(blob);
 
 			const disposition = response.headers.get("Content-Disposition");
-			const filename = getFilenameFromDisposition(disposition) || `match-${matchId}.pdf`;
+			const filename = getFilenameFromDisposition(disposition) || t("matchPdfFilename", { id: matchId });
 
 			const link = document.createElement("a");
 			link.href = blobUrl;
@@ -64,9 +66,9 @@ export function ExportMatchPdfButton({ matchId }: { matchId: number | string }) 
 		>
 			{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
 
-			<span>{loading ? "Descargando..." : "Exportar PDF"}</span>
+			<span>{loading ? t("downloading") : t("exportPdf")}</span>
 
-			<span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide">PDF</span>
+			<span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide">{t("pdf")}</span>
 		</Button>
 	);
 }

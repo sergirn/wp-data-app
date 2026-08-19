@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { CardTitle, CardDescription } from "@/components/ui/card";
 import { TopPlayerCard } from "../TopPlayerCard";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const toNum = (v: any) => {
 };
 
 export function MostExpelledFeaturedCard({ playerStats }: MostExpelledFeaturedCardProps) {
+	const t = useTranslations("TeamDashboardCards");
 	const ranking = useMemo(() => {
 		return [...(playerStats ?? [])]
 			.map((p) => ({
@@ -40,8 +42,8 @@ export function MostExpelledFeaturedCard({ playerStats }: MostExpelledFeaturedCa
 	return (
 		<div>
 			<div>
-				<CardTitle>Más expulsado</CardTitle>
-				<CardDescription>Ranking por expulsiones totales</CardDescription>
+				<CardTitle>{t("expulsions.title")}</CardTitle>
+				<CardDescription>{t("expulsions.description")}</CardDescription>
 			</div>
 
 			<div className="mt-4">
@@ -49,29 +51,29 @@ export function MostExpelledFeaturedCard({ playerStats }: MostExpelledFeaturedCa
 					<div className="space-y-2">
 						<TopPlayerCard
 							player={{ id: top.id, name: top.name, number: top.number, photo_url: top.photo_url }}
-							statLabel="Expulsiones"
+							statLabel={t("expulsions.metric")}
 							statValue={`${toNum(top._exp)}`}
 							gradientColors="from-rose-500 to-red-500"
 							details={[
 								// 👇 aquí se ve el total en vez de "bruta"
 								// { label: "Total expulsiones", value: toNum(top._exp) },
-								{ label: "Exp 3 int", value: toNum(top.faltas_exp_3_int) },
-								{ label: 'Exp 20" 1c1', value: toNum(top.faltas_exp_20_1c1) },
-								{ label: 'Exp 20" boya', value: toNum(top.faltas_exp_20_boya) },
-								{ label: "Penaltis provocados", value: toNum(top.faltas_penalti) }
+								{ label: t("intentionalExclusionShort"), value: toNum(top.faltas_exp_3_int) },
+								{ label: t("exclusionOneOnOneShort"), value: toNum(top.faltas_exp_20_1c1) },
+								{ label: t("exclusionBuoyShort"), value: toNum(top.faltas_exp_20_boya) },
+								{ label: t("penaltiesDrawn"), value: toNum(top.faltas_penalti) }
 							]}
 						/>
 
 						<Dialog>
 							<DialogTrigger asChild>
 								<Button variant="secondary" className="w-full" disabled={rest.length === 0}>
-									Ver más
+									{t("viewMore")}
 								</Button>
 							</DialogTrigger>
 
 							<DialogContent className="sm:max-w-2xl">
 								<DialogHeader>
-									<DialogTitle>Ranking · Expulsiones</DialogTitle>
+									<DialogTitle>{t("expulsions.ranking")}</DialogTitle>
 								</DialogHeader>
 
 								<div className="max-h-[70vh] overflow-y-auto space-y-3 pr-1">
@@ -79,15 +81,15 @@ export function MostExpelledFeaturedCard({ playerStats }: MostExpelledFeaturedCa
 										<TopPlayerCard
 											key={p.id ?? `${p.name}-${idx}`}
 											player={{ id: p.id, name: p.name, number: p.number, photo_url: p.photo_url }}
-											statLabel={`#${idx + 2} · Expulsiones`}
+											statLabel={t("rankedMetric", { rank: idx + 2, metric: t("expulsions.metric") })}
 											statValue={`${toNum(p._exp)}`}
 											gradientColors="from-rose-500 to-red-500"
 											details={[
 												// 👇 igual aquí
-												{ label: "Total expulsiones", value: toNum(p._exp) },
-												{ label: "Exp 3 int", value: toNum(p.faltas_exp_3_int) },
-												{ label: 'Exp 20" 1c1', value: toNum(p.faltas_exp_20_1c1) },
-												{ label: 'Exp 20" boya', value: toNum(p.faltas_exp_20_boya) }
+												{ label: t("totalExpulsions"), value: toNum(p._exp) },
+												{ label: t("intentionalExclusionShort"), value: toNum(p.faltas_exp_3_int) },
+												{ label: t("exclusionOneOnOneShort"), value: toNum(p.faltas_exp_20_1c1) },
+												{ label: t("exclusionBuoyShort"), value: toNum(p.faltas_exp_20_boya) }
 											]}
 										/>
 									))}

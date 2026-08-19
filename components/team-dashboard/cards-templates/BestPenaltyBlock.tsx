@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { CardTitle, CardDescription } from "@/components/ui/card";
 import { TopPlayerCard } from "../TopPlayerCard";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ const getMatchStatTotal = (p: any, key: "tiros_penalti_fallado" | "goles_penalti
 };
 
 export function BestPenaltyFeaturedCard({ playerStats }: BestPenaltyFeaturedCardProps) {
+	const t = useTranslations("TeamDashboardCards");
 	// ✅ Logs para confirmar de dónde lo está sacando
 	useEffect(() => {
 		if (process.env.NODE_ENV === "production") return;
@@ -92,37 +94,37 @@ export function BestPenaltyFeaturedCard({ playerStats }: BestPenaltyFeaturedCard
 	return (
 		<div>
 			<div>
-				<CardTitle>Penaltis</CardTitle>
-				<CardDescription>Eficiencia (anotados / (anotados + fallados))</CardDescription>
+				<CardTitle>{t("penalties.title")}</CardTitle>
+				<CardDescription>{t("penalties.description")}</CardDescription>
 			</div>
 
 			<div className="mt-4">
 				{!top ? (
-					<div className="rounded-lg border p-3 text-sm text-muted-foreground">No hay penaltis registrados (anotados o fallados).</div>
+					<div className="rounded-lg border p-3 text-sm text-muted-foreground">{t("penalties.noData")}</div>
 				) : (
 					<div className="space-y-2">
 						<TopPlayerCard
 							player={{ id: top.id, name: top.name, number: top.number, photo_url: top.photo_url }}
-							statLabel="Eficiencia"
+							statLabel={t("efficiency")}
 							statValue={`${toNum(top._penEff).toFixed(0)}%`}
 							gradientColors="from-amber-500 to-orange-500"
 							details={[
-								{ label: "Anotados", value: toNum(top._scored) },
-								{ label: "Fallados", value: toNum(top._missed) },
-								{ label: "Total", value: toNum(top._total) }
+								{ label: t("scored"), value: toNum(top._scored) },
+								{ label: t("missed"), value: toNum(top._missed) },
+								{ label: t("total"), value: toNum(top._total) }
 							]}
 						/>
 
 						<Dialog>
 							<DialogTrigger asChild>
 								<Button variant="secondary" className="w-full" disabled={rest.length === 0}>
-									Ver más
+									{t("viewMore")}
 								</Button>
 							</DialogTrigger>
 
 							<DialogContent className="sm:max-w-2xl">
 								<DialogHeader>
-									<DialogTitle>Ranking · Penaltis</DialogTitle>
+									<DialogTitle>{t("penalties.ranking")}</DialogTitle>
 								</DialogHeader>
 
 								<div className="max-h-[70vh] overflow-y-auto space-y-3 pr-1">
@@ -130,13 +132,13 @@ export function BestPenaltyFeaturedCard({ playerStats }: BestPenaltyFeaturedCard
 										<TopPlayerCard
 											key={p.id ?? `${p.name}-${idx}`}
 											player={{ id: p.id, name: p.name, number: p.number, photo_url: p.photo_url }}
-											statLabel={`#${idx + 2} · Eficiencia`}
+											statLabel={t("rankedMetric", { rank: idx + 2, metric: t("efficiency") })}
 											statValue={`${toNum(p._penEff).toFixed(0)}%`}
 											gradientColors="from-amber-500 to-orange-500"
 											details={[
-												{ label: "Anotados", value: toNum(p._scored) },
-												{ label: "Fallados", value: toNum(p._missed) },
-												{ label: "Total", value: toNum(p._total) }
+												{ label: t("scored"), value: toNum(p._scored) },
+												{ label: t("missed"), value: toNum(p._missed) },
+												{ label: t("total"), value: toNum(p._total) }
 											]}
 										/>
 									))}

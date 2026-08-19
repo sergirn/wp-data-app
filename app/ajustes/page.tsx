@@ -10,8 +10,12 @@ import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 import { Loader2, Shield, User, Mail } from "lucide-react";
 import { StatWeightsConfig } from "@/components/StatWeightsConfig";
+import { useTranslations } from "next-intl";
 
 export default function AjustesPage() {
+	const t = useTranslations("Pages");
+	const settings = useTranslations("Settings");
+	const common = useTranslations("Common");
 	const { theme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	const [profile, setProfile] = useState<Profile | null>(null);
@@ -42,9 +46,9 @@ export default function AjustesPage() {
 
 	const getRoleBadge = (role: string) => {
 		const badges = {
-			admin: { label: "Administrador", variant: "destructive" as const },
-			coach: { label: "Entrenador", variant: "default" as const },
-			viewer: { label: "Visualizador", variant: "secondary" as const }
+			admin: { label: settings("roles.admin"), variant: "destructive" as const },
+			coach: { label: settings("roles.coach"), variant: "default" as const },
+			viewer: { label: settings("roles.viewer"), variant: "secondary" as const }
 		};
 		return badges[role as keyof typeof badges] || badges.viewer;
 	};
@@ -54,8 +58,8 @@ export default function AjustesPage() {
 			<main className="container mx-auto px-4 py-8">
 				<div className="max-w-2xl mx-auto space-y-6">
 					<div>
-						<h1 className="text-3xl font-bold mb-2">Ajustes</h1>
-						<p className="text-muted-foreground">Configura las preferencias de la aplicación</p>
+						<h1 className="text-3xl font-bold mb-2">{t("settings")}</h1>
+						<p className="text-muted-foreground">{settings("subtitle")}</p>
 					</div>
 
 					{loading ? (
@@ -67,8 +71,8 @@ export default function AjustesPage() {
 					) : profile ? (
 						<Card>
 							<CardHeader>
-								<CardTitle>Perfil de Usuario</CardTitle>
-								<CardDescription>Información de tu cuenta</CardDescription>
+								<CardTitle>{settings("profileTitle")}</CardTitle>
+								<CardDescription>{settings("profileDescription")}</CardDescription>
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="flex items-center gap-3">
@@ -76,7 +80,7 @@ export default function AjustesPage() {
 										<User className="h-8 w-8 text-primary-foreground" />
 									</div>
 									<div className="flex-1">
-										<p className="font-semibold text-lg">{profile.full_name || "Usuario"}</p>
+										<p className="font-semibold text-lg">{profile.full_name || common("user")}</p>
 										<div className="flex items-center gap-2 text-sm text-muted-foreground">
 											<Mail className="h-3 w-3" />
 											{profile.email}
@@ -87,14 +91,14 @@ export default function AjustesPage() {
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-2">
 											<Shield className="h-4 w-4 text-muted-foreground" />
-											<span className="text-sm font-medium">Rol:</span>
+											<span className="text-sm font-medium">{settings("role")}</span>
 										</div>
 										<Badge variant={getRoleBadge(profile.role).variant}>{getRoleBadge(profile.role).label}</Badge>
 									</div>
 									<p className="text-xs text-muted-foreground mt-2">
-										{profile.role === "admin" && "Tienes acceso completo a todas las funciones del sistema."}
-										{profile.role === "coach" && "Puedes crear y editar partidos y estadísticas."}
-										{profile.role === "viewer" && "Puedes visualizar todas las estadísticas pero no editarlas."}
+										{profile.role === "admin" && settings("permissions.admin")}
+										{profile.role === "coach" && settings("permissions.coach")}
+										{profile.role === "viewer" && settings("permissions.viewer")}
 									</p>
 								</div>
 							</CardContent>
@@ -103,21 +107,21 @@ export default function AjustesPage() {
 
 					<Card>
 						<CardHeader>
-							<CardTitle>Apariencia</CardTitle>
-							<CardDescription>Personaliza el aspecto visual de la aplicación</CardDescription>
+							<CardTitle>{settings("appearance")}</CardTitle>
+							<CardDescription>{settings("appearanceDescription")}</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-4">
 							<div className="flex items-center justify-between">
 								<div className="space-y-0.5">
-									<Label className="text-base">Tema</Label>
+									<Label className="text-base">{settings("theme")}</Label>
 									<p className="text-sm text-muted-foreground">
-										{mounted ? (theme === "dark" ? "Modo oscuro activado" : "Modo claro activado") : "Cargando..."}
+										{mounted ? (theme === "dark" ? settings("darkEnabled") : settings("lightEnabled")) : common("loading")}
 									</p>
 								</div>
 								<ThemeToggle />
 							</div>
 							<p className="text-sm text-muted-foreground">
-								El modo oscuro reduce el brillo de la pantalla y es más cómodo para la vista en ambientes con poca luz.
+								{settings("darkHint")}
 							</p>
 						</CardContent>
 					</Card>
@@ -126,21 +130,21 @@ export default function AjustesPage() {
 
 					<Card>
 						<CardHeader>
-							<CardTitle>Información</CardTitle>
-							<CardDescription>Detalles sobre la aplicación</CardDescription>
+							<CardTitle>{settings("information")}</CardTitle>
+							<CardDescription>{settings("informationDescription")}</CardDescription>
 						</CardHeader>
 						<CardContent>
 							<div className="space-y-2 text-sm">
 								<div className="flex justify-between">
-									<span className="text-muted-foreground">Versión:</span>
+									<span className="text-muted-foreground">{settings("version")}</span>
 									<span className="font-medium">1.0.0</span>
 								</div>
 								<div className="flex justify-between">
-									<span className="text-muted-foreground">Club:</span>
+									<span className="text-muted-foreground">{settings("club")}</span>
 									<span className="font-medium">CN Sant Andreu</span>
 								</div>
 								<div className="flex justify-between">
-									<span className="text-muted-foreground">Deporte:</span>
+									<span className="text-muted-foreground">{settings("sport")}</span>
 									<span className="font-medium">Waterpolo</span>
 								</div>
 							</div>

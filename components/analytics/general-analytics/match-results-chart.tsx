@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import type { Match } from "@/lib/types";
+import { useTranslations } from "next-intl";
 
 interface MatchResultsChartProps {
 	matches: Match[];
@@ -49,6 +50,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] 
 }
 
 export function MatchResultsChart({ matches }: MatchResultsChartProps) {
+	const t = useTranslations("MatchResults");
 	const wins = matches.filter((m) => m.home_score > m.away_score).length;
 	const draws = matches.filter((m) => m.home_score === m.away_score).length;
 	const losses = matches.filter((m) => m.home_score < m.away_score).length;
@@ -56,9 +58,9 @@ export function MatchResultsChart({ matches }: MatchResultsChartProps) {
 	const total = matches.length || 0;
 
 	const stats = [
-		{ key: "wins", label: "Victorias", value: wins, color: RESULT_COLORS.wins },
-		{ key: "draws", label: "Empates", value: draws, color: RESULT_COLORS.draws },
-		{ key: "losses", label: "Derrotas", value: losses, color: RESULT_COLORS.losses }
+		{ key: "wins", label: t("wins"), value: wins, color: RESULT_COLORS.wins },
+		{ key: "draws", label: t("draws"), value: draws, color: RESULT_COLORS.draws },
+		{ key: "losses", label: t("losses"), value: losses, color: RESULT_COLORS.losses }
 	];
 
 	const topResult = [...stats].sort((a, b) => b.value - a.value)[0];
@@ -68,12 +70,12 @@ export function MatchResultsChart({ matches }: MatchResultsChartProps) {
 			<CardHeader className="pb-3">
 				<div className="flex items-start justify-between gap-3">
 					<div className="min-w-0">
-						<CardTitle>Resultados</CardTitle>
-						<CardDescription>Balance global de partidos</CardDescription>
+						<CardTitle>{t("title")}</CardTitle>
+						<CardDescription>{t("description")}</CardDescription>
 					</div>
 
 					<Badge variant="outline" className="bg-muted/30 text-[11px]">
-						Principal: {topResult?.label ?? "—"}
+						{t("top", { label: topResult?.label ?? "—" })}
 					</Badge>
 				</div>
 			</CardHeader>
@@ -81,16 +83,16 @@ export function MatchResultsChart({ matches }: MatchResultsChartProps) {
 			<CardContent className="space-y-4">
 				<div className="flex flex-wrap gap-2">
 					<TinyPill>
-						Partidos <span className="ml-1 font-semibold text-foreground tabular-nums">{total}</span>
+						{t("matches")} <span className="ml-1 font-semibold text-foreground tabular-nums">{total}</span>
 					</TinyPill>
 					<TinyPill>
-						Victorias <span className="ml-1 font-semibold text-foreground tabular-nums">{wins}</span>
+						{t("wins")} <span className="ml-1 font-semibold text-foreground tabular-nums">{wins}</span>
 					</TinyPill>
 					<TinyPill>
-						Empates <span className="ml-1 font-semibold text-foreground tabular-nums">{draws}</span>
+						{t("draws")} <span className="ml-1 font-semibold text-foreground tabular-nums">{draws}</span>
 					</TinyPill>
 					<TinyPill>
-						Derrotas <span className="ml-1 font-semibold text-foreground tabular-nums">{losses}</span>
+						{t("losses")} <span className="ml-1 font-semibold text-foreground tabular-nums">{losses}</span>
 					</TinyPill>
 				</div>
 
@@ -118,7 +120,7 @@ export function MatchResultsChart({ matches }: MatchResultsChartProps) {
 								<text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
 									<tspan className="text-xl font-bold fill-foreground">{total}</tspan>
 									<tspan x="50%" dy="1.8em" className="text-[11px] fill-muted-foreground">
-										Partidos
+										{t("matches")}
 									</tspan>
 								</text>
 							</PieChart>

@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Radar,
   RadarChart,
@@ -10,6 +11,8 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
+
+const SafePolarAngleAxis = PolarAngleAxis as unknown as (props: any) => React.JSX.Element;
 import { ExpandableChartCard } from "../analytics-player/ExpandableChartCard";
 import {
   Table,
@@ -28,38 +31,14 @@ type Props = {
   height?: number;
 };
 
-type RadarDatum = { metric: string; raw: number; norm: number };
-
-// ✅ unificamos labels para que COLORS + summary cuadren
-const METRICS = {
-  SAVES: "% Paradas",
-  GOALS_AVG: "Goles (media)",
-  PENS: "% Penaltis",
-  INF: "% Inf.",
-  ASISTS_AVG: "Asist. (media)"
-} as const;
-
-const COLORS: Record<string, string> = {
-  [METRICS.SAVES]: "#2563eb",
-  [METRICS.GOALS_AVG]: "#ef4444",
-  [METRICS.PENS]: "#f59e0b",
-  [METRICS.INF]: "#8b5cf6",
-  [METRICS.ASISTS_AVG]: "#14b8a6"
-};
+type RadarDatum = { id: string; metric: string; raw: number; norm: number; isPct: boolean; color: string };
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-// caps para medias
-const CAPS: Record<string, number> = {
-  [METRICS.GOALS_AVG]: 12,
-  [METRICS.ASISTS_AVG]: 3
-};
-
-function toNorm(metric: string, raw: number) {
-  if (metric.startsWith("%")) return clamp(raw, 0, 100);
-  const cap = CAPS[metric] ?? 10;
+function toNorm(raw: number, isPct: boolean, cap = 10) {
+  if (isPct) return clamp(raw, 0, 100);
   return clamp((raw / cap) * 100, 0, 100);
 }
 
@@ -109,8 +88,8 @@ function useMediaQuery(query: string) {
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
   const item = payload[0]?.payload as RadarDatum;
-  const color = COLORS[item.metric] ?? "#ff6900";
-  const isPct = item.metric.startsWith("%");
+  const color = item.color;
+  const isPct = item.isPct;
 
   return (
     <div className="rounded-lg border bg-background/95 backdrop-blur px-3 py-2 shadow-lg">
@@ -146,9 +125,9 @@ function RadarViz({
         const { payload, x, y, textAnchor } = props;
         const metric: string = payload?.value;
         const item = byMetric.get(metric);
-        if (!item) return null;
+        if (!item) return <g />;
 
-        const isPct = metric.startsWith("%");
+        const isPct = item.isPct;
         const valueText = isPct ? `${item.raw.toFixed(0)}%` : item.raw.toFixed(1);
 
         return (
@@ -172,9 +151,9 @@ function RadarViz({
       const { payload, x, y, textAnchor } = props;
       const metric: string = payload?.value;
       const item = byMetric.get(metric);
-      if (!item) return null;
+      if (!item) return <g />;
 
-      const isPct = metric.startsWith("%");
+      const isPct = item.isPct;
       const valueText = isPct ? `${item.raw.toFixed(1)}%` : item.raw.toFixed(2);
 
       const cx = props?.cx ?? props?.viewBox?.cx ?? 0;
@@ -239,7 +218,7 @@ function RadarViz({
             margin={chartMargin}
           >
             <PolarGrid strokeOpacity={0.35} />
-            <PolarAngleAxis dataKey="metric" tick={AngleTick} tickLine={false} />
+            <SafePolarAngleAxis dataKey="metric" tick={AngleTick} tickLine={false} />
             <PolarRadiusAxis domain={[0, 100]} tick={false} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip />} />
             <Radar
@@ -264,6 +243,8 @@ export const GoalkeeperRadarChart = memo(function GoalkeeperRadarChart({
   matchStats,
   height = 250
 }: Props) {
+  const t = useTranslations("RadarCharts");
+  const common = useTranslations("AnalyticsCommon");
   const data: RadarDatum[] = useMemo(() => {
     const ms = Array.isArray(matchStats) ? matchStats : [];
     const m = Math.max(ms.length, 1);
@@ -293,19 +274,19 @@ export const GoalkeeperRadarChart = memo(function GoalkeeperRadarChart({
     const asistAvg = totalAsist / m;
 
     const items = [
-      { metric: METRICS.SAVES, raw: Number(savePct.toFixed(1)) },
-      { metric: METRICS.GOALS_AVG, raw: Number(goalsAvg.toFixed(2)) },
-      { metric: METRICS.PENS, raw: Number(penPct.toFixed(1)) },
-      { metric: METRICS.INF, raw: Number(infPct.toFixed(1)) },
-      { metric: METRICS.ASISTS_AVG, raw: Number(asistAvg.toFixed(2)) }
+      { id: "saves", metric: t("savePercentage"), raw: Number(savePct.toFixed(1)), isPct: true, cap: 100, color: "#2563eb" },
+      { id: "goals", metric: t("averageGoals"), raw: Number(goalsAvg.toFixed(2)), isPct: false, cap: 12, color: "#ef4444" },
+      { id: "penalties", metric: t("penaltyPercentage"), raw: Number(penPct.toFixed(1)), isPct: true, cap: 100, color: "#f59e0b" },
+      { id: "inferiority", metric: t("inferiorityPercentage"), raw: Number(infPct.toFixed(1)), isPct: true, cap: 100, color: "#8b5cf6" },
+      { id: "assists", metric: t("averageAssists"), raw: Number(asistAvg.toFixed(2)), isPct: false, cap: 3, color: "#14b8a6" }
     ];
 
-    return items.map((it) => ({ ...it, norm: toNorm(it.metric, it.raw) }));
-  }, [matchStats]);
+    return items.map((it) => ({ ...it, norm: toNorm(it.raw, it.isPct, it.cap) }));
+  }, [matchStats, t]);
 
   const summary = useMemo(() => {
-    const saves = Number(data.find((d) => d.metric === METRICS.SAVES)?.raw ?? 0).toFixed(1);
-    const goals = Number(data.find((d) => d.metric === METRICS.GOALS_AVG)?.raw ?? 0).toFixed(2);
+    const saves = Number(data.find((d) => d.id === "saves")?.raw ?? 0).toFixed(1);
+    const goals = Number(data.find((d) => d.id === "goals")?.raw ?? 0).toFixed(2);
     return { saves, goals };
   }, [data]);
 
@@ -325,14 +306,14 @@ export const GoalkeeperRadarChart = memo(function GoalkeeperRadarChart({
               <Table className="min-w-[520px]">
                 <UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Métrica</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>{t("metric")}</TableHead>
+                    <TableHead className="text-right">{t("value")}</TableHead>
                   </TableRow>
                 </UITableHeader>
 
                 <TableBody>
                   {data.map((d, idx) => {
-                    const isPct = d.metric.startsWith("%");
+                    const isPct = d.isPct;
                     return (
                       <TableRow
                         key={d.metric}
@@ -342,7 +323,7 @@ export const GoalkeeperRadarChart = memo(function GoalkeeperRadarChart({
                           <div className="flex items-center gap-2">
                             <span
                               className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: COLORS[d.metric] ?? "#ff6900" }}
+                              style={{ backgroundColor: d.color }}
                             />
                             <span>{d.metric}</span>
                           </div>
@@ -360,15 +341,9 @@ export const GoalkeeperRadarChart = memo(function GoalkeeperRadarChart({
 
           <div className="border-t bg-muted/20 px-3 py-2">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span>
-                <span className="font-medium text-foreground">
-                  {Array.isArray(matchStats) ? matchStats.length : 0}
-                </span>{" "}
-                partidos
-              </span>
+              <span>{common("matches", { count: Array.isArray(matchStats) ? matchStats.length : 0 })}</span>
               <span className="rounded-md border bg-card px-2 py-1">
-                % Paradas: <span className="font-semibold">{summary.saves}%</span> · Goles (media):{" "}
-                <span className="font-semibold">{summary.goals}</span>
+                {t("summary", { saves: summary.saves, goals: summary.goals })}
               </span>
             </div>
           </div>

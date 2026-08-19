@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { GOALKEEPER_CATEGORY_HINTS, GOALKEEPER_CATEGORY_TITLES, type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
+import { type GoalkeeperStatCategory } from "@/lib/stats/goalkeeperStatsConfig";
 import { getGoalkeeperStatsByCategory } from "@/lib/stats/goalkeeperStatsHelpers";
+import { useTranslations } from "next-intl";
 
 type RowRendererProps = {
 	label: string;
@@ -19,6 +20,11 @@ type Props = {
 };
 
 const DEFAULT_CATEGORIES: GoalkeeperStatCategory[] = ["goles", "paradas", "paradas_penalti", "otros_tiros", "inferioridad", "acciones", "ataque"];
+const CATEGORY_KEYS = {
+	goles: "goalkeeperGoals", paradas: "saves", paradas_penalti: "penalties", otros_tiros: "otherShots",
+	inferioridad: "inferiority", acciones: "actions", ataque: "goalkeeperAttack"
+} as const;
+const HINT_KEYS = { ...CATEGORY_KEYS, acciones: "goalkeeperActions" } as const;
 
 function Section({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
 	return (
@@ -37,6 +43,8 @@ function Section({ title, children, hint }: { title: string; children: React.Rea
 }
 
 export function GoalkeeperStatsSections({ stats, renderRow, mode = "totals", categories = DEFAULT_CATEGORIES, hiddenStats = [] }: Props) {
+	const t = useTranslations("StatsSections");
+	const tStat = useTranslations("StatLabels");
 	const isVisible = (statKey: string) => !hiddenStats.includes(statKey);
 
 	return (
@@ -45,25 +53,25 @@ export function GoalkeeperStatsSections({ stats, renderRow, mode = "totals", cat
 				const items = getGoalkeeperStatsByCategory(category).filter((it) => isVisible(it.key));
 				if (!items.length) return null;
 
-				const title = GOALKEEPER_CATEGORY_TITLES[category];
-				const baseHint = GOALKEEPER_CATEGORY_HINTS[category];
+				const title = t(`categories.${CATEGORY_KEYS[category]}`);
+				const baseHint = t(`hints.${HINT_KEYS[category]}`);
 
 				const hint =
 					mode === "match"
 						? baseHint
-							? `${baseHint} · Partido`
-							: "Partido"
+							? t("context", { hint: baseHint, scope: t("match") })
+							: t("match")
 						: mode === "team"
 							? baseHint
-								? `${baseHint} · Equipo`
-								: "Equipo"
-							: (baseHint ?? "Totales");
+								? t("context", { hint: baseHint, scope: t("team") })
+								: t("team")
+							: (baseHint ?? t("totals"));
 
 				return (
 					<Section key={category} title={title} hint={hint}>
 						{items.map((it) =>
 							renderRow({
-								label: it.label,
+								label: tStat(it.key),
 								value: stats?.[it.key] ?? 0,
 								statKey: it.key
 							})

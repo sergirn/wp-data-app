@@ -47,8 +47,8 @@ export type GeneralDashboardAnalytics = {
 };
 
 export function buildGeneralDashboardAnalytics(
-	matches: Match[] = [],
-	stats: MatchStats[] = [],
+	matches: Array<Pick<Match, "away_score">> = [],
+	stats: Array<Record<string, any>> = [],
 	players: Player[] = []
 ): GeneralDashboardAnalytics | null {
 	const totalMatches = matches?.length ?? 0;

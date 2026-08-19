@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 type FavoritesResponse = { keys?: string[] };
 
@@ -14,6 +15,7 @@ function sameSet(a: string[], b: string[]) {
 }
 
 export function usePlayerFavorites(playerId?: number) {
+  const t = useTranslations("FavoritesModal");
 
   const [keys, setKeys] = React.useState<string[]>([]);
 
@@ -73,13 +75,13 @@ export function usePlayerFavorites(playerId?: number) {
     if (!res.ok) {
       await load();
       setSaving(false);
-      setError("No se pudo guardar favoritos");
+      setError(t("saveFavoritesError"));
       return;
     }
 
     setKeys(draftKeys);
     setSaving(false);
-  }, [playerId, draftKeys, load]);
+  }, [playerId, draftKeys, load, t]);
 
   return {
     keys,

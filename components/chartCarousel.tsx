@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ChartSwipeCarouselProps = {
 	items: React.ReactNode[];
@@ -15,6 +16,7 @@ function clamp(n: number, min: number, max: number) {
 }
 
 export function ChartSwipeCarousel({ items, className, dotsClassName, arrows = true }: ChartSwipeCarouselProps) {
+	const t = useTranslations("CommonUI");
 	const railRef = useRef<HTMLDivElement | null>(null);
 	const [page, setPage] = useState(0);
 
@@ -139,7 +141,7 @@ export function ChartSwipeCarousel({ items, className, dotsClassName, arrows = t
 						type="button"
 						onClick={prevPage}
 						disabled={isFirst}
-						aria-label="Ir al gráfico anterior"
+						aria-label={t("previousChart")}
 						className={[
 							"absolute left-2 top-1/2 -translate-y-1/2 z-20",
 							"hidden sm:inline-flex items-center justify-center",
@@ -159,7 +161,7 @@ export function ChartSwipeCarousel({ items, className, dotsClassName, arrows = t
 						type="button"
 						onClick={nextPage}
 						disabled={isLast}
-						aria-label="Ir al siguiente gráfico"
+						aria-label={t("nextChart")}
 						className={[
 							"absolute right-2 top-1/2 -translate-y-1/2 z-20",
 							"hidden sm:inline-flex items-center justify-center",
@@ -221,7 +223,7 @@ export function ChartSwipeCarousel({ items, className, dotsClassName, arrows = t
 									key={i}
 									type="button"
 									onClick={() => scrollToPage(i)}
-									aria-label={`Ir a página ${i + 1}`}
+									aria-label={t("goToPage", { page: i + 1 })}
 									className={[
 										"inline-flex items-center justify-center shrink-0",
 										"p-0 m-0 border-0 bg-transparent",

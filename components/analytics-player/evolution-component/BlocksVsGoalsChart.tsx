@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useTranslations } from "next-intl"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from "recharts"
@@ -16,11 +17,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { buildBlocksVsGoalsData, chartConfig, type MatchStatsWithMatch } from "./performance-chart"
+import { buildBlocksVsGoalsData, chartColors, type MatchStatsWithMatch } from "./performance-chart"
 
 type ViewMode = "chart" | "table"
 
 export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithMatch[] }) {
+  const t = useTranslations("BlocksVsGoals")
   const [view, setView] = useState<ViewMode>("chart")
 
   const data = useMemo(() => buildBlocksVsGoalsData(matchStats), [matchStats])
@@ -31,6 +33,12 @@ export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithM
   const totalGR = data.reduce((s, d) => s + (d.golesRecibidos ?? 0), 0)
   const avgBloq = data.length ? (totalBloq / data.length).toFixed(2) : "0.00"
   const avgGR = data.length ? (totalGR / data.length).toFixed(2) : "0.00"
+  const localizedChartConfig = {
+    bloqueos: { color: chartColors.bloqueos, label: t("blocks") },
+    golesRecibidos: { color: chartColors.golesRecibidos, label: t("goalsConceded") },
+    mediaBloqueos: { color: chartColors.mediaBloqueos, label: t("averageBlocks") },
+    mediaGolesRecibidos: { color: chartColors.mediaGolesRecibidos, label: t("averageGoalsConceded") },
+  }
 
   return (
     <div className="space-y-6">
@@ -38,11 +46,11 @@ export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithM
         <CardHeader className="space-y-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <CardTitle>Bloqueos vs Goles Recibidos</CardTitle>
+              <CardTitle>{t("title")}</CardTitle>
               <CardDescription className="truncate">
-                Comparación defensiva por partido con medias acumuladas ·{" "}
+                {t("description")} ·{" "}
                 <span className="font-medium text-foreground">
-                  Media: {avgBloq} bloq · {avgGR} GR
+                  {t("averages", { blocks: avgBloq, goals: avgGR })}
                 </span>
               </CardDescription>
             </div>
@@ -52,7 +60,7 @@ export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithM
               <Switch
                 checked={view === "table"}
                 onCheckedChange={(v) => setView(v ? "table" : "chart")}
-                aria-label="Cambiar vista de gráfico a tabla"
+                aria-label={t("changeView")}
               />
               <Table2 className={`h-4 w-4 ${view === "table" ? "text-foreground" : "text-muted-foreground"}`} />
             </div>
@@ -61,7 +69,7 @@ export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithM
 
         <CardContent className="min-w-0 w-full overflow-hidden">
           {view === "chart" ? (
-            <ChartContainer config={chartConfig} className="h-[400px] w-full">
+            <ChartContainer config={localizedChartConfig} className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -81,38 +89,38 @@ export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithM
                   <Line
                     type="monotone"
                     dataKey="bloqueos"
-                    stroke={chartConfig.bloqueos.color}
+                    stroke={chartColors.bloqueos}
                     strokeWidth={1}
                     opacity={0.50}
                     dot={false}
-                    name="Bloqueos"
+                    name={t("blocks")}
                   />
                   <Line
                     type="monotone"
                     dataKey="golesRecibidos"
-                    stroke={chartConfig.golesRecibidos.color}
+                    stroke={chartColors.golesRecibidos}
                     strokeWidth={1}
                     opacity={0.50}
                     dot={false}
-                    name="Goles Recibidos"
+                    name={t("goalsConceded")}
                   />
                   <Line
                     type="monotone"
                     dataKey="mediaBloqueos"
-                    stroke={chartConfig.mediaBloqueos.color}
+                    stroke={chartColors.mediaBloqueos}
                     strokeWidth={5}
                     strokeDasharray="5 5"
                     dot={false}
-                    name="Media Bloqueos"
+                    name={t("averageBlocks")}
                   />
                   <Line
                     type="monotone"
                     dataKey="mediaGolesRecibidos"
-                    stroke={chartConfig.mediaGolesRecibidos.color}
+                    stroke={chartColors.mediaGolesRecibidos}
                     strokeWidth={5}
                     strokeDasharray="5 5"
                     dot={false}
-                    name="Media Goles Recibidos"
+                    name={t("averageGoalsConceded")}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -124,13 +132,13 @@ export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithM
                   <Table className="min-w-[980px]">
                     <UITableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[90px]">Jornada</TableHead>
-                        <TableHead>Rival</TableHead>
-                        <TableHead className="text-right">Bloqueos</TableHead>
-                        <TableHead className="text-right">Goles Rec.</TableHead>
-                        <TableHead className="text-right">Media Bloq</TableHead>
-                        <TableHead className="text-right">Media GR</TableHead>
-                        <TableHead className="text-right hidden lg:table-cell">Fecha</TableHead>
+                        <TableHead className="w-[90px]">{t("round")}</TableHead>
+                        <TableHead>{t("opponent")}</TableHead>
+                        <TableHead className="text-right">{t("blocks")}</TableHead>
+                        <TableHead className="text-right">{t("goalsConcededShort")}</TableHead>
+                        <TableHead className="text-right">{t("averageBlocksShort")}</TableHead>
+                        <TableHead className="text-right">{t("averageGoalsConcededShort")}</TableHead>
+                        <TableHead className="text-right hidden lg:table-cell">{t("date")}</TableHead>
                       </TableRow>
                     </UITableHeader>
 
@@ -166,21 +174,21 @@ export function BlocksVsGoalsChart({ matchStats }: { matchStats: MatchStatsWithM
               <div className="border-t bg-muted/20 px-3 py-2">
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span>
-                    <span className="font-medium text-foreground">{data.length}</span> partidos
+                    {t("matches", { count: data.length })}
                   </span>
 
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-md border bg-card px-2 py-1">
-                      Total Bloq: <span className="font-semibold text-foreground">{totalBloq}</span>
+                      {t("totalBlocks")}: <span className="font-semibold text-foreground">{totalBloq}</span>
                     </span>
                     <span className="rounded-md border bg-card px-2 py-1">
-                      Total GR: <span className="font-semibold text-foreground">{totalGR}</span>
+                      {t("totalGoalsConceded")}: <span className="font-semibold text-foreground">{totalGR}</span>
                     </span>
                     <span className="rounded-md border bg-card px-2 py-1">
-                      Media Bloq: <span className="font-semibold text-foreground">{avgBloq}</span>
+                      {t("averageBlocksShort")}: <span className="font-semibold text-foreground">{avgBloq}</span>
                     </span>
                     <span className="rounded-md border bg-card px-2 py-1">
-                      Media GR: <span className="font-semibold text-foreground">{avgGR}</span>
+                      {t("averageGoalsConcededShort")}: <span className="font-semibold text-foreground">{avgGR}</span>
                     </span>
                   </div>
                 </div>

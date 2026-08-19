@@ -5,8 +5,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useTranslations } from "next-intl"
 
 export default function SignupPage() {
+  const t = useTranslations("Signup")
   return (
     <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-muted/30 to-muted/50">
       <div className="w-full max-w-md">
@@ -29,33 +31,32 @@ export default function SignupPage() {
               </svg>
             </div>
             <h1 className="text-3xl font-bold">WaterpoloStats</h1>
-            <p className="text-muted-foreground">Sistema de Gestión Deportiva</p>
+            <p className="text-muted-foreground">{t("tagline")}</p>
           </div>
 
           <Card className="border-2 shadow-xl">
             <CardHeader>
-              <CardTitle className="text-2xl">Registro Deshabilitado</CardTitle>
-              <CardDescription>Solo los administradores pueden crear nuevas cuentas</CardDescription>
+              <CardTitle className="text-2xl">{t("title")}</CardTitle>
+              <CardDescription>{t("subtitle")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Alert>
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
-                  El registro público está deshabilitado. Para obtener acceso al sistema, contacta con el administrador
-                  de tu club.
+                  {t("notice")}
                 </AlertDescription>
               </Alert>
 
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Si ya tienes una cuenta, puedes iniciar sesión:</p>
+                <p className="text-sm text-muted-foreground">{t("existingAccount")}</p>
                 <Button asChild className="w-full h-11">
-                  <Link href="/auth/login">Iniciar Sesión</Link>
+                  <Link href="/auth/login">{t("signIn")}</Link>
                 </Button>
               </div>
 
               <div className="pt-4 border-t">
                 <p className="text-xs text-muted-foreground text-center">
-                  Los administradores pueden crear usuarios desde el panel de administración
+                  {t("adminHint")}
                 </p>
               </div>
             </CardContent>
