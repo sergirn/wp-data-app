@@ -1361,7 +1361,19 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											<Button
 												size="sm"
 												variant={closedQuarters[q] ? "default" : "destructive"}
-												onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
+												onClick={() => {
+									setClosedQuarters((prev) => {
+										const reopening = Boolean(prev[q]);
+										const next = { ...prev, [q]: !reopening };
+										if (reopening) {
+											setCurrentQuarter(q as MatchQuarter);
+										} else {
+											const nextQuarter = ([1, 2, 3, 4] as MatchQuarter[]).find((quarter) => !next[quarter] && quarter > q);
+											if (nextQuarter) setCurrentQuarter(nextQuarter);
+										}
+										return next;
+									});
+								}}
 												className="w-full mt-2 text-xs"
 											>
 											{closedQuarters[q] ? t("openQuarter") : t("closeQuarter")}
