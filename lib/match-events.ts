@@ -132,7 +132,7 @@ export function eventLabel(event: MatchEvent): string {
 }
 
 export function isMatchEventTableMissing(error: { code?: string; message?: string } | null | undefined): boolean {
-  return error?.code === "42P01" || /match_events.*(?:not found|does not exist)/i.test(error?.message ?? "");
+  return error?.code === "42P01" || error?.code === "PGRST205" || /(?:match_events|relation).*\b(?:not found|does not exist|schema cache)/i.test(error?.message ?? "");
 }
 
 export function getQuarterTotals(scores: Record<MatchQuarter, { home: number; away: number }>) {

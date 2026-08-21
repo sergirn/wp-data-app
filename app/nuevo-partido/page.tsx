@@ -792,10 +792,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				const { error: deleteStatsError } = await supabase.from("match_stats").delete().eq("match_id", editingMatchId);
 				if (deleteStatsError) throw deleteStatsError;
 
-				const statsToInsert = activePlayerIds.map((playerId) => ({
-					...statsForSave[playerId],
-					match_id: editingMatchId
-				}));
+					const statsToInsert = activePlayerIds.map((playerId) => {
+						const { id: _id, ...playerStats } = statsForSave[playerId] ?? {};
+						return {
+							...playerStats,
+							player_id: playerId,
+							match_id: editingMatchId
+						};
+					});
 
 				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
 
@@ -887,10 +891,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				if (matchError) throw matchError;
 				createdMatchId = newMatch.id;
 
-				const statsToInsert = activePlayerIds.map((playerId) => ({
-					...statsForSave[playerId],
-					match_id: newMatch.id
-				}));
+					const statsToInsert = activePlayerIds.map((playerId) => {
+						const { id: _id, ...playerStats } = statsForSave[playerId] ?? {};
+						return {
+							...playerStats,
+							player_id: playerId,
+							match_id: newMatch.id
+						};
+					});
 
 				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
 
