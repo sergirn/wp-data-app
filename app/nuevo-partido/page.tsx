@@ -225,6 +225,42 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}
 	}, [penaltyShooters, rivalPenalties]);
 
+	const createEmptyStats = (playerId: number): Partial<MatchStats> => ({ match_id: editingMatchId ?? 0, player_id: playerId });
+	const calcParadasTotales = (playerStats?: Partial<MatchStats> | null) => sumVisibleStats(playerStats, ["portero_tiros_parada_recup", "portero_paradas_fuera", "portero_paradas_penalti_parado", "portero_paradas_hombre_menos", "portero_parada_fuera_inf"]);
+	const hasStats = (playerId: number) => Object.entries(stats[playerId] ?? {}).some(([key, value]) => key !== "player_id" && Number(value) > 0);
+
+	const loadPlayers = async () => {
+		if (!profile?.club_id && !supabase) return;
+		const { data: { user } } = await supabase.auth.getUser();
+		if (!user) return;
+		const { data: profileData } = await supabase.from("profiles").select("club_id").eq("id", user.id).maybeSingle();
+		if (!profileData?.club_id) return;
+		const { data } = await supabase.from("players").select("*").eq("club_id", profileData.club_id).order("number");
+		if (data) setAllPlayers(data as Player[]);
+	};
+
+	const loadExistingMatch = async (matchId: number, clubId: number) => {
+		const { data } = await supabase.from("matches").select("*").eq("id", matchId).eq("club_id", clubId).maybeSingle();
+		if (!data) return;
+		setExistingMatch(data as Match);
+		setMatchDate(data.match_date ?? matchDate); setOpponent(data.opponent ?? ""); setLocation(data.location ?? "");
+		setIsHome(Boolean(data.is_home)); setSeason(data.season ?? season); setJornada(data.jornada ?? 1); setNotes(data.notes ?? "");
+		await loadLineupFromMatch(matchId);
+		const { data: loadedEvents } = await supabase.from("match_events").select("*").eq("match_id", matchId).order("sequence");
+		const normalizedEvents = normalizeMatchEvents(loadedEvents);
+		setEvents(normalizedEvents);
+		const lastQuarter = normalizedEvents.at(-1)?.quarter; if (lastQuarter) setCurrentQuarter(lastQuarter);
+	};
+
+	const handleRemovePlayer = (playerId: number) => {
+		setActivePlayerIds((ids) => ids.filter((id) => id !== playerId));
+		setStats((current) => { const next = { ...current }; delete next[playerId]; return next; });
+	};
+	const handleSubstitution = (currentPlayerId: number, newPlayerId: number) => {
+		setActivePlayerIds((ids) => ids.map((id) => id === currentPlayerId ? newPlayerId : id));
+		setStats((current) => { const next = { ...current, [newPlayerId]: current[newPlayerId] ?? createEmptyStats(newPlayerId) }; delete next[currentPlayerId]; return next; });
+	};
+
 	const calculateScores = (playerStats: Record<number, Partial<MatchStats>>, playersById: Map<number, Player>) => {
 		let homeGoals = 0;
 		let awayGoals = 0;
