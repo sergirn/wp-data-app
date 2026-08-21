@@ -319,7 +319,14 @@
     "editMatch": "Editar partido",
     "deleteMatch": "Eliminar partido",
     "notFoundTitle": "Partido no encontrado",
-    "notFoundDescription": "El partido que estás buscando no existe o ha sido eliminado."
+    "notFoundDescription": "El partido que estás buscando no existe o ha sido eliminado.",
+    "timeline": "Cronología del partido",
+    "timelineEmpty": "No hay eventos registrados para este partido.",
+    "all": "Todos",
+    "quarter": "Parcial",
+    "undone": "Anulado",
+    "ownTeam": "Nuestro equipo",
+    "opponentTeam": "Rival"
   },
   "DeleteMatch": {
     "buttonLabel": "Eliminar partido",

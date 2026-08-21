@@ -319,7 +319,14 @@
     "editMatch": "Edit match",
     "deleteMatch": "Delete match",
     "notFoundTitle": "Match not found",
-    "notFoundDescription": "The match you are looking for does not exist or has been deleted."
+    "notFoundDescription": "The match you are looking for does not exist or has been deleted.",
+    "timeline": "Match timeline",
+    "timelineEmpty": "No events have been recorded for this match.",
+    "all": "All",
+    "quarter": "Quarter",
+    "undone": "Undone",
+    "ownTeam": "Our team",
+    "opponentTeam": "Opponent"
   },
   "DeleteMatch": {
     "buttonLabel": "Delete match",

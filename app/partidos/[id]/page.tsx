@@ -13,6 +13,8 @@ import { MatchPlayersTabs } from "./MatchPlayersTabs";
 import { ExportMatchPdfButton } from "@/components/export-buttons/export-match-pdf-button";
 import { ExportMatchExcelButton } from "@/components/export-buttons/export-match-excel-button";
 import { getLocale, getTranslations } from "next-intl/server";
+import { MatchTimeline } from "@/components/match-timeline";
+import { normalizeMatchEvents, isMatchEventTableMissing } from "@/lib/match-events";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const t = await getTranslations("Matches");
@@ -49,6 +51,13 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	if (error || !match) {
 		notFound();
 	}
+
+	const { data: matchEvents, error: matchEventsError } = await supabase
+		.from("match_events")
+		.select("*")
+		.eq("match_id", matchId)
+		.order("sequence", { ascending: true });
+	if (matchEventsError && !isMatchEventTableMissing(matchEventsError)) console.error("[v0] Error loading match events:", matchEventsError);
 
 	const hiddenStats =
 		profile?.id != null
@@ -291,6 +300,17 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				penaltyAwayScore={match.penalty_away_score}
 				homePenaltyShooters={homePenaltyShooters}
 				rivalPenaltyShots={rivalPenaltyShots}
+			/>
+
+			<MatchTimeline
+				events={normalizeMatchEvents(matchEvents ?? [])}
+				players={players.map((player: any) => ({ id: player.id, name: player.name, number: player.number }))}
+				title={t("timeline")}
+				emptyLabel={t("timelineEmpty")}
+				allLabel={t("all")}
+				quarterLabel={t("quarter")}
+				undoneLabel={t("undone")}
+				teamLabels={{ own: t("ownTeam"), opponent: t("opponentTeam") }}
 			/>
 
 			<MatchPlayersTabs

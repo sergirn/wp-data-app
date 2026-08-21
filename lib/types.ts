@@ -7,6 +7,8 @@ export interface Player {
 	photo_url?: string | null;
 }
 
+import type { MatchEvent, MatchQuarter } from "./match-events";
+
 export interface Match {
 	id: number;
 	match_date: string;
@@ -22,6 +24,9 @@ export interface Match {
 	penalty_home_score: number | null;
 	penalty_away_score: number | null;
 	stats_enabled: boolean;
+	current_quarter?: MatchQuarter;
+	closed_quarters?: Partial<Record<MatchQuarter, boolean>>;
+	events?: MatchEvent[];
 }
 
 export type MatchWithQuarterScores = Match & {

@@ -32,6 +32,7 @@ import { useHiddenStats } from "@/hooks/useHiddenStats";
 import { useMatchAutosave } from "@/hooks/useMatchAutosave";
 import { loadBestMatchDraft } from "@/lib/match-draft-client";
 import type { MatchDraftPayload } from "@/lib/match-drafts";
+import { appendMatchEvent, buildEventFromStatChange, isMatchEventTableMissing, normalizeMatchEvents, type MatchEvent, type MatchQuarter } from "@/lib/match-events";
 
 interface MatchEditParams {
 	matchId?: string;
@@ -42,7 +43,9 @@ interface MatchEditParams {
 type DraftQuarter = 1 | 2 | 3 | 4;
 
 type NewMatchDraftPayload = MatchDraftPayload & {
-	schemaVersion: 1;
+	schemaVersion: 2;
+	currentQuarter: DraftQuarter;
+	events: MatchEvent[];
 	matchDate: string;
 	opponent: string;
 	location: string;
@@ -65,13 +68,15 @@ type NewMatchDraftPayload = MatchDraftPayload & {
 };
 
 function isNewMatchDraftPayload(payload: MatchDraftPayload): payload is NewMatchDraftPayload {
-	return payload.schemaVersion === 1 && typeof payload.matchDate === "string" && Array.isArray(payload.activePlayerIds) && typeof payload.stats === "object";
+	return (payload.schemaVersion === 1 || payload.schemaVersion === 2) && typeof payload.matchDate === "string" && Array.isArray(payload.activePlayerIds) && typeof payload.stats === "object";
 }
 
 export default function NewMatchPage({ searchParams }: { searchParams: Promise<MatchEditParams> }) {
 	const pageT = useTranslations("Pages");
 	const t = useTranslations("NewMatch");
 	const locale = useLocale();
+	const [currentQuarter, setCurrentQuarter] = useState<MatchQuarter>(1);
+	const [events, setEvents] = useState<MatchEvent[]>([]);
 	const [closedQuarters, setClosedQuarters] = useState<Record<number, boolean>>({
 		1: false,
 		2: false,
@@ -293,8 +298,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						setJornada(saved.jornada);
 						setNotes(saved.notes);
 						setCompetitionId(saved.competitionId);
-						setClosedQuarters(saved.closedQuarters);
-						setQuarterScores(saved.quarterScores);
+							setClosedQuarters(saved.closedQuarters);
+							setCurrentQuarter(saved.currentQuarter ?? 1);
+							setEvents(normalizeMatchEvents(saved.events));
+							setQuarterScores(saved.quarterScores);
+
 						setSprintWinners(saved.sprintWinners);
 						setPenaltyHomeScore(saved.penaltyHomeScore);
 						setPenaltyAwayScore(saved.penaltyAwayScore);
@@ -387,299 +395,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			const { data: matchStats } = await supabase.from("match_stats").select("player_id").eq("match_id", matchId);
 
 			if (matchStats && matchStats.length > 0) {
-				const playerIds = matchStats.map((stat) => stat.player_id);
-				const validPlayerIds = playerIds.filter((id) => allPlayers.some((p) => p.id === id));
+					const playerIds = matchStats.map((stat) => stat.player_id);
 
-				setActivePlayerIds(validPlayerIds);
-
-				const initialStats: Record<number, Partial<MatchStats>> = {};
-				validPlayerIds.forEach((playerId) => {
-					initialStats[playerId] = createEmptyStats(playerId);
-				});
-				setStats(initialStats);
-			}
-		} catch (error) {
-			console.error("Error loading lineup:", error);
-			alert(t("lineupLoadError"));
-		} finally {
-			setLoadingLineup(false);
-		}
-	};
-
-	const loadPlayers = async () => {
-		if (!supabase) return;
-
-		try {
-			const {
-				data: { user }
-			} = await supabase.auth.getUser();
-			if (!user) return;
-
-			const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-
-			if (!profileData?.club_id) return;
-
-			const { data, error } = await supabase.from("players").select("*").eq("club_id", profileData.club_id).order("number");
-
-			if (error || !data) {
-				console.error("[v0] Error loading players:", error);
-				setAllPlayers([]);
-				return;
-			}
-
-			setAllPlayers(data);
-
-			// Solo inicializamos los 14 primeros jugadores si estamos creando un partido NUEVO
-			if (!editingMatchId) {
-				const initialActiveIds = data.slice(0, 14).map((p) => p.id);
-				setActivePlayerIds(initialActiveIds);
-
-				const initialStats: Record<number, Partial<MatchStats>> = {};
-				initialActiveIds.forEach((playerId) => {
-					initialStats[playerId] = createEmptyStats(playerId);
-				});
-				setStats(initialStats);
-			}
-			// Si estamos editando, la convocatoria se carga después en loadExistingMatch()
-		} catch (error) {
-			console.error("[v0] Error loading players:", error);
-			setLoading(false);
-		}
-	};
-
-	const createEmptyStats = (playerId: number): Partial<MatchStats> => ({
-		player_id: playerId,
-		match_id: 0,
-
-		goles_totales: 0,
-		goles_boya_jugada: 0,
-		goles_hombre_mas: 0,
-		goles_lanzamiento: 0,
-		goles_dir_mas_5m: 0,
-		goles_contraataque: 0,
-		goles_penalti_anotado: 0,
-		gol_del_palo_sup: 0,
-
-		tiros_totales: 0,
-		tiros_penalti_fallado: 0,
-		tiros_corner: 0,
-		tiros_fuera: 0,
-		tiros_parados: 0,
-		tiros_bloqueado: 0,
-		tiros_eficiencia: 0,
-		tiro_palo: 0,
-
-		faltas_exp_20_1c1: 0,
-		faltas_exp_20_boya: 0,
-		faltas_penalti: 0,
-		faltas_contrafaltas: 0,
-		exp_trans_def: 0,
-
-		acciones_bloqueo: 0,
-		acciones_asistencias: 0,
-		acciones_recuperacion: 0,
-		acciones_rebote: 0,
-		acciones_exp_provocada: 0,
-		acciones_penalti_provocado: 0,
-		acciones_recibir_gol: 0,
-
-		portero_goles_boya_parada: 0,
-		portero_goles_hombre_menos: 0,
-		portero_goles_dir_mas_5m: 0,
-		portero_goles_contraataque: 0,
-		portero_goles_penalti: 0,
-		portero_gol: 0,
-		portero_gol_superioridad: 0,
-		portero_fallo_superioridad: 0,
-		portero_paradas_totales: 0,
-		portero_tiros_parada_recup: 0,
-		portero_paradas_fuera: 0,
-		portero_paradas_penalti_parado: 0,
-		portero_acciones_perdida_pos: 0,
-
-		goles_boya_cada: 0,
-		goles_penalti_juego: 0,
-		goles_penalti_fallo: 0,
-		goles_corner: 0,
-		goles_fuera: 0,
-		goles_parados: 0,
-		goles_bloqueado: 0,
-		goles_eficiencia: 0,
-
-		tiros_boya_cada: 0,
-		tiros_hombre_mas: 0,
-		tiros_lanzamiento: 0,
-		tiros_dir_mas_5m: 0,
-		tiros_contraataque: 0,
-		tiros_penalti_juego: 0,
-		portero_paradas_superioridad: 0,
-		jugador_superioridad_bloqueo: 0,
-
-		faltas_exp_3_int: 0,
-		faltas_exp_3_bruta: 0,
-		faltas_exp_simple: 0,
-
-		pase_boya: 0,
-		pase_boya_fallado: 0,
-
-		acciones_perdida_poco: 0,
-
-		portero_goles_lanzamiento: 0,
-		portero_goles_penalti_encajado: 0,
-		portero_tiros_parado: 0,
-		portero_faltas_exp_3_int: 0,
-		portero_acciones_rebote: 0,
-		portero_acciones_gol_recibido: 0,
-		portero_paradas_pedida: 0,
-		portero_exp_provocada: 0,
-		portero_penalti_provocado: 0,
-		portero_recibir_gol: 0,
-		portero_inferioridad_fuera: 0,
-		portero_inferioridad_bloqueo: 0,
-		portero_lanz_palo_inf: 0,
-		portero_parada_fuera_inf: 0,
-		lanz_recibido_fuera: 0,
-		portero_gol_palo: 0,
-		portero_lanz_palo: 0,
-		tiro_fallado_portero: 0,
-		portero_penalti_palo: 0,
-		portero_penalti_fuera: 0,
-		portero_acciones_exp_provocada: 0,
-		portero_acciones_asistencias: 0,
-
-		rebote_recup_hombre_mas: 0,
-		rebote_perd_hombre_mas: 0
-	});
-
-	const hasStats = (playerId: number): boolean => {
-		const playerStats = stats[playerId];
-		if (!playerStats) return false;
-
-		return Object.entries(playerStats).some(([key, value]) => {
-			if (key === "player_id" || key === "match_id") return false;
-			if (!isStatVisible(key)) return false;
-			return typeof value === "number" && value > 0;
-		});
-	};
-
-	const calcParadasTotales = (s?: Partial<MatchStats> | null) => {
-		if (!s) return 0;
-
-		return sumVisibleStats(s, [
-			"portero_tiros_parada_recup",
-			"portero_paradas_fuera",
-			"portero_paradas_penalti_parado",
-			"portero_paradas_hombre_menos",
-			"portero_parada_fuera_inf"
-		]);
-	};
-
-	// ADD FUNCTION TO ADD PLAYER TO THE FIELD (MAX 12 FIELD PLAYERS)
-	const handleAddPlayer = (playerId: number) => {
-		const player = playersById.get(playerId);
-		if (!player) return;
-
-		const currentFieldPlayers = activePlayerIds.reduce((acc, id) => {
-			const p = playersById.get(id);
-			return acc + (p && !p.is_goalkeeper ? 1 : 0);
-		}, 0);
-
-		if (!player.is_goalkeeper && currentFieldPlayers >= 12) {
-			alert(t("maxFieldPlayers"));
-			return;
-		}
-
-		setActivePlayerIds((prev) => [...prev, playerId]);
-		setStats((prev) => ({
-			...prev,
-			[playerId]: createEmptyStats(playerId)
-		}));
-		setShowAddPlayerDialog(false);
-		setSelectedAddPlayer(null);
-	};
-
-	const handleSubstitution = (oldPlayerId: number, newPlayerId: number) => {
-		setActivePlayerIds((prev) => prev.filter((id) => id !== oldPlayerId).concat(newPlayerId));
-
-		setStats((prev) => {
-			const newStats = { ...prev };
-			delete newStats[oldPlayerId];
-			newStats[newPlayerId] = createEmptyStats(newPlayerId);
-			return newStats;
-		});
-	};
-
-	const handleRemovePlayer = (playerId: number) => {
-		setActivePlayerIds((prev) => prev.filter((id) => id !== playerId));
-
-		setStats((prev) => {
-			const newStats = { ...prev };
-			delete newStats[playerId];
-			return newStats;
-		});
-	};
-
-	const loadExistingMatch = async (matchId: number, clubId: number) => {
-		if (!supabase) return;
-
-		try {
-			const { data: match, error } = await supabase
-				.from("matches")
-				.select("*")
-				.eq("id", matchId)
-				.eq("club_id", clubId)
-				.single();
-
-			if (error || !match) {
-				console.error("Error loading match:", error);
-				return;
-			}
-
-			setExistingMatch(match);
-			setMatchDate(match.match_date);
-			setOpponent(match.opponent);
-			setLocation(match.location || "");
-			setIsHome(match.is_home);
-			setSeason(match.season || getCurrentSeason());
-			setJornada(match.jornada || 1);
-			setNotes(match.notes || "");
-			setCompetitionId(match.competition_id ? String(match.competition_id) : "");
-
-			// LOAD PENALTY SCORES IF THEY EXIST
-			setPenaltyHomeScore(match.penalty_home_score ?? null);
-			setPenaltyAwayScore(match.penalty_away_score ?? null);
-
-			setQuarterScores({
-				1: { home: match.q1_score || 0, away: match.q1_score_rival || 0 },
-				2: { home: match.q2_score || 0, away: match.q2_score_rival || 0 },
-				3: { home: match.q3_score || 0, away: match.q3_score_rival || 0 },
-				4: { home: match.q4_score || 0, away: match.q4_score_rival || 0 }
-			});
-
-			// ALSO SET CLOSED QUARTERS BASED ON MATCH DATA
-			setClosedQuarters({
-				1: match.q1_score !== undefined && match.q1_score_rival !== undefined,
-				2: match.q2_score !== undefined && match.q2_score_rival !== undefined,
-				3: match.q3_score !== undefined && match.q3_score_rival !== undefined,
-				4: match.q4_score !== undefined && match.q4_score_rival !== undefined
-			});
-
-			setSprintWinners({
-				1: match.sprint1_winner_player_id ?? null,
-				2: match.sprint2_winner_player_id ?? null,
-				3: match.sprint3_winner_player_id ?? null,
-				4: match.sprint4_winner_player_id ?? null
-			});
-
-			const { data: matchStats, error: statsError } = await supabase.from("match_stats").select("*").eq("match_id", matchId);
-
-			if (statsError) {
-				console.error("Error loading match stats:", statsError);
-				return;
-			}
-
-			if (matchStats && matchStats.length > 0) {
-				const playerIds = matchStats.map((stat) => stat.player_id);
 				setActivePlayerIds(playerIds);
 
 				const statsMap: Record<number, Partial<MatchStats>> = {};
@@ -761,6 +478,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	};
 
 	const updateStat = (playerId: number, field: keyof MatchStats, value: number) => {
+		if (closedQuarters[currentQuarter]) return;
+		const previousValue = safeNumber(stats[playerId]?.[field] as number | undefined);
+		const safeValue = Math.max(0, safeNumber(value));
+		const event = buildEventFromStatChange({ quarter: currentQuarter, playerId, goalkeeperPlayerId: playersById.get(playerId)?.is_goalkeeper ? playerId : null, statKey: String(field), previous: previousValue, next: safeValue });
+		if (event) setEvents((previous) => appendMatchEvent(previous, event));
 		setStats((prev) => {
 			const currentStats = prev[playerId] || createEmptyStats(playerId);
 			const safeValue = safeNumber(value);
@@ -1041,9 +763,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
 
-				if (statsError) throw statsError;
+					if (statsError) throw statsError;
 
-				if (homeGoals === awayGoals) {
+					if (events.length > 0) {
+						const { error: eventsError } = await supabase.from("match_events").upsert(events.map((event) => ({ ...event, match_id: editingMatchId, club_id: profile.club_id })), { onConflict: "match_id,sequence" });
+						if (eventsError && !isMatchEventTableMissing(eventsError)) throw eventsError;
+					}
+
+					if (homeGoals === awayGoals) {
 					const { error: deletePenaltiesError } = await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
 					if (deletePenaltiesError) throw deletePenaltiesError;
 
@@ -1070,7 +797,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					const rows = goalkeeperShots.map((s) => ({
 						match_id: editingMatchId,
 						goalkeeper_player_id: s.goalkeeper_player_id,
-						quarter: null,
+						quarter: s.quarter ?? currentQuarter,
 						shot_index: s.shot_index,
 						result: s.result,
 						x: s.x,
@@ -1131,9 +858,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
 
-				if (statsError) throw statsError;
+					if (statsError) throw statsError;
 
-				if (newMatch && homeGoals === awayGoals) {
+					if (events.length > 0) {
+						const { error: eventsError } = await supabase.from("match_events").insert(events.map((event) => ({ ...event, match_id: newMatch.id, club_id: profile.club_id })));
+						if (eventsError && !isMatchEventTableMissing(eventsError)) throw eventsError;
+					}
+
+					if (newMatch && homeGoals === awayGoals) {
 					const rows = buildPenaltyRows({
 						matchId: newMatch.id,
 						penaltyShooters,
@@ -1151,7 +883,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					const rows = goalkeeperShots.map((s) => ({
 						match_id: newMatch.id,
 						goalkeeper_player_id: s.goalkeeper_player_id,
-						quarter: null,
+						quarter: s.quarter ?? currentQuarter,
 						shot_index: s.shot_index,
 						result: s.result,
 						x: s.x,
@@ -1218,8 +950,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const draftKey = profile?.club_id ? activeDraftKey : null;
 	const draftPayload = useMemo<NewMatchDraftPayload>(
 		() => ({
-			schemaVersion: 1,
-			matchDate,
+				schemaVersion: 2,
+				currentQuarter,
+				events,
+				matchDate,
+
 			opponent,
 			location,
 			isHome,
@@ -1240,8 +975,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			goalkeeperShots
 		}),
 		[
-			activePlayerIds,
-			closedQuarters,
+				activePlayerIds,
+				closedQuarters,
+				currentQuarter,
+				events,
+
 			competitionId,
 			goalkeeperShots,
 			isHome,

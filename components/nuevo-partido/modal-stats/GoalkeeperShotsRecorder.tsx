@@ -16,6 +16,7 @@ type ShotResult = "goal" | "save" | "out";
 export type GoalkeeperShotDraft = {
 	goalkeeper_player_id: number;
 	shot_index: number;
+	quarter?: 1 | 2 | 3 | 4;
 	result: ShotResult;
 	x: number;
 	y: number;
