@@ -6,8 +6,7 @@ import { useHiddenStats } from "@/hooks/useHiddenStats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Loader2, Minus, Plus, RotateCcw, Save } from "lucide-react";
+import { Eye, EyeOff, Loader2, Minus, Plus, RotateCcw, Save } from "lucide-react";
 
 import { getPlayerStatsByCategory } from "@/lib/stats/playerStatsHelpers";
 import { type PlayerStatCategory } from "@/lib/stats/playerStatsConfig";
@@ -82,52 +81,71 @@ function WeightRow({
 	};
 
 	return (
-		<div className={`rounded-lg border px-3 py-2 ${hidden ? "bg-muted/20 opacity-60" : "bg-muted/30"}`}>
-			<div className="flex items-center justify-between gap-3">
+		<div
+			className={`flex min-h-40 flex-col rounded-xl border p-4 transition-colors ${
+				hidden ? "border-dashed bg-muted/15" : "border-border bg-card shadow-sm"
+			}`}
+		>
+			<div className="flex items-start justify-between gap-3">
 				<div className="min-w-0 flex-1">
-					<span className="text-sm text-foreground block truncate">{stat.label}</span>
-					<p className="text-xs text-muted-foreground">{hidden ? t("hiddenField") : t("activeField")}</p>
+					<span className={`block text-sm font-semibold leading-5 ${hidden ? "text-muted-foreground" : "text-foreground"}`}>
+						{stat.label}
+					</span>
+					<div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+						<span className={`h-1.5 w-1.5 rounded-full ${hidden ? "bg-muted-foreground/60" : "bg-emerald-500"}`} />
+						{hidden ? t("hiddenField") : t("activeField")}
+					</div>
 				</div>
 
-				<div className="flex items-center gap-2 shrink-0">
-					<span className="text-xs text-muted-foreground">{t("hide")}</span>
-					<Switch checked={hidden} onCheckedChange={onToggleHidden} aria-label={t("hideStat", { stat: stat.label })} />
-				</div>
+				<Button
+					type="button"
+					variant={hidden ? "secondary" : "outline"}
+					size="sm"
+					className="h-8 shrink-0 gap-1.5 px-2.5 text-xs"
+					onClick={() => onToggleHidden(!hidden)}
+					aria-label={hidden ? t("showStat", { stat: stat.label }) : t("hideStat", { stat: stat.label })}
+				>
+					{hidden ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+					{hidden ? t("show") : t("hide")}
+				</Button>
 			</div>
 
-			<div className="mt-2 flex items-center justify-end gap-1">
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon"
-					className="h-7 w-7 shrink-0"
-					onClick={decrement}
-					disabled={hidden}
-					aria-label={t("decreaseValue", { stat: stat.label })}
-				>
-					<Minus className="h-3.5 w-3.5" />
-				</Button>
+			<div className={`mt-auto pt-4 ${hidden ? "opacity-45" : ""}`}>
+				<p className="mb-2 text-xs font-medium text-muted-foreground">{t("assignedRating")}</p>
+				<div className="grid grid-cols-[2.25rem_1fr_2.25rem] overflow-hidden rounded-lg border bg-background">
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="h-9 w-9 rounded-none border-r"
+						onClick={decrement}
+						disabled={hidden}
+						aria-label={t("decreaseValue", { stat: stat.label })}
+					>
+						<Minus className="h-4 w-4" />
+					</Button>
 
-				<Input
-					type="number"
-					value={value}
-					onChange={handleInput}
-					disabled={hidden}
-					className="h-7 w-14 text-center text-sm tabular-nums px-1 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-					aria-label={t("rating", { stat: stat.label })}
-				/>
+					<Input
+						type="number"
+						value={value}
+						onChange={handleInput}
+						disabled={hidden}
+						className="h-9 w-full rounded-none border-0 bg-transparent px-1 text-center text-base font-semibold tabular-nums shadow-none focus-visible:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+						aria-label={t("rating", { stat: stat.label })}
+					/>
 
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon"
-					className="h-7 w-7 shrink-0"
-					onClick={increment}
-					disabled={hidden}
-					aria-label={t("increaseValue", { stat: stat.label })}
-				>
-					<Plus className="h-3.5 w-3.5" />
-				</Button>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="h-9 w-9 rounded-none border-l"
+						onClick={increment}
+						disabled={hidden}
+						aria-label={t("increaseValue", { stat: stat.label })}
+					>
+						<Plus className="h-4 w-4" />
+					</Button>
+				</div>
 			</div>
 		</div>
 	);
@@ -149,7 +167,7 @@ function GroupSection({
 	return (
 		<div className="space-y-2">
 			<h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.title}</h4>
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+			<div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
 				{group.stats.map((s) => (
 					<WeightRow
 						key={s.key}

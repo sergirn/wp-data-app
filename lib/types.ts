@@ -3,6 +3,7 @@ export interface Player {
 	number: number;
 	name: string;
 	is_goalkeeper: boolean;
+	is_active?: boolean;
 	club_id: number;
 	photo_url?: string | null;
 }

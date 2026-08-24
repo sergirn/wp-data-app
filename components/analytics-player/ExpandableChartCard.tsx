@@ -35,6 +35,7 @@ export function ExpandableChartCard({
   const t = useTranslations("ChartTemplates")
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<ViewMode>("chart")
+  const hasHeader = Boolean(title || description || icon || rightHeader)
 
   // Si cierras, vuelve a gráfico por defecto
   const handleOpenChange = (nextOpen: boolean) => {
@@ -46,21 +47,23 @@ export function ExpandableChartCard({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Card className={`cursor-pointer hover:opacity-95 transition ${className ?? ""}`}>
-          <CardHeader className="space-y-1 p-4 pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  {icon}
-                  <span className="truncate">{title}</span>
-                </CardTitle>
-                {description ? <CardDescription className="truncate">{description}</CardDescription> : null}
+          {hasHeader ? (
+            <CardHeader className="space-y-1 p-4 pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    {icon}
+                    <span className="truncate">{title}</span>
+                  </CardTitle>
+                  {description ? <CardDescription className="truncate">{description}</CardDescription> : null}
+                </div>
+
+                {rightHeader ? <div className="shrink-0">{rightHeader}</div> : null}
               </div>
+            </CardHeader>
+          ) : null}
 
-              {rightHeader ? <div className="shrink-0">{rightHeader}</div> : null}
-            </div>
-          </CardHeader>
-
-          <CardContent className="min-w-0 w-full overflow-hidden px-4 pb-4">
+          <CardContent className={`min-w-0 w-full overflow-hidden ${hasHeader ? "px-4 pb-4" : "p-0"}`}>
             {/* Compact: sin switch, solo gráfico */}
             {renderChart({ compact: true })}
           </CardContent>

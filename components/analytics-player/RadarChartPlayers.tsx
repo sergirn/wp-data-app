@@ -119,17 +119,38 @@ const CustomTooltip = ({ active, payload }: any) => {
 function RadarViz({
   playerName,
   data,
-  height
+  height,
+  compact
 }: {
   playerName: string;
   data: RadarDatum[];
   height: number;
+  compact: boolean;
 }) {
   const isMobile = useMediaQuery("(max-width: 639px)"); // <sm
   const isTablet = useMediaQuery("(min-width: 640px) and (max-width: 1023px)");
 
   const AngleTick = useMemo(() => {
     const byMetric = new Map(data.map((d) => [d.metric, d]));
+
+    if (compact) {
+      return function TickCompact(props: any) {
+        const { payload, x, y, textAnchor } = props;
+        const item = byMetric.get(payload?.value);
+        if (!item) return <g />;
+
+        const valueText = item.isPct ? `${item.raw.toFixed(0)}%` : String(item.raw);
+        const cy = props?.cy ?? props?.viewBox?.cy ?? 0;
+        const isBottom = cy && y > cy;
+
+        return (
+          <text x={x} y={y + (isBottom ? 5 : -2)} textAnchor={textAnchor} fill="currentColor" className="text-foreground">
+            <tspan x={x} dy={0} fontSize={10} fontWeight={800}>{valueText}</tspan>
+            <tspan x={x} dy={isBottom ? -10 : 10} fontSize={8.5} fontWeight={600} opacity={0.72}>{item.metric}</tspan>
+          </text>
+        );
+      };
+    }
 
     // ✅ MOBILE: solo valor (sin títulos)
     if (isMobile) {
@@ -203,21 +224,23 @@ function RadarViz({
         </text>
       );
     };
-  }, [data, isMobile, isTablet]);
+  }, [compact, data, isMobile, isTablet]);
 
   const chartMargin = useMemo(() => {
+    if (compact) return { top: 18, right: 28, bottom: 18, left: 28 };
     // ✅ menos margen = radar más grande (quita “aire” arriba/abajo)
     if (isMobile) return { top: 8, right: 10, bottom: 8, left: 10 };
     if (isTablet) return { top: 18, right: 26, bottom: 18, left: 26 };
     return { top: 34, right: 52, bottom: 34, left: 52 };
-  }, [isMobile, isTablet]);
+  }, [compact, isMobile, isTablet]);
 
   const outerRadius = useMemo(() => {
+    if (compact) return "78%";
     // ✅ radar más “tocho”
     if (isMobile) return "92%";
     if (isTablet) return "96%";
     return "100%";
-  }, [isMobile, isTablet]);
+  }, [compact, isMobile, isTablet]);
 
   return (
     <div className="w-full flex justify-center">
@@ -292,7 +315,7 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({
       icon={null as any}
       className="p-0 bg-transparent border-0 shadow-none"
       renderChart={({ compact }) => (
-        <RadarViz playerName={playerName} data={data} height={compact ? height : 520} />
+        <RadarViz playerName={playerName} data={data} height={compact ? height : 520} compact={compact} />
       )}
       renderTable={() => (
         <div className="rounded-xl border overflow-hidden bg-card w-full">

@@ -419,7 +419,11 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 			if (!profileData?.club_id) return;
 
-			const { data, error } = await supabase.from("players").select("*").eq("club_id", profileData.club_id).order("number");
+			const { data, error } = await supabase
+				.from("players")
+				.select("*")
+				.eq("club_id", profileData.club_id)
+				.order("number");
 
 			if (error || !data) {
 				console.error("[v0] Error loading players:", error);
@@ -427,11 +431,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				return;
 			}
 
-			setAllPlayers(data);
+			const availablePlayers = editingMatchId ? data : data.filter((player) => player.is_active !== false);
+			setAllPlayers(availablePlayers);
 
 			// Solo inicializamos los 14 primeros jugadores si estamos creando un partido NUEVO
 			if (!editingMatchId) {
-				const initialActiveIds = data.slice(0, 14).map((p) => p.id);
+				const initialActiveIds = availablePlayers.slice(0, 14).map((p) => p.id);
 				setActivePlayerIds(initialActiveIds);
 
 				const initialStats: Record<number, Partial<MatchStats>> = {};

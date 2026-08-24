@@ -62,6 +62,7 @@ CREATE TABLE players (
     name TEXT NOT NULL,
     number INTEGER NOT NULL,
     is_goalkeeper BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     club_id INTEGER NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT unique_player_number_per_club UNIQUE (club_id, number)
@@ -71,6 +72,7 @@ CREATE TABLE players (
 CREATE INDEX idx_players_club_id ON players(club_id);
 CREATE INDEX idx_players_number ON players(number);
 CREATE INDEX idx_players_is_goalkeeper ON players(is_goalkeeper);
+CREATE INDEX idx_players_club_active ON players(club_id, is_active);
 
 -- ============================================
 -- MATCHES TABLE

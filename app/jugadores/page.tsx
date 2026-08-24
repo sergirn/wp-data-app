@@ -1,22 +1,33 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import type { Player } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Edit } from "lucide-react";
+import { AlertCircle, ArrowUpRight } from "lucide-react";
 import { useClub } from "@/lib/club-context";
 import { useEffect, useState, memo, useMemo, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 import { PlayerRadarChart } from "@/components/analytics-player/RadarChartPlayers";
 import { GoalkeeperRadarChart } from "@/components/analytics-goalkeeper/GoalkeeperRadarChart";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { EditPlayersModal } from "@/components/players-components/EditPlayersModal";
-import { useIsMobile } from "@/hooks/player-movile";
 import { useTranslations } from "next-intl";
+
+function getGoalkeeperGoalsConceded(stat: Record<string, unknown>) {
+	const recordedTotal = Number(stat.portero_goles_totales || 0);
+	if (recordedTotal > 0) return recordedTotal;
+
+	return [
+		"portero_gol",
+		"portero_gol_superioridad",
+		"portero_goles_boya_parada",
+		"portero_goles_hombre_menos",
+		"portero_goles_dir_mas_5m",
+		"portero_goles_contraataque",
+		"portero_goles_lanzamiento",
+		"portero_goles_penalti"
+	].reduce((total, key) => total + Number(stat[key] || 0), 0);
+}
 
 export default function PlayersPage() {
 	const t = useTranslations("Pages");
@@ -26,7 +37,6 @@ export default function PlayersPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [matchStats, setMatchStats] = useState<any[]>([]);
-	const [editOpen, setEditOpen] = useState(false);
 
 	useEffect(() => {
 		const abortController = new AbortController();
@@ -45,13 +55,12 @@ export default function PlayersPage() {
 			try {
 				const supabase = createClient();
 
-				const [playersResult, statsResult, matchesResult] = await Promise.all([
+				const [playersResult, statsResult] = await Promise.all([
 					supabase.from("players").select("*").eq("club_id", currentClub.id).order("number"),
 					supabase
 						.from("match_stats")
 						.select("*")
-						.in("player_id", (await supabase.from("players").select("id").eq("club_id", currentClub.id)).data?.map((p) => p.id) || []),
-					supabase.from("matches").select("*").eq("club_id", currentClub.id)
+						.in("player_id", (await supabase.from("players").select("id").eq("club_id", currentClub.id)).data?.map((p) => p.id) || [])
 				]);
 
 				if (abortController.signal.aborted || !isMounted) return;
@@ -66,12 +75,7 @@ export default function PlayersPage() {
 						const totalAsistencias = playerStatsData.reduce((sum, s) => sum + (s.portero_acciones_asistencias || 0), 0);
 						const matchesPlayed = playerStatsData.length;
 
-						const totalRivalGoles = playerStatsData.reduce((sum, stat) => {
-							const match = matchesResult.data?.find((m) => m.id === stat.match_id);
-							if (!match) return sum;
-							const rivalGoals = match.is_home ? match.away_score : match.home_score;
-							return sum + rivalGoals;
-						}, 0);
+						const totalRivalGoles = playerStatsData.reduce((sum, stat) => sum + getGoalkeeperGoalsConceded(stat), 0);
 
 						return {
 							...player,
@@ -147,8 +151,9 @@ export default function PlayersPage() {
 		);
 	}
 
-	const fieldPlayers = players.filter((p) => !p.is_goalkeeper);
-	const goalkeepers = players.filter((p) => p.is_goalkeeper);
+	const activePlayers = players.filter((p) => p.is_active !== false);
+	const fieldPlayers = activePlayers.filter((p) => !p.is_goalkeeper);
+	const goalkeepers = activePlayers.filter((p) => p.is_goalkeeper);
 
 	return (
 		<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
@@ -157,7 +162,7 @@ export default function PlayersPage() {
 				<p className="text-sm sm:text-base text-muted-foreground">{playersT("individualStats", { club: currentClub?.short_name || playersT("squad") })}</p>
 			</div>
 
-			{players.length === 0 ? (
+			{activePlayers.length === 0 ? (
 				<Alert>
 					<AlertCircle className="h-4 w-4" />
 					<AlertTitle>{playersT("noPlayers")}</AlertTitle>
@@ -171,7 +176,7 @@ export default function PlayersPage() {
 			) : (
 				<Tabs defaultValue="field-players" className="w-full">
 					<div className="mb-4 sm:mb-6 flex items-center gap-3">
-						<TabsList className="grid w-1/2 grid-cols-2">
+						<TabsList className="grid w-full grid-cols-2 sm:w-1/2">
 							<TabsTrigger value="field-players" className="text-xs sm:text-sm">
 								{playersT("fieldPlayersCount", { count: fieldPlayers.length })}
 							</TabsTrigger>
@@ -179,24 +184,11 @@ export default function PlayersPage() {
 								{playersT("goalkeepersCount", { count: goalkeepers.length })}
 							</TabsTrigger>
 						</TabsList>
-
-						<Button
-							type="button"
-							variant="default"
-							className="group flex-1 rounded-md flex items-center justify-center gap-2 
-								text-black-700 dark:text-white-400 
-								bg-blue-500/15 hover:bg-blue-500/20 
-								transition-all duration-200 font-medium border border-white-500/30"
-							onClick={() => setEditOpen(true)}
-						>
-							<Edit className="h-4 w-4" />
-							{playersT("editPlayers")}
-						</Button>
 					</div>
 
 					<TabsContent value="field-players">
 						{fieldPlayers.length > 0 ? (
-							<div className="grid gap-3 sm:gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 								{fieldPlayers.map((player) => (
 									<FieldPlayerCard key={player.id} player={player} matchStats={matchStats} />
 								))}
@@ -212,7 +204,7 @@ export default function PlayersPage() {
 
 					<TabsContent value="goalkeepers">
 						{goalkeepers.length > 0 ? (
-							<div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 								{goalkeepers.map((player) => (
 									<GoalkeeperCard key={player.id} player={player} matchStats={matchStats} />
 								))}
@@ -227,7 +219,6 @@ export default function PlayersPage() {
 					</TabsContent>
 				</Tabs>
 			)}
-			<EditPlayersModal open={editOpen} players={players} onClose={() => setEditOpen(false)} onSaved={(updated) => setPlayers(updated)} />
 			<div className="mt-6 flex flex-col items-center gap-2 text-center">
 				<p className="text-xs text-muted-foreground">
 					{playersT("poweredBy")} <span className="font-medium">TFT</span> &amp; <span className="font-medium">BWMF</span>
@@ -263,7 +254,6 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
 }) {
 	const t = useTranslations("Players");
 	const router = useRouter();
-	const isMobile = useIsMobile();
 
 	const playerMatchStats = useMemo(
 		() => (Array.isArray(matchStats) ? matchStats.filter((s) => s.player_id === player.id) : []),
@@ -280,23 +270,28 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
 		<article
 			role="link"
 			tabIndex={0}
+			aria-label={t("viewPlayerProfile", { name: player.name })}
 			onClick={goToPlayer}
 			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") goToPlayer();
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					goToPlayer();
+				}
 			}}
 			className="
-				group flex h-full cursor-pointer flex-col overflow-hidden
-				rounded-3xl border bg-card shadow-sm
+				group relative flex h-full cursor-pointer flex-col overflow-hidden
+				rounded-2xl border border-border/70 bg-card shadow-sm
 				transition-all duration-300
-				hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg
-				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+				hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5
+				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
 			"
 		>
-			<PlayerHero player={player} role={t("fieldPlayer")} />
+			<div className="absolute inset-x-0 top-0 z-20 h-0.5 bg-gradient-to-r from-primary via-cyan-300 to-primary/20" />
+			<PlayerHero player={player} role={t("fieldPlayer")} tone="field" />
 
-			<div className="space-y-3 p-3 sm:p-4">
+			<div className="flex flex-1 flex-col gap-2.5 p-3">
 				<div className="grid grid-cols-3 gap-2">
-					<MiniStat label={t("goals")} value={player.totalGoles || 0} />
+					<MiniStat label={t("goals")} value={player.totalGoles || 0} featured />
 					<MiniStat label={t("assistsShort")} value={player.totalAsistencias || 0} />
 					<MiniStat label={t("efficiencyShort")} value={`${efficiency}%`} />
 				</div>
@@ -305,16 +300,19 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
 					onClick={(e) => e.stopPropagation()}
 					onMouseDown={(e) => e.stopPropagation()}
 					onPointerDown={(e) => e.stopPropagation()}
-					className="
-						overflow-hidden rounded-2xl mb-6
-					"
+					className="overflow-hidden rounded-xl border border-border/60 bg-muted/15"
 				>
+					<p className="border-b border-border/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+						{t("performanceProfile")}
+					</p>
 					<PlayerRadarChart
 						playerName={player.name}
 						matchStats={playerMatchStats}
-						height={isMobile ? 190 : 200}
+						height={145}
 					/>
 				</div>
+
+				<CardFooter label={t("viewProfile")} />
 			</div>
 		</article>
 	);
@@ -334,7 +332,6 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
 }) {
 	const t = useTranslations("Players");
 	const router = useRouter();
-	const isMobile = useIsMobile();
 
 	const goalkeeperMatchStats = useMemo(
 		() => (Array.isArray(matchStats) ? matchStats.filter((s) => String(s.player_id) === String(player.id)) : []),
@@ -344,47 +341,61 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
 	const goToPlayer = useCallback(() => {
 		router.push(`/jugadores/${player.id}`);
 	}, [router, player.id]);
+	const shotsFaced = (player.totalParadas || 0) + (player.totalRivalGoles || 0);
+	const savePercentage = shotsFaced > 0 ? Math.round(((player.totalParadas || 0) / shotsFaced) * 100) : 0;
 
 	return (
 		<article
 			role="link"
 			tabIndex={0}
+			aria-label={t("viewPlayerProfile", { name: player.name })}
 			onClick={goToPlayer}
 			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") goToPlayer();
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					goToPlayer();
+				}
 			}}
 			className="
-				group flex h-full cursor-pointer flex-col overflow-hidden
-				rounded-3xl border bg-card shadow-sm
+				group relative flex h-full cursor-pointer flex-col overflow-hidden
+				rounded-2xl border border-border/70 bg-card shadow-sm
 				transition-all duration-300
-				hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg
-				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+				hover:-translate-y-1 hover:border-sky-400/40 hover:shadow-xl hover:shadow-sky-500/5
+				focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
 			"
 		>
-			<PlayerHero player={player} role={t("goalkeeper")} />
+			<div className="absolute inset-x-0 top-0 z-20 h-0.5 bg-gradient-to-r from-sky-500 via-blue-300 to-sky-500/20" />
+			<PlayerHero player={player} role={t("goalkeeper")} tone="goalkeeper" />
 
-			<div className="space-y-3 p-3 sm:p-4">
+			<div className="flex flex-1 flex-col gap-2.5 p-3">
 				<div className="grid grid-cols-3 gap-2">
-					<MiniStat label={t("saves")} value={player.totalParadas || 0} />
-					<MiniStat label={t("goals")} value={player.totalRivalGoles || 0} />
-					<MiniStat label={t("matches")} value={player.matchesPlayed || 0} />
+					<MiniStat label={t("saves")} value={player.totalParadas || 0} featured />
+					<MiniStat label={t("savePercentageShort")} value={`${savePercentage}%`} />
+					<MiniStat label={t("assistsShort")} value={player.totalAsistencias || 0} />
+				</div>
+
+				<div className="flex items-center justify-between rounded-lg bg-muted/25 px-3 py-1.5 text-xs">
+					<span className="text-muted-foreground">{t("goalsConceded")}</span>
+					<span className="font-semibold tabular-nums">{player.totalRivalGoles || 0}</span>
 				</div>
 
 				<div
 					onClick={(e) => e.stopPropagation()}
 					onMouseDown={(e) => e.stopPropagation()}
 					onPointerDown={(e) => e.stopPropagation()}
-					className="
-						overflow-hidden rounded-2xl mb-6
-						
-					"
+					className="overflow-hidden rounded-xl border border-border/60 bg-muted/15"
 				>
+					<p className="border-b border-border/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+						{t("performanceProfile")}
+					</p>
 					<GoalkeeperRadarChart
 						playerName={player.name}
 						matchStats={goalkeeperMatchStats}
-						height={isMobile ? 190 : 200}
+						height={145}
 					/>
 				</div>
+
+				<CardFooter label={t("viewProfile")} />
 			</div>
 		</article>
 	);
@@ -392,23 +403,26 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
 
 function PlayerHero({
 	player,
-	role
+	role,
+	tone
 }: {
 	player: Player & {
 		matchesPlayed?: number;
 	};
 	role: string;
+	tone: "field" | "goalkeeper";
 }) {
 	const t = useTranslations("Players");
 	return (
-		<div className="relative aspect-[4/5] overflow-hidden bg-muted sm:aspect-[5/4]">
+		<div className="relative aspect-[4/3] overflow-hidden bg-muted">
 			{player.photo_url ? (
-				<img
+				<Image
 					src={player.photo_url}
 					alt={player.name}
-					loading="lazy"
+					fill
+					sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 25vw"
 					className="
-						absolute inset-0 h-full w-full object-cover object-top
+						object-cover object-top
 						transition-transform duration-500
 						group-hover:scale-[1.04]
 					"
@@ -426,17 +440,21 @@ function PlayerHero({
 				</div>
 			)}
 
-			<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+			<div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/10 to-slate-950/30" />
 
-			<div className="absolute right-3 top-3 rounded-full bg-black/45 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
+			<div className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-md">
+				{role}
+			</div>
+
+			<div className={`absolute right-3 top-3 rounded-lg border px-2.5 py-1 text-xs font-black text-white shadow-sm backdrop-blur-md ${tone === "goalkeeper" ? "border-sky-300/30 bg-sky-500/65" : "border-primary-foreground/20 bg-primary/75"}`}>
 				#{player.number}
 			</div>
 
-			<div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
-				<h3 className="line-clamp-1 text-sm font-bold text-white sm:text-base">
+			<div className="absolute inset-x-0 bottom-0 p-3">
+				<h3 className="line-clamp-1 text-base font-bold tracking-tight text-white">
 					{player.name}
 				</h3>
-				<p className="mt-0.5 text-[11px] text-white/75 sm:text-xs">
+				<p className="mt-1 text-xs text-white/70">
 					{t("roleMatches", { role, count: player.matchesPlayed || 0 })}
 				</p>
 			</div>
@@ -446,17 +464,30 @@ function PlayerHero({
 
 function MiniStat({
 	label,
-	value
+	value,
+	featured = false
 }: {
 	label: string;
 	value: string | number;
+	featured?: boolean;
 }) {
 	return (
-		<div className="rounded-xl border bg-muted/30 px-2 py-2 text-center">
-			<p className="truncate text-sm font-bold tabular-nums">{value}</p>
-			<p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+		<div className={`rounded-lg border px-2 py-1.5 text-center ${featured ? "border-primary/25 bg-primary/10" : "border-border/60 bg-muted/25"}`}>
+			<p className={`truncate text-sm font-bold tabular-nums ${featured ? "text-primary" : "text-foreground"}`}>{value}</p>
+			<p className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground">
 				{label}
 			</p>
+		</div>
+	);
+}
+
+function CardFooter({ label }: { label: string }) {
+	return (
+		<div className="mt-auto flex items-center justify-between border-t border-border/60 pt-2 text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
+			<span>{label}</span>
+			<span className="grid size-7 place-items-center rounded-full bg-muted transition-all group-hover:bg-primary group-hover:text-primary-foreground">
+				<ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+			</span>
 		</div>
 	);
 }

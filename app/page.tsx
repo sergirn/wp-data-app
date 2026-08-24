@@ -50,6 +50,7 @@ type PlayerRow = {
 	name: string;
 	number: number;
 	is_goalkeeper: boolean;
+	is_active?: boolean;
 	photo_url?: string | null;
 };
 
@@ -235,7 +236,7 @@ export default function HomePage() {
 					if (playersError.message?.includes("Could not find the table")) setTablesNotFound(true);
 					else throw playersError;
 				} else {
-					setPlayers(((playersData || []) as PlayerRow[]) ?? []);
+					setPlayers(((playersData || []) as PlayerRow[]).filter((player) => player.is_active !== false));
 				}
 
 				const matchIds = ((allMatchesData || []) as MatchRow[]).map((match) => match.id);
