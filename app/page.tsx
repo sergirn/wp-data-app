@@ -31,6 +31,7 @@ import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard";
 import { buildTeamDashboardStats } from "@/lib/helpers/buildTeamDashboardStats";
 import { SequentialTypewriter } from "@/components/ui/typing";
 import { useLocale, useTranslations } from "next-intl";
+import { getMatchOutcome } from "@/lib/matches/score";
 
 type MatchRow = {
 	id: number;
@@ -71,17 +72,8 @@ function formatDate(dateStr: string, locale: string) {
 }
 
 function getOutcome(match: MatchRow): Outcome {
-	const isTied = match.home_score === match.away_score;
-	const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null;
-
-	if (hasPenalties) {
-		const win = (match.penalty_home_score ?? 0) > (match.penalty_away_score ?? 0);
-		return { status: win ? "W" : "L" };
-	}
-
-	if (match.home_score > match.away_score) return { status: "W" };
-	if (match.home_score < match.away_score) return { status: "L" };
-	return { status: "D" };
+	const outcome = getMatchOutcome(match);
+	return { status: outcome === "win" ? "W" : outcome === "loss" ? "L" : "D" };
 }
 
 const FORM_STYLES: Record<Outcome["status"], string> = {
@@ -208,13 +200,26 @@ export default function HomePage() {
 					return;
 				}
 
+				const { data: activeSeasonRow } = await supabase
+					.from("club_seasons")
+					.select("name")
+					.eq("club_id", currentClub.id)
+					.eq("status", "active")
+					.maybeSingle();
+				let matchesPreviewQuery = supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false }).limit(15);
+				let allMatchesQuery = supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false });
+				if (activeSeasonRow?.name) {
+					matchesPreviewQuery = matchesPreviewQuery.eq("season", activeSeasonRow.name);
+					allMatchesQuery = allMatchesQuery.eq("season", activeSeasonRow.name);
+				}
+
 				const [
 					{ data: matchesPreviewData, error: matchesPreviewError },
 					{ data: allMatchesData, error: allMatchesError },
 					{ data: playersData, error: playersError }
 				] = await Promise.all([
-					supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false }).limit(15),
-					supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false }),
+					matchesPreviewQuery,
+					allMatchesQuery,
 					supabase.from("players").select("*").eq("club_id", currentClub.id).order("number")
 				]);
 

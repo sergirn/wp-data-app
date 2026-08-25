@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslations } from "next-intl"
 
@@ -12,12 +12,13 @@ interface SeasonSelectorProps {
 export function SeasonSelector({ seasons, selectedSeason }: SeasonSelectorProps) {
   const t = useTranslations("Common")
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const handleSeasonChange = (season: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set("season", season)
-    router.push(`/analytics?${params.toString()}`)
+    router.push(`${pathname}?${params.toString()}`)
   }
 
   return (

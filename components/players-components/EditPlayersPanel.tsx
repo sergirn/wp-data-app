@@ -127,7 +127,7 @@ export function EditPlayersPanel({ players, clubId, onSaved }: Props) {
     }
 
     const playerNumbers = new Set<number>()
-    for (const draft of sortedDrafts) {
+    for (const draft of sortedDrafts.filter((player) => player.isActive)) {
       const number = Number.parseInt(draft.number, 10)
       if (playerNumbers.has(number)) return t("duplicateNumber")
       playerNumbers.add(number)
@@ -180,7 +180,8 @@ export function EditPlayersPanel({ players, clubId, onSaved }: Props) {
 
       onSaved?.()
     } catch (error: unknown) {
-      setErrorMsg(error instanceof Error ? error.message : t("saveError"))
+      const databaseError = error as { code?: string; message?: string }
+      setErrorMsg(databaseError.code === "23505" ? t("duplicateNumber") : databaseError.message || t("saveError"))
     } finally {
       setSaving(false)
     }
@@ -294,6 +295,7 @@ export function EditPlayersPanel({ players, clubId, onSaved }: Props) {
                             onChange={(event) => updateDraft(draft.id, { number: event.target.value })}
                             className="tabular-nums"
                           />
+                          {!draft.isActive && <p className="text-[11px] leading-4 text-muted-foreground">{t("inactiveCapAvailable")}</p>}
                         </div>
                         <div className="min-w-0 space-y-1.5">
                           <Label htmlFor={`player-name-${draft.id}`}>{t("name")}</Label>

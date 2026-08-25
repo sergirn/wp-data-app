@@ -5,6 +5,18 @@ ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
 CREATE INDEX IF NOT EXISTS idx_players_club_active
 ON public.players (club_id, is_active);
 
+-- Los jugadores inactivos conservan su identidad y su historial, pero su
+-- dorsal puede asignarse de nuevo dentro de la plantilla activa.
+ALTER TABLE public.players
+DROP CONSTRAINT IF EXISTS unique_player_number_per_club;
+
+ALTER TABLE public.players
+DROP CONSTRAINT IF EXISTS players_club_id_number_key;
+
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_player_number_per_club
+ON public.players (club_id, number)
+WHERE is_active = true;
+
 -- Guarda altas y modificaciones como una única operación. Primero libera los
 -- dorsales de los registros editados para permitir intercambios y reutilización.
 CREATE OR REPLACE FUNCTION public.save_club_players(

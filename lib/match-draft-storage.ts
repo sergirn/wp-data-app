@@ -49,6 +49,11 @@ export async function getLocalMatchDraft<TPayload extends MatchDraftPayload>(use
 		const result = await runRequest<StoredDraft<TPayload> | undefined>("readonly", (store) => store.get(storageKey(userId, draftKey)));
 		if (!result) return null;
 		const createdAt = result.createdAt ?? result.updatedAt;
+		const expiresAt = result.expiresAt ?? new Date(Date.parse(createdAt) + MATCH_DRAFT_TTL_MS).toISOString();
+		if (Date.parse(expiresAt) <= Date.now()) {
+			await deleteLocalMatchDraft(userId, draftKey);
+			return null;
+		}
 		return {
 			draftKey: result.draftKey,
 			clubId: result.clubId,
@@ -58,7 +63,7 @@ export async function getLocalMatchDraft<TPayload extends MatchDraftPayload>(use
 			revision: result.revision,
 			createdAt,
 			updatedAt: result.updatedAt,
-			expiresAt: result.expiresAt ?? new Date(Date.parse(createdAt) + MATCH_DRAFT_TTL_MS).toISOString()
+			expiresAt
 		};
 	} catch {
 		return null;
@@ -73,8 +78,16 @@ export async function putLocalMatchDraft<TPayload extends MatchDraftPayload>(dra
 export async function listLocalMatchDrafts<TPayload extends MatchDraftPayload>(userId: string, clubId: number) {
 	try {
 		const results = await runRequest<StoredDraft<TPayload>[]>("readonly", (store) => store.getAll());
-		return results
-			.filter((draft) => draft.userId === userId && draft.clubId === clubId)
+		const matchingDrafts = results.filter((draft) => draft.userId === userId && draft.clubId === clubId);
+		const activeDrafts = matchingDrafts.filter((draft) => {
+			const createdAt = draft.createdAt ?? draft.updatedAt;
+			const expiresAt = draft.expiresAt ?? new Date(Date.parse(createdAt) + MATCH_DRAFT_TTL_MS).toISOString();
+			return Date.parse(expiresAt) > Date.now();
+		});
+		const expiredDrafts = matchingDrafts.filter((draft) => !activeDrafts.includes(draft));
+		await Promise.all(expiredDrafts.map((draft) => deleteLocalMatchDraft(userId, draft.draftKey)));
+
+		return activeDrafts
 			.map((draft) => {
 				const createdAt = draft.createdAt ?? draft.updatedAt;
 				return {

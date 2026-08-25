@@ -23,13 +23,23 @@ import { ExportPlayerPdfButton } from "@/components/export-buttons/export-player
 import { ExportPlayerExcelButton } from "@/components/export-buttons/export-player-excel-button";
 import { getCurrentProfile } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
+import { getOpponentScore } from "@/lib/matches/score";
+import { SeasonSelector } from "@/components/season-selector";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
 }
 
-export default async function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PlayerDetailPage({
+	params,
+	searchParams
+}: {
+	params: Promise<{ id: string }>;
+	searchParams: Promise<{ season?: string | string[] }>;
+}) {
 	const { id } = await params;
+	const requestedSeasonValue = (await searchParams).season;
+	const requestedSeason = Array.isArray(requestedSeasonValue) ? requestedSeasonValue[0] : requestedSeasonValue;
 	const supabase = await createClient();
 	const profile = await getCurrentProfile();
 	if (!supabase || !profile) notFound();
@@ -44,21 +54,55 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
 	const { data: player, error: playerError } = await playerQuery.single();
 	if (playerError || !player) notFound();
 
-	const { data: matchStats } = await supabase
-		.from("match_stats")
-		.select(`*, matches (*)`)
-		.eq("player_id", id)
-		.order("matches(match_date)", { ascending: false });
+	const { data: managedSeasons } = await supabase
+		.from("club_seasons")
+		.select("id, name, status, start_year")
+		.eq("club_id", player.club_id)
+		.order("start_year", { ascending: false });
+	let seasonRows = managedSeasons ?? [];
+	if (seasonRows.length === 0) {
+		const { data: historicalSeasons } = await supabase
+			.from("matches")
+			.select("season")
+			.eq("club_id", player.club_id)
+			.not("season", "is", null)
+			.order("match_date", { ascending: false });
+		seasonRows = Array.from(new Set((historicalSeasons ?? []).map((row) => String(row.season)))).map((name, index) => ({ id: 0, name, status: index === 0 ? "active" : "archived", start_year: 0 }));
+	}
+	const seasons = seasonRows.map((season) => String(season.name));
+	const activeSeason = seasonRows.find((season) => season.status === "active")?.name ?? seasons[0];
+	const selectedSeason = requestedSeason && seasons.includes(requestedSeason) ? requestedSeason : activeSeason;
+	const selectedSeasonRow = seasonRows.find((season) => season.name === selectedSeason);
 
-	const { data: goalkeeperShots } = player.is_goalkeeper
-		? await supabase.from("goalkeeper_shots").select("*").eq("goalkeeper_player_id", id).order("shot_index", { ascending: true })
-		: { data: [] as any[] };
-
-	if (player.is_goalkeeper) {
-		return <GoalkeeperPage player={player} matchStats={matchStats || []} goalkeeperShots={goalkeeperShots || []} hiddenStats={hiddenStatsSet} />;
+	let seasonalPlayer = player;
+	if (selectedSeasonRow?.id) {
+		const { data: rosterEntry } = await supabase
+			.from("player_seasons")
+			.select("number, is_goalkeeper")
+			.eq("club_season_id", selectedSeasonRow.id)
+			.eq("player_id", player.id)
+			.maybeSingle();
+		if (rosterEntry) seasonalPlayer = { ...player, number: rosterEntry.number, is_goalkeeper: rosterEntry.is_goalkeeper };
 	}
 
-	return <FieldPlayerPage player={player} matchStats={matchStats || []} hiddenStats={hiddenStatsSet} />;
+	let matchStatsQuery = supabase
+		.from("match_stats")
+		.select(`*, matches!inner (*)`)
+		.eq("player_id", id)
+		.eq("matches.stats_enabled", true);
+	if (selectedSeason) matchStatsQuery = matchStatsQuery.eq("matches.season", selectedSeason);
+	const { data: matchStats } = await matchStatsQuery.order("matches(match_date)", { ascending: false });
+
+	const enabledMatchIds = (matchStats ?? []).map((stat) => stat.match_id);
+	const { data: goalkeeperShots } = seasonalPlayer.is_goalkeeper && enabledMatchIds.length > 0
+		? await supabase.from("goalkeeper_shots").select("*").eq("goalkeeper_player_id", id).in("match_id", enabledMatchIds).order("shot_index", { ascending: true })
+		: { data: [] as any[] };
+
+	if (seasonalPlayer.is_goalkeeper) {
+		return <GoalkeeperPage player={seasonalPlayer} matchStats={matchStats || []} goalkeeperShots={goalkeeperShots || []} hiddenStats={hiddenStatsSet} seasons={seasons} selectedSeason={selectedSeason ?? ""} />;
+	}
+
+	return <FieldPlayerPage player={seasonalPlayer} matchStats={matchStats || []} hiddenStats={hiddenStatsSet} seasons={seasons} selectedSeason={selectedSeason ?? ""} />;
 }
 
 async function getHiddenStatsSet(supabase: Awaited<ReturnType<typeof createClient>>, profileId?: string) {
@@ -71,7 +115,7 @@ async function getHiddenStatsSet(supabase: Awaited<ReturnType<typeof createClien
 	return new Set(data.map((row) => row.stat_key));
 }
 
-async function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Player; matchStats: MatchStatsWithMatch[]; hiddenStats: Set<string> }) {
+async function FieldPlayerPage({ player, matchStats, hiddenStats, seasons, selectedSeason }: { player: Player; matchStats: MatchStatsWithMatch[]; hiddenStats: Set<string>; seasons: string[]; selectedSeason: string }) {
 	const t = await getTranslations("PlayerDetail");
 	const matchCount = matchStats.length;
 	const fieldPlayerStats = calculateFieldPlayerStats(matchStats, hiddenStats);
@@ -88,8 +132,9 @@ async function FieldPlayerPage({ player, matchStats, hiddenStats }: { player: Pl
 					</Button>
 
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-						<ExportPlayerPdfButton playerId={player.id} />
-						<ExportPlayerExcelButton playerId={player.id} />
+						{seasons.length > 0 && <SeasonSelector seasons={seasons} selectedSeason={selectedSeason} />}
+						<ExportPlayerPdfButton playerId={player.id} season={selectedSeason} />
+						<ExportPlayerExcelButton playerId={player.id} season={selectedSeason} />
 					</div>
 				</div>
 
@@ -198,12 +243,16 @@ async function GoalkeeperPage({
 	player,
 	matchStats,
 	goalkeeperShots,
-	hiddenStats
+	hiddenStats,
+	seasons,
+	selectedSeason
 }: {
 	player: Player;
 	matchStats: MatchStatsWithMatch[];
 	goalkeeperShots: any[];
 	hiddenStats: Set<string>;
+	seasons: string[];
+	selectedSeason: string;
 }) {
 	const t = await getTranslations("PlayerDetail");
 	const matchCount = matchStats.length;
@@ -230,8 +279,9 @@ async function GoalkeeperPage({
 					</Button>
 
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-						<ExportPlayerPdfButton playerId={player.id} />
-						<ExportPlayerExcelButton playerId={player.id} />
+						{seasons.length > 0 && <SeasonSelector seasons={seasons} selectedSeason={selectedSeason} />}
+						<ExportPlayerPdfButton playerId={player.id} season={selectedSeason} />
+						<ExportPlayerExcelButton playerId={player.id} season={selectedSeason} />
 					</div>
 				</div>
 
@@ -286,7 +336,7 @@ function calculateGoalkeeperStats(matchStats: MatchStatsWithMatch[], hiddenStats
 		? 0
 		: matchStats.reduce((acc, stat) => {
 				const match = stat.matches;
-				const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0;
+				const rivalGoals = match ? getOpponentScore(match) : 0;
 				return acc + gkN(rivalGoals);
 			}, 0);
 

@@ -32,6 +32,15 @@ async function getContext(clubId: number) {
 	return { profile, supabase };
 }
 
+async function deleteExpiredDrafts(context: Exclude<Awaited<ReturnType<typeof getContext>>, { error: NextResponse }>, clubId: number) {
+	await context.supabase
+		.from("match_drafts")
+		.delete()
+		.eq("user_id", context.profile.id)
+		.eq("club_id", clubId)
+		.lte("expires_at", new Date().toISOString());
+}
+
 export async function GET(request: Request) {
 	const url = new URL(request.url);
 	const parsed = draftQuerySchema.safeParse(Object.fromEntries(url.searchParams));
@@ -39,12 +48,14 @@ export async function GET(request: Request) {
 
 	const context = await getContext(parsed.data.clubId);
 	if ("error" in context) return context.error;
+	await deleteExpiredDrafts(context, parsed.data.clubId);
 	if (!parsed.data.draftKey) {
 		const { data, error } = await context.supabase
 			.from("match_drafts")
 			.select("draft_key, club_id, user_id, match_id, payload, revision, created_at, updated_at, expires_at")
 			.eq("user_id", context.profile.id)
 			.eq("club_id", parsed.data.clubId)
+			.gt("expires_at", new Date().toISOString())
 			.order("updated_at", { ascending: false });
 
 		if (error) return NextResponse.json({ error: "request_failed" }, { status: 500 });
@@ -57,6 +68,7 @@ export async function GET(request: Request) {
 		.eq("user_id", context.profile.id)
 		.eq("club_id", parsed.data.clubId)
 		.eq("draft_key", parsed.data.draftKey)
+		.gt("expires_at", new Date().toISOString())
 		.maybeSingle();
 
 	if (error) return NextResponse.json({ error: "request_failed" }, { status: 500 });
@@ -72,6 +84,7 @@ export async function PUT(request: Request) {
 
 	const context = await getContext(parsed.data.clubId);
 	if ("error" in context) return context.error;
+	await deleteExpiredDrafts(context, parsed.data.clubId);
 
 	const { data: current } = await context.supabase
 		.from("match_drafts")

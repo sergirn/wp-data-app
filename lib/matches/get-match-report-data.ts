@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Profile } from "@/lib/types"
+import { getMatchOutcome } from "@/lib/matches/score"
 import {
   accumulatePlayerStats,
   getPlayerDerived,
@@ -104,6 +105,22 @@ export async function getMatchReportData(matchId: number, profile: Profile) {
     throw new Error("Match not found")
   }
 
+  if (match.season_id) {
+    const { data: rosterRows } = await supabase
+      .from("player_seasons")
+      .select("player_id, number, is_goalkeeper")
+      .eq("club_season_id", match.season_id)
+    const rosterByPlayer = new Map((rosterRows ?? []).map((row) => [row.player_id, row]))
+    match.match_stats = (match.match_stats ?? []).map((stat: any) => {
+      const rosterPlayer = rosterByPlayer.get(stat.player_id)
+      const player = normalizeRel(stat.players)
+      return rosterPlayer && player ? {
+        ...stat,
+        players: { ...player, number: rosterPlayer.number, is_goalkeeper: rosterPlayer.is_goalkeeper },
+      } : stat
+    })
+  }
+
   const hiddenStats = (
     await supabase
       .from("profile_hidden_stats")
@@ -145,7 +162,7 @@ export async function getMatchReportData(matchId: number, profile: Profile) {
 
   const isTied = match.home_score === match.away_score
   const hasPenalties =
-    isTied && (match.penalty_home_score != null || match.penalty_away_score != null)
+    isTied && match.penalty_home_score != null && match.penalty_away_score != null
 
   const homePenaltyShooters = (penaltyRows ?? [])
     .filter((r: any) => r.player_id !== null)
@@ -228,20 +245,10 @@ export async function getMatchReportData(matchId: number, profile: Profile) {
   const clubName = match.clubs?.short_name || match.clubs?.name || "Nuestro Equipo"
   const matchDate = new Date(match.match_date)
 
-  let result: string
-  if (hasPenalties) {
-    result =
-      match.penalty_home_score! > match.penalty_away_score!
-        ? "Victoria (Penaltis)"
-        : "Derrota (Penaltis)"
-  } else {
-    result =
-      match.home_score > match.away_score
-        ? "Victoria"
-        : match.home_score < match.away_score
-          ? "Derrota"
-          : "Empate"
-  }
+  const outcome = getMatchOutcome(match)
+  const result = hasPenalties
+    ? outcome === "win" ? "Victoria (Penaltis)" : "Derrota (Penaltis)"
+    : outcome === "win" ? "Victoria" : outcome === "loss" ? "Derrota" : "Empate"
 
   return {
     match,

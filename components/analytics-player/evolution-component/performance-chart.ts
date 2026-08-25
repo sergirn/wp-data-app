@@ -1,4 +1,5 @@
 import type { Player } from "@/lib/types"
+import { getOpponentScore } from "@/lib/matches/score"
 
 export interface MatchStatsWithMatch {
   id: number
@@ -39,7 +40,7 @@ export function buildEvolutionData(matchStats: MatchStatsWithMatch[], player: Pl
     const shortDate = `${matchDate.getDate()}/${matchDate.getMonth() + 1}`
 
     if (player.is_goalkeeper) {
-      const rivalGoals = stat.matches.is_home ? stat.matches.away_score : stat.matches.home_score
+      const rivalGoals = getOpponentScore(stat.matches)
       const paradas = stat.portero_paradas_totales || 0
       const totalShots = paradas + (rivalGoals || 0)
       const savePercentage = totalShots > 0 ? Math.round((paradas / totalShots) * 100) : 0

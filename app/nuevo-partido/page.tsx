@@ -33,6 +33,13 @@ import { useMatchAutosave } from "@/hooks/useMatchAutosave";
 import { loadBestMatchDraft } from "@/lib/match-draft-client";
 import type { MatchDraftPayload } from "@/lib/match-drafts";
 import { MatchChronology } from "@/components/match-actions/MatchChronology";
+import { MatchSaveError, saveMatchBundle, stripManagedStatFields, type MatchSavePayload } from "@/lib/matches/reliable-save";
+import {
+	calculateMatchScore,
+	FIELD_GOAL_ACTIONS,
+	GOALKEEPER_CONCEDED_ACTIONS,
+	GOALKEEPER_SCORED_ACTIONS
+} from "@/lib/matches/calculate-match-score";
 
 interface MatchEditParams {
 	matchId?: string;
@@ -41,28 +48,6 @@ interface MatchEditParams {
 }
 
 type DraftQuarter = 1 | 2 | 3 | 4;
-
-const FIELD_GOAL_ACTIONS = new Set<keyof MatchStats>([
-	"goles_boya_jugada",
-	"goles_hombre_mas",
-	"goles_lanzamiento",
-	"goles_dir_mas_5m",
-	"goles_contraataque",
-	"goles_penalti_anotado",
-	"gol_del_palo_sup"
-]);
-
-const GOALKEEPER_GOAL_ACTIONS = new Set<keyof MatchStats>([
-	"portero_goles_boya_parada",
-	"portero_goles_hombre_menos",
-	"portero_goles_dir_mas_5m",
-	"portero_goles_contraataque",
-	"portero_goles_penalti",
-	"portero_gol",
-	"portero_gol_superioridad",
-	"portero_goles_lanzamiento",
-	"portero_gol_palo"
-]);
 
 type NewMatchDraftPayload = MatchDraftPayload & {
 	schemaVersion: 1;
@@ -173,6 +158,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const [initialDraftExpiresAt, setInitialDraftExpiresAt] = useState<string | null>(null);
 	const [draftRecovered, setDraftRecovered] = useState(false);
 	const [activeDraftKey, setActiveDraftKey] = useState<string | null>(null);
+	const initialPenaltySavesRef = useRef<Record<number, number>>({});
 
 	const playersById = useMemo(() => {
 		const m = new Map<number, Player>();
@@ -248,40 +234,6 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}
 	}, [penaltyShooters, rivalPenalties]);
 
-	const calculateScores = (playerStats: Record<number, Partial<MatchStats>>, playersById: Map<number, Player>) => {
-		let homeGoals = 0;
-		let awayGoals = 0;
-
-		for (const [playerIdStr, playerStat] of Object.entries(playerStats)) {
-			const playerId = Number(playerIdStr);
-			const player = playersById.get(playerId);
-
-			if (player?.is_goalkeeper) {
-				if (isStatVisible("portero_gol")) {
-					homeGoals += playerStat.portero_gol || 0;
-				}
-
-				const goalkeeperGoals = sumVisibleStats(playerStat, [
-					"portero_goles_boya_parada",
-					"portero_goles_hombre_menos",
-					"portero_goles_dir_mas_5m",
-					"portero_goles_contraataque",
-					"portero_goles_lanzamiento",
-					"portero_gol_palo",
-					"portero_goles_penalti"
-				]);
-
-				awayGoals += goalkeeperGoals;
-			} else {
-				if (isStatVisible("goles_totales")) {
-					homeGoals += playerStat.goles_totales || 0;
-				}
-			}
-		}
-
-		return { homeGoals, awayGoals };
-	};
-
 	useEffect(() => {
 		async function initializeFromParams() {
 			const params = await searchParams;
@@ -295,7 +247,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				setLoading(false);
 				return;
 			}
-			await loadPlayers();
+			await loadPlayers(params.matchId ? Number(params.matchId) : null);
 			await loadPreviousMatches();
 
 			if (params.matchId) {
@@ -438,7 +390,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}
 	};
 
-	const loadPlayers = async () => {
+	const loadPlayers = async (matchId: number | null = null) => {
 		if (!supabase) return;
 
 		try {
@@ -463,11 +415,37 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				return;
 			}
 
-			const availablePlayers = editingMatchId ? data : data.filter((player) => player.is_active !== false);
+			let availablePlayers = matchId ? data : data.filter((player) => player.is_active !== false);
+
+			if (!matchId) {
+				const { data: activeSeason, error: seasonError } = await supabase
+					.from("club_seasons")
+					.select("id, name")
+					.eq("club_id", profileData.club_id)
+					.eq("status", "active")
+					.maybeSingle();
+
+				if (!seasonError && activeSeason) {
+					setSeason(activeSeason.name);
+					const { data: rosterRows, error: rosterError } = await supabase
+						.from("player_seasons")
+						.select("number, is_goalkeeper, players:player_id(*)")
+						.eq("club_season_id", activeSeason.id)
+						.eq("is_active", true)
+						.order("number");
+
+					if (!rosterError && rosterRows) {
+						availablePlayers = rosterRows.flatMap((row) => {
+							const relation = Array.isArray(row.players) ? row.players[0] : row.players;
+							return relation ? [{ ...relation, number: row.number, is_goalkeeper: row.is_goalkeeper, is_active: true } as Player] : [];
+						});
+					}
+				}
+			}
 			setAllPlayers(availablePlayers);
 
 			// Solo inicializamos los 14 primeros jugadores si estamos creando un partido NUEVO
-			if (!editingMatchId) {
+			if (!matchId) {
 				const initialActiveIds = availablePlayers.slice(0, 14).map((p) => p.id);
 				setActivePlayerIds(initialActiveIds);
 
@@ -672,6 +650,20 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				return;
 			}
 
+			if (match.season_id) {
+				const { data: rosterRows } = await supabase
+					.from("player_seasons")
+					.select("number, is_goalkeeper, players:player_id(*)")
+					.eq("club_season_id", match.season_id)
+					.order("number");
+				if (rosterRows && rosterRows.length > 0) {
+					setAllPlayers(rosterRows.flatMap((row) => {
+						const relation = Array.isArray(row.players) ? row.players[0] : row.players;
+						return relation ? [{ ...relation, number: row.number, is_goalkeeper: row.is_goalkeeper } as Player] : [];
+					}));
+				}
+			}
+
 			setExistingMatch(match);
 			setMatchDate(match.match_date);
 			setOpponent(match.opponent);
@@ -754,6 +746,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			if (penaltyError) {
 				console.error("Error loading penalty shooters:", penaltyError);
 			} else if (penaltyPlayers) {
+				initialPenaltySavesRef.current = penaltyPlayers
+					.filter((penalty) => penalty.result_type === "saved" && penalty.goalkeeper_id)
+					.reduce<Record<number, number>>((counts, penalty) => {
+						const goalkeeperId = Number(penalty.goalkeeper_id);
+						counts[goalkeeperId] = (counts[goalkeeperId] ?? 0) + 1;
+						return counts;
+					}, {});
 				setPenaltyShooters(
 					penaltyPlayers
 						.filter((p) => p.player_id !== null)
@@ -899,8 +898,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const adjustQuarterScore = (quarter: DraftQuarter, playerId: number, field: keyof MatchStats, delta: number) => {
 		if (delta === 0) return;
 		const player = playersById.get(playerId);
-		const side = player?.is_goalkeeper && GOALKEEPER_GOAL_ACTIONS.has(field)
+		const side = player?.is_goalkeeper && GOALKEEPER_CONCEDED_ACTIONS.has(field)
 			? "away"
+			: player?.is_goalkeeper && GOALKEEPER_SCORED_ACTIONS.has(field)
+				? "home"
 			: !player?.is_goalkeeper && FIELD_GOAL_ACTIONS.has(field)
 				? "home"
 				: null;
@@ -982,53 +983,27 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		setActiveQuarter((current) => current === quarter ? null : current);
 	};
 
-	function buildPenaltyRows(args: {
-		matchId: number;
-		penaltyShooters: PenaltyShooter[];
-		rivalPenalties: RivalPenalty[];
-		penaltyGoalkeeperMap: Record<number, number>;
-	}) {
-		const { matchId, penaltyShooters, rivalPenalties, penaltyGoalkeeperMap } = args;
-
-		const homeRows = penaltyShooters.map((s, index) => ({
-			match_id: matchId,
-			player_id: Number(s.playerId),
+	function buildPenaltyRows() {
+		const homeRows = penaltyShooters.map((shooter, index) => ({
+			player_id: Number(shooter.playerId),
 			shot_order: index + 1,
-			scored: !!s.scored,
-			result_type: s.scored ? "scored" : "missed",
+			scored: Boolean(shooter.scored),
+			result_type: shooter.scored ? "scored" as const : "missed" as const,
 			goalkeeper_id: null
 		}));
-
 		const baseOrder = homeRows.length;
-
-		const rivalRows = rivalPenalties.map((p, index) => {
-			const result = p.result ?? "missed";
-			const isSaved = result === "saved";
-			const isScored = result === "scored";
-
+		const rivalRows = rivalPenalties.map((penalty, index) => {
+			const result = penalty.result ?? "missed";
 			return {
-				match_id: matchId,
 				player_id: null,
 				shot_order: baseOrder + index + 1,
-				scored: isScored,
+				scored: result === "scored",
 				result_type: result,
-				goalkeeper_id: isSaved ? (penaltyGoalkeeperMap[p.id] ?? null) : null
+				goalkeeper_id: result === "saved" ? (penaltyGoalkeeperMap[penalty.id] ?? null) : null
 			};
 		});
 
 		return [...homeRows, ...rivalRows];
-	}
-
-	function buildMatchActionRows(matchId: number) {
-		return matchActions.map((action) => ({
-			client_id: action.client_id,
-			match_id: matchId,
-			player_id: action.player_id,
-			quarter: action.quarter,
-			sequence: action.sequence,
-			action_key: action.action_key,
-			created_by: profile?.id ?? null
-		}));
 	}
 
 	const handleSave = async () => {
@@ -1050,9 +1025,22 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			return;
 		}
 
-		const { homeGoals, awayGoals } = calculateScores(stats, playersById);
-
-		const isTied = homeGoals === awayGoals;
+		const { ownGoals: homeGoals, opponentGoals: awayGoals } = calculateMatchScore(stats, playersById);
+		const quarterOwnGoals = Object.values(quarterScores).reduce((total, quarter) => total + safeNumber(quarter.home), 0);
+		const quarterOpponentGoals = Object.values(quarterScores).reduce((total, quarter) => total + safeNumber(quarter.away), 0);
+		if (quarterOwnGoals !== homeGoals || quarterOpponentGoals !== awayGoals) {
+			toast({
+				title: t("scoreMismatchTitle"),
+				description: t("scoreMismatchDescription", {
+					ownTotal: homeGoals,
+					ownPeriods: quarterOwnGoals,
+					opponentTotal: awayGoals,
+					opponentPeriods: quarterOpponentGoals
+				}),
+				variant: "destructive"
+			});
+			return;
+		}
 
 		const hasAnyPenaltyData = penaltyHomeScore !== null || penaltyAwayScore !== null || penaltyShooters.length > 0 || rivalPenalties.length > 0;
 
@@ -1078,25 +1066,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}
 
 		setSaving(true);
-		let createdMatchId: number | null = null;
 
 		try {
-			const homeQ1 = quarterScores[1].home;
-			const awayQ1 = quarterScores[1].away;
-			const homeQ2 = quarterScores[2].home;
-			const awayQ2 = quarterScores[2].away;
-			const homeQ3 = quarterScores[3].home;
-			const awayQ3 = quarterScores[3].away;
-			const homeQ4 = quarterScores[4].home;
-			const awayQ4 = quarterScores[4].away;
-
-			const sprint1Winner = sprintWinners[1];
-			const sprint2Winner = sprintWinners[2];
-			const sprint3Winner = sprintWinners[3];
-			const sprint4Winner = sprintWinners[4];
-			// </CHANGE>
-
-			// Calculate penalty saves for goalkeepers
 			const penaltySavesByGoalkeeper: Record<number, number> = {};
 			rivalPenalties.forEach((penalty) => {
 				if (penalty.result === "saved" && penaltyGoalkeeperMap[penalty.id]) {
@@ -1105,218 +1076,93 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				}
 			});
 
-			const statsForSave: Record<number, Partial<MatchStats>> = { ...stats };
-
-			for (const [playerId] of Object.entries(statsForSave)) {
-				const player = playersById.get(Number(playerId));
-				if (player?.is_goalkeeper && penaltySavesByGoalkeeper[player.id]) {
-					const prev = statsForSave[player.id] ?? {};
-					statsForSave[player.id] = {
-						...prev,
-						portero_paradas_penalti_parado: (prev.portero_paradas_penalti_parado ?? 0) + penaltySavesByGoalkeeper[player.id]
-					};
+			const statsForSave: Record<number, Partial<MatchStats>> = {};
+			for (const playerId of activePlayerIds) {
+				const currentStats = { ...(stats[playerId] ?? createEmptyStats(playerId)), player_id: playerId };
+				const player = playersById.get(playerId);
+				if (player?.is_goalkeeper) {
+					const previousAutomatic = initialPenaltySavesRef.current[playerId] ?? 0;
+					const currentAutomatic = penaltySavesByGoalkeeper[playerId] ?? 0;
+					const valueWithoutPreviousAutomatic = Math.max(0, safeNumber(currentStats.portero_paradas_penalti_parado) - previousAutomatic);
+					currentStats.portero_paradas_penalti_parado = valueWithoutPreviousAutomatic + currentAutomatic;
 				}
+				statsForSave[playerId] = currentStats;
 			}
 
-			const maxPlayers = fieldPlayers.length;
+			const penalties = homeGoals === awayGoals ? buildPenaltyRows() : [];
+			const payload: MatchSavePayload = {
+				draft_key: activeDraftKey,
+				match: {
+					id: editingMatchId,
+					club_id: profile.club_id,
+					match_date: matchDate,
+					opponent: opponent.trim(),
+					location: location.trim() || null,
+					home_score: homeGoals,
+					away_score: awayGoals,
+					is_home: isHome,
+					season: season.trim() || null,
+					jornada: jornada || null,
+					notes: notes.trim() || null,
+					q1_score: quarterScores[1].home,
+					q2_score: quarterScores[2].home,
+					q3_score: quarterScores[3].home,
+					q4_score: quarterScores[4].home,
+					q1_score_rival: quarterScores[1].away,
+					q2_score_rival: quarterScores[2].away,
+					q3_score_rival: quarterScores[3].away,
+					q4_score_rival: quarterScores[4].away,
+					sprint1_winner: sprintWinners[1] == null ? -1 : 1,
+					sprint2_winner: sprintWinners[2] == null ? -1 : 1,
+					sprint3_winner: sprintWinners[3] == null ? -1 : 1,
+					sprint4_winner: sprintWinners[4] == null ? -1 : 1,
+					sprint1_winner_player_id: sprintWinners[1],
+					sprint2_winner_player_id: sprintWinners[2],
+					sprint3_winner_player_id: sprintWinners[3],
+					sprint4_winner_player_id: sprintWinners[4],
+					max_players_on_field: fieldPlayers.length,
+					penalty_home_score: homeGoals === awayGoals ? penaltyHomeScore : null,
+					penalty_away_score: homeGoals === awayGoals ? penaltyAwayScore : null,
+					competition_id: competitionId ? Number(competitionId) : null,
+					stats_enabled: existingMatch?.stats_enabled ?? true
+				},
+				stats: activePlayerIds.map((playerId) => stripManagedStatFields(statsForSave[playerId] as Record<string, unknown>)) as MatchSavePayload["stats"],
+				actions: matchActions.map((action) => ({
+					client_id: action.client_id,
+					player_id: action.player_id,
+					quarter: action.quarter,
+					sequence: action.sequence,
+					action_key: action.action_key
+				})),
+				penalties,
+				goalkeeper_shots: goalkeeperShots.map((shot) => ({
+					goalkeeper_player_id: shot.goalkeeper_player_id,
+					quarter: shot.quarter ?? null,
+					shot_index: shot.shot_index,
+					result: shot.result,
+					x: shot.x,
+					y: shot.y
+				}))
+			};
 
-			if (editingMatchId && existingMatch) {
-				const { error: matchError } = await supabase
-					.from("matches")
-					.update({
-						match_date: matchDate,
-						opponent,
-						location: location || null,
-						home_score: homeGoals,
-						away_score: awayGoals,
-						is_home: isHome,
-						season: season || null,
-						jornada: jornada || null,
-						notes: notes || null,
-						q1_score: homeQ1,
-						q2_score: homeQ2,
-						q3_score: homeQ3,
-						q4_score: homeQ4,
-						q1_score_rival: awayQ1,
-						q2_score_rival: awayQ2,
-						q3_score_rival: awayQ3,
-						q4_score_rival: awayQ4,
-						sprint1_winner: sprint1Winner === 1 ? 1 : sprint1Winner === 2 ? 2 : null,
-						sprint2_winner: sprint2Winner === 1 ? 1 : sprint2Winner === 2 ? 2 : null,
-						sprint3_winner: sprint3Winner === 1 ? 1 : sprint3Winner === 2 ? 2 : null,
-						sprint4_winner: sprint4Winner === 1 ? 1 : sprint4Winner === 2 ? 2 : null,
-						sprint1_winner_player_id: sprintWinners[1],
-						sprint2_winner_player_id: sprintWinners[2],
-						sprint3_winner_player_id: sprintWinners[3],
-						sprint4_winner_player_id: sprintWinners[4],
-						max_players_on_field: maxPlayers,
-						penalty_home_score: homeGoals === awayGoals ? penaltyHomeScore : null,
-						penalty_away_score: homeGoals === awayGoals ? penaltyAwayScore : null,
-						competition_id: competitionId ? Number(competitionId) : null
-					})
-					.eq("id", editingMatchId);
-
-				if (matchError) throw matchError;
-
-				const { error: deleteStatsError } = await supabase.from("match_stats").delete().eq("match_id", editingMatchId);
-				if (deleteStatsError) throw deleteStatsError;
-
-				const statsToInsert = activePlayerIds.map((playerId) => ({
-					...statsForSave[playerId],
-					match_id: editingMatchId
-				}));
-
-				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
-
-				if (statsError) throw statsError;
-
-				const { error: deleteActionsError } = await supabase.from("match_actions").delete().eq("match_id", editingMatchId);
-				if (deleteActionsError) throw deleteActionsError;
-
-				const actionRows = buildMatchActionRows(editingMatchId);
-				if (actionRows.length > 0) {
-					const { error: actionsError } = await supabase.from("match_actions").insert(actionRows);
-					if (actionsError) throw actionsError;
-				}
-
-				if (homeGoals === awayGoals) {
-					const { error: deletePenaltiesError } = await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
-					if (deletePenaltiesError) throw deletePenaltiesError;
-
-					const rows = buildPenaltyRows({
-						matchId: editingMatchId,
-						penaltyShooters,
-						rivalPenalties,
-						penaltyGoalkeeperMap
-					});
-
-					if (rows.length > 0) {
-						const { error: penErr } = await supabase.from("penalty_shootout_players").insert(rows);
-						if (penErr) throw penErr;
-					}
-				} else {
-					const { error: deletePenaltiesError } = await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
-					if (deletePenaltiesError) throw deletePenaltiesError;
-				}
-
-				const { error: deleteShotsError } = await supabase.from("goalkeeper_shots").delete().eq("match_id", editingMatchId);
-				if (deleteShotsError) throw deleteShotsError;
-
-				if (goalkeeperShots.length > 0) {
-					const rows = goalkeeperShots.map((s) => ({
-						match_id: editingMatchId,
-						goalkeeper_player_id: s.goalkeeper_player_id,
-						quarter: s.quarter ?? null,
-						shot_index: s.shot_index,
-						result: s.result,
-						x: s.x,
-						y: s.y
-					}));
-
-					const { error: gkShotsError } = await supabase.from("goalkeeper_shots").insert(rows);
-					if (gkShotsError) throw gkShotsError;
-				}
-
-				await autosave.clearDraft().catch((error) => console.error("Error deleting saved draft:", error));
-				router.push(`/partidos/${editingMatchId}`);
-			} else {
-				const { data: newMatch, error: matchError } = await supabase
-					.from("matches")
-					.insert({
-						club_id: profile.club_id,
-						match_date: matchDate,
-						opponent,
-						is_home: isHome,
-						location: location || null,
-						season: season || null,
-						jornada: jornada || null,
-						home_score: homeGoals,
-						away_score: awayGoals,
-						q1_score: homeQ1,
-						q2_score: homeQ2,
-						q3_score: homeQ3,
-						q4_score: homeQ4,
-						q1_score_rival: awayQ1,
-						q2_score_rival: awayQ2,
-						q3_score_rival: awayQ3,
-						q4_score_rival: awayQ4,
-						sprint1_winner: sprint1Winner === 1 ? 1 : sprint1Winner === 2 ? 2 : null,
-						sprint2_winner: sprint2Winner === 1 ? 1 : sprint2Winner === 2 ? 2 : null,
-						sprint3_winner: sprint3Winner === 1 ? 1 : sprint3Winner === 2 ? 2 : null,
-						sprint4_winner: sprint4Winner === 1 ? 1 : sprint4Winner === 2 ? 2 : null,
-						sprint1_winner_player_id: sprintWinners[1],
-						sprint2_winner_player_id: sprintWinners[2],
-						sprint3_winner_player_id: sprintWinners[3],
-						sprint4_winner_player_id: sprintWinners[4],
-						max_players_on_field: maxPlayers,
-						notes: notes || null,
-						penalty_home_score: homeGoals === awayGoals ? penaltyHomeScore : null,
-						penalty_away_score: homeGoals === awayGoals ? penaltyAwayScore : null,
-						competition_id: competitionId ? Number(competitionId) : null
-					})
-					.select()
-					.single();
-
-				if (matchError) throw matchError;
-				createdMatchId = newMatch.id;
-
-				const statsToInsert = activePlayerIds.map((playerId) => ({
-					...statsForSave[playerId],
-					match_id: newMatch.id
-				}));
-
-				const { error: statsError } = await supabase.from("match_stats").insert(statsToInsert);
-
-				if (statsError) throw statsError;
-
-				const actionRows = buildMatchActionRows(newMatch.id);
-				if (actionRows.length > 0) {
-					const { error: actionsError } = await supabase.from("match_actions").insert(actionRows);
-					if (actionsError) throw actionsError;
-				}
-
-				if (newMatch && homeGoals === awayGoals) {
-					const rows = buildPenaltyRows({
-						matchId: newMatch.id,
-						penaltyShooters,
-						rivalPenalties,
-						penaltyGoalkeeperMap
-					});
-
-					if (rows.length > 0) {
-						const { error: penErr } = await supabase.from("penalty_shootout_players").insert(rows);
-						if (penErr) throw penErr;
-					}
-				}
-
-				if (goalkeeperShots.length > 0) {
-					const rows = goalkeeperShots.map((s) => ({
-						match_id: newMatch.id,
-						goalkeeper_player_id: s.goalkeeper_player_id,
-						quarter: s.quarter ?? null,
-						shot_index: s.shot_index,
-						result: s.result,
-						x: s.x,
-						y: s.y
-					}));
-					const { error: gkShotsError } = await supabase.from("goalkeeper_shots").insert(rows);
-					if (gkShotsError) throw gkShotsError;
-				}
-
-				await autosave.clearDraft().catch((error) => console.error("Error deleting saved draft:", error));
-				router.push(`/partidos/${newMatch.id}`);
-			}
+			const result = await saveMatchBundle(supabase, payload, editingMatchId ? (existingMatch?.version ?? 1) : null);
+			await autosave.clearDraft().catch((error) => console.error("Error deleting saved draft locally:", error));
+			router.push(`/partidos/${result.matchId}`);
 		} catch (error) {
 			console.error("Error saving match:", error);
-			if (createdMatchId !== null) {
-				// Best-effort rollback: avoid leaving a partially created match.
-				await supabase.from("goalkeeper_shots").delete().eq("match_id", createdMatchId);
-				await supabase.from("penalty_shootout_players").delete().eq("match_id", createdMatchId);
-				await supabase.from("match_stats").delete().eq("match_id", createdMatchId);
-				const { error: rollbackError } = await supabase.from("matches").delete().eq("id", createdMatchId);
-				if (rollbackError) console.error("Error rolling back incomplete match:", rollbackError);
-			}
-			alert(t("saveError"));
+			const errorCode = error instanceof MatchSaveError ? error.code : "SAVE_FAILED";
+			const messageKey = errorCode === "MATCH_VERSION_CONFLICT"
+				? "saveErrors.versionConflict"
+				: errorCode === "SAVE_RPC_NOT_INSTALLED"
+					? "saveErrors.rpcMissing"
+					: errorCode === "FORBIDDEN" || errorCode === "AUTH_REQUIRED"
+						? "saveErrors.permission"
+						: errorCode === "PLAYER_OUTSIDE_CLUB" || errorCode === "PLAYER_OUTSIDE_LINEUP"
+							? "saveErrors.invalidPlayer"
+							: errorCode === "INVALID_PAYLOAD" || errorCode === "DUPLICATE_PLAYERS" || errorCode === "DUPLICATE_ACTIONS" || errorCode === "DUPLICATE_PENALTY_ORDER"
+								? "saveErrors.invalidData"
+								: "saveErrors.generic";
+			toast({ title: t("saveError"), description: t(messageKey), variant: "destructive" });
 		} finally {
 			setSaving(false);
 		}
@@ -1349,10 +1195,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		return isGoalkeeper ? availableGoalkeepers : availableFieldPlayers;
 	};
 
-	const score = useMemo(() => calculateScores(stats, playersById), [stats, playersById]);
+	const score = useMemo(() => calculateMatchScore(stats, playersById), [stats, playersById]);
 
-	const homeGoals = score.homeGoals;
-	const awayGoals = score.awayGoals;
+	const homeGoals = score.ownGoals;
+	const awayGoals = score.opponentGoals;
 	const isTied = homeGoals === awayGoals;
 
 	const homeTeamName = myClub?.name || t("myTeam");
@@ -1607,7 +1453,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 									<div className="space-y-2">
 										<Label htmlFor="season">{t("season")}</Label>
-										<Input id="season" value={season} onChange={(e) => setSeason(e.target.value)} />
+										<Input id="season" value={season} readOnly className="bg-muted/40" />
 									</div>
 								</div>
 							</div>

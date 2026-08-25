@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import type { Match } from "@/lib/types";
 import { useTranslations } from "next-intl";
+import { getMatchOutcome } from "@/lib/matches/score";
 
 interface MatchResultsChartProps {
 	matches: Match[];
@@ -51,9 +52,10 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: any[] 
 
 export function MatchResultsChart({ matches }: MatchResultsChartProps) {
 	const t = useTranslations("MatchResults");
-	const wins = matches.filter((m) => m.home_score > m.away_score).length;
-	const draws = matches.filter((m) => m.home_score === m.away_score).length;
-	const losses = matches.filter((m) => m.home_score < m.away_score).length;
+	const outcomes = matches.map(getMatchOutcome);
+	const wins = outcomes.filter((outcome) => outcome === "win").length;
+	const draws = outcomes.filter((outcome) => outcome === "draw").length;
+	const losses = outcomes.filter((outcome) => outcome === "loss").length;
 
 	const total = matches.length || 0;
 

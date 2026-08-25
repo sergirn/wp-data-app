@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, PlusCircle, Calendar, UsersRound, BarChart3 } from "lucide-react";
+import { Home, PlusCircle, Calendar, UsersRound, BarChart3, Swords } from "lucide-react";
 
 const NAV_LINKS = [
 	{ href: "/", icon: Home },
 	{ href: "/partidos", icon: Calendar },
+	{ href: "/rivales", icon: Swords },
 	{ href: "/nuevo-partido", icon: PlusCircle, isMain: true },
 	{ href: "/jugadores", icon: UsersRound },
 	{ href: "/analytics", icon: BarChart3 }
@@ -38,7 +39,7 @@ export function BottomNavigation({ canEdit, onNavigate }: BottomNavigationProps)
 				{NAV_LINKS.map(({ href, icon: Icon, isMain }) => {
 					if (href === "/nuevo-partido" && !canEdit) return null;
 
-					const active = pathname === href;
+					const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
 					return (
 						<Link

@@ -10,9 +10,10 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Player, Profile } from "@/lib/types";
 import { useClub } from "@/lib/club-context";
-import { Info, Loader2, Mail, Palette, Settings2, Shield, User, Users } from "lucide-react";
+import { CalendarRange, Info, Loader2, Mail, Palette, Settings2, Shield, User, Users } from "lucide-react";
 import { StatWeightsConfig } from "@/components/StatWeightsConfig";
 import { EditPlayersPanel } from "@/components/players-components/EditPlayersPanel";
+import { SeasonManagementPanel } from "@/components/seasons/SeasonManagementPanel";
 import { useTranslations } from "next-intl";
 
 export default function AjustesPage() {
@@ -37,6 +38,7 @@ export default function AjustesPage() {
 	const [playersError, setPlayersError] = useState<string | null>(null);
 
 	const managedClubId = currentClub?.id ?? profile?.club_id ?? null;
+	const canManageClub = profile?.is_super_admin === true || profile?.role === "admin" || profile?.role === "coach";
 
 	const loadClubPlayers = useCallback(
 		async (clubId: number) => {
@@ -129,10 +131,15 @@ export default function AjustesPage() {
 					</header>
 
 					<Tabs defaultValue="general" className="min-w-0 space-y-5">
-						<TabsList className="grid h-auto w-full grid-cols-3 rounded-xl p-1 sm:max-w-2xl">
+						<TabsList className="flex h-auto w-full justify-start overflow-x-auto rounded-xl p-1 lg:grid lg:max-w-4xl lg:grid-cols-4">
 							<TabsTrigger value="general" className="gap-2 py-2.5">
 								<User className="h-4 w-4" />
 								{settings("generalTab")}
+							</TabsTrigger>
+
+							<TabsTrigger value="seasons" className="min-w-40 gap-2 py-2.5 lg:min-w-0">
+								<CalendarRange className="h-4 w-4" />
+								{settings("seasonsTab")}
 							</TabsTrigger>
 
 							<TabsTrigger value="statistics" className="gap-2 py-2.5">
@@ -271,6 +278,18 @@ export default function AjustesPage() {
 									</Card>
 								</div>
 							</div>
+						</TabsContent>
+
+						{/* SEASONS */}
+						<TabsContent value="seasons" className="min-w-0">
+							<SeasonManagementPanel
+								clubId={managedClubId}
+								players={players}
+								canManage={canManageClub}
+								onChanged={async () => {
+									if (managedClubId) await loadClubPlayers(managedClubId);
+								}}
+							/>
 						</TabsContent>
 
 						{/* STATISTICS */}

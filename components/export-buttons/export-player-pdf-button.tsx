@@ -17,7 +17,7 @@ function getFilenameFromDisposition(disposition: string | null) {
 	return null;
 }
 
-export function ExportPlayerPdfButton({ playerId }: { playerId: number | string }) {
+export function ExportPlayerPdfButton({ playerId, season }: { playerId: number | string; season?: string }) {
 	const t = useTranslations("Export");
 	const [loading, setLoading] = useState(false);
 
@@ -25,7 +25,8 @@ export function ExportPlayerPdfButton({ playerId }: { playerId: number | string 
 		try {
 			setLoading(true);
 
-			const response = await fetch(`/api/players/${playerId}/export/pdf`, {
+			const query = season ? `?season=${encodeURIComponent(season)}` : "";
+			const response = await fetch(`/api/players/${playerId}/export/pdf${query}`, {
 				method: "GET"
 			});
 

@@ -1,7 +1,16 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-const PUBLIC_ROUTES = ["/auth/login", "/auth/signup"]
+const PUBLIC_ROUTES = [
+  "/auth/login",
+  "/auth/signup",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/callback",
+  "/api/auth/forgot-password",
+]
+
+const GUEST_ONLY_ROUTES = ["/auth/login", "/auth/signup", "/auth/forgot-password"]
 
 export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -14,7 +23,10 @@ export async function proxy(request: NextRequest) {
 
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = "/auth/login"
-    return request.nextUrl.pathname === "/auth/login"
+    const isPublicRoute = PUBLIC_ROUTES.some(
+      (route) => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`),
+    )
+    return isPublicRoute
       ? NextResponse.next()
       : NextResponse.redirect(loginUrl)
   }
@@ -53,7 +65,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  if (user && isPublicRoute) {
+  const isGuestOnlyRoute = GUEST_ONLY_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  )
+
+  if (user && isGuestOnlyRoute) {
     const homeUrl = request.nextUrl.clone()
     homeUrl.pathname = "/"
     homeUrl.search = ""

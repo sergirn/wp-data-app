@@ -40,6 +40,7 @@ import { GoalkeeperRankingTable } from "@/components/analytics/goalkeeper-analyt
 import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
 import { useHiddenStats } from "@/hooks/useHiddenStats";
 import { useTranslations } from "next-intl";
+import { SeasonSelector } from "@/components/season-selector";
 
 export default function AnalyticsPage() {
 	const t = useTranslations("Pages");
@@ -76,22 +77,26 @@ export default function AnalyticsPage() {
 			try {
 				const supabase = createClient();
 
-				const [seasonsResult, playersResult] = await Promise.all([
+				const [seasonsResult, managedSeasonsResult, playersResult] = await Promise.all([
 					supabase
 						.from("matches")
 						.select("season")
 						.eq("club_id", currentClub.id)
 						.not("season", "is", null)
 						.order("season", { ascending: false }),
+					supabase.from("club_seasons").select("name, status, start_year").eq("club_id", currentClub.id).order("start_year", { ascending: false }),
 					supabase.from("players").select("*").eq("club_id", currentClub.id)
 				]);
 
 				if (abortController.signal.aborted || !isMounted) return;
 
-				const uniqueSeasons = [...new Set(seasonsResult.data?.map((m) => m.season).filter(Boolean))] as string[];
+				const legacySeasons = [...new Set(seasonsResult.data?.map((m) => m.season).filter(Boolean))] as string[];
+				const managedSeasons = managedSeasonsResult.error ? [] : (managedSeasonsResult.data ?? []).map((season) => season.name);
+				const uniqueSeasons = [...new Set([...managedSeasons, ...legacySeasons])];
 				setSeasons(uniqueSeasons);
 
-				const season = seasonParam || uniqueSeasons[0] || "2024-2025";
+				const activeSeason = managedSeasonsResult.error ? null : managedSeasonsResult.data?.find((season) => season.status === "active")?.name;
+				const season = seasonParam && uniqueSeasons.includes(seasonParam) ? seasonParam : activeSeason || uniqueSeasons[0] || "2024-2025";
 				setSelectedSeason(season);
 
 				const [matchesResult, statsResult] = await Promise.all([
@@ -258,6 +263,7 @@ export default function AnalyticsPage() {
 					{a("seasonDescription", { club: currentClub?.short_name || "", season: selectedSeason })}
 					</p>
 				</div>
+				{seasons.length > 0 && <SeasonSelector seasons={seasons} selectedSeason={selectedSeason} />}
 			</div>
 
 			<section className="mb-8">

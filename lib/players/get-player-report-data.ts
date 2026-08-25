@@ -9,6 +9,7 @@ import {
   getGoalkeeperDerived,
   accumulateGoalkeeperStats,
 } from "@/lib/stats/goalkeeperStatsHelpers"
+import { getOpponentScore } from "@/lib/matches/score"
 
 function gkN(v: any) {
   return Number.isFinite(Number(v)) ? Number(v) : 0
@@ -28,7 +29,7 @@ export async function getHiddenStatsForProfile(profileId?: string | null) {
   return data?.map((row) => row.stat_key) ?? []
 }
 
-export async function getPlayerTotalsReportData(playerId: number, profile: Profile) {
+export async function getPlayerTotalsReportData(playerId: number, profile: Profile, season?: string) {
   const supabase = await createClient()
   if (!supabase) throw new Error("Supabase is not configured")
   const hiddenStats = await getHiddenStatsForProfile(profile.id)
@@ -48,26 +49,47 @@ export async function getPlayerTotalsReportData(playerId: number, profile: Profi
 
   if (playerError || !player) notFound()
 
-  const { data: matchStats } = await supabase
+  let reportPlayer = player
+  if (season) {
+    const { data: seasonRow } = await supabase
+      .from("club_seasons")
+      .select("id")
+      .eq("club_id", player.club_id)
+      .eq("name", season)
+      .maybeSingle()
+    if (seasonRow?.id) {
+      const { data: rosterEntry } = await supabase
+        .from("player_seasons")
+        .select("number, is_goalkeeper")
+        .eq("club_season_id", seasonRow.id)
+        .eq("player_id", playerId)
+        .maybeSingle()
+      if (rosterEntry) reportPlayer = { ...player, number: rosterEntry.number, is_goalkeeper: rosterEntry.is_goalkeeper }
+    }
+  }
+
+  let statsQuery = supabase
     .from("match_stats")
     .select(`
       *,
-      matches (*)
+      matches!inner (*)
     `)
     .eq("player_id", playerId)
-    .order("matches(match_date)", { ascending: false })
+    .eq("matches.stats_enabled", true)
+  if (season) statsQuery = statsQuery.eq("matches.season", season)
+  const { data: matchStats } = await statsQuery.order("matches(match_date)", { ascending: false })
 
   const rows = matchStats ?? []
   const matchCount = rows.length
 
-  if (player.is_goalkeeper) {
+  if (reportPlayer.is_goalkeeper) {
     const totalsBase = accumulateGoalkeeperStats(rows as Array<Record<string, any>>, hiddenStats)
 
     const goles_recibidos_reales = hiddenStats.includes("goles_recibidos_reales")
       ? 0
       : rows.reduce((acc: number, stat: any) => {
           const match = stat.matches
-          const rivalGoals = match ? (match.is_home ? match.away_score : match.home_score) : 0
+          const rivalGoals = match ? getOpponentScore(match) : 0
           return acc + gkN(rivalGoals)
         }, 0)
 
@@ -85,7 +107,7 @@ export async function getPlayerTotalsReportData(playerId: number, profile: Profi
 
     return {
       kind: "goalkeeper" as const,
-      player,
+      player: reportPlayer,
       hiddenStats,
       matchCount,
       totals,
@@ -104,7 +126,7 @@ export async function getPlayerTotalsReportData(playerId: number, profile: Profi
 
   return {
     kind: "field" as const,
-    player,
+    player: reportPlayer,
     hiddenStats,
     matchCount,
     totals,

@@ -12,6 +12,7 @@ import { PlayerRadarChart } from "@/components/analytics-player/RadarChartPlayer
 import { GoalkeeperRadarChart } from "@/components/analytics-goalkeeper/GoalkeeperRadarChart";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
 
 function getGoalkeeperGoalsConceded(stat: Record<string, unknown>) {
 	const recordedTotal = Number(stat.portero_goles_totales || 0);
@@ -37,6 +38,7 @@ export default function PlayersPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [matchStats, setMatchStats] = useState<any[]>([]);
+	const [activeSeason, setActiveSeason] = useState<string | null>(null);
 
 	useEffect(() => {
 		const abortController = new AbortController();
@@ -55,19 +57,58 @@ export default function PlayersPage() {
 			try {
 				const supabase = createClient();
 
-				const [playersResult, statsResult] = await Promise.all([
+				const activeSeasonResult = await supabase
+					.from("club_seasons")
+					.select("id, name")
+					.eq("club_id", currentClub.id)
+					.eq("status", "active")
+					.maybeSingle();
+
+				let season = activeSeasonResult.data as { id: number; name: string } | null;
+				if (!season) {
+					const { data: latestMatch } = await supabase
+						.from("matches")
+						.select("season")
+						.eq("club_id", currentClub.id)
+						.not("season", "is", null)
+						.order("match_date", { ascending: false })
+						.limit(1)
+						.maybeSingle();
+					if (latestMatch?.season) season = { id: 0, name: latestMatch.season };
+				}
+				setActiveSeason(season?.name ?? null);
+
+				let enabledMatchesQuery = supabase.from("matches").select("id").eq("club_id", currentClub.id).eq("stats_enabled", true);
+				if (season?.name) enabledMatchesQuery = enabledMatchesQuery.eq("season", season.name);
+
+				const [playersResult, enabledMatchesResult, rosterResult] = await Promise.all([
 					supabase.from("players").select("*").eq("club_id", currentClub.id).order("number"),
-					supabase
-						.from("match_stats")
-						.select("*")
-						.in("player_id", (await supabase.from("players").select("id").eq("club_id", currentClub.id)).data?.map((p) => p.id) || [])
+					enabledMatchesQuery,
+					season?.id
+						? supabase.from("player_seasons").select("player_id, number, is_goalkeeper, is_active").eq("club_season_id", season.id).eq("is_active", true)
+						: Promise.resolve({ data: null, error: null })
 				]);
 
 				if (abortController.signal.aborted || !isMounted) return;
 
 				if (playersResult.error) throw playersResult.error;
+				if (enabledMatchesResult.error) throw enabledMatchesResult.error;
 
-				const playersWithStats = playersResult.data?.map((player) => {
+				const basePlayers = playersResult.data ?? [];
+				const roster = rosterResult.data ?? [];
+				const rosterByPlayer = new Map(roster.map((entry) => [Number(entry.player_id), entry]));
+				const seasonPlayers = roster.length > 0
+					? basePlayers.filter((player) => rosterByPlayer.has(player.id)).map((player) => ({ ...player, ...rosterByPlayer.get(player.id), id: player.id }))
+					: basePlayers.filter((player) => player.is_active !== false);
+				const playerIds = seasonPlayers.map((player) => player.id);
+				const matchIds = (enabledMatchesResult.data ?? []).map((match) => match.id);
+				const statsResult = playerIds.length > 0 && matchIds.length > 0
+					? await supabase.from("match_stats").select("*").in("player_id", playerIds).in("match_id", matchIds)
+					: { data: [], error: null };
+
+				if (statsResult.error) throw statsResult.error;
+
+				const playersWithStats = seasonPlayers.map((player) => {
 					const playerStatsData = statsResult.data?.filter((s) => s.player_id === player.id) || [];
 
 					if (player.is_goalkeeper) {
@@ -159,9 +200,12 @@ export default function PlayersPage() {
 		<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
 			<div className="mb-6">
 				<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{t("players")}</h1>
-				<p className="text-sm sm:text-base text-muted-foreground">
-					{playersT("individualStats", { club: currentClub?.short_name || playersT("squad") })}
-				</p>
+				<div className="flex flex-wrap items-center gap-2">
+					<p className="text-sm sm:text-base text-muted-foreground">
+						{playersT("individualStats", { club: currentClub?.short_name || playersT("squad") })}
+					</p>
+					{activeSeason && <Badge variant="secondary">{playersT("activeSeason", { season: activeSeason })}</Badge>}
+				</div>
 			</div>
 
 			{activePlayers.length === 0 ? (

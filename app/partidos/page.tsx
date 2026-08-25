@@ -5,8 +5,10 @@ import type React from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
-import { Plus, Edit, CheckCircle2, PauseCircle, FileClock, Clock3, Trash2, Loader2 } from "lucide-react";
+import { Plus, Edit, CheckCircle2, PauseCircle, FileClock, Clock3, Trash2, Loader2, Search, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Match } from "@/lib/types";
 import { useClub } from "@/lib/club-context";
 import { useProfile } from "@/lib/profile-context";
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { deleteMatchDraft, listMatchDrafts } from "@/lib/match-draft-client";
 import type { MatchDraftPayload, MatchDraftRecord } from "@/lib/match-drafts";
+import { getMatchOutcome, getVenueScore } from "@/lib/matches/score";
 
 type MatchWithCompetition = Match & {
 	competitions?: { id: number; name: string; slug: string; image_url: string | null } | null;
@@ -47,6 +50,9 @@ type MatchListDraftPayload = MatchDraftPayload & {
 
 type MatchListDraft = MatchDraftRecord<MatchListDraftPayload>;
 
+type CompetitionOption = { id: number; name: string };
+const MATCHES_PER_PAGE = 10;
+
 export default function MatchesPage() {
 	const t = useTranslations("Pages");
 	const matchesT = useTranslations("Matches");
@@ -55,6 +61,20 @@ export default function MatchesPage() {
 	const [matches, setMatches] = useState<MatchWithCompetition[]>([]);
 	const [drafts, setDrafts] = useState<MatchListDraft[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadedOnce, setLoadedOnce] = useState(false);
+	const [totalMatches, setTotalMatches] = useState(0);
+	const [competitions, setCompetitions] = useState<CompetitionOption[]>([]);
+	const [search, setSearch] = useState("");
+	const [debouncedSearch, setDebouncedSearch] = useState("");
+	const [competitionFilter, setCompetitionFilter] = useState("all");
+	const [venueFilter, setVenueFilter] = useState("all");
+	const [statsFilter, setStatsFilter] = useState("all");
+	const [sortOrder, setSortOrder] = useState("date-desc");
+	const [seasons, setSeasons] = useState<string[]>([]);
+	const [seasonFilter, setSeasonFilter] = useState("");
+	const [activeSeason, setActiveSeason] = useState("");
+	const [seasonClubId, setSeasonClubId] = useState<number | null>(null);
+	const [page, setPage] = useState(1);
 	const [now, setNow] = useState(() => Date.now());
 
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
@@ -65,12 +85,22 @@ export default function MatchesPage() {
 	}, []);
 
 	useEffect(() => {
-		async function fetchData() {
+		const timeout = window.setTimeout(() => {
+			setDebouncedSearch(search.trim());
+			setPage(1);
+		}, 300);
+		return () => window.clearTimeout(timeout);
+	}, [search]);
+
+	useEffect(() => {
+		const abortController = new AbortController();
+		async function fetchMatches() {
+			if (!currentClub || seasonClubId !== currentClub.id) return;
 			setLoading(true);
 			setMatches([]);
-			setDrafts([]);
 
 			if (!currentClub) {
+				setTotalMatches(0);
 				setLoading(false);
 				return;
 			}
@@ -82,7 +112,7 @@ export default function MatchesPage() {
 					return;
 				}
 
-				const { data: matchesData, error } = await supabase
+				let query = supabase
 					.from("matches")
 					.select(
 						`
@@ -93,27 +123,101 @@ export default function MatchesPage() {
 						slug,
 						image_url
 						)
-					`
+						`,
+						{ count: "exact" }
 					)
-					.eq("club_id", currentClub.id)
-					.order("match_date", { ascending: false });
+					.eq("club_id", currentClub.id);
+
+				if (seasonFilter) query = query.eq("season", seasonFilter);
+				if (debouncedSearch) query = query.ilike("opponent", `%${debouncedSearch}%`);
+				if (competitionFilter !== "all") query = query.eq("competition_id", Number(competitionFilter));
+				if (venueFilter !== "all") query = query.eq("is_home", venueFilter === "home");
+				if (statsFilter !== "all") query = query.eq("stats_enabled", statsFilter === "enabled");
+
+				if (sortOrder === "date-asc") query = query.order("match_date", { ascending: true });
+				else if (sortOrder === "opponent-asc") query = query.order("opponent", { ascending: true }).order("match_date", { ascending: false });
+				else query = query.order("match_date", { ascending: false });
+
+				const from = (page - 1) * MATCHES_PER_PAGE;
+				const { data: matchesData, error, count } = await query
+					.range(from, from + MATCHES_PER_PAGE - 1)
+					.abortSignal(abortController.signal);
 
 				if (error) throw error;
 
 				setMatches(matchesData || []);
-				if (canEdit && profile?.id) {
-					const draftData = await listMatchDrafts<MatchListDraftPayload>(profile.id, currentClub.id);
-					setDrafts(draftData);
-				}
+				setTotalMatches(count ?? 0);
 			} catch (error) {
-				console.error("[v0] Error fetching matches:", error);
+				if (!abortController.signal.aborted) console.error("[v0] Error fetching matches:", error);
 			} finally {
-				setLoading(false);
+				if (!abortController.signal.aborted) {
+					setLoading(false);
+					setLoadedOnce(true);
+				}
 			}
 		}
 
-		fetchData();
+		void fetchMatches();
+		return () => abortController.abort();
+	}, [competitionFilter, currentClub, debouncedSearch, page, seasonClubId, seasonFilter, sortOrder, statsFilter, venueFilter]);
+
+	useEffect(() => {
+		async function fetchSupportingData() {
+			setDrafts([]);
+			setCompetitions([]);
+			setSeasons([]);
+			setSeasonFilter("");
+			setActiveSeason("");
+			setSeasonClubId(null);
+			if (!currentClub) return;
+			const supabase = createClient();
+			const { data: seasonRows } = await supabase
+				.from("club_seasons")
+				.select("name, status, start_year")
+				.eq("club_id", currentClub.id)
+				.order("start_year", { ascending: false });
+			let availableSeasons = (seasonRows ?? []).map((row) => String(row.name));
+			let defaultSeason = seasonRows?.find((row) => row.status === "active")?.name ?? availableSeasons[0];
+			if (availableSeasons.length === 0) {
+				const { data: matchSeasons } = await supabase.from("matches").select("season").eq("club_id", currentClub.id).not("season", "is", null).order("match_date", { ascending: false });
+				availableSeasons = Array.from(new Set((matchSeasons ?? []).map((row) => String(row.season))));
+				defaultSeason = availableSeasons[0];
+			}
+			setSeasons(availableSeasons);
+			setSeasonFilter(defaultSeason ?? "");
+			setActiveSeason(defaultSeason ?? "");
+			setSeasonClubId(currentClub.id);
+
+			const { data: competitionRows } = await supabase
+				.from("club_competitions")
+				.select("competition_id, competitions:competition_id(id, name)")
+				.eq("club_id", currentClub.id);
+			const normalizedCompetitions = (competitionRows ?? []).flatMap((row) => {
+				const relation = Array.isArray(row.competitions) ? row.competitions[0] : row.competitions;
+				return relation ? [{ id: Number(relation.id), name: String(relation.name) }] : [];
+			});
+			setCompetitions(normalizedCompetitions.sort((a, b) => a.name.localeCompare(b.name)));
+
+			if (canEdit && profile?.id) {
+				const draftData = await listMatchDrafts<MatchListDraftPayload>(profile.id, currentClub.id);
+				setDrafts(draftData);
+			}
+		}
+
+		void fetchSupportingData();
 	}, [canEdit, currentClub, profile?.id]);
+
+	const totalPages = Math.max(1, Math.ceil(totalMatches / MATCHES_PER_PAGE));
+	const hasFilters = Boolean(search || seasonFilter !== activeSeason || competitionFilter !== "all" || venueFilter !== "all" || statsFilter !== "all" || sortOrder !== "date-desc");
+	const clearFilters = () => {
+		setSearch("");
+		setCompetitionFilter("all");
+		setVenueFilter("all");
+		setStatsFilter("all");
+		setSortOrder("date-desc");
+		setSeasonFilter(activeSeason);
+		setPage(1);
+	};
 
 	const handleDeleteDraft = async (draft: MatchListDraft) => {
 		if (!profile?.id) return;
@@ -145,7 +249,7 @@ export default function MatchesPage() {
 		}
 	};
 
-	if (loading) {
+	if (loading && !loadedOnce) {
 		return (
 			<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
 				<div className="text-center py-12">
@@ -169,7 +273,7 @@ export default function MatchesPage() {
 				<TabsList className="grid h-11 w-full max-w-md grid-cols-2">
 					<TabsTrigger value="matches" className="gap-2">
 						<CheckCircle2 className="h-4 w-4" />
-						{matchesT("tabs.matches", { count: matches.length })}
+						{matchesT("tabs.matches", { count: totalMatches })}
 					</TabsTrigger>
 					<TabsTrigger value="drafts" className="gap-2">
 						<FileClock className="h-4 w-4" />
@@ -178,18 +282,106 @@ export default function MatchesPage() {
 				</TabsList>
 
 				<TabsContent value="matches">
-					{matches.length > 0 ? (
-						<div className="grid gap-3 sm:gap-4">
-							{matches.map((match) => (
-								<MatchCard
-									key={match.id}
-									match={match}
-									clubName={currentClub?.short_name || ""}
-									canEdit={canEdit}
-									onToggleStatsEnabled={handleToggleStatsEnabled}
-								/>
-							))}
+					<div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border bg-card/50 p-2 shadow-sm">
+						<div className="relative min-w-[220px] flex-1 sm:max-w-xs">
+							<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Input
+								value={search}
+								onChange={(event) => setSearch(event.target.value)}
+								placeholder={matchesT("filters.searchPlaceholder")}
+								aria-label={matchesT("filters.searchLabel")}
+								className="h-9 bg-background/60 pl-9 pr-9 shadow-none"
+							/>
+							{search && (
+								<button type="button" onClick={() => setSearch("")} aria-label={matchesT("filters.clearSearch")} className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+									<X className="h-3.5 w-3.5" />
+								</button>
+							)}
 						</div>
+
+						<div className="flex h-9 shrink-0 items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+							<SlidersHorizontal className="h-3.5 w-3.5" />
+							<span>{matchesT("filters.button")}</span>
+						</div>
+
+						<Select value={competitionFilter} onValueChange={(value) => { setCompetitionFilter(value); setPage(1); }}>
+							<SelectTrigger aria-label={matchesT("filters.competitionLabel")} className="h-9 w-[175px] bg-background/60 text-xs shadow-none"><SelectValue /></SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">{matchesT("filters.allCompetitions")}</SelectItem>
+								{competitions.map((competition) => <SelectItem key={competition.id} value={String(competition.id)}>{competition.name}</SelectItem>)}
+							</SelectContent>
+						</Select>
+						{seasons.length > 0 && (
+							<Select value={seasonFilter} onValueChange={(value) => { setSeasonFilter(value); setPage(1); }}>
+								<SelectTrigger aria-label={matchesT("filters.seasonLabel")} className="h-9 w-[135px] bg-background/60 text-xs shadow-none"><SelectValue /></SelectTrigger>
+								<SelectContent>{seasons.map((season) => <SelectItem key={season} value={season}>{season}</SelectItem>)}</SelectContent>
+							</Select>
+						)}
+						<Select value={venueFilter} onValueChange={(value) => { setVenueFilter(value); setPage(1); }}>
+							<SelectTrigger aria-label={matchesT("filters.venueLabel")} className="h-9 w-[135px] bg-background/60 text-xs shadow-none"><SelectValue /></SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">{matchesT("filters.allVenues")}</SelectItem>
+								<SelectItem value="home">{matchesT("filters.home")}</SelectItem>
+								<SelectItem value="away">{matchesT("filters.away")}</SelectItem>
+							</SelectContent>
+						</Select>
+						<Select value={statsFilter} onValueChange={(value) => { setStatsFilter(value); setPage(1); }}>
+							<SelectTrigger aria-label={matchesT("filters.statsLabel")} className="h-9 w-[150px] bg-background/60 text-xs shadow-none"><SelectValue /></SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">{matchesT("filters.allStats")}</SelectItem>
+								<SelectItem value="enabled">{matchesT("filters.statsEnabled")}</SelectItem>
+								<SelectItem value="disabled">{matchesT("filters.statsDisabled")}</SelectItem>
+							</SelectContent>
+						</Select>
+						<Select value={sortOrder} onValueChange={(value) => { setSortOrder(value); setPage(1); }}>
+							<SelectTrigger aria-label={matchesT("filters.sortLabel")} className="h-9 w-[140px] bg-background/60 text-xs shadow-none"><SelectValue /></SelectTrigger>
+							<SelectContent>
+								<SelectItem value="date-desc">{matchesT("filters.newest")}</SelectItem>
+								<SelectItem value="date-asc">{matchesT("filters.oldest")}</SelectItem>
+								<SelectItem value="opponent-asc">{matchesT("filters.opponent")}</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<div className="ml-auto flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-2 text-xs tabular-nums text-muted-foreground">
+							<span className="size-1.5 rounded-full bg-primary/70" />
+							{matchesT("filters.results", { count: totalMatches })}
+						</div>
+						{hasFilters && (
+							<Button type="button" variant="ghost" size="icon" onClick={clearFilters} aria-label={matchesT("filters.clear")} className="h-9 w-9 shrink-0 text-muted-foreground">
+								<X className="h-4 w-4" />
+							</Button>
+						)}
+					</div>
+
+					{loading ? (
+						<Card><CardContent className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />{matchesT("loading")}</CardContent></Card>
+					) : matches.length > 0 ? (
+						<div>
+							<div className="grid gap-3 sm:gap-4">
+								{matches.map((match) => (
+									<MatchCard
+										key={match.id}
+										match={match}
+										clubName={currentClub?.short_name || ""}
+										canEdit={canEdit}
+										onToggleStatsEnabled={handleToggleStatsEnabled}
+									/>
+								))}
+							</div>
+							{totalPages > 1 && (
+								<div className="mt-2 flex items-center justify-between gap-3 rounded-xl border bg-card p-3">
+									<Button type="button" variant="outline" size="sm" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
+										<ChevronLeft className="mr-1 h-4 w-4" />{matchesT("pagination.previous")}
+									</Button>
+									<span className="text-xs text-muted-foreground sm:text-sm">{matchesT("pagination.page", { page, total: totalPages })}</span>
+									<Button type="button" variant="outline" size="sm" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={page === totalPages}>
+										{matchesT("pagination.next")}<ChevronRight className="ml-1 h-4 w-4" />
+									</Button>
+								</div>
+							)}
+						</div>
+					) : hasFilters ? (
+						<Card><CardContent className="flex flex-col items-center justify-center py-12 text-center"><Search className="mb-3 h-8 w-8 text-muted-foreground/60" /><p className="text-sm text-muted-foreground">{matchesT("filters.noResults")}</p><Button type="button" variant="link" onClick={clearFilters}>{matchesT("filters.clear")}</Button></CardContent></Card>
 					) : (
 						<EmptyMatches clubName={currentClub?.short_name || ""} canEdit={canEdit} />
 					)}
@@ -428,19 +620,18 @@ function MatchCard({
 	const matchDate = new Date(match.match_date);
 
 	const isTied = match.home_score === match.away_score;
-	const hasPenalties = isTied && match.penalty_home_score !== null && match.penalty_away_score !== null;
+	const hasPenalties = isTied && match.penalty_home_score != null && match.penalty_away_score != null;
 	const competitionImage = match.competitions?.image_url?.trim() || null;
 	const isClubHome = match.is_home !== false;
 	const localTeam = isClubHome ? clubName : match.opponent;
 	const visitingTeam = isClubHome ? match.opponent : clubName;
-	const localScore = isClubHome ? match.home_score : match.away_score;
-	const visitingScore = isClubHome ? match.away_score : match.home_score;
-	const localPenaltyScore = isClubHome ? match.penalty_home_score : match.penalty_away_score;
-	const visitingPenaltyScore = isClubHome ? match.penalty_away_score : match.penalty_home_score;
+	const venueScore = getVenueScore(match);
+	const localScore = venueScore.local;
+	const visitingScore = venueScore.visitor;
+	const localPenaltyScore = venueScore.localPenalties;
+	const visitingPenaltyScore = venueScore.visitorPenalties;
 
-	const outcome = hasPenalties
-		? match.penalty_home_score! > match.penalty_away_score! ? "win" : "loss"
-		: match.home_score > match.away_score ? "win" : match.home_score < match.away_score ? "loss" : "draw";
+	const outcome = getMatchOutcome(match);
 	const result = hasPenalties
 		? t(outcome === "win" ? "results.penaltyWin" : "results.penaltyLoss")
 		: t(`results.${outcome}`);

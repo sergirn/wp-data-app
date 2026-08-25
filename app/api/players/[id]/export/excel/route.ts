@@ -14,7 +14,7 @@ function sanitizeFilenamePart(value: string) {
 		.trim();
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
 	const t = await getTranslations("Api");
 	const tExport = await getTranslations("Export");
 	try {
@@ -27,10 +27,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 		const profile = await getCurrentProfile();
 		if (!profile) return new Response(t("unauthenticated"), { status: 401 });
-		const reportData = await getPlayerTotalsReportData(playerId, profile);
+		const season = new URL(request.url).searchParams.get("season")?.trim() || undefined;
+		const reportData = await getPlayerTotalsReportData(playerId, profile, season);
 		const excelBytes = await buildPlayerTotalsExcel(reportData);
 
-		const filename = `${sanitizeFilenamePart(reportData.player.name || tExport("playerFallback"))}_${tExport("totalsSuffix")}.xlsx`;
+		const seasonSuffix = season ? `_${sanitizeFilenamePart(season)}` : "";
+		const filename = `${sanitizeFilenamePart(reportData.player.name || tExport("playerFallback"))}_${tExport("totalsSuffix")}${seasonSuffix}.xlsx`;
 
 		return new Response(excelBytes, {
 			status: 200,

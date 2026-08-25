@@ -15,7 +15,7 @@ function sanitizeFilenamePart(value: string) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const t = await getTranslations("Api")
@@ -30,10 +30,12 @@ export async function GET(
 
     const profile = await getCurrentProfile()
     if (!profile) return new Response(t("unauthenticated"), { status: 401 })
-    const reportData = await getPlayerTotalsReportData(playerId, profile)
+    const season = new URL(request.url).searchParams.get("season")?.trim() || undefined
+    const reportData = await getPlayerTotalsReportData(playerId, profile, season)
     const pdfBytes = await buildPlayerTotalsPdf(reportData)
 
-    const filename = `${sanitizeFilenamePart(reportData.player.name || tExport("playerFallback"))}_${tExport("totalsSuffix")}.pdf`
+    const seasonSuffix = season ? `_${sanitizeFilenamePart(season)}` : ""
+    const filename = `${sanitizeFilenamePart(reportData.player.name || tExport("playerFallback"))}_${tExport("totalsSuffix")}${seasonSuffix}.pdf`
 
     return new Response(new Uint8Array(pdfBytes), {
       status: 200,

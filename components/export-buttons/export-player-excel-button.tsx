@@ -17,7 +17,7 @@ function getFilenameFromDisposition(disposition: string | null) {
 	return null;
 }
 
-export function ExportPlayerExcelButton({ playerId }: { playerId: number | string }) {
+export function ExportPlayerExcelButton({ playerId, season }: { playerId: number | string; season?: string }) {
 	const t = useTranslations("Export");
 	const [loading, setLoading] = useState(false);
 
@@ -25,7 +25,8 @@ export function ExportPlayerExcelButton({ playerId }: { playerId: number | strin
 		try {
 			setLoading(true);
 
-			const response = await fetch(`/api/players/${playerId}/export/excel`, {
+			const query = season ? `?season=${encodeURIComponent(season)}` : "";
+			const response = await fetch(`/api/players/${playerId}/export/excel${query}`, {
 				method: "GET"
 			});
 

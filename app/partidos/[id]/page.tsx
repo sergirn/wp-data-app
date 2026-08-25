@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Edit, ListOrdered } from "lucide-react";
+import { ArrowLeft, Edit, ListOrdered, Swords } from "lucide-react";
 import { notFound } from "next/navigation";
 import { DeleteMatchButton } from "@/components/delete-match-button";
 import { getCurrentProfile } from "@/lib/auth";
@@ -15,6 +15,7 @@ import { ExportMatchExcelButton } from "@/components/export-buttons/export-match
 import { getLocale, getTranslations } from "next-intl/server";
 import { MatchChronology } from "@/components/match-actions/MatchChronology";
 import type { MatchAction } from "@/lib/types";
+import { getMatchOutcome, getOpponentScore, getVenueScore } from "@/lib/matches/score";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const t = await getTranslations("Matches");
@@ -51,6 +52,22 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
 	if (error || !match) {
 		notFound();
+	}
+
+	if (match.season_id) {
+		const { data: rosterRows } = await supabase
+			.from("player_seasons")
+			.select("player_id, number, is_goalkeeper")
+			.eq("club_season_id", match.season_id);
+		const rosterByPlayer = new Map((rosterRows ?? []).map((row) => [row.player_id, row]));
+		match.match_stats = (match.match_stats ?? []).map((stat: any) => {
+			const rosterPlayer = rosterByPlayer.get(stat.player_id);
+			const relatedPlayer = Array.isArray(stat.players) ? stat.players[0] : stat.players;
+			return rosterPlayer && relatedPlayer ? {
+				...stat,
+				players: { ...relatedPlayer, number: rosterPlayer.number, is_goalkeeper: rosterPlayer.is_goalkeeper }
+			} : stat;
+		});
 	}
 
 	const hiddenStats =
@@ -106,7 +123,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	if (actionsError) console.error("Error loading match chronology:", actionsError);
 
 	const isTied = match.home_score === match.away_score;
-	const hasPenalties = isTied && (match.penalty_home_score != null || match.penalty_away_score != null);
+	const hasPenalties = isTied && match.penalty_home_score != null && match.penalty_away_score != null;
 
 	const normalizeRel = <T,>(rel: T | T[] | null | undefined): T | null => {
 		if (!rel) return null;
@@ -148,9 +165,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 		{ q: 4 as const, home: match.q4_score ?? 0, away: match.q4_score_rival ?? 0, winner: getWinner(match.sprint4_winner_player_id) }
 	];
 
-	const outcome = hasPenalties
-		? match.penalty_home_score! > match.penalty_away_score! ? "win" : "loss"
-		: match.home_score > match.away_score ? "win" : match.home_score < match.away_score ? "loss" : "draw";
+	const outcome = getMatchOutcome(match);
 	const result = hasPenalties
 		? t(outcome === "win" ? "results.penaltyWin" : "results.penaltyLoss")
 		: t(`results.${outcome}`);
@@ -168,7 +183,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 		.filter((stat: any) => stat.players.is_goalkeeper)
 		.sort((a: any, b: any) => a.players.number - b.players.number);
 
-	const blocksStats = calculateBlocksStats(match.match_stats, match.away_score);
+	const blocksStats = calculateBlocksStats(match.match_stats, getOpponentScore(match));
 	const players = match.match_stats.map((s: any) => s.players);
 	const chronologyActions = (actionRows ?? []).map((action: any) => ({
 		id: action.id,
@@ -196,10 +211,11 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	const isClubHome = match.is_home !== false;
 	const localTeam = isClubHome ? clubName : match.opponent;
 	const visitingTeam = isClubHome ? match.opponent : clubName;
-	const localScore = isClubHome ? match.home_score : match.away_score;
-	const visitingScore = isClubHome ? match.away_score : match.home_score;
-	const localPenaltyScore = isClubHome ? match.penalty_home_score : match.penalty_away_score;
-	const visitingPenaltyScore = isClubHome ? match.penalty_away_score : match.penalty_home_score;
+	const venueScore = getVenueScore(match);
+	const localScore = venueScore.local;
+	const visitingScore = venueScore.visitor;
+	const localPenaltyScore = venueScore.localPenalties;
+	const visitingPenaltyScore = venueScore.visitorPenalties;
 	const matchDate = new Date(match.match_date);
 	const competitionImage = match.competitions?.image_url?.trim() || null;
 
@@ -237,6 +253,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					</Button>
 
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+						{match.opponent_id && (
+							<Button variant="outline" asChild>
+								<Link href={`/rivales/${match.opponent_id}`}>
+									<Swords className="mr-2 h-4 w-4" />
+									{t("opponentScouting")}
+								</Link>
+							</Button>
+						)}
 						<ExportMatchPdfButton matchId={match.id} />
 						<ExportMatchExcelButton matchId={match.id} />
 					</div>

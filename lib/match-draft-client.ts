@@ -86,7 +86,14 @@ export async function saveRemoteMatchDraft<TPayload extends MatchDraftPayload>(d
 
 export async function deleteMatchDraft(userId: string, draftKey: string, clubId: number) {
 	const query = new URLSearchParams({ draftKey, clubId: String(clubId) });
-	const response = await fetch(`/api/match-drafts?${query}`, { method: "DELETE" });
-	if (!response.ok && response.status !== 404) throw new Error("Draft delete failed");
-	await deleteLocalMatchDraft(userId, draftKey);
+	let remoteError: Error | null = null;
+	try {
+		const response = await fetch(`/api/match-drafts?${query}`, { method: "DELETE" });
+		if (!response.ok && response.status !== 404) remoteError = new Error("Draft delete failed");
+	} catch {
+		remoteError = new Error("Draft delete failed");
+	} finally {
+		await deleteLocalMatchDraft(userId, draftKey);
+	}
+	if (remoteError) throw remoteError;
 }

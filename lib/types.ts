@@ -8,6 +8,30 @@ export interface Player {
 	photo_url?: string | null;
 }
 
+export interface ClubSeason {
+	id: number;
+	club_id: number;
+	name: string;
+	start_year: number;
+	end_year: number;
+	status: "planned" | "active" | "archived";
+	created_by: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface PlayerSeason {
+	id: number;
+	club_season_id: number;
+	club_id: number;
+	player_id: number;
+	number: number;
+	is_goalkeeper: boolean;
+	is_active: boolean;
+	joined_at: string | null;
+	left_at: string | null;
+}
+
 export interface Match {
 	id: number;
 	match_date: string;
@@ -15,14 +39,47 @@ export interface Match {
 	location: string | null;
 	home_score: number;
 	away_score: number;
+	// Storage convention: home_score is always our club's score and away_score
+	// is always the opponent's score. is_home only controls venue/display order.
 	is_home: boolean;
 	season: string | null;
+	season_id?: number | null;
 	jornada: number | null;
 	notes: string | null;
 	club_id: number;
 	penalty_home_score: number | null;
 	penalty_away_score: number | null;
 	stats_enabled: boolean;
+	version?: number;
+	last_save_id?: string | null;
+	updated_at?: string;
+	updated_by?: string | null;
+	opponent_id?: number | null;
+}
+
+export interface Opponent {
+	id: number;
+	club_id: number;
+	name: string;
+	short_name: string | null;
+	logo_url: string | null;
+	normalized_name?: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export type OpponentNoteCategory = "general" | "lineup" | "player" | "tactical" | "other";
+
+export interface OpponentNote {
+	id: number;
+	opponent_id: number;
+	club_id: number;
+	category: OpponentNoteCategory;
+	title: string | null;
+	body: string;
+	created_by: string | null;
+	created_at: string;
+	updated_at: string;
 }
 
 export type MatchWithQuarterScores = Match & {

@@ -4,7 +4,7 @@ import { memo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, PlusCircle, Calendar, UsersRound, BarChart3, Shield, Menu, ChevronRight } from "lucide-react";
+import { Home, PlusCircle, Calendar, UsersRound, BarChart3, Shield, Menu, ChevronRight, Swords } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ const NAV_LINKS = [
   { href: "/", labelKey: "home", icon: Home, requiresEdit: false },
   { href: "/nuevo-partido", labelKey: "newMatch", icon: PlusCircle, requiresEdit: true },
   { href: "/partidos", labelKey: "matches", icon: Calendar, requiresEdit: false },
+  { href: "/rivales", labelKey: "scouting", icon: Swords, requiresEdit: false },
   { href: "/jugadores", labelKey: "players", icon: UsersRound, requiresEdit: false },
   { href: "/analytics", labelKey: "analytics", icon: BarChart3, requiresEdit: false }
 ] as const;
@@ -55,7 +56,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   const canEdit = profile?.role === "admin" || profile?.role === "coach";
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
   // ✅ SOLO por ruta: SIEMPRE que estés en /nuevo-partido, confirmas al salir
   const isNewMatchPage = pathname === "/nuevo-partido";

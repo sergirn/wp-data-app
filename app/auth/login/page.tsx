@@ -3,8 +3,9 @@
 import type React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
 	const t = useTranslations("Auth");
+	const searchParams = useSearchParams();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
@@ -79,6 +81,12 @@ export default function LoginPage() {
 							</div>
 
 							<form onSubmit={handleLogin} className="space-y-5">
+								{searchParams.get("reset") === "success" ? (
+									<Alert>
+										<CheckCircle2 className="h-4 w-4" />
+										<AlertDescription>{t("passwordUpdated")}</AlertDescription>
+									</Alert>
+								) : null}
 								{/* Email */}
 								<div className="space-y-2">
 									<Label htmlFor="email">{t("email")}</Label>
