@@ -159,7 +159,9 @@ export default function PlayersPage() {
 		<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-7xl">
 			<div className="mb-6">
 				<h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">{t("players")}</h1>
-				<p className="text-sm sm:text-base text-muted-foreground">{playersT("individualStats", { club: currentClub?.short_name || playersT("squad") })}</p>
+				<p className="text-sm sm:text-base text-muted-foreground">
+					{playersT("individualStats", { club: currentClub?.short_name || playersT("squad") })}
+				</p>
 			</div>
 
 			{activePlayers.length === 0 ? (
@@ -167,10 +169,8 @@ export default function PlayersPage() {
 					<AlertCircle className="h-4 w-4" />
 					<AlertTitle>{playersT("noPlayers")}</AlertTitle>
 					<AlertDescription>
-						{playersT("noPlayersForClub", { club: currentClub?.short_name || playersT("squad") })} {" "}
-						{currentClub?.short_name === "CN Sant Andreu"
-							? playersT("samplePlayersHint")
-							: playersT("addPlayersHint")}
+						{playersT("noPlayersForClub", { club: currentClub?.short_name || playersT("squad") })}{" "}
+						{currentClub?.short_name === "CN Sant Andreu" ? playersT("samplePlayersHint") : playersT("addPlayersHint")}
 					</AlertDescription>
 				</Alert>
 			) : (
@@ -197,14 +197,16 @@ export default function PlayersPage() {
 							<Alert>
 								<AlertCircle className="h-4 w-4" />
 								<AlertTitle>{playersT("noFieldPlayers")}</AlertTitle>
-								<AlertDescription>{playersT("noFieldPlayersForClub", { club: currentClub?.short_name || playersT("squad") })}</AlertDescription>
+								<AlertDescription>
+									{playersT("noFieldPlayersForClub", { club: currentClub?.short_name || playersT("squad") })}
+								</AlertDescription>
 							</Alert>
 						)}
 					</TabsContent>
 
 					<TabsContent value="goalkeepers">
 						{goalkeepers.length > 0 ? (
-							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 								{goalkeepers.map((player) => (
 									<GoalkeeperCard key={player.id} player={player} matchStats={matchStats} />
 								))}
@@ -213,7 +215,9 @@ export default function PlayersPage() {
 							<Alert>
 								<AlertCircle className="h-4 w-4" />
 								<AlertTitle>{playersT("noGoalkeepers")}</AlertTitle>
-								<AlertDescription>{playersT("noGoalkeepersForClub", { club: currentClub?.short_name || playersT("squad") })}</AlertDescription>
+								<AlertDescription>
+									{playersT("noGoalkeepersForClub", { club: currentClub?.short_name || playersT("squad") })}
+								</AlertDescription>
 							</Alert>
 						)}
 					</TabsContent>
@@ -305,11 +309,7 @@ const FieldPlayerCard = memo(function FieldPlayerCard({
 					<p className="border-b border-border/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
 						{t("performanceProfile")}
 					</p>
-					<PlayerRadarChart
-						playerName={player.name}
-						matchStats={playerMatchStats}
-						height={145}
-					/>
+					<PlayerRadarChart playerName={player.name} matchStats={playerMatchStats} height={145} />
 				</div>
 
 				<CardFooter label={t("viewProfile")} />
@@ -388,11 +388,7 @@ const GoalkeeperCard = memo(function GoalkeeperCard({
 					<p className="border-b border-border/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
 						{t("performanceProfile")}
 					</p>
-					<GoalkeeperRadarChart
-						playerName={player.name}
-						matchStats={goalkeeperMatchStats}
-						height={145}
-					/>
+					<GoalkeeperRadarChart playerName={player.name} matchStats={goalkeeperMatchStats} height={145} />
 				</div>
 
 				<CardFooter label={t("viewProfile")} />
@@ -430,12 +426,8 @@ function PlayerHero({
 			) : (
 				<div className="absolute inset-0 grid place-items-center">
 					<div className="text-center">
-						<div className="text-4xl font-black text-muted-foreground">
-							#{player.number}
-						</div>
-						<div className="mt-1 text-xs text-muted-foreground">
-							{t("noPhoto")}
-						</div>
+						<div className="text-4xl font-black text-muted-foreground">#{player.number}</div>
+						<div className="mt-1 text-xs text-muted-foreground">{t("noPhoto")}</div>
 					</div>
 				</div>
 			)}
@@ -446,37 +438,25 @@ function PlayerHero({
 				{role}
 			</div>
 
-			<div className={`absolute right-3 top-3 rounded-lg border px-2.5 py-1 text-xs font-black text-white shadow-sm backdrop-blur-md ${tone === "goalkeeper" ? "border-sky-300/30 bg-sky-500/65" : "border-primary-foreground/20 bg-primary/75"}`}>
+			<div
+				className={`absolute right-3 top-3 rounded-lg border px-2.5 py-1 text-xs font-black text-white shadow-sm backdrop-blur-md ${tone === "goalkeeper" ? "border-sky-300/30 bg-sky-500/65" : "border-primary-foreground/20 bg-primary/75"}`}
+			>
 				#{player.number}
 			</div>
 
 			<div className="absolute inset-x-0 bottom-0 p-3">
-				<h3 className="line-clamp-1 text-base font-bold tracking-tight text-white">
-					{player.name}
-				</h3>
-				<p className="mt-1 text-xs text-white/70">
-					{t("roleMatches", { role, count: player.matchesPlayed || 0 })}
-				</p>
+				<h3 className="line-clamp-1 text-base font-bold tracking-tight text-white">{player.name}</h3>
+				<p className="mt-1 text-xs text-white/70">{t("roleMatches", { role, count: player.matchesPlayed || 0 })}</p>
 			</div>
 		</div>
 	);
 }
 
-function MiniStat({
-	label,
-	value,
-	featured = false
-}: {
-	label: string;
-	value: string | number;
-	featured?: boolean;
-}) {
+function MiniStat({ label, value, featured = false }: { label: string; value: string | number; featured?: boolean }) {
 	return (
 		<div className={`rounded-lg border px-2 py-1.5 text-center ${featured ? "border-primary/25 bg-primary/10" : "border-border/60 bg-muted/25"}`}>
 			<p className={`truncate text-sm font-bold tabular-nums ${featured ? "text-primary" : "text-foreground"}`}>{value}</p>
-			<p className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground">
-				{label}
-			</p>
+			<p className="mt-0.5 truncate text-[10px] font-medium text-muted-foreground">{label}</p>
 		</div>
 	);
 }

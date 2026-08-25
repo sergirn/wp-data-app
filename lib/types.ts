@@ -36,6 +36,18 @@ export type MatchWithQuarterScores = Match & {
 	q4_score_rival?: number;
 };
 
+export interface MatchAction {
+	id?: number;
+	client_id: string;
+	match_id?: number;
+	player_id: number;
+	quarter: 1 | 2 | 3 | 4;
+	sequence: number;
+	action_key: string;
+	created_by?: string | null;
+	created_at?: string;
+}
+
 export interface MatchStats {
 	id?: number;
 	match_id: number;

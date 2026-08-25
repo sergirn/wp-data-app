@@ -391,6 +391,16 @@
 		"roleMatches": "{role} · {count, plural, =0 {sin partidos} one {# partido} other {# partidos}}",
 		"poweredBy": "DESARROLLADO POR"
 	},
+	"MatchChronology": {
+		"title": "Cronología del partido",
+		"description": "Acciones registradas en orden y agrupadas por parcial",
+		"all": "Todos",
+		"emptyTitle": "No hay acciones registradas",
+		"emptyDescription": "Las acciones aparecerán aquí al registrarlas durante el partido.",
+		"unknownPlayer": "Jugador desconocido",
+		"removeAction": "Eliminar acción",
+		"actionCount": "{count, plural, =0 {Sin acciones} one {# acción} other {# acciones}}"
+	},
 	"NewMatch": {
 		"playerNotFound": "Jugador no encontrado",
 		"lineupLoadError": "Error al cargar la convocatoria",
@@ -418,6 +428,23 @@
 			"goalkeepers": "Porteros ({count})",
 			"penaltiesShort": "Penaltis",
 			"penalties": "Tanda de penaltis"
+		},
+		"chronology": {
+			"quartersTab": "Parciales",
+			"timelineTab": "Cronología",
+			"openStatus": "En curso",
+			"closedStatus": "Cerrado",
+			"pendingStatus": "Pendiente",
+			"actionCount": "{count, plural, =0 {Sin acciones} one {# acción} other {# acciones}}",
+			"reopenQuarter": "Reabrir parcial",
+			"noOpenQuarterTitle": "No hay ningún parcial abierto",
+			"noOpenQuarterDescription": "Abre un parcial desde Información del partido antes de registrar acciones.",
+			"closeCurrentTitle": "Ya hay un parcial abierto",
+			"closeCurrentDescription": "Cierra el Q{quarter} antes de abrir otro parcial.",
+			"activeQuarter": "Q{quarter} en curso",
+			"noActiveQuarter": "Sin parcial abierto",
+			"closeBeforeSaveTitle": "Cierra el parcial antes de guardar",
+			"closeBeforeSaveDescription": "El Q{quarter} todavía está en curso. Ciérralo para completar el partido."
 		},
 		"date": "Fecha",
 		"opponent": "Rival *",

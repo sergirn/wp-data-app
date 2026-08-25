@@ -391,6 +391,16 @@
 		"roleMatches": "{role} · {count, plural, =0 {no matches} one {# match} other {# matches}}",
 		"poweredBy": "POWERED BY"
 	},
+	"MatchChronology": {
+		"title": "Match timeline",
+		"description": "Actions recorded in order and grouped by period",
+		"all": "All",
+		"emptyTitle": "No actions recorded",
+		"emptyDescription": "Actions will appear here as they are recorded during the match.",
+		"unknownPlayer": "Unknown player",
+		"removeAction": "Remove action",
+		"actionCount": "{count, plural, =0 {No actions} one {# action} other {# actions}}"
+	},
 	"NewMatch": {
 		"playerNotFound": "Player not found",
 		"lineupLoadError": "Error loading the lineup",
@@ -418,6 +428,23 @@
 			"goalkeepers": "Goalkeepers ({count})",
 			"penaltiesShort": "Penalties",
 			"penalties": "Penalty shootout"
+		},
+		"chronology": {
+			"quartersTab": "Periods",
+			"timelineTab": "Timeline",
+			"openStatus": "In progress",
+			"closedStatus": "Closed",
+			"pendingStatus": "Pending",
+			"actionCount": "{count, plural, =0 {No actions} one {# action} other {# actions}}",
+			"reopenQuarter": "Reopen period",
+			"noOpenQuarterTitle": "No period is open",
+			"noOpenQuarterDescription": "Open a period from Match information before recording actions.",
+			"closeCurrentTitle": "A period is already open",
+			"closeCurrentDescription": "Close Q{quarter} before opening another period.",
+			"activeQuarter": "Q{quarter} in progress",
+			"noActiveQuarter": "No open period",
+			"closeBeforeSaveTitle": "Close the period before saving",
+			"closeBeforeSaveDescription": "Q{quarter} is still in progress. Close it to complete the match."
 		},
 		"date": "Date",
 		"opponent": "Opponent *",

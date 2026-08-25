@@ -19,6 +19,7 @@ export type GoalkeeperShotDraft = {
 	result: ShotResult;
 	x: number;
 	y: number;
+	quarter?: 1 | 2 | 3 | 4;
 };
 
 type BaseProps = {
@@ -27,9 +28,10 @@ type BaseProps = {
 	onChangeShots?: (next: GoalkeeperShotDraft[]) => void;
 	fixedResult: Exclude<ShotResult, "out">; // "goal" | "save"
 	hintText?: string;
+	quarter?: 1 | 2 | 3 | 4 | null;
 };
 
-function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, fixedResult, hintText }: BaseProps) {
+function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, fixedResult, hintText, quarter }: BaseProps) {
 	const t = useTranslations("GoalkeeperRecorder");
 	const activeHint = hintText || t("tapToRecord");
 	const safeShots = React.useMemo(() => (Array.isArray(shots) ? shots : []), [shots]);
@@ -83,6 +85,7 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 
 	const addShotAtClientPoint = React.useCallback(
 		(clientX: number, clientY: number) => {
+			if (!quarter) return;
 			const outer = goalOuterRef.current;
 			const inner = goalInnerRef.current;
 			if (!outer || !inner) return;
@@ -105,7 +108,8 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 						shot_index,
 						result: fixedResult,
 						x: innerPt.x,
-						y: innerPt.y
+						y: innerPt.y,
+						quarter
 					}
 				];
 
@@ -124,13 +128,14 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 					shot_index,
 					result: "out",
 					x: outerPt.x,
-					y: outerPt.y
+					y: outerPt.y,
+					quarter
 				}
 			];
 
 			safeOnChange(next);
 		},
-		[fixedResult, goalkeeperPlayerId, nextIndexFor, pointFromClient, safeOnChange, safeShots]
+		[fixedResult, goalkeeperPlayerId, nextIndexFor, pointFromClient, quarter, safeOnChange, safeShots]
 	);
 
 	const onPointerDownOuter = (e: React.PointerEvent) => {

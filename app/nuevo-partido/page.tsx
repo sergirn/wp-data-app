@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatInput } from "@/components/stat-input";
 import Image from "next/image";
-import type { Player, MatchStats, Profile, Match } from "@/lib/types";
-import { Loader2, AlertCircle, RefreshCw, Plus, Save, Cloud, CloudOff, CheckCircle2 } from "lucide-react";
+import type { Player, MatchStats, Profile, Match, MatchAction } from "@/lib/types";
+import { Loader2, AlertCircle, RefreshCw, Plus, Save, Cloud, CloudOff, CheckCircle2, CirclePlay, CircleStop } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,6 +32,7 @@ import { useHiddenStats } from "@/hooks/useHiddenStats";
 import { useMatchAutosave } from "@/hooks/useMatchAutosave";
 import { loadBestMatchDraft } from "@/lib/match-draft-client";
 import type { MatchDraftPayload } from "@/lib/match-drafts";
+import { MatchChronology } from "@/components/match-actions/MatchChronology";
 
 interface MatchEditParams {
 	matchId?: string;
@@ -40,6 +41,28 @@ interface MatchEditParams {
 }
 
 type DraftQuarter = 1 | 2 | 3 | 4;
+
+const FIELD_GOAL_ACTIONS = new Set<keyof MatchStats>([
+	"goles_boya_jugada",
+	"goles_hombre_mas",
+	"goles_lanzamiento",
+	"goles_dir_mas_5m",
+	"goles_contraataque",
+	"goles_penalti_anotado",
+	"gol_del_palo_sup"
+]);
+
+const GOALKEEPER_GOAL_ACTIONS = new Set<keyof MatchStats>([
+	"portero_goles_boya_parada",
+	"portero_goles_hombre_menos",
+	"portero_goles_dir_mas_5m",
+	"portero_goles_contraataque",
+	"portero_goles_penalti",
+	"portero_gol",
+	"portero_gol_superioridad",
+	"portero_goles_lanzamiento",
+	"portero_gol_palo"
+]);
 
 type NewMatchDraftPayload = MatchDraftPayload & {
 	schemaVersion: 1;
@@ -62,6 +85,8 @@ type NewMatchDraftPayload = MatchDraftPayload & {
 	activePlayerIds: number[];
 	stats: Record<number, Partial<MatchStats>>;
 	goalkeeperShots: GoalkeeperShotDraft[];
+	activeQuarter?: DraftQuarter | null;
+	matchActions?: MatchAction[];
 };
 
 function isNewMatchDraftPayload(payload: MatchDraftPayload): payload is NewMatchDraftPayload {
@@ -78,6 +103,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		3: false,
 		4: false
 	});
+	const [activeQuarter, setActiveQuarter] = useState<DraftQuarter | null>(null);
+	const [matchActions, setMatchActions] = useState<MatchAction[]>([]);
+	const nextActionSequenceRef = useRef(1);
 	const [quarterScores, setQuarterScores] = useState<Record<number, { home: number; away: number }>>({
 		1: { home: 0, away: 0 },
 		2: { home: 0, away: 0 },
@@ -304,6 +332,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						setActivePlayerIds(saved.activePlayerIds);
 						setStats(saved.stats);
 						setGoalkeeperShots(saved.goalkeeperShots);
+						const savedActions = Array.isArray(saved.matchActions) ? saved.matchActions : [];
+						setActiveQuarter(saved.activeQuarter ?? null);
+						setMatchActions(savedActions);
+						nextActionSequenceRef.current = savedActions.reduce((max, action) => Math.max(max, action.sequence), 0) + 1;
 						setInitialDraftRevision(draft.revision);
 						setInitialDraftCreatedAt(draft.createdAt);
 						setInitialDraftExpiresAt(draft.expiresAt);
@@ -668,6 +700,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				3: match.q3_score !== undefined && match.q3_score_rival !== undefined,
 				4: match.q4_score !== undefined && match.q4_score_rival !== undefined
 			});
+			setActiveQuarter(null);
 
 			setSprintWinners({
 				1: match.sprint1_winner_player_id ?? null,
@@ -695,6 +728,20 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				});
 
 				setStats(statsMap);
+			}
+
+			const { data: actionRows, error: actionsError } = await supabase
+				.from("match_actions")
+				.select("id, client_id, match_id, player_id, quarter, sequence, action_key, created_by, created_at")
+				.eq("match_id", matchId)
+				.order("sequence", { ascending: true });
+
+			if (actionsError) {
+				console.error("Error loading match chronology:", actionsError);
+			} else {
+				const loadedActions = (actionRows ?? []) as MatchAction[];
+				setMatchActions(loadedActions);
+				nextActionSequenceRef.current = loadedActions.reduce((max, action) => Math.max(max, action.sequence), 0) + 1;
 			}
 
 			// LOAD PENALTY SHOOTERS IF THEY EXIST
@@ -755,8 +802,8 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 						shot_index: s.shot_index,
 						result: s.result,
 						x: s.x,
-						y: s.y
-						// quarter lo ignoras en draft si quieres
+						y: s.y,
+						quarter: s.quarter ?? undefined
 					}))
 				);
 			}
@@ -765,7 +812,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		}
 	};
 
-	const updateStat = (playerId: number, field: keyof MatchStats, value: number) => {
+	const applyStatValue = (playerId: number, field: keyof MatchStats, value: number) => {
 		setStats((prev) => {
 			const currentStats = prev[playerId] || createEmptyStats(playerId);
 			const safeValue = safeNumber(value);
@@ -842,42 +889,97 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				}
 			}
 
-			const updatedAllStats = {
+			return {
 				...prev,
 				[playerId]: newStats
 			};
-
-			setQuarterScores((prev) => {
-				const updated = { ...prev };
-
-				// encuentra el primer cuarto que NO está cerrado
-				const activeQuarter = [1, 2, 3, 4].find((q) => !closedQuarters[q]);
-				if (!activeQuarter) return updated;
-
-				// recalcula solo el ACTIVO desde cero
-				const { homeGoals, awayGoals } = calculateScores(updatedAllStats, playersById);
-
-				// diferencia respecto al total del cuarto anterior
-				const previousQuartersTotal = Object.values(prev)
-					.slice(0, activeQuarter - 1)
-					.reduce(
-						(acc, q) => ({
-							home: acc.home + q.home,
-							away: acc.away + q.away
-						}),
-						{ home: 0, away: 0 }
-					);
-
-				updated[activeQuarter] = {
-					home: homeGoals - previousQuartersTotal.home,
-					away: awayGoals - previousQuartersTotal.away
-				};
-
-				return updated;
-			});
-
-			return updatedAllStats;
 		});
+	};
+
+	const adjustQuarterScore = (quarter: DraftQuarter, playerId: number, field: keyof MatchStats, delta: number) => {
+		if (delta === 0) return;
+		const player = playersById.get(playerId);
+		const side = player?.is_goalkeeper && GOALKEEPER_GOAL_ACTIONS.has(field)
+			? "away"
+			: !player?.is_goalkeeper && FIELD_GOAL_ACTIONS.has(field)
+				? "home"
+				: null;
+		if (!side) return;
+
+		setQuarterScores((current) => ({
+			...current,
+			[quarter]: {
+				...current[quarter],
+				[side]: Math.max(0, current[quarter][side] + delta)
+			}
+		}));
+	};
+
+	const recordActionDelta = (playerId: number, field: keyof MatchStats, delta: number, quarter: DraftQuarter) => {
+		if (delta > 0) {
+			const additions = Array.from({ length: delta }, () => ({
+				client_id: crypto.randomUUID(),
+				player_id: playerId,
+				quarter,
+				sequence: nextActionSequenceRef.current++,
+				action_key: String(field)
+			}) satisfies MatchAction);
+			setMatchActions((current) => [...current, ...additions]);
+			return;
+		}
+
+		if (delta < 0) {
+			setMatchActions((current) => {
+				let toRemove = Math.abs(delta);
+				const next = [...current];
+				for (let index = next.length - 1; index >= 0 && toRemove > 0; index -= 1) {
+					const action = next[index];
+					if (action.player_id === playerId && action.action_key === field && action.quarter === quarter) {
+						next.splice(index, 1);
+						toRemove -= 1;
+					}
+				}
+				return next;
+			});
+		}
+	};
+
+	const updateStat = (playerId: number, field: keyof MatchStats, value: number) => {
+		if (!activeQuarter) {
+			toast({ title: t("chronology.noOpenQuarterTitle"), description: t("chronology.noOpenQuarterDescription"), variant: "destructive" });
+			return;
+		}
+
+		const previousValue = safeNumber(stats[playerId]?.[field] as number | undefined);
+		const nextValue = safeNumber(value);
+		const delta = nextValue - previousValue;
+		if (delta === 0) return;
+
+		applyStatValue(playerId, field, nextValue);
+		recordActionDelta(playerId, field, delta, activeQuarter);
+		adjustQuarterScore(activeQuarter, playerId, field, delta);
+	};
+
+	const removeMatchAction = (action: MatchAction) => {
+		const field = action.action_key as keyof MatchStats;
+		const currentValue = safeNumber(stats[action.player_id]?.[field] as number | undefined);
+		if (currentValue > 0) applyStatValue(action.player_id, field, currentValue - 1);
+		adjustQuarterScore(action.quarter, action.player_id, field, -1);
+		setMatchActions((current) => current.filter((item) => item.client_id !== action.client_id));
+	};
+
+	const openQuarter = (quarter: DraftQuarter) => {
+		if (activeQuarter && activeQuarter !== quarter) {
+			toast({ title: t("chronology.closeCurrentTitle"), description: t("chronology.closeCurrentDescription", { quarter: activeQuarter }) });
+			return;
+		}
+		setClosedQuarters((current) => ({ ...current, [quarter]: false }));
+		setActiveQuarter(quarter);
+	};
+
+	const closeQuarter = (quarter: DraftQuarter) => {
+		setClosedQuarters((current) => ({ ...current, [quarter]: true }));
+		setActiveQuarter((current) => current === quarter ? null : current);
 	};
 
 	function buildPenaltyRows(args: {
@@ -917,6 +1019,18 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		return [...homeRows, ...rivalRows];
 	}
 
+	function buildMatchActionRows(matchId: number) {
+		return matchActions.map((action) => ({
+			client_id: action.client_id,
+			match_id: matchId,
+			player_id: action.player_id,
+			quarter: action.quarter,
+			sequence: action.sequence,
+			action_key: action.action_key,
+			created_by: profile?.id ?? null
+		}));
+	}
+
 	const handleSave = async () => {
 		if (!opponent.trim()) {
 			alert(t("opponentRequired"));
@@ -925,6 +1039,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 		if (!profile || !profile.club_id) {
 			alert(t("clubInfoError"));
+			return;
+		}
+
+		if (activeQuarter) {
+			toast({
+				title: t("chronology.closeBeforeSaveTitle"),
+				description: t("chronology.closeBeforeSaveDescription", { quarter: activeQuarter })
+			});
 			return;
 		}
 
@@ -1048,6 +1170,15 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 				if (statsError) throw statsError;
 
+				const { error: deleteActionsError } = await supabase.from("match_actions").delete().eq("match_id", editingMatchId);
+				if (deleteActionsError) throw deleteActionsError;
+
+				const actionRows = buildMatchActionRows(editingMatchId);
+				if (actionRows.length > 0) {
+					const { error: actionsError } = await supabase.from("match_actions").insert(actionRows);
+					if (actionsError) throw actionsError;
+				}
+
 				if (homeGoals === awayGoals) {
 					const { error: deletePenaltiesError } = await supabase.from("penalty_shootout_players").delete().eq("match_id", editingMatchId);
 					if (deletePenaltiesError) throw deletePenaltiesError;
@@ -1075,7 +1206,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					const rows = goalkeeperShots.map((s) => ({
 						match_id: editingMatchId,
 						goalkeeper_player_id: s.goalkeeper_player_id,
-						quarter: null,
+						quarter: s.quarter ?? null,
 						shot_index: s.shot_index,
 						result: s.result,
 						x: s.x,
@@ -1138,6 +1269,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 				if (statsError) throw statsError;
 
+				const actionRows = buildMatchActionRows(newMatch.id);
+				if (actionRows.length > 0) {
+					const { error: actionsError } = await supabase.from("match_actions").insert(actionRows);
+					if (actionsError) throw actionsError;
+				}
+
 				if (newMatch && homeGoals === awayGoals) {
 					const rows = buildPenaltyRows({
 						matchId: newMatch.id,
@@ -1156,7 +1293,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					const rows = goalkeeperShots.map((s) => ({
 						match_id: newMatch.id,
 						goalkeeper_player_id: s.goalkeeper_player_id,
-						quarter: null,
+						quarter: s.quarter ?? null,
 						shot_index: s.shot_index,
 						result: s.result,
 						x: s.x,
@@ -1242,10 +1379,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			penaltyGoalkeeperMap,
 			activePlayerIds,
 			stats,
-			goalkeeperShots
+			goalkeeperShots,
+			activeQuarter,
+			matchActions
 		}),
 		[
 			activePlayerIds,
+			activeQuarter,
 			closedQuarters,
 			competitionId,
 			goalkeeperShots,
@@ -1253,6 +1393,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			jornada,
 			location,
 			matchDate,
+			matchActions,
 			notes,
 			opponent,
 			penaltyAwayScore,
@@ -1312,6 +1453,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				<div className="flex items-center gap-3 mt-3 flex-wrap">
 					<Badge variant="secondary" className="text-sm">
 						{t("lineupCount", { count: activePlayerIds.length })}
+					</Badge>
+					<Badge variant={activeQuarter ? "default" : "outline"} className="gap-1.5 text-sm">
+						{activeQuarter ? <CirclePlay className="h-3.5 w-3.5" /> : <CircleStop className="h-3.5 w-3.5" />}
+						{activeQuarter ? t("chronology.activeQuarter", { quarter: activeQuarter }) : t("chronology.noActiveQuarter")}
 					</Badge>
 					<Badge variant="outline" className="gap-1.5 text-sm">
 						{autosave.status === "saving" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -1501,106 +1646,79 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 							</div>
 						</div>
 
-						<div className="space-y-2 md:col-span-3 border-t pt-4 mt-4">
-							<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-								{[1, 2, 3, 4].map((q) => {
-									const quarter = q as Quarter;
-									const winnerId = sprintWinners[quarter];
-									const hasWinner = winnerId != null;
-									const winnerLabel = getWinnerLabel(winnerId);
+						<div className="md:col-span-3 mt-4 border-t pt-4">
+							<Tabs defaultValue="quarters" className="w-full">
+								<TabsList className="grid h-auto w-full grid-cols-2">
+									<TabsTrigger value="quarters">{t("chronology.quartersTab")}</TabsTrigger>
+									<TabsTrigger value="chronology" className="gap-2">
+										{t("chronology.timelineTab")}
+										<Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{matchActions.length}</Badge>
+									</TabsTrigger>
+								</TabsList>
 
-									return (
-										<div
-											key={q}
-											className={`space-y-2 p-3 border rounded ${
-												closedQuarters[q] ? "bg-gray-200/50 opacity-60 dark:bg-gray-800/50" : "bg-muted/30"
-											}`}
-										>
-											<div className="flex items-center justify-between mb-2">
-												<Label className="text-sm font-medium">{t("quarter", { number: q })}</Label>
-											</div>
+								<TabsContent value="quarters" className="mt-4">
+									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+										{([1, 2, 3, 4] as const).map((quarter) => {
+											const winnerId = sprintWinners[quarter];
+											const hasWinner = winnerId != null;
+											const winnerLabel = getWinnerLabel(winnerId);
+											const isActive = activeQuarter === quarter;
+											const isClosed = closedQuarters[quarter];
+											const actionCount = matchActions.filter((action) => action.quarter === quarter).length;
 
-											<div className="grid grid-cols-2 gap-2">
-												<div>
-													<Label className="text-xs">{t("own")}</Label>
-													<Input
-														type="number"
-														value={quarterScores[q].home}
-														onChange={(e) => {
-															if (!closedQuarters[q]) {
-																setQuarterScores((prev) => ({
-																	...prev,
-																	[q]: { ...prev[q], home: Number.parseInt(e.target.value) || 0 }
-																}));
+											return (
+												<div key={quarter} className={`space-y-3 rounded-xl border p-3 ${isActive ? "border-primary bg-primary/5 shadow-sm" : isClosed ? "bg-muted/20" : "bg-card"}`}>
+													<div className="flex items-center justify-between gap-2">
+														<Label className="text-sm font-semibold">{t("quarter", { number: quarter })}</Label>
+														<Badge variant={isActive ? "default" : "secondary"}>
+															{isActive ? t("chronology.openStatus") : isClosed ? t("chronology.closedStatus") : t("chronology.pendingStatus")}
+														</Badge>
+													</div>
+
+													<p className="text-xs text-muted-foreground">{t("chronology.actionCount", { count: actionCount })}</p>
+
+													<div className="grid grid-cols-2 gap-2">
+														<div>
+															<Label className="text-xs">{t("own")}</Label>
+															<Input type="number" value={quarterScores[quarter].home} onChange={(event) => setQuarterScores((current) => ({ ...current, [quarter]: { ...current[quarter], home: Number.parseInt(event.target.value) || 0 } }))} disabled={!isActive} min={0} className="text-center text-lg font-bold" />
+														</div>
+														<div>
+															<Label className="text-xs">{t("opponentFallback")}</Label>
+															<Input type="number" value={quarterScores[quarter].away} onChange={(event) => setQuarterScores((current) => ({ ...current, [quarter]: { ...current[quarter], away: Number.parseInt(event.target.value) || 0 } }))} disabled={!isActive} min={0} className="text-center text-lg font-bold" />
+														</div>
+													</div>
+
+													<button
+														type="button"
+														disabled={!isActive}
+														onClick={() => {
+															if (hasWinner) setSprintWinners((current) => ({ ...current, [quarter]: null }));
+															else {
+																setActiveSprintQuarter(quarter);
+																setSprintModalOpen(true);
 															}
 														}}
-														disabled={closedQuarters[q]}
-														min={0}
-														className="text-center font-bold text-lg"
-													/>
+														className={`w-full rounded-md border py-2 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${hasWinner ? "border-green-600 bg-green-500 text-white" : "border-border bg-muted/50"}`}
+													>
+														{hasWinner ? t("sprintWon") : t("sprintLost")}
+													</button>
+
+													{hasWinner ? <p className="text-[11px] text-muted-foreground">{t("winner")} <span className="font-medium text-foreground">{winnerLabel}</span></p> : null}
+
+													<Button type="button" size="sm" variant={isActive ? "destructive" : "outline"} onClick={() => isActive ? closeQuarter(quarter) : openQuarter(quarter)} className="w-full text-xs">
+														{isActive ? <CircleStop className="mr-2 size-4" /> : <CirclePlay className="mr-2 size-4" />}
+														{isActive ? t("closeQuarter") : isClosed ? t("chronology.reopenQuarter") : t("openQuarter")}
+													</Button>
 												</div>
+											);
+										})}
+									</div>
+								</TabsContent>
 
-												<div>
-													<Label className="text-xs">{t("opponentFallback")}</Label>
-													<Input
-														type="number"
-														value={quarterScores[q].away}
-														onChange={(e) => {
-															if (!closedQuarters[q]) {
-																setQuarterScores((prev) => ({
-																	...prev,
-																	[q]: { ...prev[q], away: Number.parseInt(e.target.value) || 0 }
-																}));
-															}
-														}}
-														disabled={closedQuarters[q]}
-														min={0}
-														className="text-center font-bold text-lg"
-													/>
-												</div>
-											</div>
-
-											{/* SPRINT WINNER */}
-											<button
-												type="button"
-												onClick={() => {
-													if (closedQuarters[q]) return;
-
-													if (hasWinner) {
-														setSprintWinners((prev) => ({ ...prev, [quarter]: null }));
-														return;
-													}
-
-													setActiveSprintQuarter(quarter);
-													setSprintModalOpen(true);
-												}}
-												className={`w-full mt-2 py-2 rounded-md text-xs font-semibold transition-all border ${
-													hasWinner
-														? "bg-green-500 text-white border-green-600"
-														: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600"
-												}`}
-											>
-											{hasWinner ? t("sprintWon") : t("sprintLost")}
-											</button>
-
-											{hasWinner ? (
-												<div className="rounded-md border bg-card/60 px-2 py-1 text-[11px] text-muted-foreground">
-											{t("winner")} <span className="font-medium text-foreground">{winnerLabel}</span>
-												</div>
-											) : null}
-
-											<Button
-												size="sm"
-												variant={closedQuarters[q] ? "default" : "destructive"}
-												onClick={() => setClosedQuarters((prev) => ({ ...prev, [q]: !prev[q] }))}
-												className="w-full mt-2 text-xs"
-											>
-											{closedQuarters[q] ? t("openQuarter") : t("closeQuarter")}
-											</Button>
-										</div>
-									);
-								})}
-							</div>
+								<TabsContent value="chronology" className="mt-4">
+									<MatchChronology actions={matchActions} players={allPlayers} activeQuarter={activeQuarter} onRemove={removeMatchAction} />
+								</TabsContent>
+							</Tabs>
 						</div>
 
 						<SprintWinnerModal
@@ -1942,6 +2060,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 								onUpdate={(field, value) => updateStat(selectedPlayer.id, field, value)}
 								goalkeeperShots={goalkeeperShots}
 								setGoalkeeperShots={setGoalkeeperShots}
+								activeQuarter={activeQuarter}
 								match={existingMatch as any}
 								isStatVisible={isStatVisible}
 							/>
@@ -2408,6 +2527,7 @@ function GoalkeeperStatsDialog({
 	onUpdate,
 	goalkeeperShots,
 	setGoalkeeperShots,
+	activeQuarter,
 	isStatVisible
 }: {
 	player: Player;
@@ -2416,6 +2536,7 @@ function GoalkeeperStatsDialog({
 	match: Match;
 	goalkeeperShots: GoalkeeperShotDraft[];
 	setGoalkeeperShots: (next: GoalkeeperShotDraft[]) => void;
+	activeQuarter: DraftQuarter | null;
 	isStatVisible: (statKey: keyof MatchStats | string) => boolean;
 }) {
 	const t = useTranslations("NewMatch");
@@ -2487,7 +2608,7 @@ function GoalkeeperStatsDialog({
 				<Group title={t("groups.other")}>
 					<StatField label={t("totals")} value={totalGoalsConceded} onChange={() => {}} readOnly />
 				</Group>
-				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
+				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} quarter={activeQuarter} />
 			</TabsContent>
 
 			<TabsContent value="paradas" className="space-y-4 mt-4">
@@ -2563,7 +2684,7 @@ function GoalkeeperStatsDialog({
 						readOnly
 					/>
 				</Group>
-				<GoalkeeperSavesRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} />
+				<GoalkeeperSavesRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} quarter={activeQuarter} />
 			</TabsContent>
 
 			<TabsContent value="inferioridad" className="space-y-4 mt-4">

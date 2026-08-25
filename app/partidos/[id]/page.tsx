@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft, Edit, ListOrdered } from "lucide-react";
 import { notFound } from "next/navigation";
 import { DeleteMatchButton } from "@/components/delete-match-button";
 import { getCurrentProfile } from "@/lib/auth";
@@ -13,9 +13,12 @@ import { MatchPlayersTabs } from "./MatchPlayersTabs";
 import { ExportMatchPdfButton } from "@/components/export-buttons/export-match-pdf-button";
 import { ExportMatchExcelButton } from "@/components/export-buttons/export-match-excel-button";
 import { getLocale, getTranslations } from "next-intl/server";
+import { MatchChronology } from "@/components/match-actions/MatchChronology";
+import type { MatchAction } from "@/lib/types";
 
 export default async function MatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const t = await getTranslations("Matches");
+	const chronologyT = await getTranslations("MatchChronology");
 	const locale = await getLocale();
 	const { id } = await params;
 	const matchId = Number(id);
@@ -83,6 +86,25 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 		.eq("match_id", matchId)
 		.order("shot_order", { ascending: true });
 
+	const { data: actionRows, error: actionsError } = await supabase
+		.from("match_actions")
+		.select(`
+			id,
+			client_id,
+			match_id,
+			player_id,
+			quarter,
+			sequence,
+			action_key,
+			created_by,
+			created_at,
+			players:player_id (id, name, number, photo_url)
+		`)
+		.eq("match_id", matchId)
+		.order("sequence", { ascending: true });
+
+	if (actionsError) console.error("Error loading match chronology:", actionsError);
+
 	const isTied = match.home_score === match.away_score;
 	const hasPenalties = isTied && (match.penalty_home_score != null || match.penalty_away_score != null);
 
@@ -148,6 +170,25 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 
 	const blocksStats = calculateBlocksStats(match.match_stats, match.away_score);
 	const players = match.match_stats.map((s: any) => s.players);
+	const chronologyActions = (actionRows ?? []).map((action: any) => ({
+		id: action.id,
+		client_id: action.client_id,
+		match_id: action.match_id,
+		player_id: action.player_id,
+		quarter: action.quarter,
+		sequence: action.sequence,
+		action_key: action.action_key,
+		created_by: action.created_by,
+		created_at: action.created_at
+	})) as MatchAction[];
+	const chronologyPlayers = Array.from(
+		new Map(
+			[
+				...players,
+				...(actionRows ?? []).map((action: any) => normalizeRel(action.players)).filter(Boolean)
+			].map((player: any) => [player.id, player])
+		).values()
+	);
 
 	const stats = match.match_stats;
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
@@ -292,6 +333,24 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 				homePenaltyShooters={homePenaltyShooters}
 				rivalPenaltyShots={rivalPenaltyShots}
 			/>
+
+			<Card className="mb-6 overflow-hidden rounded-2xl border-border/70 p-0">
+				<div className="flex items-center justify-between gap-3 border-b bg-muted/15 px-4 py-3 sm:px-5">
+					<div>
+						<h2 className="flex items-center gap-2 text-base font-semibold sm:text-lg">
+							<ListOrdered className="size-5 text-primary" />
+							{chronologyT("title")}
+						</h2>
+						<p className="mt-0.5 text-xs text-muted-foreground">{chronologyT("description")}</p>
+					</div>
+					<span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+						{chronologyT("actionCount", { count: chronologyActions.length })}
+					</span>
+				</div>
+				<div className="p-4 sm:p-5">
+					<MatchChronology actions={chronologyActions} players={chronologyPlayers} showAll />
+				</div>
+			</Card>
 
 			<MatchPlayersTabs
 				fieldPlayersStats={fieldPlayersStats}
