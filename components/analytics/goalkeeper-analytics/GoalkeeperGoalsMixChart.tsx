@@ -22,7 +22,7 @@ const toNum = (v: unknown) => {
 };
 
 type GoalPartDef = {
-	key: "boya" | "hm" | "dir" | "contra" | "penalti" | "lanz" | "palo";
+	key: "boya" | "hm" | "dir" | "contra" | "penalti" | "lanz" | "extremo" | "palo";
 	statKey: string;
 	color: string;
 };
@@ -57,6 +57,11 @@ const GOAL_PART_DEFS: GoalPartDef[] = [
 		key: "lanz",
 		statKey: "portero_goles_lanzamiento",
 		color: "hsla(0, 84%, 60%, 1.00)"
+	},
+	{
+		key: "extremo",
+		statKey: "portero_goles_extremo",
+		color: "hsla(24, 88%, 58%, 1.00)"
 	},
 	{
 		key: "palo",

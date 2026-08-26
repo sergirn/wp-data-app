@@ -28,6 +28,7 @@ export function buildTeamDashboardStats(players: any[] = [], enabledStats: any[]
 		const portero_paradas_totales = stats.reduce((sum, s) => sum + (s.portero_paradas_totales || 0), 0);
 		const portero_paradas_penalti_parado = stats.reduce((sum, s) => sum + (s.portero_paradas_penalti_parado || 0), 0);
 		const portero_goles_totales = stats.reduce((sum, s) => sum + (s.portero_goles_totales || 0), 0);
+		const portero_goles_extremo = stats.reduce((sum, s) => sum + (s.portero_goles_extremo || 0), 0);
 		const portero_paradas_hombre_menos = stats.reduce((sum, s) => sum + (s.portero_paradas_hombre_menos || 0), 0);
 		const portero_goles_hombre_menos = stats.reduce((sum, s) => sum + (s.portero_goles_hombre_menos || 0), 0);
 		const portero_inferioridad_fuera = stats.reduce((sum, s) => sum + (s.portero_inferioridad_fuera || 0), 0);
@@ -59,6 +60,7 @@ export function buildTeamDashboardStats(players: any[] = [], enabledStats: any[]
 			portero_paradas_totales,
 			portero_paradas_penalti_parado,
 			portero_goles_totales,
+			portero_goles_extremo,
 			portero_paradas_hombre_menos,
 			portero_goles_hombre_menos,
 			portero_inferioridad_fuera,

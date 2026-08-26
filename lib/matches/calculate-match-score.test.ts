@@ -23,9 +23,9 @@ describe("calculateMatchScore", () => {
 		]);
 		const score = calculateMatchScore({
 			1: { portero_goles_penalti: 2, portero_paradas_penalti_parado: 3, portero_goles_totales: 20 },
-			2: { portero_goles_contraataque: 1, portero_goles_hombre_menos: 2 }
+			2: { portero_goles_contraataque: 1, portero_goles_hombre_menos: 2, portero_goles_extremo: 2 }
 		}, players);
 
-		expect(score).toEqual({ ownGoals: 0, opponentGoals: 5 });
+		expect(score).toEqual({ ownGoals: 0, opponentGoals: 7 });
 	});
 });

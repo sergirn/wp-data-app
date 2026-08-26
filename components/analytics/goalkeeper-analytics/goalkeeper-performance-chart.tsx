@@ -40,6 +40,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 			goal_contra: isVisible(hiddenSet, "portero_goles_contraataque"),
 			goal_penalti: isVisible(hiddenSet, "portero_goles_penalti"),
 			goal_lanz: isVisible(hiddenSet, "portero_goles_lanzamiento"),
+			goal_extremo: isVisible(hiddenSet, "portero_goles_extremo"),
 			goal_inf: isVisible(hiddenSet, "portero_goles_hombre_menos"),
 			goal_inf_palo: isVisible(hiddenSet, "portero_gol_palo"),
 
@@ -74,6 +75,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 						s.portero_goles_contraataque != null ||
 						s.portero_goles_penalti != null ||
 						s.portero_goles_lanzamiento != null ||
+						s.portero_goles_extremo != null ||
 						s.portero_goles_hombre_menos != null ||
 						s.portero_lanz_palo_inf != null)
 			);
@@ -98,6 +100,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 				(visibility.goal_contra ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_goles_contraataque), 0) : 0) +
 				(visibility.goal_penalti ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_goles_penalti), 0) : 0) +
 				(visibility.goal_lanz ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_goles_lanzamiento), 0) : 0) +
+				(visibility.goal_extremo ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_goles_extremo), 0) : 0) +
 				(visibility.goal_inf ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_goles_hombre_menos), 0) : 0) +
 				(visibility.goal_inf_palo ? goalkeepersStats.reduce((sum, s) => sum + toNum(s.portero_gol_palo), 0) : 0);
 
@@ -162,6 +165,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 		!hiddenSet.has("portero_goles_contraataque") ||
 		!hiddenSet.has("portero_goles_penalti") ||
 		!hiddenSet.has("portero_goles_lanzamiento") ||
+		!hiddenSet.has("portero_goles_extremo") ||
 		!hiddenSet.has("portero_goles_hombre_menos") ||
 		!hiddenSet.has("portero_gol_palo");
 

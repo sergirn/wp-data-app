@@ -22,6 +22,7 @@ export type GoalkeeperBreakdownPlayerRow = {
 	contra: number;
 	penalti: number;
 	lanzamiento: number;
+	extremo: number;
 	infGol: number;
 	infPaloGol: number;
 	total: number;
@@ -43,6 +44,7 @@ const GOALS_AGAINST_COLORS = {
 	contra: "hsla(345, 78%, 58%, 1)",
 	penalti: "hsla(45, 92%, 52%, 1)",
 	lanzamiento: "hsla(270, 72%, 60%, 1)",
+	extremo: "hsla(24, 88%, 58%, 1)",
 	infGol: "hsla(0, 76%, 58%, 1)",
 	infPaloGol: "hsla(325, 72%, 56%, 1)"
 } as const;
@@ -73,10 +75,11 @@ export function buildGoalkeeperGoalsAgainstSummary(
 	const contra = gkRows.reduce((sum, s) => sum + n(s?.portero_goles_contraataque), 0);
 	const penalti = gkRows.reduce((sum, s) => sum + n(s?.portero_goles_penalti), 0);
 	const lanzamiento = gkRows.reduce((sum, s) => sum + n(s?.portero_goles_lanzamiento), 0);
+	const extremo = gkRows.reduce((sum, s) => sum + n(s?.portero_goles_extremo), 0);
 	const infGol = gkRows.reduce((sum, s) => sum + n(s?.portero_goles_hombre_menos), 0);
 	const infPaloGol = gkRows.reduce((sum, s) => sum + n(s?.portero_gol_palo), 0);
 
-	const total = boya + dir6m + contra + penalti + lanzamiento + infGol + infPaloGol;
+	const total = boya + dir6m + contra + penalti + lanzamiento + extremo + infGol + infPaloGol;
 
 	const parts: GoalkeeperBreakdownPart[] = [
 		{ key: "boya", label: translateLabel("portero_goles_boya_parada"), value: boya, pct: pct(boya, total), color: GOALS_AGAINST_COLORS.boya },
@@ -84,6 +87,7 @@ export function buildGoalkeeperGoalsAgainstSummary(
 		{ key: "contra", label: translateLabel("portero_goles_contraataque"), value: contra, pct: pct(contra, total), color: GOALS_AGAINST_COLORS.contra },
 		{ key: "penalti", label: translateLabel("portero_goles_penalti"), value: penalti, pct: pct(penalti, total), color: GOALS_AGAINST_COLORS.penalti },
 		{ key: "lanzamiento", label: translateLabel("portero_goles_lanzamiento"), value: lanzamiento, pct: pct(lanzamiento, total), color: GOALS_AGAINST_COLORS.lanzamiento },
+		{ key: "extremo", label: translateLabel("portero_goles_extremo"), value: extremo, pct: pct(extremo, total), color: GOALS_AGAINST_COLORS.extremo },
 		{ key: "infGol", label: translateLabel("portero_goles_hombre_menos"), value: infGol, pct: pct(infGol, total), color: GOALS_AGAINST_COLORS.infGol },
 		{ key: "infPaloGol", label: translateLabel("portero_gol_palo"), value: infPaloGol, pct: pct(infPaloGol, total), color: GOALS_AGAINST_COLORS.infPaloGol }
 	].filter((p) => p.value > 0 || total === 0);
@@ -110,6 +114,7 @@ export function buildGoalkeeperGoalsAgainstPerPlayer(
 			contra: 0,
 			penalti: 0,
 			lanzamiento: 0,
+			extremo: 0,
 			infGol: 0,
 			infPaloGol: 0,
 			total: 0
@@ -120,10 +125,11 @@ export function buildGoalkeeperGoalsAgainstPerPlayer(
 		cur.contra += n(s?.portero_goles_contraataque);
 		cur.penalti += n(s?.portero_goles_penalti);
 		cur.lanzamiento += n(s?.portero_goles_lanzamiento);
+		cur.extremo += n(s?.portero_goles_extremo);
 		cur.infGol += n(s?.portero_goles_hombre_menos);
 		cur.infPaloGol += n(s?.portero_gol_palo);
 
-		cur.total = cur.boya + cur.dir6m + cur.contra + cur.penalti + cur.lanzamiento + cur.infGol + cur.infPaloGol;
+		cur.total = cur.boya + cur.dir6m + cur.contra + cur.penalti + cur.lanzamiento + cur.extremo + cur.infGol + cur.infPaloGol;
 		map.set(playerId, cur);
 	}
 

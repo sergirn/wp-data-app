@@ -503,6 +503,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		portero_goles_dir_mas_5m: 0,
 		portero_goles_contraataque: 0,
 		portero_goles_penalti: 0,
+		portero_goles_extremo: 0,
 		portero_gol: 0,
 		portero_gol_superioridad: 0,
 		portero_fallo_superioridad: 0,
@@ -832,17 +833,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					newStats.portero_paradas_totales = calcParadasTotales(newStats) as any;
 				}
 
-				const goalkeeperGoalCategories: (keyof MatchStats)[] = [
-					"portero_goles_boya_parada",
-					"portero_goles_hombre_menos",
-					"portero_goles_dir_mas_5m",
-					"portero_goles_contraataque",
-					"portero_goles_penalti",
-					"portero_gol",
-					"portero_gol_superioridad",
-					"portero_goles_lanzamiento",
-					"portero_gol_palo"
-				];
+				const goalkeeperGoalCategories = [...GOALKEEPER_CONCEDED_ACTIONS];
 
 				if (field.startsWith("portero_gol") || field.startsWith("portero_goles_")) {
 					newStats.portero_goles_totales = sumVisibleStats(newStats, goalkeeperGoalCategories) as any;
@@ -2392,6 +2383,7 @@ function GoalkeeperStatsDialog({
 		(isStatVisible("portero_goles_dir_mas_5m") ? safeNumber(stats.portero_goles_dir_mas_5m) : 0) +
 		(isStatVisible("portero_goles_contraataque") ? safeNumber(stats.portero_goles_contraataque) : 0) +
 		(isStatVisible("portero_goles_lanzamiento") ? safeNumber(stats.portero_goles_lanzamiento) : 0) +
+		(isStatVisible("portero_goles_extremo") ? safeNumber(stats.portero_goles_extremo) : 0) +
 		(isStatVisible("portero_gol_palo") ? safeNumber(stats.portero_gol_palo) : 0) +
 		(isStatVisible("portero_goles_penalti") ? safeNumber(stats.portero_goles_penalti) : 0);
 
@@ -2449,6 +2441,13 @@ function GoalkeeperStatsDialog({
 						label="Lanzamiento"
 						value={safeNumber(stats.portero_goles_lanzamiento)}
 						onChange={(v) => onUpdate("portero_goles_lanzamiento", v)}
+					/>
+					<VisibleStatField
+						statKey="portero_goles_extremo"
+						isStatVisible={isStatVisible}
+						label={t("goalkeeperWingGoal")}
+						value={safeNumber(stats.portero_goles_extremo)}
+						onChange={(v) => onUpdate("portero_goles_extremo", v)}
 					/>
 				</Group>
 				<Group title={t("groups.other")}>

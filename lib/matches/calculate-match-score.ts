@@ -1,4 +1,5 @@
 import type { MatchStats, Player } from "@/lib/types";
+import { GOALKEEPER_STATS } from "@/lib/stats/goalkeeperStatsConfig";
 
 export const FIELD_GOAL_ACTIONS = new Set<keyof MatchStats>([
 	"goles_boya_jugada",
@@ -10,15 +11,9 @@ export const FIELD_GOAL_ACTIONS = new Set<keyof MatchStats>([
 	"gol_del_palo_sup"
 ]);
 
-export const GOALKEEPER_CONCEDED_ACTIONS = new Set<keyof MatchStats>([
-	"portero_goles_boya_parada",
-	"portero_goles_hombre_menos",
-	"portero_goles_dir_mas_5m",
-	"portero_goles_contraataque",
-	"portero_goles_penalti",
-	"portero_goles_lanzamiento",
-	"portero_gol_palo"
-]);
+export const GOALKEEPER_CONCEDED_ACTIONS = new Set<keyof MatchStats>(
+	GOALKEEPER_STATS.filter((stat) => stat.countsAsGoalConceded).map((stat) => stat.key as keyof MatchStats)
+);
 
 export const GOALKEEPER_SCORED_ACTIONS = new Set<keyof MatchStats>([
 	"portero_gol",

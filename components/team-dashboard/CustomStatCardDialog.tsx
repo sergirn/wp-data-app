@@ -48,6 +48,7 @@ const AVAILABLE_STATS: StatItem[] = [
   // Portero
   { value: "portero_paradas_totales", category: "goalkeeper" }, { value: "portero_paradas_penalti_parado", category: "goalkeeper" },
   { value: "portero_paradas_hombre_menos", category: "goalkeeper" }, { value: "portero_goles_totales", category: "goalkeeper" },
+  { value: "portero_goles_extremo", category: "goalkeeper" },
 ]
 
 const CATEGORY_META: Record<CategoryKey, { badgeClass: string }> = {

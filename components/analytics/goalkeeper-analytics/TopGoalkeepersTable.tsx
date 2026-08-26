@@ -35,6 +35,7 @@ const GOAL_DEFS = [
 	{ key: "gcContra", statKey: "portero_goles_contraataque" },
 	{ key: "gcPen", statKey: "portero_goles_penalti" },
 	{ key: "gcLanz", statKey: "portero_goles_lanzamiento" },
+	{ key: "gcExtremo", statKey: "portero_goles_extremo" },
 	{ key: "gcPalo", statKey: "portero_gol_palo" }
 ] as const;
 
@@ -111,6 +112,7 @@ export function GoalkeeperRankingTable({
 				gcContra: number;
 				gcPen: number;
 				gcLanz: number;
+				gcExtremo: number;
 				gcPalo: number;
 			}
 		>();
@@ -132,10 +134,11 @@ export function GoalkeeperRankingTable({
 			const gcContra = hiddenSet.has("portero_goles_contraataque") ? 0 : toNum(s.portero_goles_contraataque);
 			const gcPen = hiddenSet.has("portero_goles_penalti") ? 0 : toNum(s.portero_goles_penalti);
 			const gcLanz = hiddenSet.has("portero_goles_lanzamiento") ? 0 : toNum(s.portero_goles_lanzamiento);
+			const gcExtremo = hiddenSet.has("portero_goles_extremo") ? 0 : toNum(s.portero_goles_extremo);
 			const gcPalo = hiddenSet.has("portero_gol_palo") ? 0 : toNum(s.portero_gol_palo);
 
 			const paradas = paradasRecup + paradasFuera + paradasPenalti + paradasInf + paradasCornerInf;
-			const golesConcedidos = gcBoya + gcHm + gcDir + gcContra + gcPen + gcLanz + gcPalo;
+			const golesConcedidos = gcBoya + gcHm + gcDir + gcContra + gcPen + gcLanz + gcExtremo + gcPalo;
 			const accionesExtra = lanzPaloInf;
 
 			if (paradas <= 0 && golesConcedidos <= 0 && accionesExtra <= 0) return;
@@ -157,6 +160,7 @@ export function GoalkeeperRankingTable({
 				gcContra: 0,
 				gcPen: 0,
 				gcLanz: 0,
+				gcExtremo: 0,
 				gcPalo: 0
 			};
 
@@ -177,6 +181,7 @@ export function GoalkeeperRankingTable({
 			prev.gcContra += gcContra;
 			prev.gcPen += gcPen;
 			prev.gcLanz += gcLanz;
+			prev.gcExtremo += gcExtremo;
 			prev.gcPalo += gcPalo;
 
 			map.set(pid, prev);

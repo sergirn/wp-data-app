@@ -53,6 +53,11 @@ const GOAL_DEFS = [
 		color: "hsla(0, 84%, 60%, 1.00)"
 	},
 	{
+		key: "extremo",
+		statKey: "portero_goles_extremo",
+		color: "hsla(24, 88%, 58%, 1.00)"
+	},
+	{
 		key: "palo",
 		statKey: "portero_gol_palo",
 		color: "hsla(270, 75%, 60%, 1.00)"

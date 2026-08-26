@@ -31,6 +31,7 @@ export const GOALKEEPER_STATS: GoalkeeperStatDef[] = [
 	stat("portero_goles_contraataque", "goles", conceded),
 	stat("portero_goles_penalti", "goles", { ...conceded, countsAsPenaltyAttempt: true }),
 	stat("portero_goles_lanzamiento", "goles", conceded),
+	stat("portero_goles_extremo", "goles", conceded),
 	stat("portero_paradas_totales", "paradas"),
 	stat("portero_tiros_parada_recup", "paradas", saved),
 	stat("portero_paradas_fuera", "paradas", saved),

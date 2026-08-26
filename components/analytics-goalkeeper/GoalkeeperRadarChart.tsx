@@ -47,12 +47,13 @@ function getGoalsFromRow(stat: any) {
   let goals = Number(stat?.goles_recibidos_reales || 0);
   if (!goals) {
     const g = {
-      gol: Number(stat?.portero_gol || 0),
-      sup: Number(stat?.portero_gol_superioridad || 0),
       boya: Number(stat?.portero_goles_boya_parada || 0),
       hm: Number(stat?.portero_goles_hombre_menos || 0),
       mas6: Number(stat?.portero_goles_dir_mas_5m || 0),
       contra: Number(stat?.portero_goles_contraataque || 0),
+	  lanzamiento: Number(stat?.portero_goles_lanzamiento || 0),
+	  extremo: Number(stat?.portero_goles_extremo || 0),
+	  palo: Number(stat?.portero_gol_palo || 0),
       pen: Number(stat?.portero_goles_penalti || 0)
     };
     goals = Object.values(g).reduce((a, b) => a + (b || 0), 0);

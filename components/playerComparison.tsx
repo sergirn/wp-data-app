@@ -38,6 +38,9 @@ const calcGolesRecibidosPortero = (sum: (k: keyof MatchStats) => number) => {
     sum("portero_goles_dir_mas_5m") +
     sum("portero_goles_contraataque") +
     sum("portero_goles_penalti") +
+		sum("portero_goles_lanzamiento") +
+		sum("portero_goles_extremo") +
+		sum("portero_gol_palo") +
     sum("portero_goles_hombre_menos")
   )
 }

@@ -165,6 +165,7 @@ CREATE TABLE match_stats (
     portero_goles_boya_parada INTEGER DEFAULT 0,
     portero_goles_hombre_menos INTEGER DEFAULT 0,
     portero_goles_lanzamiento INTEGER DEFAULT 0,
+	portero_goles_extremo INTEGER NOT NULL DEFAULT 0,
     portero_goles_dir_mas_5m INTEGER DEFAULT 0,
     portero_goles_contraataque INTEGER DEFAULT 0,
     portero_goles_penalti INTEGER DEFAULT 0,

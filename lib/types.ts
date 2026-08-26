@@ -186,6 +186,7 @@ export interface MatchStats {
 	portero_goles_dir_mas_5m: number; // Updated field name
 	portero_goles_contraataque: number;
 	portero_goles_penalti: number;
+	portero_goles_extremo: number; // Opponent goals scored from the wing
 
 	portero_paradas_totales: number;
 	portero_paradas_parada_recup: number; // Updated field name

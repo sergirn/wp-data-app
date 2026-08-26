@@ -105,7 +105,7 @@ export function MatchPhaseOverview({ phase, stats, hiddenStats = [] }: Props) {
 		const inferiorityTotal = inferiorityPrevented + inferiorityGoals;
 
 		const saves = sum(goalkeeperRows, "portero_paradas_totales");
-		const detailedGoals = ["portero_goles_boya_parada", "portero_goles_dir_mas_5m", "portero_goles_contraataque", "portero_goles_penalti", "portero_goles_lanzamiento", "portero_goles_hombre_menos", "portero_gol_palo"]
+		const detailedGoals = ["portero_goles_boya_parada", "portero_goles_dir_mas_5m", "portero_goles_contraataque", "portero_goles_penalti", "portero_goles_lanzamiento", "portero_goles_extremo", "portero_goles_hombre_menos", "portero_gol_palo"]
 			.reduce((acc, key) => acc + sum(goalkeeperRows, key), 0);
 		const storedGoals = sum(goalkeeperRows, "portero_goles_totales");
 		const conceded = storedGoals || detailedGoals;
@@ -131,7 +131,7 @@ export function MatchPhaseOverview({ phase, stats, hiddenStats = [] }: Props) {
 					return { id: player.id ?? row.id ?? index, name: player.name ?? t("unknownPlayer"), number: player.number, primary: rowRecoveries, secondary: rowBlocks, score: rowRecoveries * 2 + rowBlocks * 3 - received * 2 };
 				}
 				const rowSaves = rowValue(row, "portero_paradas_totales");
-				const rowGoals = rowValue(row, "portero_goles_totales") || ["portero_goles_boya_parada", "portero_goles_dir_mas_5m", "portero_goles_contraataque", "portero_goles_penalti", "portero_goles_lanzamiento", "portero_goles_hombre_menos", "portero_gol_palo"].reduce((acc, key) => acc + rowValue(row, key), 0);
+				const rowGoals = rowValue(row, "portero_goles_totales") || ["portero_goles_boya_parada", "portero_goles_dir_mas_5m", "portero_goles_contraataque", "portero_goles_penalti", "portero_goles_lanzamiento", "portero_goles_extremo", "portero_goles_hombre_menos", "portero_gol_palo"].reduce((acc, key) => acc + rowValue(row, key), 0);
 				return { id: player.id ?? row.id ?? index, name: player.name ?? t("unknownGoalkeeper"), number: player.number, primary: rowSaves, secondary: rowGoals, score: rowSaves * 2 - rowGoals };
 			})
 			.filter((player) => player.primary > 0 || player.secondary > 0 || player.score !== 0)

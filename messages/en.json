@@ -673,7 +673,8 @@
 			"conceded": "Conceded"
 		},
 		"totals": "Totals",
-		"efficiency": "Efficiency %"
+		"efficiency": "Efficiency %",
+		"goalkeeperWingGoal": "Wing goal"
 	},
 	"LegacyStatLabels": {
 		"goles_boya_jugada": "Center-forward play",
@@ -715,6 +716,7 @@
 		"portero_goles_contraataque": "Counterattack",
 		"portero_goles_penalti": "Penalty",
 		"portero_goles_lanzamiento": "Shot",
+		"portero_goles_extremo": "Wing goal",
 		"portero_tiros_parada_recup": "Save and recovery",
 		"portero_paradas_fuera": "Save to corner",
 		"lanz_recibido_fuera": "Shot received wide",
@@ -976,7 +978,8 @@
 			"portero_paradas_totales": "Total saves",
 			"portero_paradas_penalti_parado": "Penalty saves",
 			"portero_paradas_hombre_menos": "Penalty-kill saves",
-			"portero_goles_totales": "Goals conceded"
+			"portero_goles_totales": "Goals conceded",
+			"portero_goles_extremo": "Goals conceded from the wing"
 		}
 	},
 	"PlayerMatchCompare": {
@@ -1499,6 +1502,7 @@
 		"portero_goles_contraataque": "Counterattack goal",
 		"portero_goles_penalti": "Penalty goal",
 		"portero_goles_lanzamiento": "Shot goal",
+		"portero_goles_extremo": "Wing goal",
 		"portero_paradas_totales": "Total",
 		"portero_tiros_parada_recup": "Save + recovery",
 		"portero_paradas_fuera": "Save + corner",

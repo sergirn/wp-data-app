@@ -673,7 +673,8 @@
 			"conceded": "Recibidos"
 		},
 		"totals": "Totales",
-		"efficiency": "Eficiencia %"
+		"efficiency": "Eficiencia %",
+		"goalkeeperWingGoal": "Gol de extremo"
 	},
 	"LegacyStatLabels": {
 		"goles_boya_jugada": "Boya/jugada",
@@ -715,6 +716,7 @@
 		"portero_goles_contraataque": "Contraataque",
 		"portero_goles_penalti": "Penalti",
 		"portero_goles_lanzamiento": "Lanzamiento",
+		"portero_goles_extremo": "Gol de extremo",
 		"portero_tiros_parada_recup": "Parada y recuperación",
 		"portero_paradas_fuera": "Parada a córner",
 		"lanz_recibido_fuera": "Lanzamiento recibido fuera",
@@ -976,7 +978,8 @@
 			"portero_paradas_totales": "Paradas totales",
 			"portero_paradas_penalti_parado": "Penaltis parados",
 			"portero_paradas_hombre_menos": "Paradas en inferioridad",
-			"portero_goles_totales": "Goles recibidos"
+			"portero_goles_totales": "Goles recibidos",
+			"portero_goles_extremo": "Goles recibidos desde el extremo"
 		}
 	},
 	"PlayerMatchCompare": {
@@ -1499,6 +1502,7 @@
 		"portero_goles_contraataque": "Contraataque",
 		"portero_goles_penalti": "Penalti",
 		"portero_goles_lanzamiento": "Lanzamiento",
+		"portero_goles_extremo": "Gol de extremo",
 		"portero_paradas_totales": "Totales",
 		"portero_tiros_parada_recup": "Parada + recuperación",
 		"portero_paradas_fuera": "Parada + córner",

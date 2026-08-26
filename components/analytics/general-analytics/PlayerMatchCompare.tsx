@@ -26,6 +26,9 @@ const calcGolesRecibidosPortero = (st?: any) => {
 		safe(st?.portero_goles_dir_mas_5m) +
 		safe(st?.portero_goles_contraataque) +
 		safe(st?.portero_goles_penalti) +
+		safe(st?.portero_goles_lanzamiento) +
+		safe(st?.portero_goles_extremo) +
+		safe(st?.portero_gol_palo) +
 		safe(st?.portero_goles_hombre_menos)
 	);
 };

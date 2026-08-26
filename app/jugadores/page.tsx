@@ -26,6 +26,7 @@ function getGoalkeeperGoalsConceded(stat: Record<string, unknown>) {
 		"portero_goles_dir_mas_5m",
 		"portero_goles_contraataque",
 		"portero_goles_lanzamiento",
+		"portero_goles_extremo",
 		"portero_goles_penalti"
 	].reduce((total, key) => total + Number(stat[key] || 0), 0);
 }
