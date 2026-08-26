@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BarChart3, CalendarDays, ClipboardList, Crosshair, Shield, Swords, Target, UsersRound } from "lucide-react";
+import { ArrowLeft, BarChart3, CalendarDays, ClipboardList, Crosshair, Shield, Sparkles, Swords, Target, UsersRound } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { OpponentAliasManager } from "@/components/opponents/OpponentAliasManager";
@@ -22,6 +22,7 @@ import { getMatchOutcome, getVenueScore } from "@/lib/matches/score";
 import { useProfile } from "@/lib/profile-context";
 import { createClient } from "@/lib/supabase/client";
 import type { Opponent, OpponentNote } from "@/lib/types";
+import { OpponentPreparationPanel } from "@/components/opponents/OpponentPreparationPanel";
 
 type AliasRow = { id: number; alias: string };
 type GoalkeeperShot = { id: number; match_id: number; goalkeeper_player_id: number; x: number; y: number; result: "goal" | "save" | "out" };
@@ -143,12 +144,13 @@ export default function OpponentDetailPage() {
 			</header>
 
 			<Tabs defaultValue="summary" className="space-y-5">
-				<TabsList className="flex h-auto w-full justify-start overflow-x-auto p-1 sm:grid sm:grid-cols-5">
+				<TabsList className="flex h-auto w-full justify-start overflow-x-auto p-1 lg:grid lg:grid-cols-6">
 					<TabsTrigger value="summary" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><BarChart3 className="h-4 w-4" />{t("tabs.summary")}</TabsTrigger>
 					<TabsTrigger value="tactics" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><Crosshair className="h-4 w-4" />{t("tabs.tactics")}</TabsTrigger>
 					<TabsTrigger value="players" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><UsersRound className="h-4 w-4" />{t("tabs.players")}</TabsTrigger>
 					<TabsTrigger value="matches" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><CalendarDays className="h-4 w-4" />{t("tabs.matches")}</TabsTrigger>
 					<TabsTrigger value="notes" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><ClipboardList className="h-4 w-4" />{t("tabs.notes")}</TabsTrigger>
+					<TabsTrigger value="prepare" className="min-w-36 gap-1.5 py-2.5 lg:min-w-0"><Sparkles className="h-4 w-4" />{t("tabs.prepare")}</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="summary" className="space-y-5">
@@ -182,6 +184,7 @@ export default function OpponentDetailPage() {
 
 				<TabsContent value="matches"><Card><CardHeader><CardTitle>{t("matches.title")}</CardTitle><CardDescription>{t("matches.description")}</CardDescription></CardHeader><CardContent className="space-y-2">{scouting.matches.map((match) => <MatchRow key={match.id} match={match} locale={locale} homeLabel={t("home")} awayLabel={t("away")} resultLabel={t(`results.${getMatchOutcome(match)}`)} detailed />)}</CardContent></Card></TabsContent>
 				<TabsContent value="notes"><OpponentNotes opponentId={opponent.id} clubId={currentClub.id} profileId={profile.id} notes={notes} canEdit={canEdit} onChanged={load} /></TabsContent>
+				<TabsContent value="prepare"><OpponentPreparationPanel opponentName={opponent.name} scouting={scouting} noteCount={notes.length} /></TabsContent>
 			</Tabs>
 		</main>
 	);

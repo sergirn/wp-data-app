@@ -55,6 +55,11 @@ export interface Match {
 	updated_at?: string;
 	updated_by?: string | null;
 	opponent_id?: number | null;
+	review_status?: "pending_review" | "reviewed" | "locked";
+	reviewed_at?: string | null;
+	reviewed_by?: string | null;
+	locked_at?: string | null;
+	locked_by?: string | null;
 }
 
 export interface Opponent {

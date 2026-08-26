@@ -58,6 +58,7 @@
     "next-intl": "^4.13.7",
     "next-themes": "latest",
     "pdf-lib": "^1.17.1",
+    "radix-ui": "^1.6.7",
     "react": "^19.2.8",
     "react-day-picker": "latest",
     "react-dom": "^19.2.8",

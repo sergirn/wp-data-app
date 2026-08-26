@@ -119,6 +119,7 @@
 		"generalTab": "General",
 		"seasonsTab": "Temporada y plantilla",
 		"playersTab": "Editar jugadores",
+		"analysisTab": "Criterios de análisis",
 		"playersManagementTitle": "Gestión de jugadores",
 		"playersManagementDescription": "Añade jugadores, actualiza sus datos o desactívalos sin perder su historial de partidos.",
 		"managePlayers": "Gestionar jugadores",
@@ -395,12 +396,16 @@
 			"allStats": "Todos los estados",
 			"statsEnabled": "Estadísticas activas",
 			"statsDisabled": "Estadísticas pausadas",
+			"reviewLabel": "Estado de revisión",
+			"allReviewStatuses": "Todos los estados de revisión",
 			"sortLabel": "Ordenar partidos",
 			"newest": "Más recientes",
 			"oldest": "Más antiguos",
 			"opponent": "Rival (A–Z)",
 			"clear": "Limpiar filtros",
-			"noResults": "No hay partidos que coincidan con estos filtros."
+			"noResults": "No hay partidos que coincidan con estos filtros.",
+			"moreFilters": "Más filtros",
+			"filterDescription": "Ajusta los partidos que quieres mostrar"
 		},
 		"pagination": {
 			"previous": "Anterior",
@@ -425,6 +430,7 @@
 			"deleting": "Eliminando…",
 			"deleteError": "No se pudo eliminar el borrador"
 		},
+		"reviewStatus": { "pending_review": "Pendiente", "reviewed": "Revisado", "locked": "Bloqueado" },
 		"results": {
 			"win": "Victoria",
 			"loss": "Derrota",
@@ -453,6 +459,8 @@
 	"DeleteMatch": {
 		"buttonLabel": "Eliminar partido",
 		"error": "Error al eliminar el partido",
+		"notDeleted": "El partido no se ha eliminado. Puede que no tengas permisos o que ya no exista.",
+		"lockedError": "Este partido está bloqueado. Vuelve a abrir su revisión antes de eliminarlo.",
 		"title": "¿Estás seguro?",
 		"description": "Esta acción no se puede deshacer. Se eliminarán el partido y todas sus estadísticas de forma permanente.",
 		"deleting": "Eliminando…",
@@ -641,6 +649,9 @@
 		"saving": "Guardando…",
 		"updateMatch": "Actualizar partido",
 		"saveMatch": "Guardar partido",
+		"finalizeMatch": "Finalizar y revisar partido",
+		"lockedMatchTitle": "Partido bloqueado",
+		"lockedMatchDescription": "Reabre la revisión desde el detalle del partido antes de modificarlo.",
 		"poweredBy": "DESARROLLADO POR",
 		"autosave": {
 			"idle": "Autoguardado listo",
@@ -2116,6 +2127,10 @@
 		"excel": "EXCEL",
 		"export": "Exportar",
 		"exportPdf": "Exportar PDF",
+		"matchPdfSummary": "Informe resumido",
+		"matchPdfSummaryDescription": "Marcador, parciales, penaltis y notas técnicas.",
+		"matchPdfFull": "Informe técnico completo",
+		"matchPdfFullDescription": "Incluye ataque, defensa, portería y detalle individual.",
 		"exportExcel": "Exportar Excel",
 		"exportCsv": "Exportar a Excel (CSV)",
 		"downloading": "Descargando...",
@@ -2215,7 +2230,14 @@
 		"home": "Local",
 		"away": "Visitante",
 		"confidence": { "low": "Muestra pequeña", "medium": "Confianza media", "high": "Confianza alta" },
-		"tabs": { "summary": "Resumen", "tactics": "Táctica", "players": "Rendimiento", "matches": "Partidos", "notes": "Notas" },
+		"tabs": {
+			"summary": "Resumen",
+			"tactics": "Táctica",
+			"players": "Rendimiento",
+			"matches": "Partidos",
+			"notes": "Notas",
+			"prepare": "Preparar partido"
+		},
 		"kpis": {
 			"record": "Balance",
 			"recordHint": "Resultados de tu equipo ante este rival",
@@ -2243,10 +2265,70 @@
 			"saves": "Paradas propias",
 			"shotsMapped": "Tiros localizados"
 		},
-		"shotMap": { "title": "Mapa de tiro rival", "description": "Distribución de los lanzamientos registrados contra tus porteros.", "goals": "Gol", "saves": "Parada", "out": "Fuera" },
-		"players": { "title": "Quién rinde mejor ante este rival", "description": "Ranking de jugadores de tu equipo según los partidos vinculados.", "matches": "Partidos", "goals": "Goles", "assists": "Asistencias", "empty": "Aún no hay estadísticas individuales suficientes." },
+		"shotMap": {
+			"title": "Mapa de tiro rival",
+			"description": "Distribución de los lanzamientos registrados contra tus porteros.",
+			"goals": "Gol",
+			"saves": "Parada",
+			"out": "Fuera"
+		},
+		"players": {
+			"title": "Quién rinde mejor ante este rival",
+			"description": "Ranking de jugadores de tu equipo según los partidos vinculados.",
+			"matches": "Partidos",
+			"goals": "Goles",
+			"assists": "Asistencias",
+			"empty": "Aún no hay estadísticas individuales suficientes."
+		},
 		"matches": { "title": "Histórico de enfrentamientos", "description": "Accede al análisis completo de cada partido." },
 		"results": { "win": "Victoria", "draw": "Empate", "loss": "Derrota" },
+		"prepare": {
+			"title": "Plan previo contra {opponent}",
+			"description": "Preparación generada a partir de {count} enfrentamientos propios. No representa todos los partidos disputados por el rival.",
+			"empty": "Todavía no hay enfrentamientos para preparar el partido",
+			"emptyHint": "Añade notas de scouting y registra el próximo encuentro; el informe crecerá con el histórico.",
+			"confidence": { "low": "Muestra pequeña", "medium": "Confianza media", "high": "Confianza alta" },
+			"metrics": {
+				"scoring": "Goles propios",
+				"conceded": "Goles recibidos",
+				"shooting": "Efectividad",
+				"notes": "Notas disponibles",
+				"perMatch": "Media por partido",
+				"recordedShots": "{count} tiros registrados",
+				"notesHint": "Contexto del cuerpo técnico"
+			},
+			"risks": {
+				"title": "Riesgos a controlar",
+				"quarter": "El Q{quarter} presenta el peor balance histórico ({difference}).",
+				"conceded": "El rival ha anotado una media de {value} goles en estos enfrentamientos.",
+				"powerPlayGoals": "Se han recibido {count} goles en inferioridad.",
+				"noPowerPlayGoals": "No hay goles en inferioridad registrados; conviene confirmar que la captura esté completa."
+			},
+			"opportunities": {
+				"title": "Oportunidades",
+				"quarter": "El Q{quarter} ofrece el mejor balance histórico ({difference}).",
+				"powerPlay": "La superioridad propia ha convertido un {value} %.",
+				"player": "{player} es la principal referencia frente a este rival, con {goals} goles.",
+				"noPlayer": "Todavía no hay una referencia ofensiva individual suficiente."
+			},
+			"checklist": {
+				"title": "Checklist del cuerpo técnico",
+				"description": "Completa el dato cuantitativo con decisiones y observaciones propias.",
+				"lineup": { "title": "Alineación rival", "description": "Confirma titulares, portero, boya y principales lanzadores en las notas." },
+				"defense": {
+					"title": "Plan defensivo",
+					"description": "Define cómo proteger el parcial y las situaciones que históricamente generan más daño."
+				},
+				"powerPlay": {
+					"title": "Superioridades",
+					"description": "Selecciona las variantes ofensivas que mejor han funcionado en los enfrentamientos previos."
+				},
+				"goalkeeper": {
+					"title": "Portería",
+					"description": "Revisa el mapa de tiros rival y prepara referencias por zona antes del partido."
+				}
+			}
+		},
 		"aliases": {
 			"title": "Nombres alternativos",
 			"description": "Añade abreviaturas o nombres usados anteriormente para reunir todo el histórico del mismo rival.",
@@ -2269,6 +2351,135 @@
 			"deleteTitle": "¿Eliminar esta nota?",
 			"deleteDescription": "Esta acción no se puede deshacer.",
 			"delete": "Eliminar"
+		}
+	},
+	"SeasonObjectives": {
+		"title": "Objetivos de temporada",
+		"description": "Cumplimiento medio calculado sobre {count} partidos con estadísticas activas.",
+		"achieved": "{achieved}/{total} cumplidos",
+		"met": "Objetivo cumplido",
+		"inProgress": "Margen de mejora",
+		"metrics": {
+			"shooting": "Efectividad de tiro",
+			"powerPlay": "Superioridad",
+			"turnovers": "Pérdidas por partido",
+			"saves": "Porcentaje de paradas",
+			"goalsAgainst": "Goles recibidos"
+		}
+	},
+	"PlayerTrends": {
+		"title": "Tendencia individual reciente",
+		"description": "Últimos {current} partidos frente a los {previous} anteriores.",
+		"shortDescription": "Lectura de los últimos {count} partidos de la temporada.",
+		"delta": "{value} respecto al bloque anterior",
+		"metrics": {
+			"goalsPerMatch": "Goles por partido",
+			"shooting": "Efectividad",
+			"assistsPerMatch": "Asistencias por partido",
+			"possessionPerMatch": "Balance por partido",
+			"savePercentage": "Porcentaje de paradas",
+			"savesPerMatch": "Paradas por partido",
+			"concededPerMatch": "Goles recibidos",
+			"recoveriesPerMatch": "Recuperaciones"
+		}
+	},
+	"AnalysisSettings": {
+		"title": "Criterios deportivos",
+		"description": "Define los objetivos que utiliza la aplicación para interpretar cada partido.",
+		"loading": "Cargando criterios…",
+		"fields": {
+			"shooting": "Efectividad de tiro objetivo",
+			"powerPlay": "Superioridad objetivo",
+			"turnovers": "Alerta de pérdidas",
+			"saves": "Paradas objetivo",
+			"goalsAgainst": "Máximo de goles recibidos"
+		},
+		"hints": {
+			"shooting": "Por debajo de este porcentaje se señalará margen de mejora.",
+			"powerPlay": "Objetivo mínimo de conversión en superioridad.",
+			"turnovers": "Se genera una alerta al superar este número en un partido.",
+			"saves": "Porcentaje mínimo esperado para la portería.",
+			"goalsAgainst": "Límite defensivo recomendado por partido."
+		},
+		"explanation": "Estos valores no modifican ninguna estadística: solo personalizan los diagnósticos y alertas que ve el cuerpo técnico.",
+		"save": "Guardar criterios",
+		"saving": "Guardando…",
+		"saved": "Los criterios deportivos se han actualizado.",
+		"saveError": "No se pudieron guardar. Comprueba que has aplicado la migración de análisis.",
+		"successTitle": "Criterios guardados",
+		"errorTitle": "No se pudo guardar"
+	},
+	"ProductTrends": {
+		"title": "Tendencias recientes",
+		"description": "Últimos {current} partidos frente a los {previous} anteriores.",
+		"shortDescription": "Lectura de los últimos {count} partidos registrados.",
+		"metrics": {
+			"goals": "Goles por partido",
+			"goalsAgainst": "Goles recibidos",
+			"shooting": "Efectividad de tiro",
+			"saves": "Porcentaje de paradas"
+		},
+		"delta": "{value} respecto al bloque anterior",
+		"insights": {
+			"recent_improvement": "El rendimiento conjunto mejora {delta} puntos respecto al bloque anterior.",
+			"recent_decline": "El rendimiento conjunto cae {delta} puntos respecto al bloque anterior."
+		}
+	},
+	"ProductInsights": {
+		"title": "Diagnóstico del partido",
+		"description": "Conclusiones automáticas, controles de calidad y estado de revisión.",
+		"tabs": { "summary": "Resumen", "review": "Revisión" },
+		"status": { "pending_review": "Pendiente de revisión", "reviewed": "Revisado", "locked": "Bloqueado" },
+		"metrics": {
+			"shooting": "Efectividad de tiro",
+			"powerPlay": "Superioridad",
+			"possession": "Balance de posesión",
+			"goalkeeper": "Paradas",
+			"goalsShots": "{goals} goles en {shots} tiros",
+			"converted": "{goals} de {attempts} convertidas",
+			"recoveriesTurnovers": "{recoveries} recuperaciones · {turnovers} pérdidas",
+			"savesShots": "{saves} de {shots} lanzamientos"
+		},
+		"diagnosis": "Lectura técnica",
+		"noInsights": "No hay suficiente información para generar un diagnóstico.",
+		"insights": {
+			"shooting_above_target": "La efectividad de tiro alcanza el {value} %, por encima del objetivo del {target} %.",
+			"shooting_below_target": "La efectividad de tiro se queda en el {value} %, por debajo del objetivo del {target} %.",
+			"power_play_above_target": "La superioridad funcionó al {value} %, superando el objetivo del {target} %.",
+			"power_play_below_target": "La superioridad terminó en un {value} %; el objetivo configurado es {target} %.",
+			"turnovers_high": "Se registraron {value} pérdidas, por encima del máximo recomendado de {target}.",
+			"possession_positive": "El balance entre recuperaciones y pérdidas fue positivo: +{value}.",
+			"save_above_target": "La portería alcanzó un {value} % de paradas, por encima del objetivo del {target} %.",
+			"save_below_target": "La portería terminó con un {value} % de paradas; el objetivo es {target} %.",
+			"goals_against_high": "Se recibieron {value} goles, por encima del límite configurado de {target}.",
+			"best_quarter": "El mejor rendimiento llegó en el Q{quarter}, con un balance de +{value} goles.",
+			"worst_quarter": "El Q{quarter} fue el parcial más débil, con un balance de {value} goles.",
+			"recent_improvement": "El rendimiento reciente mejora {delta} puntos respecto al bloque anterior.",
+			"recent_decline": "El rendimiento reciente cae {delta} puntos respecto al bloque anterior."
+		},
+		"issues": {
+			"missing_stats": "El partido no contiene estadísticas de jugadores.",
+			"own_score_mismatch": "El marcador indica {expected} goles propios, pero las acciones suman {actual}.",
+			"opponent_score_mismatch": "El marcador rival indica {expected} goles, pero portería registra {actual}.",
+			"own_quarters_mismatch": "Los goles propios por parciales suman {actual}; el marcador indica {expected}.",
+			"opponent_quarters_mismatch": "Los goles rivales por parciales suman {actual}; el marcador indica {expected}.",
+			"missing_goalkeeper": "Hay goles rivales, pero no se han encontrado estadísticas de portería.",
+			"empty_chronology": "No hay acciones registradas en la cronología."
+		},
+		"severity": { "error": "Debe corregirse antes de validar", "warning": "Conviene revisarlo", "info": "Información recomendada" },
+		"review": {
+			"clean": "No se han detectado inconsistencias bloqueantes.",
+			"markReviewed": "Marcar como revisado",
+			"lock": "Bloquear partido",
+			"reopen": "Reabrir revisión",
+			"blockedFeedback": "Corrige las inconsistencias obligatorias antes de validar el partido.",
+			"updateError": "No se pudo actualizar el estado de revisión.",
+			"feedbackTitle": "Estado del partido",
+			"feedback": {
+				"pending_review": "El partido vuelve a estar pendiente de revisión.",
+				"reviewed": "El partido se ha marcado como revisado.",
+				"locked": "El partido está bloqueado frente a cambios accidentales."
+			}
 		}
 	},
 	"Pages": {

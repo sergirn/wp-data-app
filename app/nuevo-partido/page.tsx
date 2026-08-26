@@ -998,6 +998,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	}
 
 	const handleSave = async () => {
+		if (existingMatch?.review_status === "locked") {
+			toast({ title: t("lockedMatchTitle"), description: t("lockedMatchDescription"), variant: "destructive" });
+			return;
+		}
 		if (!opponent.trim()) {
 			alert(t("opponentRequired"));
 			return;
@@ -1916,7 +1920,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			<div className=" mt-8">
 			<Button
 				onClick={handleSave}
-				disabled={saving}
+				disabled={saving || existingMatch?.review_status === "locked"}
 				size="lg"
 				className="w-full h-12"
 			>
@@ -1928,7 +1932,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				) : (
 				<>
 					<Save className="mr-2 h-5 w-5" />
-									{editingMatchId ? t("updateMatch") : t("saveMatch")}
+									{editingMatchId ? t("updateMatch") : t("finalizeMatch")}
 				</>
 				)}
 			</Button>

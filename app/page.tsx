@@ -32,6 +32,9 @@ import { buildTeamDashboardStats } from "@/lib/helpers/buildTeamDashboardStats";
 import { SequentialTypewriter } from "@/components/ui/typing";
 import { useLocale, useTranslations } from "next-intl";
 import { getMatchOutcome } from "@/lib/matches/score";
+import { TeamTrendsPanel } from "@/components/analysis/TeamTrendsPanel";
+import { SeasonObjectivesPanel } from "@/components/analysis/SeasonObjectivesPanel";
+import { AnalysisThresholds, DEFAULT_ANALYSIS_THRESHOLDS } from "@/lib/analysis/performance-insights";
 
 type MatchRow = {
 	id: number;
@@ -175,6 +178,7 @@ export default function HomePage() {
 	const [tablesNotFound, setTablesNotFound] = useState(false);
 
 	const [showAllPlayersMobile, setShowAllPlayersMobile] = useState(false);
+	const [analysisThresholds, setAnalysisThresholds] = useState<AnalysisThresholds>(DEFAULT_ANALYSIS_THRESHOLDS);
 
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
 
@@ -206,7 +210,12 @@ export default function HomePage() {
 					.eq("club_id", currentClub.id)
 					.eq("status", "active")
 					.maybeSingle();
-				let matchesPreviewQuery = supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false }).limit(15);
+				let matchesPreviewQuery = supabase
+					.from("matches")
+					.select("*")
+					.eq("club_id", currentClub.id)
+					.order("match_date", { ascending: false })
+					.limit(15);
 				let allMatchesQuery = supabase.from("matches").select("*").eq("club_id", currentClub.id).order("match_date", { ascending: false });
 				if (activeSeasonRow?.name) {
 					matchesPreviewQuery = matchesPreviewQuery.eq("season", activeSeasonRow.name);
@@ -294,13 +303,14 @@ export default function HomePage() {
 		const analytics = buildGeneralDashboardAnalytics(enabledMatches, enabledStats, players);
 
 		const previewMatches = matches.filter((match) => match.stats_enabled !== false).slice(0, 5);
-		const recentForm = matches.filter((match) => match.stats_enabled !== false).slice(0, 15).map((m) => getOutcome(m).status);
+		const recentForm = matches
+			.filter((match) => match.stats_enabled !== false)
+			.slice(0, 15)
+			.map((m) => getOutcome(m).status);
 
 		const previewPlayers = players.slice(0, 22);
 		const mobileFirst = players.slice(0, 8);
 		const mobileRest = players.slice(8);
-
-
 
 		return {
 			totalMatches,
@@ -336,53 +346,53 @@ export default function HomePage() {
 				<div className="space-y-8">
 					<header className="animate-fade-up flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 						<div className="flex items-center gap-4">
-						{/* Logo */}
-						<div className="grid h-25 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl">
-							{currentClub?.logo_url ? (
-								<img
-									src={currentClub.logo_url}
-									alt={currentClub.name || t("defaultClub")}
-									className="h-full w-full object-contain p-2"
+							{/* Logo */}
+							<div className="grid h-25 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl">
+								{currentClub?.logo_url ? (
+									<img
+										src={currentClub.logo_url}
+										alt={currentClub.name || t("defaultClub")}
+										className="h-full w-full object-contain p-2"
+									/>
+								) : (
+									<Trophy className="h-8 w-8 text-muted-foreground" />
+								)}
+							</div>
+
+							{/* Textos */}
+							<div className="min-w-0 flex-1">
+								<SequentialTypewriter
+									lines={[
+										t("clubPanel"),
+										t("welcomeBack", { club: currentClub?.short_name || currentClub?.name || t("defaultClub") }),
+										t("ready")
+									]}
+									className="space-y-1"
 								/>
-							) : (
-								<Trophy className="h-8 w-8 text-muted-foreground" />
-							)}
+
+								<style jsx>{`
+									:global(.space-y-1 > div:first-child) {
+										font-size: 11px;
+										font-weight: 600;
+										letter-spacing: 0.18em;
+										text-transform: uppercase;
+										color: hsl(var(--muted-foreground));
+									}
+
+									:global(.space-y-1 > div:nth-child(2)) {
+										font-size: clamp(1.75rem, 3vw, 2.3rem);
+										font-weight: 700;
+										line-height: 1.15;
+										letter-spacing: -0.03em;
+									}
+
+									:global(.space-y-1 > div:nth-child(3)) {
+										font-size: 0.95rem;
+										color: hsl(var(--muted-foreground));
+									}
+								`}</style>
+							</div>
 						</div>
-
-						{/* Textos */}
-						<div className="min-w-0 flex-1">
-							<SequentialTypewriter
-								lines={[
-									t("clubPanel"),
-									t("welcomeBack", { club: currentClub?.short_name || currentClub?.name || t("defaultClub") }),
-									t("ready")
-								]}
-								className="space-y-1"
-							/>
-
-							<style jsx>{`
-								:global(.space-y-1 > div:first-child) {
-									font-size: 11px;
-									font-weight: 600;
-									letter-spacing: .18em;
-									text-transform: uppercase;
-									color: hsl(var(--muted-foreground));
-								}
-
-								:global(.space-y-1 > div:nth-child(2)) {
-									font-size: clamp(1.75rem, 3vw, 2.3rem);
-									font-weight: 700;
-									line-height: 1.15;
-									letter-spacing: -0.03em;
-								}
-
-								:global(.space-y-1 > div:nth-child(3)) {
-									font-size: .95rem;
-									color: hsl(var(--muted-foreground));
-								}
-							`}</style>
-						</div>
-					</div>
 
 						{/* <Button asChild size="lg" className="rounded-xl shadow-sm">
 							<Link href={derived.primaryCta.href}>
@@ -400,9 +410,7 @@ export default function HomePage() {
 								<p>{t("tablesMissing")}</p>
 								<ol className="ml-2 list-inside list-decimal space-y-2">
 									<li>{t("initStepMenu")}</li>
-									<li>
-										{t("initStepScripts", { scripts: t("scripts") })}
-									</li>
+									<li>{t("initStepScripts", { scripts: t("scripts") })}</li>
 									<li>{t("initStepSql")}</li>
 									<li>{t("initStepReload")}</li>
 								</ol>
@@ -471,33 +479,16 @@ export default function HomePage() {
 						/>
 					</section>
 
+					<TeamTrendsPanel matches={enabledMatches} stats={enabledStats} players={players} />
+
 					<section className="grid gap-6 lg:grid-cols-4">
 						<div className="animate-fade-up lg:col-span-2" style={{ animationDelay: "220ms" }}>
-							<div className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-								<div className="mb-4 flex items-center justify-between gap-3">
-									<div>
-										<h2 className="text-base font-semibold tracking-tight">{t("latestMatches")}</h2>
-										<p className="text-sm text-muted-foreground">{t("recentResults")}</p>
-									</div>
-
-									<Button asChild variant="ghost" size="sm" className="rounded-lg text-muted-foreground hover:text-foreground">
-										<Link href="/partidos">
-											{t("viewAll")} <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-										</Link>
-									</Button>
-								</div>
-
-								{derived.previewMatches.length > 0 ? (
-									<MatchListCompact matches={derived.previewMatches} />
-								) : (
-									<EmptyMinimal
-										icon={<Calendar className="h-5 w-5" />}
-										title={t("noMatches")}
-										desc={canEdit ? t("createFirstMatchDescription") : t("noMatchesDescription")}
-										cta={canEdit ? { href: "/nuevo-partido", label: t("createFirstMatch") } : undefined}
-									/>
-								)}
-							</div>
+							<SeasonObjectivesPanel
+								matches={enabledMatches}
+								stats={enabledStats}
+								players={players || []}
+								thresholds={analysisThresholds}
+							/>
 						</div>
 
 						<div className="animate-fade-up lg:col-span-2" style={{ animationDelay: "280ms" }}>
@@ -524,9 +515,7 @@ export default function HomePage() {
 												</p>
 
 												<div className="mt-2 flex items-baseline gap-1.5">
-													<span className="text-5xl font-semibold tracking-tight tabular-nums">
-														{derived.winRate}
-													</span>
+													<span className="text-5xl font-semibold tracking-tight tabular-nums">{derived.winRate}</span>
 													<span className="text-xl font-medium text-muted-foreground">%</span>
 												</div>
 											</div>
@@ -537,16 +526,14 @@ export default function HomePage() {
 														{derived.wins}
 													</p>
 													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-															{t("resultLetters.win")}
+														{t("resultLetters.win")}
 													</p>
 												</div>
 
 												<div className="rounded-xl border bg-background px-3 py-2">
-													<p className="text-lg font-semibold tabular-nums text-muted-foreground">
-														{derived.draws}
-													</p>
+													<p className="text-lg font-semibold tabular-nums text-muted-foreground">{derived.draws}</p>
 													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-															{t("resultLetters.draw")}
+														{t("resultLetters.draw")}
 													</p>
 												</div>
 
@@ -555,7 +542,7 @@ export default function HomePage() {
 														{derived.losses}
 													</p>
 													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-															{t("resultLetters.loss")}
+														{t("resultLetters.loss")}
 													</p>
 												</div>
 											</div>
@@ -579,14 +566,14 @@ export default function HomePage() {
 									<div className="mt-7">
 										<div className="mb-3 flex items-center justify-between gap-3">
 											<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-														{t("latestResults")}
+												{t("latestResults")}
 											</p>
 
 											<Link
 												href="/partidos"
 												className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
 											>
-														{t("viewHistory")}
+												{t("viewHistory")}
 											</Link>
 										</div>
 
@@ -603,14 +590,10 @@ export default function HomePage() {
 								</div>
 							</div>
 						</div>
-						
 					</section>
-					<section
-							className="animate-fade-up "
-							style={{ animationDelay: "340ms" }}
-						>
-								<TeamDashboard teamStats={enabledPlayerStats} />
-						</section>
+					<section className="animate-fade-up " style={{ animationDelay: "340ms" }}>
+						<TeamDashboard teamStats={enabledPlayerStats} />
+					</section>
 				</div>
 
 				<div className="mt-10 flex flex-col items-center gap-2 text-center">
@@ -716,17 +699,7 @@ function PlayerPhotoGridResponsive({ players }: { players: PlayerRow[] }) {
 	);
 }
 
-function EmptyMinimal({
-	icon,
-	title,
-	desc,
-	cta
-}: {
-	icon: React.ReactNode;
-	title: string;
-	desc: string;
-	cta?: { href: string; label: string };
-}) {
+function EmptyMinimal({ icon, title, desc, cta }: { icon: React.ReactNode; title: string; desc: string; cta?: { href: string; label: string } }) {
 	return (
 		<div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 p-8 text-center">
 			<div className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-muted text-muted-foreground">{icon}</div>

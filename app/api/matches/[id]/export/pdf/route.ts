@@ -36,7 +36,7 @@ function buildPdfFilename(reportData: Awaited<ReturnType<typeof getMatchReportDa
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const t = await getTranslations("Api")
@@ -52,7 +52,8 @@ export async function GET(
     const profile = await getCurrentProfile()
     if (!profile) return new Response(t("unauthenticated"), { status: 401 })
     const reportData = await getMatchReportData(matchId, profile)
-    const pdfBytes = await buildMatchPdf(reportData)
+    const detail = new URL(request.url).searchParams.get("detail") === "summary" ? "summary" : "full"
+    const pdfBytes = await buildMatchPdf(reportData, { detail })
     const filename = buildPdfFilename(reportData, tExport("opponentFallback"), tExport("roundFallback"))
 
     console.log("PDF filename:", filename)

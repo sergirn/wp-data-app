@@ -25,6 +25,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { getOpponentScore } from "@/lib/matches/score";
 import { SeasonSelector } from "@/components/season-selector";
+import { PlayerTrendPanel } from "@/components/analysis/PlayerTrendPanel";
 
 interface MatchStatsWithMatch extends MatchStats {
 	matches: Match;
@@ -169,6 +170,7 @@ async function FieldPlayerPage({ player, matchStats, hiddenStats, seasons, selec
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
+					<PlayerTrendPanel matchStats={matchStats} isGoalkeeper={false} />
 					<ChartSwipeCarousel className="w-full" items={[<PerformanceEvolutionChart key="performance" matchStats={matchStats} player={player} />]} />
 				</TabsContent>
 			</Tabs>
@@ -316,6 +318,7 @@ async function GoalkeeperPage({
 				</TabsContent>
 
 				<TabsContent value="evolucion" className="space-y-6">
+					<PlayerTrendPanel matchStats={matchStats} isGoalkeeper />
 					<ChartSwipeCarousel
 						className="w-full"
 						items={[

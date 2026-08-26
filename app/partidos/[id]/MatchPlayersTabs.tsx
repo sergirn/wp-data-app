@@ -217,7 +217,7 @@ export function MatchPlayersTabs({
 					<div className="space-y-3">
 						<p className="text-sm font-semibold text-muted-foreground">{t("fieldPlayers")}</p>
 
-						<div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-4">
+						<div className="grid grid-cols-3 gap-3 sm:gap-4 md:grid-cols-5 lg:grid-cols-5">
 							{fieldPlayersStats?.map((stat: any) => (
 								<PlayerStatsCard key={stat.id} stat={stat} player={stat.players} hiddenStats={hiddenStats} />
 							))}
@@ -231,7 +231,7 @@ export function MatchPlayersTabs({
 								<div className="h-px flex-1 bg-border/60" />
 							</div>
 
-							<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+							<div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 lg:grid-cols-5">
 								{goalkeepersStats.map((stat: any) => (
 									<GoalkeeperStatsCard key={stat.id} stat={stat} player={stat.players} hiddenStats={hiddenStats} />
 								))}

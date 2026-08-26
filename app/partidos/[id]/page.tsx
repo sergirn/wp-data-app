@@ -14,6 +14,8 @@ import { ExportMatchPdfButton } from "@/components/export-buttons/export-match-p
 import { ExportMatchExcelButton } from "@/components/export-buttons/export-match-excel-button";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MatchChronology } from "@/components/match-actions/MatchChronology";
+import { MatchIntelligencePanel } from "@/components/analysis/MatchIntelligencePanel";
+import { DEFAULT_ANALYSIS_THRESHOLDS } from "@/lib/analysis/performance-insights";
 import type { MatchAction } from "@/lib/types";
 import { getMatchOutcome, getOpponentScore, getVenueScore } from "@/lib/matches/score";
 
@@ -206,7 +208,8 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	);
 
 	const stats = match.match_stats;
-	const canEdit = profile?.role === "admin" || profile?.role === "coach";
+	const canManage = profile?.role === "admin" || profile?.role === "coach" || profile?.is_super_admin === true;
+	const canEdit = canManage && match.review_status !== "locked";
 	const clubName = match.clubs?.short_name || match.clubs?.name || t("ourTeam");
 	const isClubHome = match.is_home !== false;
 	const localTeam = isClubHome ? clubName : match.opponent;
@@ -218,6 +221,18 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	const visitingPenaltyScore = venueScore.visitorPenalties;
 	const matchDate = new Date(match.match_date);
 	const competitionImage = match.competitions?.image_url?.trim() || null;
+	const { data: analysisSettings } = await supabase
+		.from("club_analysis_settings")
+		.select("shooting_efficiency_target, power_play_target, turnover_warning, save_percentage_target, max_goals_against")
+		.eq("club_id", match.club_id)
+		.maybeSingle();
+	const thresholds = analysisSettings ? {
+		shootingEfficiencyTarget: Number(analysisSettings.shooting_efficiency_target),
+		powerPlayTarget: Number(analysisSettings.power_play_target),
+		turnoverWarning: Number(analysisSettings.turnover_warning),
+		savePercentageTarget: Number(analysisSettings.save_percentage_target),
+		maxGoalsAgainst: Number(analysisSettings.max_goals_against)
+	} : DEFAULT_ANALYSIS_THRESHOLDS;
 
 	const { data: gkShots, error: gkShotsErr } = await supabase
 		.from("goalkeeper_shots")
@@ -345,6 +360,14 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					</div>
 				</Card>
 			</div>
+
+			<MatchIntelligencePanel
+				match={match}
+				stats={match.match_stats ?? []}
+				actionCount={chronologyActions.length}
+				canEdit={canManage}
+				thresholds={thresholds}
+			/>
 
 			<MatchPeriodsAndPenaltiesCard
 				opponentName={match.opponent}

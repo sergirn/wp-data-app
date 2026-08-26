@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Trash2, Loader2 } from "lucide-react";
@@ -17,7 +17,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTranslations } from "next-intl";
 
-export function DeleteMatchButton({ matchId, className = "", onClick }: { matchId: number; className?: string; onClick?: (e?: any) => void }) {
+type DeleteMatchButtonProps = {
+	matchId: number;
+	className?: string;
+	onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+	onDeleted?: (matchId: number) => void | Promise<void>;
+};
+
+export function DeleteMatchButton({ matchId, className = "", onClick, onDeleted }: DeleteMatchButtonProps) {
 	const t = useTranslations("DeleteMatch");
 	const common = useTranslations("Common");
 	const router = useRouter();
@@ -27,15 +34,34 @@ export function DeleteMatchButton({ matchId, className = "", onClick }: { matchI
 	const handleDelete = async () => {
 		setDeleting(true);
 		try {
-			const { error } = await supabase.from("matches").delete().eq("id", matchId);
+			const { data: deletedMatches, error } = await supabase
+				.from("matches")
+				.delete()
+				.eq("id", matchId)
+				.select("id");
 
 			if (error) throw error;
+			if (!deletedMatches?.some((match) => match.id === matchId)) {
+				throw new Error("MATCH_NOT_DELETED");
+			}
 
-			router.push("/partidos");
-			router.refresh();
+			if (onDeleted) {
+				await onDeleted(matchId);
+			} else {
+				router.push("/partidos");
+				router.refresh();
+			}
 		} catch (error) {
 			console.error("Error deleting match:", error);
-			alert(t("error"));
+			const errorMessage = error instanceof Error
+				? error.message
+				: typeof error === "object" && error !== null && "message" in error
+					? String(error.message)
+					: "";
+
+			if (errorMessage.includes("MATCH_LOCKED")) alert(t("lockedError"));
+			else if (errorMessage.includes("MATCH_NOT_DELETED")) alert(t("notDeleted"));
+			else alert(t("error"));
 		} finally {
 			setDeleting(false);
 		}

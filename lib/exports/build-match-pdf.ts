@@ -982,7 +982,7 @@ async function drawTotalsPage(
   ;({ page, y } = drawTwoColumnGrid(pdfDoc, { page, y }, font, fontBold, opts.cards))
 }
 
-export async function buildMatchPdf(data: MatchReportData) {
+export async function buildMatchPdf(data: MatchReportData, options: { detail?: "summary" | "full" } = {}) {
   const reportTranslations = await getTranslations("Reports")
   const statTranslations = await getTranslations("StatLabels")
   const locale = await getLocale()
@@ -1195,6 +1195,7 @@ export async function buildMatchPdf(data: MatchReportData) {
     }
   }
 
+  if (options.detail !== "summary") {
   const attackCards = [
     {
       title: t("categories.playerGoals"),
@@ -1294,6 +1295,7 @@ export async function buildMatchPdf(data: MatchReportData) {
 
   for (const stat of goalkeepersStats) {
     await drawDetailedGoalkeeperPage(pdfDoc, font, fontBold, stat, hiddenStats, t, tStat)
+  }
   }
 
   const pages = pdfDoc.getPages()

@@ -119,6 +119,7 @@
 		"generalTab": "General",
 		"seasonsTab": "Season and roster",
 		"playersTab": "Edit players",
+		"analysisTab": "Analysis criteria",
 		"playersManagementTitle": "Player management",
 		"playersManagementDescription": "Add players, update their details, or deactivate them without losing their match history.",
 		"managePlayers": "Manage players",
@@ -395,12 +396,16 @@
 			"allStats": "All statuses",
 			"statsEnabled": "Statistics enabled",
 			"statsDisabled": "Statistics paused",
+			"reviewLabel": "Review status",
+			"allReviewStatuses": "All review statuses",
 			"sortLabel": "Sort matches",
 			"newest": "Newest first",
 			"oldest": "Oldest first",
 			"opponent": "Opponent (A–Z)",
 			"clear": "Clear filters",
-			"noResults": "No matches match these filters."
+			"noResults": "No matches match these filters.",
+			"moreFilters": "More filters",
+			"filterDescription": "Refine the matches you want to display"
 		},
 		"pagination": {
 			"previous": "Previous",
@@ -425,6 +430,7 @@
 			"deleting": "Deleting…",
 			"deleteError": "The draft could not be deleted"
 		},
+		"reviewStatus": { "pending_review": "Pending", "reviewed": "Reviewed", "locked": "Locked" },
 		"results": {
 			"win": "Win",
 			"loss": "Loss",
@@ -453,6 +459,8 @@
 	"DeleteMatch": {
 		"buttonLabel": "Delete match",
 		"error": "Error deleting the match",
+		"notDeleted": "The match was not deleted. You may not have permission or it may no longer exist.",
+		"lockedError": "This match is locked. Reopen its review before deleting it.",
 		"title": "Are you sure?",
 		"description": "This action cannot be undone. The match and all its statistics will be permanently deleted.",
 		"deleting": "Deleting…",
@@ -641,6 +649,9 @@
 		"saving": "Saving…",
 		"updateMatch": "Update match",
 		"saveMatch": "Save match",
+		"finalizeMatch": "Finish and review match",
+		"lockedMatchTitle": "Match locked",
+		"lockedMatchDescription": "Reopen the review from the match detail before making changes.",
 		"poweredBy": "POWERED BY",
 		"autosave": {
 			"idle": "Autosave ready",
@@ -2110,6 +2121,10 @@
 		"excel": "EXCEL",
 		"export": "Export",
 		"exportPdf": "Export PDF",
+		"matchPdfSummary": "Summary report",
+		"matchPdfSummaryDescription": "Score, periods, penalties and technical notes.",
+		"matchPdfFull": "Full technical report",
+		"matchPdfFullDescription": "Includes attack, defence, goalkeeping and individual detail.",
 		"exportExcel": "Export Excel",
 		"exportCsv": "Export to Excel (CSV)",
 		"downloading": "Downloading...",
@@ -2209,7 +2224,14 @@
 		"home": "Home",
 		"away": "Away",
 		"confidence": { "low": "Small sample", "medium": "Medium confidence", "high": "High confidence" },
-		"tabs": { "summary": "Summary", "tactics": "Tactics", "players": "Performance", "matches": "Matches", "notes": "Notes" },
+		"tabs": {
+			"summary": "Summary",
+			"tactics": "Tactics",
+			"players": "Performance",
+			"matches": "Matches",
+			"notes": "Notes",
+			"prepare": "Prepare match"
+		},
 		"kpis": {
 			"record": "Record",
 			"recordHint": "Your team's results against this opponent",
@@ -2237,10 +2259,67 @@
 			"saves": "Team saves",
 			"shotsMapped": "Mapped shots"
 		},
-		"shotMap": { "title": "Opponent shot map", "description": "Distribution of shots recorded against your goalkeepers.", "goals": "Goal", "saves": "Save", "out": "Off target" },
-		"players": { "title": "Who performs best against this opponent", "description": "Your players ranked across linked matches.", "matches": "Matches", "goals": "Goals", "assists": "Assists", "empty": "There are not enough individual statistics yet." },
+		"shotMap": {
+			"title": "Opponent shot map",
+			"description": "Distribution of shots recorded against your goalkeepers.",
+			"goals": "Goal",
+			"saves": "Save",
+			"out": "Off target"
+		},
+		"players": {
+			"title": "Who performs best against this opponent",
+			"description": "Your players ranked across linked matches.",
+			"matches": "Matches",
+			"goals": "Goals",
+			"assists": "Assists",
+			"empty": "There are not enough individual statistics yet."
+		},
 		"matches": { "title": "Meeting history", "description": "Open the full analysis for each match." },
 		"results": { "win": "Win", "draw": "Draw", "loss": "Loss" },
+		"prepare": {
+			"title": "Pre-match plan against {opponent}",
+			"description": "Preparation generated from {count} of your own meetings. It does not represent every match played by the opponent.",
+			"empty": "There are no meetings to prepare from yet",
+			"emptyHint": "Add scouting notes and record the next match; the report will improve as the history grows.",
+			"confidence": { "low": "Small sample", "medium": "Medium confidence", "high": "High confidence" },
+			"metrics": {
+				"scoring": "Team goals",
+				"conceded": "Goals conceded",
+				"shooting": "Efficiency",
+				"notes": "Available notes",
+				"perMatch": "Average per match",
+				"recordedShots": "{count} recorded shots",
+				"notesHint": "Staff context"
+			},
+			"risks": {
+				"title": "Risks to control",
+				"quarter": "Q{quarter} has the weakest historical balance ({difference}).",
+				"conceded": "The opponent has averaged {value} goals in these meetings.",
+				"powerPlayGoals": "The team has conceded {count} player-down goals.",
+				"noPowerPlayGoals": "No player-down goals are recorded; confirm that data capture is complete."
+			},
+			"opportunities": {
+				"title": "Opportunities",
+				"quarter": "Q{quarter} provides the best historical balance ({difference}).",
+				"powerPlay": "Your power play has converted at {value}%.",
+				"player": "{player} is the leading reference against this opponent, with {goals} goals.",
+				"noPlayer": "There is not enough data for an individual attacking reference yet."
+			},
+			"checklist": {
+				"title": "Staff checklist",
+				"description": "Complete the quantitative data with your own decisions and observations.",
+				"lineup": {
+					"title": "Opponent line-up",
+					"description": "Confirm starters, goalkeeper, centre forward and main shooters in the notes."
+				},
+				"defense": {
+					"title": "Defensive plan",
+					"description": "Define how to protect the period and the situations that have historically caused the most damage."
+				},
+				"powerPlay": { "title": "Power plays", "description": "Select the attacking variations that worked best in previous meetings." },
+				"goalkeeper": { "title": "Goalkeeping", "description": "Review the opponent shot map and prepare zone references before the match." }
+			}
+		},
 		"aliases": {
 			"title": "Alternative names",
 			"description": "Add abbreviations or previous names to gather the complete history for the same opponent.",
@@ -2263,6 +2342,130 @@
 			"deleteTitle": "Delete this note?",
 			"deleteDescription": "This action cannot be undone.",
 			"delete": "Delete"
+		}
+	},
+	"SeasonObjectives": {
+		"title": "Season targets",
+		"description": "Average achievement calculated from {count} matches with statistics enabled.",
+		"achieved": "{achieved}/{total} achieved",
+		"met": "Target achieved",
+		"inProgress": "Room for improvement",
+		"metrics": {
+			"shooting": "Shooting efficiency",
+			"powerPlay": "Power play",
+			"turnovers": "Turnovers per match",
+			"saves": "Save percentage",
+			"goalsAgainst": "Goals conceded"
+		}
+	},
+	"PlayerTrends": {
+		"title": "Recent individual trend",
+		"description": "Last {current} matches compared with the previous {previous}.",
+		"shortDescription": "Reading of the last {count} matches this season.",
+		"delta": "{value} versus the previous block",
+		"metrics": {
+			"goalsPerMatch": "Goals per match",
+			"shooting": "Efficiency",
+			"assistsPerMatch": "Assists per match",
+			"possessionPerMatch": "Balance per match",
+			"savePercentage": "Save percentage",
+			"savesPerMatch": "Saves per match",
+			"concededPerMatch": "Goals conceded",
+			"recoveriesPerMatch": "Recoveries"
+		}
+	},
+	"AnalysisSettings": {
+		"title": "Sporting criteria",
+		"description": "Define the targets used by the application to interpret each match.",
+		"loading": "Loading criteria…",
+		"fields": {
+			"shooting": "Shooting efficiency target",
+			"powerPlay": "Power-play target",
+			"turnovers": "Turnover warning",
+			"saves": "Save target",
+			"goalsAgainst": "Maximum goals conceded"
+		},
+		"hints": {
+			"shooting": "Performance below this percentage will be highlighted for improvement.",
+			"powerPlay": "Minimum conversion target on the power play.",
+			"turnovers": "An alert is generated when this number is exceeded in a match.",
+			"saves": "Minimum expected goalkeeper save percentage.",
+			"goalsAgainst": "Recommended defensive limit per match."
+		},
+		"explanation": "These values do not change any statistics; they only personalise the diagnoses and alerts shown to staff.",
+		"save": "Save criteria",
+		"saving": "Saving…",
+		"saved": "Sporting criteria have been updated.",
+		"saveError": "They could not be saved. Check that the analysis migration has been applied.",
+		"successTitle": "Criteria saved",
+		"errorTitle": "Could not save"
+	},
+	"ProductTrends": {
+		"title": "Recent trends",
+		"description": "Last {current} matches compared with the previous {previous}.",
+		"shortDescription": "Reading of the last {count} recorded matches.",
+		"metrics": { "goals": "Goals per match", "goalsAgainst": "Goals conceded", "shooting": "Shooting efficiency", "saves": "Save percentage" },
+		"delta": "{value} versus the previous block",
+		"insights": {
+			"recent_improvement": "Overall performance is up {delta} points versus the previous block.",
+			"recent_decline": "Overall performance is down {delta} points versus the previous block."
+		}
+	},
+	"ProductInsights": {
+		"title": "Match diagnosis",
+		"description": "Automated conclusions, quality controls and review status.",
+		"tabs": { "summary": "Summary", "review": "Review" },
+		"status": { "pending_review": "Pending review", "reviewed": "Reviewed", "locked": "Locked" },
+		"metrics": {
+			"shooting": "Shooting efficiency",
+			"powerPlay": "Power play",
+			"possession": "Possession balance",
+			"goalkeeper": "Saves",
+			"goalsShots": "{goals} goals from {shots} shots",
+			"converted": "{goals} of {attempts} converted",
+			"recoveriesTurnovers": "{recoveries} recoveries · {turnovers} turnovers",
+			"savesShots": "{saves} of {shots} shots"
+		},
+		"diagnosis": "Technical reading",
+		"noInsights": "There is not enough information to generate a diagnosis.",
+		"insights": {
+			"shooting_above_target": "Shooting efficiency reached {value}%, above the {target}% target.",
+			"shooting_below_target": "Shooting efficiency was {value}%, below the {target}% target.",
+			"power_play_above_target": "The power play operated at {value}%, exceeding the {target}% target.",
+			"power_play_below_target": "The power play finished at {value}%; the configured target is {target}%.",
+			"turnovers_high": "The team recorded {value} turnovers, above the recommended maximum of {target}.",
+			"possession_positive": "The recovery-to-turnover balance was positive: +{value}.",
+			"save_above_target": "Goalkeeping reached {value}% saves, above the {target}% target.",
+			"save_below_target": "Goalkeeping finished at {value}% saves; the target is {target}%.",
+			"goals_against_high": "The team conceded {value} goals, above the configured limit of {target}.",
+			"best_quarter": "The best performance came in Q{quarter}, with a +{value} goal balance.",
+			"worst_quarter": "Q{quarter} was the weakest period, with a {value} goal balance.",
+			"recent_improvement": "Recent performance is up {delta} points compared with the previous block.",
+			"recent_decline": "Recent performance is down {delta} points compared with the previous block."
+		},
+		"issues": {
+			"missing_stats": "The match has no player statistics.",
+			"own_score_mismatch": "The scoreboard shows {expected} team goals, but the recorded actions add up to {actual}.",
+			"opponent_score_mismatch": "The opponent score is {expected}, but goalkeeper data records {actual}.",
+			"own_quarters_mismatch": "Team goals by period add up to {actual}; the scoreboard shows {expected}.",
+			"opponent_quarters_mismatch": "Opponent goals by period add up to {actual}; the scoreboard shows {expected}.",
+			"missing_goalkeeper": "There are opponent goals but no goalkeeper statistics were found.",
+			"empty_chronology": "No actions were recorded in the chronology."
+		},
+		"severity": { "error": "Must be fixed before approval", "warning": "Should be reviewed", "info": "Recommended information" },
+		"review": {
+			"clean": "No blocking inconsistencies were detected.",
+			"markReviewed": "Mark as reviewed",
+			"lock": "Lock match",
+			"reopen": "Reopen review",
+			"blockedFeedback": "Fix the required inconsistencies before approving the match.",
+			"updateError": "The review status could not be updated.",
+			"feedbackTitle": "Match status",
+			"feedback": {
+				"pending_review": "The match is pending review again.",
+				"reviewed": "The match has been marked as reviewed.",
+				"locked": "The match is protected from accidental changes."
+			}
 		}
 	},
 	"Pages": {

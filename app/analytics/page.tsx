@@ -41,6 +41,9 @@ import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
 import { useHiddenStats } from "@/hooks/useHiddenStats";
 import { useTranslations } from "next-intl";
 import { SeasonSelector } from "@/components/season-selector";
+import { TeamTrendsPanel } from "@/components/analysis/TeamTrendsPanel";
+import { SeasonObjectivesPanel } from "@/components/analysis/SeasonObjectivesPanel";
+import { DEFAULT_ANALYSIS_THRESHOLDS, type AnalysisThresholds } from "@/lib/analysis/performance-insights";
 
 export default function AnalyticsPage() {
 	const t = useTranslations("Pages");
@@ -56,6 +59,7 @@ export default function AnalyticsPage() {
 	const [allStats, setAllStats] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [goalkeeperShotsRows, setGoalkeeperShotsRows] = useState<any[]>([]);
+	const [analysisThresholds, setAnalysisThresholds] = useState<AnalysisThresholds>(DEFAULT_ANALYSIS_THRESHOLDS);
 
 	const hiddenStatsState = useHiddenStats();
 	const hiddenStats = useMemo(() => Object.keys(hiddenStatsState.hiddenStats), [hiddenStatsState.hiddenStats]);
@@ -77,7 +81,7 @@ export default function AnalyticsPage() {
 			try {
 				const supabase = createClient();
 
-				const [seasonsResult, managedSeasonsResult, playersResult] = await Promise.all([
+				const [seasonsResult, managedSeasonsResult, playersResult, settingsResult] = await Promise.all([
 					supabase
 						.from("matches")
 						.select("season")
@@ -85,7 +89,8 @@ export default function AnalyticsPage() {
 						.not("season", "is", null)
 						.order("season", { ascending: false }),
 					supabase.from("club_seasons").select("name, status, start_year").eq("club_id", currentClub.id).order("start_year", { ascending: false }),
-					supabase.from("players").select("*").eq("club_id", currentClub.id)
+					supabase.from("players").select("*").eq("club_id", currentClub.id),
+					supabase.from("club_analysis_settings").select("shooting_efficiency_target, power_play_target, turnover_warning, save_percentage_target, max_goals_against").eq("club_id", currentClub.id).maybeSingle()
 				]);
 
 				if (abortController.signal.aborted || !isMounted) return;
@@ -98,6 +103,13 @@ export default function AnalyticsPage() {
 				const activeSeason = managedSeasonsResult.error ? null : managedSeasonsResult.data?.find((season) => season.status === "active")?.name;
 				const season = seasonParam && uniqueSeasons.includes(seasonParam) ? seasonParam : activeSeason || uniqueSeasons[0] || "2024-2025";
 				setSelectedSeason(season);
+				if (settingsResult.data) setAnalysisThresholds({
+					shootingEfficiencyTarget: Number(settingsResult.data.shooting_efficiency_target),
+					powerPlayTarget: Number(settingsResult.data.power_play_target),
+					turnoverWarning: Number(settingsResult.data.turnover_warning),
+					savePercentageTarget: Number(settingsResult.data.save_percentage_target),
+					maxGoalsAgainst: Number(settingsResult.data.max_goals_against)
+				});
 
 				const [matchesResult, statsResult] = await Promise.all([
 					supabase.from("matches").select("*").eq("club_id", currentClub.id).eq("season", season).order("match_date", { ascending: false }),
@@ -314,6 +326,10 @@ export default function AnalyticsPage() {
 						<section>
 							<GeneralDashboard matches={enabledMatches} stats={enabledStats} players={players || []} />
 						</section>
+
+						<TeamTrendsPanel matches={enabledMatches} stats={enabledStats} players={players || []} />
+
+						<SeasonObjectivesPanel matches={enabledMatches} stats={enabledStats} players={players || []} thresholds={analysisThresholds} />
 
 						<section>
 							<TeamDashboard teamStats={enabledPlayerStats} />
