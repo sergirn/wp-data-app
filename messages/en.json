@@ -2289,7 +2289,7 @@
 				"notes": "Available notes",
 				"perMatch": "Average per match",
 				"recordedShots": "{count} recorded shots",
-				"notesHint": "Staff context"
+				"notesHint": "Notes linked to the plan"
 			},
 			"risks": {
 				"title": "Risks to control",
@@ -2307,17 +2307,39 @@
 			},
 			"checklist": {
 				"title": "Staff checklist",
-				"description": "Complete the quantitative data with your own decisions and observations.",
+				"description": "Turn the analysis into specific decisions, save staff notes and complete each block when it is ready.",
+				"progress": "Plan completed",
+				"linkedNotes": "Related scouting notes",
+				"openNotes": "View notes",
+				"untitledNote": "Untitled note",
+				"noLinkedNotes": "There are no related notes yet.",
+				"save": "Save plan",
+				"saving": "Saving…",
+				"saved": "Plan updated and linked to notes.",
+				"saveError": "The match plan could not be saved.",
+				"unsaved": "There are unsaved changes.",
+				"synced": "Plan synchronized.",
+				"setupTitle": "Checklist setup required",
+				"setupDescription": "Run the preparation checklist migration in Supabase to save this data.",
 				"lineup": {
 					"title": "Opponent line-up",
-					"description": "Confirm starters, goalkeeper, centre forward and main shooters in the notes."
+					"description": "Confirm starters, goalkeeper, centre forward and main shooters.",
+					"placeholder": "Likely starting seven, substitutions, cap numbers, centre forward and main shooters…"
 				},
 				"defense": {
 					"title": "Defensive plan",
-					"description": "Define how to protect the period and the situations that have historically caused the most damage."
+					"description": "Define how to protect the situations that have historically caused the most damage.",
+					"placeholder": "Defensive system, centre-forward help, pressure, switches and period adjustments…"
 				},
-				"powerPlay": { "title": "Power plays", "description": "Select the attacking variations that worked best in previous meetings." },
-				"goalkeeper": { "title": "Goalkeeping", "description": "Review the opponent shot map and prepare zone references before the match." }
+				"powerPlay": { "title": "Power plays", "description": "Select the attacking variations that worked best in previous meetings.", "placeholder": "First option, variations, positions, shooters and the signal for each play…" },
+				"goalkeeper": { "title": "Goalkeeping", "description": "Review the opponent shot map and prepare zone references before the match.", "placeholder": "Shooting tendencies, priority zones, penalties and defensive communication…" }
+			},
+			"notesBoard": {
+				"title": "Pre-match notes",
+				"description": "Notes are automatically organised according to the category selected in the Notes tab.",
+				"add": "Add note",
+				"empty": "No notes yet. Add a note",
+				"untitled": "Untitled note"
 			}
 		},
 		"aliases": {
@@ -2331,7 +2353,9 @@
 		},
 		"notes": {
 			"new": "New scouting note",
-			"categories": { "general": "General", "lineup": "Line-up", "player": "Opponent player", "tactical": "Tactics", "other": "Other" },
+			"planNotesTitle": "Match-plan notes",
+			"planNotesDescription": "These notes come from the preparation checklist and are updated from that tab.",
+			"categories": { "general": "General", "lineup": "Opponent line-up", "defense": "Defensive plan", "powerPlay": "Power plays", "goalkeeper": "Goalkeeping" },
 			"titlePlaceholder": "Optional title",
 			"bodyPlaceholder": "Note line-ups, key players, tactical patterns, strengths or any other useful detail…",
 			"save": "Save note",
@@ -2351,11 +2375,15 @@
 		"met": "Target achieved",
 		"inProgress": "Room for improvement",
 		"metrics": {
-			"shooting": "Shooting efficiency",
-			"powerPlay": "Power play",
-			"turnovers": "Turnovers per match",
-			"saves": "Save percentage",
-			"goalsAgainst": "Goals conceded"
+			"shootingEfficiency": "Shooting efficiency",
+			"powerPlayEfficiency": "Power play",
+			"turnoversPerMatch": "Turnovers per match",
+			"savePercentage": "Save percentage",
+			"goalsAgainstPerMatch": "Goals conceded per match",
+			"goalsPerMatch": "Goals per match",
+			"recoveriesPerMatch": "Recoveries per match",
+			"possessionBalancePerMatch": "Possession balance per match",
+			"blocksPerMatch": "Blocks per match"
 		}
 	},
 	"PlayerTrends": {
@@ -2393,6 +2421,32 @@
 			"goalsAgainst": "Recommended defensive limit per match."
 		},
 		"explanation": "These values do not change any statistics; they only personalise the diagnoses and alerts shown to staff.",
+		"objectives": {
+			"title": "Custom objectives",
+			"description": "Configure up to nine objectives for the club. They use matches from the selected season with statistics enabled.",
+			"count": "{count} of {max}",
+			"item": "Objective {number}",
+			"add": "Add objective",
+			"empty": "The club has no configured objectives.",
+			"moveUp": "Move objective up",
+			"moveDown": "Move objective down",
+			"delete": "Delete objective",
+			"titleRequired": "Every objective must have a title.",
+			"fields": { "title": "Title", "metric": "Metric to measure", "unit": "Format", "comparator": "Achieved when", "target": "Target value" },
+			"units": { "percentage": "Percentage (%)", "number": "Numeric value" },
+			"comparators": { "gte": "Greater than or equal (≥)", "lte": "Less than or equal (≤)" },
+			"metrics": {
+				"shootingEfficiency": "Shooting efficiency",
+				"powerPlayEfficiency": "Power-play efficiency",
+				"turnoversPerMatch": "Turnovers per match",
+				"savePercentage": "Save percentage",
+				"goalsAgainstPerMatch": "Goals conceded per match",
+				"goalsPerMatch": "Goals per match",
+				"recoveriesPerMatch": "Recoveries per match",
+				"possessionBalancePerMatch": "Possession balance per match",
+				"blocksPerMatch": "Blocks per match"
+			}
+		},
 		"save": "Save criteria",
 		"saving": "Saving…",
 		"saved": "Sporting criteria have been updated.",

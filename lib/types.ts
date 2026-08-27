@@ -74,12 +74,14 @@ export interface Opponent {
 }
 
 export type OpponentNoteCategory = "general" | "lineup" | "player" | "tactical" | "other";
+export type OpponentPreparationArea = "general" | "lineup" | "defense" | "powerPlay" | "goalkeeper";
 
 export interface OpponentNote {
 	id: number;
 	opponent_id: number;
 	club_id: number;
 	category: OpponentNoteCategory;
+	preparation_area?: OpponentPreparationArea | null;
 	title: string | null;
 	body: string;
 	created_by: string | null;

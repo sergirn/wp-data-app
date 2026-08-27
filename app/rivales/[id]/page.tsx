@@ -44,6 +44,7 @@ export default function OpponentDetailPage() {
 	const [notFound, setNotFound] = useState(false);
 	const [setupRequired, setSetupRequired] = useState(false);
 	const [selectedSeason, setSelectedSeason] = useState("all");
+	const [activeTab, setActiveTab] = useState("summary");
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
 
 	const load = useCallback(async () => {
@@ -143,14 +144,14 @@ export default function OpponentDetailPage() {
 				</div>
 			</header>
 
-			<Tabs defaultValue="summary" className="space-y-5">
+			<Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
 				<TabsList className="flex h-auto w-full justify-start overflow-x-auto p-1 lg:grid lg:grid-cols-6">
 					<TabsTrigger value="summary" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><BarChart3 className="h-4 w-4" />{t("tabs.summary")}</TabsTrigger>
+					<TabsTrigger value="prepare" className="min-w-36 gap-1.5 py-2.5 lg:min-w-0"><Sparkles className="h-4 w-4" />{t("tabs.prepare")}</TabsTrigger>
 					<TabsTrigger value="tactics" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><Crosshair className="h-4 w-4" />{t("tabs.tactics")}</TabsTrigger>
 					<TabsTrigger value="players" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><UsersRound className="h-4 w-4" />{t("tabs.players")}</TabsTrigger>
 					<TabsTrigger value="matches" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><CalendarDays className="h-4 w-4" />{t("tabs.matches")}</TabsTrigger>
 					<TabsTrigger value="notes" className="min-w-28 gap-1.5 py-2.5 sm:min-w-0"><ClipboardList className="h-4 w-4" />{t("tabs.notes")}</TabsTrigger>
-					<TabsTrigger value="prepare" className="min-w-36 gap-1.5 py-2.5 lg:min-w-0"><Sparkles className="h-4 w-4" />{t("tabs.prepare")}</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="summary" className="space-y-5">
@@ -184,7 +185,7 @@ export default function OpponentDetailPage() {
 
 				<TabsContent value="matches"><Card><CardHeader><CardTitle>{t("matches.title")}</CardTitle><CardDescription>{t("matches.description")}</CardDescription></CardHeader><CardContent className="space-y-2">{scouting.matches.map((match) => <MatchRow key={match.id} match={match} locale={locale} homeLabel={t("home")} awayLabel={t("away")} resultLabel={t(`results.${getMatchOutcome(match)}`)} detailed />)}</CardContent></Card></TabsContent>
 				<TabsContent value="notes"><OpponentNotes opponentId={opponent.id} clubId={currentClub.id} profileId={profile.id} notes={notes} canEdit={canEdit} onChanged={load} /></TabsContent>
-				<TabsContent value="prepare"><OpponentPreparationPanel opponentName={opponent.name} scouting={scouting} noteCount={notes.length} /></TabsContent>
+				<TabsContent value="prepare"><OpponentPreparationPanel opponentName={opponent.name} scouting={scouting} notes={notes} onOpenNotes={() => setActiveTab("notes")} /></TabsContent>
 			</Tabs>
 		</main>
 	);

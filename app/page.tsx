@@ -488,6 +488,7 @@ export default function HomePage() {
 								stats={enabledStats}
 								players={players || []}
 								thresholds={analysisThresholds}
+								clubId={currentClub?.id ?? 0}
 							/>
 						</div>
 

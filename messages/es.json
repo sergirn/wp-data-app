@@ -2295,7 +2295,7 @@
 				"notes": "Notas disponibles",
 				"perMatch": "Media por partido",
 				"recordedShots": "{count} tiros registrados",
-				"notesHint": "Contexto del cuerpo técnico"
+				"notesHint": "Notas vinculadas al plan"
 			},
 			"risks": {
 				"title": "Riesgos a controlar",
@@ -2313,20 +2313,43 @@
 			},
 			"checklist": {
 				"title": "Checklist del cuerpo técnico",
-				"description": "Completa el dato cuantitativo con decisiones y observaciones propias.",
-				"lineup": { "title": "Alineación rival", "description": "Confirma titulares, portero, boya y principales lanzadores en las notas." },
+				"description": "Convierte el análisis en decisiones concretas, guarda los apuntes y marca cada bloque cuando esté preparado.",
+				"progress": "Plan completado",
+				"linkedNotes": "Notas de scouting relacionadas",
+				"openNotes": "Ver notas",
+				"untitledNote": "Nota sin título",
+				"noLinkedNotes": "No hay notas relacionadas todavía.",
+				"save": "Guardar plan",
+				"saving": "Guardando…",
+				"saved": "Plan actualizado y vinculado con las notas.",
+				"saveError": "No se pudo guardar el plan de partido.",
+				"unsaved": "Hay cambios sin guardar.",
+				"synced": "Plan sincronizado.",
+				"setupTitle": "Falta activar el checklist",
+				"setupDescription": "Ejecuta la migración del checklist de preparación en Supabase para guardar estos datos.",
+				"lineup": { "title": "Alineación rival", "description": "Confirma titulares, portero, boya y principales lanzadores.", "placeholder": "Posible siete inicial, cambios, dorsales, boya, tiradores principales…" },
 				"defense": {
 					"title": "Plan defensivo",
-					"description": "Define cómo proteger el parcial y las situaciones que históricamente generan más daño."
+					"description": "Define cómo proteger las situaciones que históricamente generan más daño.",
+					"placeholder": "Tipo de defensa, ayudas al boya, presión, cambios y ajustes por parcial…"
 				},
 				"powerPlay": {
 					"title": "Superioridades",
-					"description": "Selecciona las variantes ofensivas que mejor han funcionado en los enfrentamientos previos."
+					"description": "Selecciona las variantes ofensivas que mejor han funcionado en los enfrentamientos previos.",
+					"placeholder": "Primera opción, variantes, posiciones, lanzadores y señal de cada jugada…"
 				},
 				"goalkeeper": {
 					"title": "Portería",
-					"description": "Revisa el mapa de tiros rival y prepara referencias por zona antes del partido."
+					"description": "Revisa el mapa de tiros rival y prepara referencias por zona antes del partido.",
+					"placeholder": "Tendencias de tiro, zonas prioritarias, penaltis y comunicación defensiva…"
 				}
+			},
+			"notesBoard": {
+				"title": "Apuntes para preparar el partido",
+				"description": "Las notas se organizan automáticamente según la categoría escogida en la pestaña Notas.",
+				"add": "Añadir nota",
+				"empty": "Todavía no hay apuntes. Añadir una nota",
+				"untitled": "Apunte sin título"
 			}
 		},
 		"aliases": {
@@ -2340,7 +2363,9 @@
 		},
 		"notes": {
 			"new": "Nueva nota de scouting",
-			"categories": { "general": "General", "lineup": "Alineación", "player": "Jugador rival", "tactical": "Táctica", "other": "Otra" },
+			"planNotesTitle": "Apuntes del plan de partido",
+			"planNotesDescription": "Estos apuntes proceden del checklist de preparación y se actualizan desde esa pestaña.",
+			"categories": { "general": "General", "lineup": "Alineación rival", "defense": "Plan defensivo", "powerPlay": "Superioridades", "goalkeeper": "Portería" },
 			"titlePlaceholder": "Título opcional",
 			"bodyPlaceholder": "Anota alineaciones, jugadores relevantes, patrones tácticos, fortalezas o cualquier detalle útil…",
 			"save": "Guardar nota",
@@ -2360,11 +2385,15 @@
 		"met": "Objetivo cumplido",
 		"inProgress": "Margen de mejora",
 		"metrics": {
-			"shooting": "Efectividad de tiro",
-			"powerPlay": "Superioridad",
-			"turnovers": "Pérdidas por partido",
-			"saves": "Porcentaje de paradas",
-			"goalsAgainst": "Goles recibidos"
+			"shootingEfficiency": "Efectividad de tiro",
+			"powerPlayEfficiency": "Superioridad",
+			"turnoversPerMatch": "Pérdidas por partido",
+			"savePercentage": "Porcentaje de paradas",
+			"goalsAgainstPerMatch": "Goles recibidos por partido",
+			"goalsPerMatch": "Goles por partido",
+			"recoveriesPerMatch": "Recuperaciones por partido",
+			"possessionBalancePerMatch": "Balance de posesión por partido",
+			"blocksPerMatch": "Bloqueos por partido"
 		}
 	},
 	"PlayerTrends": {
@@ -2402,6 +2431,32 @@
 			"goalsAgainst": "Límite defensivo recomendado por partido."
 		},
 		"explanation": "Estos valores no modifican ninguna estadística: solo personalizan los diagnósticos y alertas que ve el cuerpo técnico.",
+		"objectives": {
+			"title": "Objetivos personalizados",
+			"description": "Configura hasta nueve objetivos para el club. Se calculan con los partidos de la temporada seleccionada que tienen estadísticas activas.",
+			"count": "{count} de {max}",
+			"item": "Objetivo {number}",
+			"add": "Añadir objetivo",
+			"empty": "El club no tiene objetivos configurados.",
+			"moveUp": "Subir objetivo",
+			"moveDown": "Bajar objetivo",
+			"delete": "Eliminar objetivo",
+			"titleRequired": "Todos los objetivos deben tener un título.",
+			"fields": { "title": "Título", "metric": "Métrica que se medirá", "unit": "Formato", "comparator": "Se cumple cuando", "target": "Valor objetivo" },
+			"units": { "percentage": "Porcentaje (%)", "number": "Valor numérico" },
+			"comparators": { "gte": "Mayor o igual (≥)", "lte": "Menor o igual (≤)" },
+			"metrics": {
+				"shootingEfficiency": "Efectividad de tiro",
+				"powerPlayEfficiency": "Efectividad en superioridad",
+				"turnoversPerMatch": "Pérdidas por partido",
+				"savePercentage": "Porcentaje de paradas",
+				"goalsAgainstPerMatch": "Goles recibidos por partido",
+				"goalsPerMatch": "Goles por partido",
+				"recoveriesPerMatch": "Recuperaciones por partido",
+				"possessionBalancePerMatch": "Balance de posesión por partido",
+				"blocksPerMatch": "Bloqueos por partido"
+			}
+		},
 		"save": "Guardar criterios",
 		"saving": "Guardando…",
 		"saved": "Los criterios deportivos se han actualizado.",

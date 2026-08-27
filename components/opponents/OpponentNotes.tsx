@@ -22,15 +22,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import type { OpponentNote, OpponentNoteCategory } from "@/lib/types";
+import type { OpponentNote, OpponentPreparationArea } from "@/lib/types";
 
-const CATEGORIES: OpponentNoteCategory[] = ["general", "lineup", "player", "tactical", "other"];
+const PREPARATION_AREAS: OpponentPreparationArea[] = ["general", "lineup", "defense", "powerPlay", "goalkeeper"];
 
 export function OpponentNotes({ opponentId, clubId, profileId, notes, canEdit, onChanged }: { opponentId: number; clubId: number; profileId: string; notes: OpponentNote[]; canEdit: boolean; onChanged: () => Promise<void> }) {
 	const t = useTranslations("Opponents.notes");
 	const common = useTranslations("Common");
 	const locale = useLocale();
-	const [category, setCategory] = useState<OpponentNoteCategory>("general");
+	const [preparationArea, setPreparationArea] = useState<OpponentPreparationArea>("general");
 	const [title, setTitle] = useState("");
 	const [body, setBody] = useState("");
 	const [saving, setSaving] = useState(false);
@@ -41,7 +41,7 @@ export function OpponentNotes({ opponentId, clubId, profileId, notes, canEdit, o
 		setSaving(true);
 		setError(null);
 		const supabase = createClient();
-		const { error: saveError } = await supabase.from("opponent_notes").insert({ opponent_id: opponentId, club_id: clubId, category, title: title.trim() || null, body: body.trim(), created_by: profileId });
+		const { error: saveError } = await supabase.from("opponent_notes").insert({ opponent_id: opponentId, club_id: clubId, category: preparationArea === "lineup" ? "lineup" : preparationArea === "general" ? "general" : "tactical", preparation_area: preparationArea, title: title.trim() || null, body: body.trim(), created_by: profileId });
 		if (saveError) setError(t("saveError"));
 		else {
 			setTitle("");
@@ -64,7 +64,7 @@ export function OpponentNotes({ opponentId, clubId, profileId, notes, canEdit, o
 				<Card className="border-primary/20 bg-primary/[0.025]"><CardContent className="space-y-3 p-4 sm:p-5">
 					<div className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /><h3 className="font-semibold">{t("new")}</h3></div>
 					<div className="grid gap-3 sm:grid-cols-[180px_1fr]">
-						<Select value={category} onValueChange={(value) => setCategory(value as OpponentNoteCategory)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CATEGORIES.map((item) => <SelectItem key={item} value={item}>{t(`categories.${item}`)}</SelectItem>)}</SelectContent></Select>
+						<Select value={preparationArea} onValueChange={(value) => setPreparationArea(value as OpponentPreparationArea)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PREPARATION_AREAS.map((item) => <SelectItem key={item} value={item}>{t(`categories.${item}`)}</SelectItem>)}</SelectContent></Select>
 						<Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t("titlePlaceholder")} maxLength={120} />
 					</div>
 					<Textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder={t("bodyPlaceholder")} rows={4} maxLength={5000} />
@@ -77,7 +77,7 @@ export function OpponentNotes({ opponentId, clubId, profileId, notes, canEdit, o
 			) : (
 				<div className="grid gap-3 lg:grid-cols-2">{notes.map((note) => (
 					<Card key={note.id} className="h-full"><CardContent className="p-4 sm:p-5">
-						<div className="flex items-start justify-between gap-3"><div><Badge variant="outline">{t(`categories.${note.category}`)}</Badge>{note.title && <h3 className="mt-2 font-semibold">{note.title}</h3>}</div>{canEdit && <DeleteNoteButton onDelete={() => deleteNote(note.id)} />}</div>
+						<div className="flex items-start justify-between gap-3"><div><Badge variant="outline">{t(`categories.${note.preparation_area ?? (note.category === "lineup" ? "lineup" : "general")}`)}</Badge>{note.title && <h3 className="mt-2 font-semibold">{note.title}</h3>}</div>{canEdit && <DeleteNoteButton onDelete={() => deleteNote(note.id)} />}</div>
 						<p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-foreground/85">{note.body}</p>
 						<p className="mt-4 border-t pt-3 text-xs text-muted-foreground">{new Date(note.updated_at).toLocaleString(locale)}</p>
 					</CardContent></Card>

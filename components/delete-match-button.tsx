@@ -38,11 +38,25 @@ export function DeleteMatchButton({ matchId, className = "", onClick, onDeleted 
 				.from("matches")
 				.delete()
 				.eq("id", matchId)
-				.select("id");
+				.select("id, opponent_id");
 
 			if (error) throw error;
 			if (!deletedMatches?.some((match) => match.id === matchId)) {
 				throw new Error("MATCH_NOT_DELETED");
+			}
+
+			const opponentId = deletedMatches.find((match) => match.id === matchId)?.opponent_id;
+			if (opponentId != null) {
+				const { count, error: remainingMatchesError } = await supabase
+					.from("matches")
+					.select("id", { count: "exact", head: true })
+					.eq("opponent_id", opponentId);
+
+				if (remainingMatchesError) console.error("Error checking remaining opponent matches:", remainingMatchesError);
+				else if (count === 0) {
+					const { error: opponentDeleteError } = await supabase.from("opponents").delete().eq("id", opponentId);
+					if (opponentDeleteError) console.error("Error deleting orphaned opponent:", opponentDeleteError);
+				}
 			}
 
 			if (onDeleted) {

@@ -329,7 +329,7 @@ export default function AnalyticsPage() {
 
 						<TeamTrendsPanel matches={enabledMatches} stats={enabledStats} players={players || []} />
 
-						<SeasonObjectivesPanel matches={enabledMatches} stats={enabledStats} players={players || []} thresholds={analysisThresholds} />
+						<SeasonObjectivesPanel matches={enabledMatches} stats={enabledStats} players={players || []} thresholds={analysisThresholds} clubId={currentClub?.id ?? 0} />
 
 						<section>
 							<TeamDashboard teamStats={enabledPlayerStats} />

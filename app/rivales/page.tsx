@@ -84,7 +84,8 @@ export default function OpponentsPage() {
 			losses: outcomes.filter((outcome) => outcome === "loss").length,
 			lastMatch: opponentMatches[0] ?? null
 		};
-	}).filter(({ opponent }) => {
+	}).filter(({ opponent, matches: opponentMatches }) => {
+		if (opponentMatches.length === 0) return false;
 		const term = search.trim().toLocaleLowerCase(locale);
 		const opponentAliases = aliases.filter((item) => item.opponent_id === opponent.id);
 		return !term || opponent.name.toLocaleLowerCase(locale).includes(term) || opponent.short_name?.toLocaleLowerCase(locale).includes(term) || opponentAliases.some((item) => item.alias.toLocaleLowerCase(locale).includes(term));
