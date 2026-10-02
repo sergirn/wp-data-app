@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { Target } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import { useLocale, useTranslations } from "next-intl";
@@ -143,26 +143,15 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 							general: { label: t("generalEfficiency"), color: "hsla(0, 91%, 60%, 1.00)" },
 							superiority: { label: t("powerPlayEfficiency"), color: "hsla(59, 85%, 45%, 1.00)" }
 						}}
-						className="w-full h-full"
+						className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}
 					>
 						<ResponsiveContainer width="100%" height="100%">
-							<AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-								<defs>
-									<linearGradient id="fillGeneral" x1="0" y1="0" x2="0" y2="1">
-										<stop offset="5%" stopColor="var(--color-general)" stopOpacity={0.55} />
-										<stop offset="95%" stopColor="var(--color-general)" stopOpacity={0.08} />
-									</linearGradient>
-									<linearGradient id="fillSup" x1="0" y1="0" x2="0" y2="1">
-										<stop offset="5%" stopColor="var(--color-superiority)" stopOpacity={0.55} />
-										<stop offset="95%" stopColor="var(--color-superiority)" stopOpacity={0.08} />
-									</linearGradient>
-								</defs>
-
+							<LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
 								<XAxis
 									dataKey="xLabel"
-									fontSize={12}
+									fontSize={compact ? 10 : 12}
 									tickMargin={8}
 									interval="preserveStartEnd"
 									minTickGap={18}
@@ -171,7 +160,7 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 									tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 								/>
 
-								<YAxis fontSize={12} width={34} tickMargin={6} domain={[0, 100]} axisLine={false} tickLine={false} />
+								<YAxis fontSize={compact ? 10 : 12} width={compact ? 28 : 34} tickMargin={6} domain={[0, 100]} axisLine={false} tickLine={false} />
 
 								<ChartTooltip
 									content={
@@ -185,30 +174,28 @@ export function ShootingEfficiencyChart({ matches, stats, hiddenStats = [] }: Sh
 									}
 								/>
 
-								<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
+								<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: compact ? 10 : 12 }} />
 
-								<Area
+								<Line
 									type="monotone"
 									dataKey="general"
 									name={t("generalEfficiency")}
 									stroke="var(--color-general)"
-									fill="url(#fillGeneral)"
-									strokeWidth={2}
+									strokeWidth={2.5}
 									dot={false}
 									activeDot={{ r: 4 }}
 								/>
 
-								<Area
+								<Line
 									type="monotone"
 									dataKey="superiority"
 									name={t("powerPlayEfficiency")}
 									stroke="var(--color-superiority)"
-									fill="url(#fillSup)"
-									strokeWidth={2}
+									strokeWidth={2.5}
 									dot={false}
 									activeDot={{ r: 4 }}
 								/>
-							</AreaChart>
+							</LineChart>
 						</ResponsiveContainer>
 					</ChartContainer>
 				);

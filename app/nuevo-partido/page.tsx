@@ -10,7 +10,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatInput } from "@/components/stat-input";
 import Image from "next/image";
 import type { Player, MatchStats, Profile, Match, MatchAction } from "@/lib/types";
-import { Loader2, AlertCircle, RefreshCw, Plus, Save, Cloud, CloudOff, CheckCircle2, CirclePlay, CircleStop } from "lucide-react";
+import {
+	Loader2,
+	AlertCircle,
+	RefreshCw,
+	Plus,
+	Save,
+	Cloud,
+	CloudOff,
+	CheckCircle2,
+	CirclePlay,
+	CircleStop,
+	Volleyball,
+	Crosshair,
+	ShieldAlert,
+	Activity,
+	Hand,
+	UserRoundMinus,
+	UsersRound,
+	CalendarDays
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -34,12 +53,7 @@ import { loadBestMatchDraft } from "@/lib/match-draft-client";
 import type { MatchDraftPayload } from "@/lib/match-drafts";
 import { MatchChronology } from "@/components/match-actions/MatchChronology";
 import { MatchSaveError, saveMatchBundle, stripManagedStatFields, type MatchSavePayload } from "@/lib/matches/reliable-save";
-import {
-	calculateMatchScore,
-	FIELD_GOAL_ACTIONS,
-	GOALKEEPER_CONCEDED_ACTIONS,
-	GOALKEEPER_SCORED_ACTIONS
-} from "@/lib/matches/calculate-match-score";
+import { calculateMatchScore, FIELD_GOAL_ACTIONS, GOALKEEPER_CONCEDED_ACTIONS, GOALKEEPER_SCORED_ACTIONS } from "@/lib/matches/calculate-match-score";
 
 interface MatchEditParams {
 	matchId?: string;
@@ -75,7 +89,12 @@ type NewMatchDraftPayload = MatchDraftPayload & {
 };
 
 function isNewMatchDraftPayload(payload: MatchDraftPayload): payload is NewMatchDraftPayload {
-	return payload.schemaVersion === 1 && typeof payload.matchDate === "string" && Array.isArray(payload.activePlayerIds) && typeof payload.stats === "object";
+	return (
+		payload.schemaVersion === 1 &&
+		typeof payload.matchDate === "string" &&
+		Array.isArray(payload.activePlayerIds) &&
+		typeof payload.stats === "object"
+	);
 }
 
 export default function NewMatchPage({ searchParams }: { searchParams: Promise<MatchEditParams> }) {
@@ -403,11 +422,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 			if (!profileData?.club_id) return;
 
-			const { data, error } = await supabase
-				.from("players")
-				.select("*")
-				.eq("club_id", profileData.club_id)
-				.order("number");
+			const { data, error } = await supabase.from("players").select("*").eq("club_id", profileData.club_id).order("number");
 
 			if (error || !data) {
 				console.error("[v0] Error loading players:", error);
@@ -639,12 +654,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		if (!supabase) return;
 
 		try {
-			const { data: match, error } = await supabase
-				.from("matches")
-				.select("*")
-				.eq("id", matchId)
-				.eq("club_id", clubId)
-				.single();
+			const { data: match, error } = await supabase.from("matches").select("*").eq("id", matchId).eq("club_id", clubId).single();
 
 			if (error || !match) {
 				console.error("Error loading match:", error);
@@ -658,10 +668,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					.eq("club_season_id", match.season_id)
 					.order("number");
 				if (rosterRows && rosterRows.length > 0) {
-					setAllPlayers(rosterRows.flatMap((row) => {
-						const relation = Array.isArray(row.players) ? row.players[0] : row.players;
-						return relation ? [{ ...relation, number: row.number, is_goalkeeper: row.is_goalkeeper } as Player] : [];
-					}));
+					setAllPlayers(
+						rosterRows.flatMap((row) => {
+							const relation = Array.isArray(row.players) ? row.players[0] : row.players;
+							return relation ? [{ ...relation, number: row.number, is_goalkeeper: row.is_goalkeeper } as Player] : [];
+						})
+					);
 				}
 			}
 
@@ -889,13 +901,14 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 	const adjustQuarterScore = (quarter: DraftQuarter, playerId: number, field: keyof MatchStats, delta: number) => {
 		if (delta === 0) return;
 		const player = playersById.get(playerId);
-		const side = player?.is_goalkeeper && GOALKEEPER_CONCEDED_ACTIONS.has(field)
-			? "away"
-			: player?.is_goalkeeper && GOALKEEPER_SCORED_ACTIONS.has(field)
-				? "home"
-			: !player?.is_goalkeeper && FIELD_GOAL_ACTIONS.has(field)
-				? "home"
-				: null;
+		const side =
+			player?.is_goalkeeper && GOALKEEPER_CONCEDED_ACTIONS.has(field)
+				? "away"
+				: player?.is_goalkeeper && GOALKEEPER_SCORED_ACTIONS.has(field)
+					? "home"
+					: !player?.is_goalkeeper && FIELD_GOAL_ACTIONS.has(field)
+						? "home"
+						: null;
 		if (!side) return;
 
 		setQuarterScores((current) => ({
@@ -909,13 +922,17 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 	const recordActionDelta = (playerId: number, field: keyof MatchStats, delta: number, quarter: DraftQuarter) => {
 		if (delta > 0) {
-			const additions = Array.from({ length: delta }, () => ({
-				client_id: crypto.randomUUID(),
-				player_id: playerId,
-				quarter,
-				sequence: nextActionSequenceRef.current++,
-				action_key: String(field)
-			}) satisfies MatchAction);
+			const additions = Array.from(
+				{ length: delta },
+				() =>
+					({
+						client_id: crypto.randomUUID(),
+						player_id: playerId,
+						quarter,
+						sequence: nextActionSequenceRef.current++,
+						action_key: String(field)
+					}) satisfies MatchAction
+			);
 			setMatchActions((current) => [...current, ...additions]);
 			return;
 		}
@@ -938,7 +955,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 	const updateStat = (playerId: number, field: keyof MatchStats, value: number) => {
 		if (!activeQuarter) {
-			toast({ title: t("chronology.noOpenQuarterTitle"), description: t("chronology.noOpenQuarterDescription"), variant: "destructive" });
+			toast({ title: t("chronology.noOpenQuarterTitle"), description: t("chronology.noOpenQuarterDescription"), variant: "warning" });
 			return;
 		}
 
@@ -971,7 +988,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 	const closeQuarter = (quarter: DraftQuarter) => {
 		setClosedQuarters((current) => ({ ...current, [quarter]: true }));
-		setActiveQuarter((current) => current === quarter ? null : current);
+		setActiveQuarter((current) => (current === quarter ? null : current));
 	};
 
 	function buildPenaltyRows() {
@@ -979,7 +996,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			player_id: Number(shooter.playerId),
 			shot_order: index + 1,
 			scored: Boolean(shooter.scored),
-			result_type: shooter.scored ? "scored" as const : "missed" as const,
+			result_type: shooter.scored ? ("scored" as const) : ("missed" as const),
 			goalkeeper_id: null
 		}));
 		const baseOrder = homeRows.length;
@@ -1121,7 +1138,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					competition_id: competitionId ? Number(competitionId) : null,
 					stats_enabled: existingMatch?.stats_enabled ?? true
 				},
-				stats: activePlayerIds.map((playerId) => stripManagedStatFields(statsForSave[playerId] as Record<string, unknown>)) as MatchSavePayload["stats"],
+				stats: activePlayerIds.map((playerId) =>
+					stripManagedStatFields(statsForSave[playerId] as Record<string, unknown>)
+				) as MatchSavePayload["stats"],
 				actions: matchActions.map((action) => ({
 					client_id: action.client_id,
 					player_id: action.player_id,
@@ -1146,17 +1165,21 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		} catch (error) {
 			console.error("Error saving match:", error);
 			const errorCode = error instanceof MatchSaveError ? error.code : "SAVE_FAILED";
-			const messageKey = errorCode === "MATCH_VERSION_CONFLICT"
-				? "saveErrors.versionConflict"
-				: errorCode === "SAVE_RPC_NOT_INSTALLED"
-					? "saveErrors.rpcMissing"
-					: errorCode === "FORBIDDEN" || errorCode === "AUTH_REQUIRED"
-						? "saveErrors.permission"
-						: errorCode === "PLAYER_OUTSIDE_CLUB" || errorCode === "PLAYER_OUTSIDE_LINEUP"
-							? "saveErrors.invalidPlayer"
-							: errorCode === "INVALID_PAYLOAD" || errorCode === "DUPLICATE_PLAYERS" || errorCode === "DUPLICATE_ACTIONS" || errorCode === "DUPLICATE_PENALTY_ORDER"
-								? "saveErrors.invalidData"
-								: "saveErrors.generic";
+			const messageKey =
+				errorCode === "MATCH_VERSION_CONFLICT"
+					? "saveErrors.versionConflict"
+					: errorCode === "SAVE_RPC_NOT_INSTALLED"
+						? "saveErrors.rpcMissing"
+						: errorCode === "FORBIDDEN" || errorCode === "AUTH_REQUIRED"
+							? "saveErrors.permission"
+							: errorCode === "PLAYER_OUTSIDE_CLUB" || errorCode === "PLAYER_OUTSIDE_LINEUP"
+								? "saveErrors.invalidPlayer"
+								: errorCode === "INVALID_PAYLOAD" ||
+									  errorCode === "DUPLICATE_PLAYERS" ||
+									  errorCode === "DUPLICATE_ACTIONS" ||
+									  errorCode === "DUPLICATE_PENALTY_ORDER"
+									? "saveErrors.invalidData"
+									: "saveErrors.generic";
 			toast({ title: t("saveError"), description: t(messageKey), variant: "destructive" });
 		} finally {
 			setSaving(false);
@@ -1273,9 +1296,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			<main className="container mx-auto px-4 py-8">
 				<Alert variant="destructive">
 					<AlertCircle className="h-4 w-4" />
-					<AlertDescription>
-						{t("permissionError")}
-					</AlertDescription>
+					<AlertDescription>{t("permissionError")}</AlertDescription>
 				</Alert>
 				<div className="mt-4">
 					<Button onClick={() => router.back()}>{t("backHome")}</Button>
@@ -1288,9 +1309,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
 			<div className="mb-6">
 				<h1 className="text-3xl md:text-4xl font-bold mb-2">{editingMatchId ? pageT("editMatch") : pageT("newMatch")}</h1>
-				<p className="text-muted-foreground text-lg">
-					{editingMatchId ? t("editDescription") : t("createDescription")}
-				</p>
+				<p className="text-muted-foreground text-lg">{editingMatchId ? t("editDescription") : t("createDescription")}</p>
 				<div className="flex items-center gap-3 mt-3 flex-wrap">
 					<Badge variant="secondary" className="text-sm">
 						{t("lineupCount", { count: activePlayerIds.length })}
@@ -1315,7 +1334,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 							<SelectContent>
 								{previousMatches.map((match) => (
 									<SelectItem key={match.id} value={match.id.toString()}>
-									{new Date(match.match_date).toLocaleDateString(locale)} - {match.opponent}
+										{new Date(match.match_date).toLocaleDateString(locale)} - {match.opponent}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -1326,9 +1345,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 			</div>
 
 			<Tabs defaultValue="info" className="w-full">
-				<TabsList className={`grid w-full ${isTied ? "grid-cols-4" : "grid-cols-3"} mb-6 h-auto`}>
+				<TabsList className={`mb-6 flex h-auto w-full justify-start gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid ${isTied ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
 					{/* TAB: Información */}
-					<TabsTrigger value="info" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+					<TabsTrigger value="info" className="min-w-24 flex-none px-3 py-2 text-xs sm:min-w-0 sm:px-4 sm:text-sm">
 						{/* Móvil */}
 						<span className="sm:hidden block truncate">{t("tabs.infoShort")}</span>
 						{/* Desktop */}
@@ -1336,7 +1355,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					</TabsTrigger>
 
 					{/* TAB: Jugadores de Campo */}
-					<TabsTrigger value="field" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+					<TabsTrigger value="field" className="min-w-24 flex-none px-3 py-2 text-xs sm:min-w-0 sm:px-4 sm:text-sm">
 						{/* Móvil */}
 						<span className="sm:hidden block truncate">{t("tabs.fieldShort", { count: fieldPlayers.length })}</span>
 						{/* Desktop */}
@@ -1344,7 +1363,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					</TabsTrigger>
 
 					{/* TAB: Porteros */}
-					<TabsTrigger value="goalkeepers" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+					<TabsTrigger value="goalkeepers" className="min-w-24 flex-none px-3 py-2 text-xs sm:min-w-0 sm:px-4 sm:text-sm">
 						{/* Móvil */}
 						<span className="sm:hidden block truncate">{t("tabs.goalkeepers", { count: goalkeepers.length })}</span>
 						{/* Desktop */}
@@ -1352,7 +1371,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 					</TabsTrigger>
 
 					{isTied && (
-						<TabsTrigger value="penalties" className="text-xs sm:text-sm px-2 sm:px-4 py-2 relative">
+						<TabsTrigger value="penalties" className="relative min-w-24 flex-none px-3 py-2 text-xs sm:min-w-0 sm:px-4 sm:text-sm">
 							<span className="sm:hidden block truncate">{t("tabs.penaltiesShort")}</span>
 							<span className="hidden sm:inline block truncate">{t("tabs.penalties")}</span>
 							{isTied && (
@@ -1366,31 +1385,42 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 				</TabsList>
 				<TabsContent value="info">
 					<div className="space-y-6">
-						<div className="grid gap-6 lg:grid-cols-3">
-							{/* COLUMNA 1: Datos */}
-							<div className="space-y-4 rounded-sm border bg-muted/15 p-4">
-								{/* <h3 className="text-sm font-semibold">Datos del partido</h3> */}
-
-								<div className="space-y-4">
-									<div className="space-y-2">
-										<Label htmlFor="date">{t("date")}</Label>
-										<Input id="date" type="date" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} />
+						<div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+							<section className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">
+								<div className="mb-4 flex items-center gap-2">
+									<div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+										<CalendarDays className="size-4" aria-hidden="true" />
 									</div>
+									<h3 className="text-sm font-semibold">{t("match")}</h3>
+								</div>
 
-									<div className="space-y-2">
+								<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
+									<div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
 										<Label htmlFor="opponent">{t("opponent")}</Label>
 										<Input
 											id="opponent"
 											value={opponent}
 											onChange={(e) => setOpponent(e.target.value)}
 											placeholder={t("opponentPlaceholder")}
+											className="h-10"
 										/>
 									</div>
 
-									<div className="space-y-2">
+									<div className="space-y-1.5 lg:col-span-2">
+										<Label htmlFor="date">{t("date")}</Label>
+										<Input
+											id="date"
+											type="date"
+											value={matchDate}
+											onChange={(e) => setMatchDate(e.target.value)}
+											className="h-10"
+										/>
+									</div>
+
+									<div className="space-y-1.5 lg:col-span-2">
 										<Label htmlFor="venue">{t("venue")}</Label>
 										<Select value={isHome ? "home" : "away"} onValueChange={(value) => setIsHome(value === "home")}>
-											<SelectTrigger id="venue">
+											<SelectTrigger id="venue" className="h-10 w-full">
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>
@@ -1400,42 +1430,34 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 										</Select>
 									</div>
 
-									<div className="space-y-2">
+									<div className="space-y-1.5 sm:col-span-2 lg:col-span-4">
 										<Label htmlFor="location">{t("location")}</Label>
 										<Input
 											id="location"
 											value={location}
 											onChange={(e) => setLocation(e.target.value)}
 											placeholder={t("locationPlaceholder")}
+											className="h-10"
 										/>
 									</div>
-								</div>
-							</div>
 
-							{/* COLUMNA 2: Competición + Temporada */}
-							<div className="space-y-4 rounded-sm border-2 p-4">
-								{/* <h3 className="text-sm font-semibold">Competición y temporada</h3> */}
-
-								<div className="space-y-4">
-									<div className="space-y-2">
+									<div className="space-y-1.5 sm:col-span-2 lg:col-span-6">
 										<Label htmlFor="competition">{t("competition")}</Label>
 										<Select value={competitionId} onValueChange={setCompetitionId}>
-											<SelectTrigger id="competition" className="w-full">
+											<SelectTrigger id="competition" className="h-10 w-full">
 												<SelectValue placeholder={t("selectCompetition")} />
 											</SelectTrigger>
 											<SelectContent>
-												{competitions.map((c) => (
-													<SelectItem key={c.id} value={String(c.id)}>
-														{c.name}
+												{competitions.map((competition) => (
+													<SelectItem key={competition.id} value={String(competition.id)}>
+														{competition.name}
 													</SelectItem>
 												))}
 											</SelectContent>
 										</Select>
-
-										{competitions.length === 0 && <p className="text-xs text-muted-foreground"></p>}
 									</div>
 
-									<div className="space-y-2">
+									<div className="space-y-1.5 lg:col-span-2">
 										<Label htmlFor="jornada">{t("matchday")}</Label>
 										<Input
 											id="jornada"
@@ -1443,48 +1465,38 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											value={jornada}
 											onChange={(e) => setJornada(Number.parseInt(e.target.value) || 1)}
 											min={1}
+											className="h-10"
 										/>
 									</div>
 
-									<div className="space-y-2">
+									<div className="space-y-1.5 lg:col-span-4">
 										<Label htmlFor="season">{t("season")}</Label>
-										<Input id="season" value={season} readOnly className="bg-muted/40" />
+										<Input id="season" value={season} readOnly className="h-10 bg-muted/40" />
 									</div>
 								</div>
-							</div>
+							</section>
 
-							{/* COLUMNA 3: Marcador */}
-							<div className="space-y-4 rounded-sm border bg-muted/15 p-4">
-								<h3 className="text-sm font-semibold">{t("score")}</h3>
-
-								<div className="space-y-4">
-									<div className="space-y-2">
-										<Label htmlFor="home-score">{t("ownGoals")}</Label>
-										<Input
-											id="home-score"
-											type="number"
-											value={homeGoals}
-											readOnly
-											className="bg-muted text-center text-lg font-bold"
-											title={t("ownGoalsHint")}
-										/>
-										<p className="text-xs text-muted-foreground">{t("automaticCalculation")}</p>
+							<aside className="rounded-2xl border bg-muted/15 p-4 shadow-sm sm:p-5">
+								<div className="mb-3 flex items-center gap-2">
+									<Activity className="size-4 text-primary" aria-hidden="true" />
+									<h3 className="text-sm font-semibold">{t("score")}</h3>
+								</div>
+								<div className="grid grid-cols-2 gap-2">
+									<div className="rounded-xl border bg-background p-3 text-center" title={t("ownGoalsHint")}>
+										<p className="truncate text-xs text-muted-foreground">{t("ownGoals")}</p>
+										<p id="home-score" className="mt-1 text-3xl font-black tabular-nums">
+											{homeGoals}
+										</p>
 									</div>
-
-									<div className="space-y-2">
-										<Label htmlFor="away-score">{t("opponentGoals")}</Label>
-										<Input
-											id="away-score"
-											type="number"
-											value={awayGoals}
-											readOnly
-											className="bg-muted text-center text-lg font-bold"
-											title={t("opponentGoalsHint")}
-										/>
-										<p className="text-xs text-muted-foreground">{t("goalkeeperCalculation")}</p>
+									<div className="rounded-xl border bg-background p-3 text-center" title={t("opponentGoalsHint")}>
+										<p className="truncate text-xs text-muted-foreground">{t("opponentGoals")}</p>
+										<p id="away-score" className="mt-1 text-3xl font-black tabular-nums">
+											{awayGoals}
+										</p>
 									</div>
 								</div>
-							</div>
+								<p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">{t("automaticCalculation")}</p>
+							</aside>
 						</div>
 
 						<div className="md:col-span-3 mt-4 border-t pt-4">
@@ -1493,7 +1505,9 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									<TabsTrigger value="quarters">{t("chronology.quartersTab")}</TabsTrigger>
 									<TabsTrigger value="chronology" className="gap-2">
 										{t("chronology.timelineTab")}
-										<Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{matchActions.length}</Badge>
+										<Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+											{matchActions.length}
+										</Badge>
 									</TabsTrigger>
 								</TabsList>
 
@@ -1508,24 +1522,63 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											const actionCount = matchActions.filter((action) => action.quarter === quarter).length;
 
 											return (
-												<div key={quarter} className={`space-y-3 rounded-xl border p-3 ${isActive ? "border-primary bg-primary/5 shadow-sm" : isClosed ? "bg-muted/20" : "bg-card"}`}>
+												<div
+													key={quarter}
+													className={`space-y-3 rounded-xl border p-3 ${isActive ? "border-primary bg-primary/5 shadow-sm" : isClosed ? "bg-muted/20" : "bg-card"}`}
+												>
 													<div className="flex items-center justify-between gap-2">
 														<Label className="text-sm font-semibold">{t("quarter", { number: quarter })}</Label>
 														<Badge variant={isActive ? "default" : "secondary"}>
-															{isActive ? t("chronology.openStatus") : isClosed ? t("chronology.closedStatus") : t("chronology.pendingStatus")}
+															{isActive
+																? t("chronology.openStatus")
+																: isClosed
+																	? t("chronology.closedStatus")
+																	: t("chronology.pendingStatus")}
 														</Badge>
 													</div>
 
-													<p className="text-xs text-muted-foreground">{t("chronology.actionCount", { count: actionCount })}</p>
+													<p className="text-xs text-muted-foreground">
+														{t("chronology.actionCount", { count: actionCount })}
+													</p>
 
 													<div className="grid grid-cols-2 gap-2">
 														<div>
 															<Label className="text-xs">{t("own")}</Label>
-															<Input type="number" value={quarterScores[quarter].home} onChange={(event) => setQuarterScores((current) => ({ ...current, [quarter]: { ...current[quarter], home: Number.parseInt(event.target.value) || 0 } }))} disabled={!isActive} min={0} className="text-center text-lg font-bold" />
+															<Input
+																type="number"
+																value={quarterScores[quarter].home}
+																onChange={(event) =>
+																	setQuarterScores((current) => ({
+																		...current,
+																		[quarter]: {
+																			...current[quarter],
+																			home: Number.parseInt(event.target.value) || 0
+																		}
+																	}))
+																}
+																disabled={!isActive}
+																min={0}
+																className="text-center text-lg font-bold"
+															/>
 														</div>
 														<div>
 															<Label className="text-xs">{t("opponentFallback")}</Label>
-															<Input type="number" value={quarterScores[quarter].away} onChange={(event) => setQuarterScores((current) => ({ ...current, [quarter]: { ...current[quarter], away: Number.parseInt(event.target.value) || 0 } }))} disabled={!isActive} min={0} className="text-center text-lg font-bold" />
+															<Input
+																type="number"
+																value={quarterScores[quarter].away}
+																onChange={(event) =>
+																	setQuarterScores((current) => ({
+																		...current,
+																		[quarter]: {
+																			...current[quarter],
+																			away: Number.parseInt(event.target.value) || 0
+																		}
+																	}))
+																}
+																disabled={!isActive}
+																min={0}
+																className="text-center text-lg font-bold"
+															/>
 														</div>
 													</div>
 
@@ -1544,9 +1597,19 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 														{hasWinner ? t("sprintWon") : t("sprintLost")}
 													</button>
 
-													{hasWinner ? <p className="text-[11px] text-muted-foreground">{t("winner")} <span className="font-medium text-foreground">{winnerLabel}</span></p> : null}
+													{hasWinner ? (
+														<p className="text-[11px] text-muted-foreground">
+															{t("winner")} <span className="font-medium text-foreground">{winnerLabel}</span>
+														</p>
+													) : null}
 
-													<Button type="button" size="sm" variant={isActive ? "destructive" : "outline"} onClick={() => isActive ? closeQuarter(quarter) : openQuarter(quarter)} className="w-full text-xs">
+													<Button
+														type="button"
+														size="sm"
+														variant={isActive ? "destructive" : "outline"}
+														onClick={() => (isActive ? closeQuarter(quarter) : openQuarter(quarter))}
+														className="w-full text-xs"
+													>
 														{isActive ? <CircleStop className="mr-2 size-4" /> : <CirclePlay className="mr-2 size-4" />}
 														{isActive ? t("closeQuarter") : isClosed ? t("chronology.reopenQuarter") : t("openQuarter")}
 													</Button>
@@ -1557,7 +1620,12 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 								</TabsContent>
 
 								<TabsContent value="chronology" className="mt-4">
-									<MatchChronology actions={matchActions} players={allPlayers} activeQuarter={activeQuarter} onRemove={removeMatchAction} />
+									<MatchChronology
+										actions={matchActions}
+										players={allPlayers}
+										activeQuarter={activeQuarter}
+										onRemove={removeMatchAction}
+									/>
 								</TabsContent>
 							</Tabs>
 						</div>
@@ -1601,7 +1669,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 							<CardTitle>Jugadores de Campo</CardTitle>
 						</CardHeader> */}
 					<div>
-						<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+						<div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
 							{fieldPlayers.map((player) => (
 								<div key={player.id} className="relative">
 									<Button
@@ -1654,7 +1722,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											</p>
 
 											<p className="text-xs text-muted-foreground mt-1">
-											{t("playerSummary", { goals: safeNumber(stats[player.id]?.goles_totales), exclusions: totalExpulsiones(stats[player.id]) })}
+												{t("playerSummary", {
+													goals: safeNumber(stats[player.id]?.goles_totales),
+													exclusions: totalExpulsiones(stats[player.id])
+												})}
 											</p>
 										</div>
 
@@ -1664,7 +1735,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 												<div
 													role="button"
 													tabIndex={0}
-											title={t("substitutePlayer")}
+													title={t("substitutePlayer")}
 													className="
                               h-8 w-full rounded-md
                               bg-muted/70 hover:bg-blue-500/40
@@ -1686,7 +1757,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 													}}
 												>
 													<RefreshCw className="h-4 w-4" />
-											{t("substitute")}
+													{t("substitute")}
 												</div>
 											) : (
 												// Mantiene altura constante para que todas las cards queden iguales
@@ -1717,13 +1788,13 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 									</div>
 
 									<div className="w-full flex-1 flex flex-col items-center justify-center px-2 text-center">
-									<p className="font-semibold text-sm">{t("callPlayer")}</p>
-									<p className="text-xs text-muted-foreground mt-1">{t("addToList")}</p>
+										<p className="font-semibold text-sm">{t("callPlayer")}</p>
+										<p className="text-xs text-muted-foreground mt-1">{t("addToList")}</p>
 									</div>
 
 									<div className="w-full px-2 pb-2">
 										<div className="h-8 w-full rounded-md border border-green-500/40 bg-green-500/10 grid place-items-center text-xs font-medium text-green-700 dark:text-green-400">
-										{t("add")}
+											{t("add")}
 										</div>
 									</div>
 								</Button>
@@ -1786,7 +1857,10 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 											</p>
 
 											<p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
-											{t("goalkeeperSummary", { goals: safeNumber(stats[player.id]?.portero_goles_totales), saves: calcParadasTotales(stats[player.id]) })}
+												{t("goalkeeperSummary", {
+													goals: safeNumber(stats[player.id]?.portero_goles_totales),
+													saves: calcParadasTotales(stats[player.id])
+												})}
 											</p>
 										</div>
 
@@ -1796,7 +1870,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 												<div
 													role="button"
 													tabIndex={0}
-											title={t("substitutePlayer")}
+													title={t("substitutePlayer")}
 													className="
                               h-7 sm:h-8 w-full rounded-md
                               bg-muted/70 hover:bg-muted
@@ -1818,7 +1892,7 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 													}}
 												>
 													<RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-											{t("substitute")}
+													{t("substitute")}
 												</div>
 											) : (
 												<div className="h-7 sm:h-8" />
@@ -1876,66 +1950,94 @@ export default function NewMatchPage({ searchParams }: { searchParams: Promise<M
 
 			{selectedPlayer && (
 				<Dialog open={!!selectedPlayer} onOpenChange={() => setSelectedPlayer(null)}>
-					<DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-						<DialogHeader>
-							<DialogTitle className="flex items-center gap-3">
-								<div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden flex-shrink-0">
+					<DialogContent className="grid h-[calc(100dvh_-_0.75rem)] w-[calc(100vw_-_0.75rem)] max-w-[calc(100vw_-_0.75rem)] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-2xl p-0 sm:h-[min(82dvh,680px)] sm:w-[min(92vw,42rem)] sm:max-w-[42rem] md:w-[min(86vw,52rem)] md:max-w-[52rem]">
+						<DialogHeader className="min-w-0 border-b bg-muted/20 px-3 py-3 pr-11 text-left sm:px-6 sm:py-4 sm:pr-14">
+							<DialogTitle className="flex min-w-0 items-center gap-3">
+								<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary sm:size-14">
 									{selectedPlayer.photo_url ? (
 										<img
 											src={selectedPlayer.photo_url || "/placeholder.svg"}
 											alt={selectedPlayer.name}
-											className="w-full h-full object-cover object-top"
+											className="size-full object-cover object-top"
 										/>
 									) : (
 										<span className="text-primary-foreground font-bold">{selectedPlayer.number}</span>
 									)}
 								</div>
-								{selectedPlayer.name}
+								<div className="min-w-0 flex-1">
+									<div className="flex min-w-0 items-center gap-2">
+										<span className="truncate text-base sm:text-lg">{selectedPlayer.name}</span>
+										<Badge variant="secondary" className="shrink-0">
+											#{selectedPlayer.number}
+										</Badge>
+									</div>
+									<div className="mt-1.5 flex max-w-full flex-wrap gap-1 text-[11px] font-normal sm:mt-2 sm:gap-1.5 sm:text-xs">
+										{selectedPlayer.is_goalkeeper ? (
+											<>
+												<Badge variant="outline">
+													{t("statTabs.goals")}: {safeNumber(stats[selectedPlayer.id]?.portero_goles_totales)}
+												</Badge>
+												<Badge variant="outline">
+													{t("statTabs.saves")}: {calcParadasTotales(stats[selectedPlayer.id])}
+												</Badge>
+											</>
+										) : (
+											<>
+												<Badge variant="outline">
+													{t("statTabs.goals")}: {safeNumber(stats[selectedPlayer.id]?.goles_totales)}
+												</Badge>
+												<Badge variant="outline">
+													{t("statTabs.shots")}: {safeNumber(stats[selectedPlayer.id]?.tiros_totales)}
+												</Badge>
+												<Badge variant="outline">
+													{t("statTabs.fouls")}: {totalExpulsiones(stats[selectedPlayer.id])}
+												</Badge>
+											</>
+										)}
+									</div>
+								</div>
 							</DialogTitle>
 						</DialogHeader>
 
-						{selectedPlayer.is_goalkeeper ? (
-							<GoalkeeperStatsDialog
-								player={selectedPlayer}
-								stats={stats[selectedPlayer.id] || createEmptyStats(selectedPlayer.id)}
-								onUpdate={(field, value) => updateStat(selectedPlayer.id, field, value)}
-								goalkeeperShots={goalkeeperShots}
-								setGoalkeeperShots={setGoalkeeperShots}
-								activeQuarter={activeQuarter}
-								match={existingMatch as any}
-								isStatVisible={isStatVisible}
-							/>
-						) : (
-							<FieldPlayerStatsDialog
-								player={selectedPlayer}
-								stats={stats[selectedPlayer.id] || createEmptyStats(selectedPlayer.id)}
-								onUpdate={(field, value) => updateStat(selectedPlayer.id, field, value)}
-								isStatVisible={isStatVisible}
-							/>
-						)}
+						<div className="@container min-h-0 min-w-0 max-w-full overflow-x-hidden overflow-y-auto overscroll-contain">
+							{selectedPlayer.is_goalkeeper ? (
+								<GoalkeeperStatsDialog
+									player={selectedPlayer}
+									stats={stats[selectedPlayer.id] || createEmptyStats(selectedPlayer.id)}
+									onUpdate={(field, value) => updateStat(selectedPlayer.id, field, value)}
+									goalkeeperShots={goalkeeperShots}
+									setGoalkeeperShots={setGoalkeeperShots}
+									activeQuarter={activeQuarter}
+									match={existingMatch as any}
+									isStatVisible={isStatVisible}
+								/>
+							) : (
+								<FieldPlayerStatsDialog
+									player={selectedPlayer}
+									stats={stats[selectedPlayer.id] || createEmptyStats(selectedPlayer.id)}
+									onUpdate={(field, value) => updateStat(selectedPlayer.id, field, value)}
+									isStatVisible={isStatVisible}
+								/>
+							)}
+						</div>
 					</DialogContent>
 				</Dialog>
 			)}
 
 			<div className=" mt-8">
-			<Button
-				onClick={handleSave}
-				disabled={saving || existingMatch?.review_status === "locked"}
-				size="lg"
-				className="w-full h-12"
-			>
-				{saving ? (
-				<>
-					<Loader2 className="mr-2 h-5 w-5 animate-spin" />
-									{t("saving")}
-				</>
-				) : (
-				<>
-					<Save className="mr-2 h-5 w-5" />
-									{editingMatchId ? t("updateMatch") : t("finalizeMatch")}
-				</>
-				)}
-			</Button>
+				<Button onClick={handleSave} disabled={saving || existingMatch?.review_status === "locked"} size="lg" className="w-full h-12">
+					{saving ? (
+						<>
+							<Loader2 className="mr-2 h-5 w-5 animate-spin" />
+							{t("saving")}
+						</>
+					) : (
+						<>
+							<Save className="mr-2 h-5 w-5" />
+							{editingMatchId ? t("updateMatch") : t("finalizeMatch")}
+						</>
+					)}
+				</Button>
 			</div>
 			<div className="mt-6 flex flex-col items-center gap-2 text-center">
 				<p className="text-xs text-muted-foreground">
@@ -1971,46 +2073,36 @@ function FieldPlayerStatsDialog({
 }) {
 	const t = useTranslations("NewMatch");
 	return (
-		<Tabs defaultValue="goles" className="w-full">
-			<TabsList className="grid grid-cols-5 w-full h-auto">
-				<TabsTrigger
-					value="goles"
-					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
-				>
+		<Tabs defaultValue="goles" className="min-w-0 max-w-full gap-0">
+			<TabsList className="sticky top-0 z-20 flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b bg-background/95 p-2 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4">
+				<TabsTrigger value="goles" className="h-11 min-w-[5.5rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<Volleyball className="size-4" />
 					{t("statTabs.goals")}
 				</TabsTrigger>
 
-				<TabsTrigger
-					value="tiros"
-					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
-				>
+				<TabsTrigger value="tiros" className="h-11 min-w-[5.5rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<Crosshair className="size-4" />
 					{t("statTabs.shots")}
 				</TabsTrigger>
 
-				<TabsTrigger
-					value="superioridad"
-					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
-				>
+				<TabsTrigger value="superioridad" className="h-11 min-w-[5.5rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<UsersRound className="size-4" />
 					<span className="sm:hidden">{t("statTabs.superiorityShort")}</span>
 					<span className="hidden sm:inline">{t("statTabs.superiority")}</span>
 				</TabsTrigger>
 
-				<TabsTrigger
-					value="faltas"
-					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
-				>
+				<TabsTrigger value="faltas" className="h-11 min-w-[5.5rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<ShieldAlert className="size-4" />
 					{t("statTabs.fouls")}
 				</TabsTrigger>
 
-				<TabsTrigger
-					value="acciones"
-					className="min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs sm:text-sm px-1 sm:px-2 py-2"
-				>
+				<TabsTrigger value="acciones" className="h-11 min-w-[5.5rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<Activity className="size-4" />
 					{t("statTabs.actions")}
 				</TabsTrigger>
 			</TabsList>
 
-			<TabsContent value="goles" className="space-y-4 mt-4">
+			<TabsContent value="goles" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="goles_boya_jugada"
@@ -2053,7 +2145,7 @@ function FieldPlayerStatsDialog({
 				</Group>
 			</TabsContent>
 
-			<TabsContent value="tiros" className="space-y-4 mt-4">
+			<TabsContent value="tiros" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="tiros_penalti_fallado"
@@ -2138,7 +2230,7 @@ function FieldPlayerStatsDialog({
 				</Group>
 			</TabsContent>
 
-			<TabsContent value="superioridad" className="space-y-4 mt-4">
+			<TabsContent value="superioridad" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="goles_hombre_mas"
@@ -2219,7 +2311,7 @@ function FieldPlayerStatsDialog({
 				</Group>
 			</TabsContent>
 
-			<TabsContent value="faltas" className="space-y-4 mt-4">
+			<TabsContent value="faltas" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.defense")}>
 					<VisibleStatField
 						statKey="faltas_exp_20_1c1"
@@ -2263,7 +2355,7 @@ function FieldPlayerStatsDialog({
 				</Group>
 			</TabsContent>
 
-			<TabsContent value="acciones" className="space-y-4 mt-4">
+			<TabsContent value="acciones" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="acciones_asistencias"
@@ -2392,24 +2484,28 @@ function GoalkeeperStatsDialog({
 		(isStatVisible("portero_goles_penalti") ? safeNumber(stats.portero_goles_penalti) : 0);
 
 	return (
-		<Tabs defaultValue="goles" className="w-full">
-			<TabsList className="grid w-full grid-cols-4 h-auto">
-				<TabsTrigger value="goles" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+		<Tabs defaultValue="goles" className="min-w-0 max-w-full gap-0">
+			<TabsList className="sticky top-0 z-20 flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b bg-background/95 p-2 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-4">
+				<TabsTrigger value="goles" className="h-11 min-w-[6rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<Volleyball className="size-4" />
 					{t("statTabs.goals")}
 				</TabsTrigger>
-				<TabsTrigger value="paradas" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+				<TabsTrigger value="paradas" className="h-11 min-w-[6rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<Hand className="size-4" />
 					{t("statTabs.saves")}
 				</TabsTrigger>
-				<TabsTrigger value="inferioridad" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+				<TabsTrigger value="inferioridad" className="h-11 min-w-[6rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<UserRoundMinus className="size-4" />
 					<span className="sm:hidden block truncate">{t("statTabs.inferiorityShort")}</span>
 					<span className="hidden sm:inline block truncate">{t("statTabs.inferiority")}</span>
 				</TabsTrigger>
-				<TabsTrigger value="acciones" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+				<TabsTrigger value="acciones" className="h-11 min-w-[6rem] flex-none px-3 text-xs sm:flex-1 sm:text-sm">
+					<Activity className="size-4" />
 					{t("statTabs.actions")}
 				</TabsTrigger>
 			</TabsList>
 
-			<TabsContent value="goles" className="space-y-4 mt-4">
+			<TabsContent value="goles" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.goalsConceded")}>
 					<VisibleStatField
 						statKey="portero_goles_boya_parada"
@@ -2457,10 +2553,15 @@ function GoalkeeperStatsDialog({
 				<Group title={t("groups.other")}>
 					<StatField label={t("totals")} value={totalGoalsConceded} onChange={() => {}} readOnly />
 				</Group>
-				<GoalkeeperGoalsRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} quarter={activeQuarter} />
+				<GoalkeeperGoalsRecorder
+					goalkeeperPlayerId={player.id}
+					shots={goalkeeperShots}
+					onChangeShots={setGoalkeeperShots}
+					quarter={activeQuarter}
+				/>
 			</TabsContent>
 
-			<TabsContent value="paradas" className="space-y-4 mt-4">
+			<TabsContent value="paradas" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("statTabs.saves")}>
 					<VisibleStatField
 						statKey="portero_tiros_parada_recup"
@@ -2533,10 +2634,15 @@ function GoalkeeperStatsDialog({
 						readOnly
 					/>
 				</Group>
-				<GoalkeeperSavesRecorder goalkeeperPlayerId={player.id} shots={goalkeeperShots} onChangeShots={setGoalkeeperShots} quarter={activeQuarter} />
+				<GoalkeeperSavesRecorder
+					goalkeeperPlayerId={player.id}
+					shots={goalkeeperShots}
+					onChangeShots={setGoalkeeperShots}
+					quarter={activeQuarter}
+				/>
 			</TabsContent>
 
-			<TabsContent value="inferioridad" className="space-y-4 mt-4">
+			<TabsContent value="inferioridad" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.conceded")}>
 					<VisibleStatField
 						statKey="portero_goles_hombre_menos"
@@ -2616,7 +2722,7 @@ function GoalkeeperStatsDialog({
 				</Group>
 			</TabsContent>
 
-			<TabsContent value="acciones" className="space-y-4 mt-4">
+			<TabsContent value="acciones" className="space-y-3 p-3 sm:p-5">
 				<Group title={t("groups.offense")}>
 					<VisibleStatField
 						statKey="portero_acciones_asistencias"
@@ -2703,12 +2809,18 @@ function StatField({
 	const displayValue = safeNumber(value);
 
 	return (
-		<div className="space-y-2">
-			<Label className="text-sm font-medium">{label}</Label>
+		<div
+			className={`flex min-h-[5.5rem] min-w-0 max-w-full flex-col items-stretch gap-2.5 overflow-hidden rounded-xl border p-2.5 sm:p-3 ${readOnly ? "border-dashed bg-muted/40" : "bg-card shadow-sm"}`}
+		>
+			<Label className="min-w-0 break-words text-xs font-medium leading-snug sm:text-sm">{label}</Label>
 			{readOnly ? (
-				<Input value={suffix ? `${displayValue}${suffix}` : displayValue} readOnly className="bg-muted" />
+				<div className="flex h-11 w-full items-center justify-center rounded-xl bg-muted px-3 text-lg font-bold tabular-nums">
+					{suffix ? `${displayValue}${suffix}` : displayValue}
+				</div>
 			) : (
-				<StatInput value={displayValue} onChange={onChange} />
+				<div className="w-full min-w-0">
+					<StatInput value={displayValue} onChange={onChange} label={label} />
+				</div>
 			)}
 		</div>
 	);
@@ -2753,13 +2865,8 @@ const getCurrentSeason = (): string => {
 };
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
-	<div className="space-y-2">
-		<div className="flex items-center gap-2">
-			<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-			<div className="h-px flex-1 bg-border/60" />
-		</div>
-		<div className="rounded-xl p-3 sm:p-4">
-			<div className="grid grid-cols-2 md:grid-cols-3 gap-4">{children}</div>
-		</div>
-	</div>
+	<section className="min-w-0 max-w-full space-y-3 overflow-hidden rounded-2xl border bg-muted/15 p-2.5 sm:p-4">
+		<p className="break-words text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:tracking-[0.14em]">{title}</p>
+		<div className="grid min-w-0 grid-cols-1 gap-2.5 @[38rem]:grid-cols-2">{children}</div>
+	</section>
 );

@@ -128,8 +128,8 @@ export function AnalysisSettingsPanel({ clubId, profileId, canEdit }: Props) {
 
 	return (
 		<div className="space-y-5">
-			<Card className="overflow-hidden rounded-2xl border-border/70">
-				<CardHeader className="border-b bg-muted/10"><CardTitle className="flex items-center gap-2"><Gauge className="size-5 text-primary" />{t("title")}</CardTitle><CardDescription>{t("description")}</CardDescription></CardHeader>
+			<Card className="gap-0 overflow-hidden rounded-2xl border-border/70 py-0 sm:gap-0 sm:py-0">
+				<CardHeader className="border-b bg-muted/10 py-4 sm:py-5"><CardTitle className="flex items-center gap-2"><Gauge className="size-5 text-primary" />{t("title")}</CardTitle><CardDescription>{t("description")}</CardDescription></CardHeader>
 				<CardContent className="space-y-6 p-5 sm:p-6">
 					{loading ? <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />{t("loading")}</div> : <>
 						<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -144,8 +144,8 @@ export function AnalysisSettingsPanel({ clubId, profileId, canEdit }: Props) {
 				</CardContent>
 			</Card>
 
-			{!loading && <Card className="overflow-hidden rounded-2xl border-border/70">
-				<CardHeader className="border-b bg-muted/10">
+			{!loading && <Card className="gap-0 overflow-hidden rounded-2xl border-border/70 py-0 sm:gap-0 sm:py-0">
+				<CardHeader className="border-b bg-muted/10 py-4 sm:py-5">
 					<div className="flex flex-wrap items-start justify-between gap-3">
 						<div><CardTitle className="flex items-center gap-2"><Target className="size-5 text-primary" />{t("objectives.title")}</CardTitle><CardDescription className="mt-1">{t("objectives.description")}</CardDescription></div>
 						<span className="rounded-full border bg-background px-3 py-1 text-xs font-medium tabular-nums">{t("objectives.count", { count: objectives.length, max: MAX_CLUB_OBJECTIVES })}</span>

@@ -185,8 +185,8 @@ export function SeasonManagementPanel({ clubId, players, canManage, onChanged }:
 			</div>
 
 			{preparing && (
-				<Card className="overflow-hidden">
-					<CardHeader className="border-b"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><CardTitle>{t("wizardTitle")}</CardTitle><CardDescription className="mt-1">{t("wizardDescription")}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => setPreparing(false)}><X className="h-4 w-4" /></Button></div></CardHeader>
+				<Card className="gap-0 overflow-hidden py-0 sm:gap-0 sm:py-0">
+					<CardHeader className="border-b py-4 sm:py-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><CardTitle>{t("wizardTitle")}</CardTitle><CardDescription className="mt-1">{t("wizardDescription")}</CardDescription></div><Button variant="ghost" size="icon" onClick={() => setPreparing(false)}><X className="h-4 w-4" /></Button></div></CardHeader>
 					<CardContent className="space-y-5 p-4 sm:p-6">
 						<div className="grid gap-4 sm:grid-cols-[220px_1fr]"><div><Label htmlFor="season-start">{t("season")}</Label><div className="mt-1 flex items-center gap-2"><Input id="season-start" type="number" min={2000} max={2200} value={startYear} onChange={(event) => setStartYear(Number(event.target.value))} /><span className="shrink-0 font-semibold">– {startYear + 1}</span></div></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><Summary label={t("summary.players")} value={rosterCounts.players} /><Summary label={t("summary.goalkeepers")} value={rosterCounts.goalkeepers} /><Summary label={t("summary.departures")} value={rosterCounts.departures} /><Summary label={t("summary.signings")} value={rosterCounts.newSignings} /></div></div>
 

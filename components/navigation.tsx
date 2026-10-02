@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { addTransitionType, memo, startTransition, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -54,6 +54,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
   // ✅ confirm modal
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [pendingTransitionType, setPendingTransitionType] = useState<"mobile-nav-forward" | "mobile-nav-back" | undefined>();
 
   const canEdit = profile?.role === "admin" || profile?.role === "coach";
   const isActive = (href: string) => href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
@@ -61,20 +62,33 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
   // ✅ SOLO por ruta: SIEMPRE que estés en /nuevo-partido, confirmas al salir
   const isNewMatchPage = pathname === "/nuevo-partido";
 
-  const guardedNavigate = (href: string) => {
+  const navigate = (href: string, transitionType?: "mobile-nav-forward" | "mobile-nav-back") => {
+    if (!transitionType) {
+      router.push(href);
+      return;
+    }
+
+    startTransition(() => {
+      addTransitionType(transitionType);
+      router.push(href);
+    });
+  };
+
+  const guardedNavigate = (href: string, transitionType?: "mobile-nav-forward" | "mobile-nav-back") => {
     // si es la misma ruta, no hacemos nada
     if (href === pathname) return;
 
     // ✅ si estás en /nuevo-partido y quieres ir a otra ruta => modal SIEMPRE
     if (isNewMatchPage && href !== "/nuevo-partido") {
       setPendingHref(href);
+      setPendingTransitionType(transitionType);
       setConfirmOpen(true);
       return;
     }
 
     // resto: navegación normal
     setOpenSheet(false);
-    router.push(href);
+    navigate(href, transitionType);
   };
 
   const handleLogout = async () => {
@@ -97,6 +111,8 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
     setConfirmOpen(false);
     setOpenSheet(false);
     setPendingHref(null);
+    const transitionType = pendingTransitionType;
+    setPendingTransitionType(undefined);
 
     if (!href) return;
 
@@ -107,12 +123,13 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
       return;
     }
 
-    router.push(href);
+    navigate(href, transitionType);
   };
 
   const cancelLeave = () => {
     setConfirmOpen(false);
     setPendingHref(null);
+    setPendingTransitionType(undefined);
   };
 
   // helper para interceptar clicks en Link
@@ -125,8 +142,8 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b bg-background/70 backdrop-blur-xl">
-        <div className="container mx-auto px-4">
+      <header className="sticky top-0 z-50 border-b border-border/85 bg-background/92 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-background/82">
+        <div className="container mx-auto px-3 sm:px-4">
           <div className="flex h-14 items-center justify-between">
             {/* Logo (también protegido si estás en nuevo partido) */}
             <Link href="/" onClick={onNavClick("/")} className="flex items-center gap-3">
@@ -207,7 +224,7 @@ export const Navigation = memo(function Navigation({ profile }: NavigationProps)
             </nav>
 
             {/* Right actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-1 sm:gap-2">
               <ThemeToggle />
               <ClubSelector className="hidden md:flex" />
               <LanguageSelector />

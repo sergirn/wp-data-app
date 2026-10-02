@@ -70,7 +70,7 @@ export function SeasonObjectivesPanel({ matches, stats, players, thresholds, clu
 	if (matches.length === 0 || objectives.length === 0) return null;
 
 	return (
-		<Card className="@container min-w-0 overflow-hidden rounded-2xl border-border/70">
+		<Card className="@container min-w-0 gap-0 overflow-hidden rounded-2xl border-border/70 py-0 sm:gap-0 sm:py-0">
 			<CardHeader className="border-b bg-muted/10 px-4 py-3 sm:px-5 ">
 				<div className="flex min-w-0 flex-wrap items-start gap-3 -mb-1">
 					{/* Título */}

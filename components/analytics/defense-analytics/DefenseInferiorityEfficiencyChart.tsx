@@ -103,8 +103,8 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 			};
 		});
 
-	const allChartData = useMemo(() => buildChartData(allMatchData), [allMatchData]);
-	const compactChartData = useMemo(() => buildChartData(compactMatchData), [compactMatchData]);
+	const allChartData = buildChartData(allMatchData);
+	const compactChartData = buildChartData(compactMatchData);
 
 	const totalGolesInf = allMatchData.reduce((sum, m) => sum + m.golesInf, 0);
 	const totalGolPaloInf = allMatchData.reduce((sum, m) => sum + m.golPaloInf, 0);
@@ -161,7 +161,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 				const jornadaByXLabel = new Map(chartData.map((item) => [item.xLabel, item.jornada]));
 
 				return (
-					<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}>
+					<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}>
 						<ResponsiveContainer width="100%" height="100%">
 							<ComposedChart data={chartData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
 								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
@@ -200,7 +200,7 @@ export function DefenseInferiorityEfficiencyChart({ matches, stats, hiddenStats 
 									}
 								/>
 
-								<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+							<Legend verticalAlign="bottom" height={compact ? 42 : 30} wrapperStyle={{ fontSize: compact ? 9 : 12, lineHeight: "16px" }} />
 
 								{(showGolesInf || showGolPaloInf) && (
 									<Bar

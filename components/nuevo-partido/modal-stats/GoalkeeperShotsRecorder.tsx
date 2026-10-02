@@ -168,10 +168,10 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 	};
 
 	return (
-		<div className="space-y-4">
+		<div className="min-w-0 max-w-full space-y-4 overflow-hidden rounded-2xl border bg-muted/15 p-2.5 sm:p-4">
 			{/* Cabecera */}
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<div className="text-sm text-muted-foreground">
+				<div className="min-w-0 break-words text-xs text-muted-foreground sm:text-sm">
 					{t("recording")} {" "}
 					<b>
 						{fixedResult === "goal" ? t("goals") : t("saves")} {" "}
@@ -181,26 +181,26 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 					</b>
 				</div>
 
-				<div className="flex gap-2 justify-end">
-					<Button type="button" variant="outline" onClick={removeLast} disabled={shotsForThisGK.length === 0} className="gap-2">
+				<div className="flex max-w-full flex-wrap justify-end gap-2">
+					<Button type="button" size="sm" variant="outline" onClick={removeLast} disabled={shotsForThisGK.length === 0} className="min-w-0 gap-2">
 						<Trash2 className="h-4 w-4" />
 						{t("undo")}
 					</Button>
-					<Button type="button" variant="outline" onClick={clearThisGK} disabled={shotsForThisGK.length === 0} aria-label={t("clear")}>
+					<Button type="button" size="icon-sm" variant="outline" onClick={clearThisGK} disabled={shotsForThisGK.length === 0} aria-label={t("clear")}>
 						<Trash2 className="h-4 w-4" />
 					</Button>
 				</div>
 			</div>
 
 			{/* Portería */}
-			<div className="w-full max-w-full">
-				<div className="w-full max-w-full h-[min(30vh,340px)]">
+			<div className="min-w-0 w-full max-w-full">
+				<div className="mx-auto aspect-[4/3] h-auto w-full max-w-[32rem]">
 					<div
 						ref={goalOuterRef}
 						onPointerDown={onPointerDownOuter}
 						role="button"
 						aria-label={t("interactiveGoal")}
-						className={cn("relative mx-auto h-full", "w-auto max-w-full", "aspect-[4/3]", "select-none", "rounded-xl border bg-muted/10")}
+						className={cn("relative mx-auto size-full max-w-full", "select-none", "overflow-hidden rounded-xl border bg-background")}
 						style={{ touchAction: "none" }}
 					>
 						{/* ✅ MARCO: palos */}
@@ -250,7 +250,7 @@ function GoalkeeperShotRecorderBase({ goalkeeperPlayerId, shots, onChangeShots, 
 					</div>
 				</div>
 
-				<p className="mt-2 text-xs text-muted-foreground">
+				<p className="mt-2 break-words text-xs text-muted-foreground">
 					{t("memoryHint")}
 				</p>
 			</div>

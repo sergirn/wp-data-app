@@ -172,7 +172,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 						eficiencia: { label: t("efficiencyPercent"), color: "hsla(190, 95%, 45%, 1.00)" },
 						eficienciaAcumulada: { label: t("cumulativeEfficiency"), color: "hsla(221, 83%, 53%, 1.00)" }
 					}}
-					className={`w-full ${compact ? "h-[260px]" : "h-[360px] lg:h-[420px]"}`}
+					className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}
 				>
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={chartData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
@@ -214,7 +214,7 @@ export function ManAdvantageChartExpandable({ matches, stats, hiddenStats = [] }
 								}
 							/>
 
-							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+							<Legend verticalAlign="bottom" height={compact ? 34 : 30} wrapperStyle={{ fontSize: compact ? 10 : 12, lineHeight: "16px" }} />
 
 							<Bar
 								yAxisId="left"

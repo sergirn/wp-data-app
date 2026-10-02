@@ -105,20 +105,6 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 		return new Map(compactMatchData.map((item) => [item.xLabel, item.jornada]));
 	}, [compactMatchData]);
 
-	const buildChartData = (data: typeof allMatchData) =>
-		data.map((m, index) => {
-			const prev = data.slice(0, index + 1);
-			const avg = prev.reduce((sum, x) => sum + x.eficacia, 0) / (index + 1);
-
-			return {
-				...m,
-				eficaciaAcum: Number(avg.toFixed(1))
-			};
-		});
-
-	const allChartData = useMemo(() => buildChartData(allMatchData), [allMatchData]);
-	const compactChartData = useMemo(() => buildChartData(compactMatchData), [compactMatchData]);
-
 	const totalGC = allMatchData.reduce((sum, m) => sum + m.golesRecibidos, 0);
 	const totalEvitados = allMatchData.reduce((sum, m) => sum + m.evitados, 0);
 	const totalAcciones = totalGC + totalEvitados;
@@ -134,29 +120,24 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{overall}%</span>}
 			renderChart={({ compact }) => {
-				const data = compact ? compactChartData : allChartData;
+				const data = compact ? compactMatchData : allMatchData;
 				const jornadaMap = compact ? jornadaByXLabelCompact : jornadaByXLabelAll;
 
 				return (
 					<ChartContainer
 						config={{
 							golesRecibidos: { label: t("goalsConceded"), color: "hsla(0, 84%, 60%, 1.00)" },
-							paradasInf: { label: t("inferioritySaves"), color: "hsla(145, 63%, 42%, 1.00)" },
-							paradaCornerInf: { label: t("inferiorityCornerSave"), color: "hsla(160, 70%, 38%, 1.00)" },
-							paloInf: { label: t("inferiorityPost"), color: "hsla(285, 70%, 52%, 1.00)" },
-							fueraInf: { label: t("inferiorityOut"), color: "hsla(42, 96%, 55%, 1.00)" },
-							bloqueoInf: { label: t("inferiorityBlock"), color: "hsla(270, 75%, 60%, 1.00)" },
-							eficacia: { label: t("avoidedPercent"), color: "hsla(190, 95%, 45%, 1.00)" },
-							eficaciaAcum: { label: t("cumulativeAvoided"), color: "hsla(221, 83%, 53%, 1.00)" }
+							evitados: { label: common("avoided"), color: "hsla(145, 63%, 42%, 1.00)" },
+							eficacia: { label: t("avoidedPercent"), color: "hsla(190, 95%, 45%, 1.00)" }
 						}}
-						className="w-full h-full"
+						className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}
 					>
 						<ResponsiveContainer width="100%" height="100%">
 							<ComposedChart data={data} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
 								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 								<XAxis
 									dataKey="xLabel"
-									fontSize={12}
+									fontSize={compact ? 10 : 12}
 									tickMargin={8}
 									axisLine={false}
 									tickLine={false}
@@ -164,13 +145,13 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 									minTickGap={18}
 									tickFormatter={(value) => jornadaMap.get(String(value)) ?? ""}
 								/>
-								<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+								<YAxis yAxisId="left" fontSize={compact ? 10 : 12} width={compact ? 28 : 34} tickMargin={6} axisLine={false} tickLine={false} />
 								<YAxis
 									yAxisId="right"
 									orientation="right"
 									domain={[0, 100]}
-									fontSize={12}
-									width={40}
+									fontSize={compact ? 10 : 12}
+									width={compact ? 32 : 40}
 									tickMargin={6}
 									axisLine={false}
 									tickLine={false}
@@ -185,7 +166,7 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 										/>
 									}
 								/>
-								<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+								<Legend verticalAlign="bottom" height={compact ? 42 : 30} wrapperStyle={{ fontSize: compact ? 9 : 12, lineHeight: "16px" }} />
 
 								<Bar
 									yAxisId="left"
@@ -193,45 +174,17 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 									name={t("goalsConceded")}
 									fill="var(--color-golesRecibidos)"
 									radius={[4, 4, 0, 0]}
+									maxBarSize={compact ? 18 : 26}
 								/>
 
-								{showSavesHM ? (
-									<Bar
-										yAxisId="left"
-										dataKey="paradasInf"
-										name={t("inferioritySaves")}
-										fill="var(--color-paradasInf)"
-										radius={[4, 4, 0, 0]}
-									/>
-								) : null}
-
-								{showSaveCornerHM ? (
-									<Bar
-										yAxisId="left"
-										dataKey="paradaCornerInf"
-										name={t("inferiorityCornerSave")}
-										fill="var(--color-paradaCornerInf)"
-										radius={[4, 4, 0, 0]}
-									/>
-								) : null}
-
-								{showPostHM ? (
-									<Bar yAxisId="left" dataKey="paloInf" name={t("inferiorityPost")} fill="var(--color-paloInf)" radius={[4, 4, 0, 0]} />
-								) : null}
-
-								{showOutsideHM ? (
-									<Bar yAxisId="left" dataKey="fueraInf" name={t("inferiorityOut")} fill="var(--color-fueraInf)" radius={[4, 4, 0, 0]} />
-								) : null}
-
-								{showBlocksHM ? (
-									<Bar
-										yAxisId="left"
-										dataKey="bloqueoInf"
-										name={t("inferiorityBlock")}
-										fill="var(--color-bloqueoInf)"
-										radius={[4, 4, 0, 0]}
-									/>
-								) : null}
+								<Bar
+									yAxisId="left"
+									dataKey="evitados"
+									name={common("avoided")}
+									fill="var(--color-evitados)"
+									radius={[4, 4, 0, 0]}
+									maxBarSize={compact ? 18 : 26}
+								/>
 
 								<Line
 									yAxisId="right"
@@ -240,17 +193,6 @@ export function GoalkeeperInferiorityEfficiencyChart({ matches, stats, hiddenSta
 									name={t("avoidedPercent")}
 									stroke="var(--color-eficacia)"
 									strokeWidth={2.5}
-									dot={false}
-									activeDot={{ r: 4 }}
-								/>
-								<Line
-									yAxisId="right"
-									type="monotone"
-									dataKey="eficaciaAcum"
-									name={t("cumulativeAvoided")}
-									stroke="var(--color-eficaciaAcum)"
-									strokeWidth={3.5}
-									strokeDasharray="6 4"
 									dot={false}
 									activeDot={{ r: 4 }}
 								/>

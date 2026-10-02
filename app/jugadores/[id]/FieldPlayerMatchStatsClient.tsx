@@ -8,10 +8,10 @@ import { usePlayerFavorites } from "@/hooks/usePlayerFavorites";
 import { useStatWeights } from "@/hooks/useStatWeights";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-import { Loader2, TrendingUp } from "lucide-react";
+import { ExternalLink, Loader2, TrendingUp } from "lucide-react";
 import { getPlayerDerived, getPlayerStatsByCategory } from "@/lib/stats/playerStatsHelpers";
 import { ExportPlayerMatchPdfButton } from "@/components/export-buttons/export-player-match-pdf-button";
 import { useLocale, useTranslations } from "next-intl";
@@ -181,91 +181,77 @@ export function FieldPlayerMatchStatsClient({
 				</div>
 			) : null}
 
-			<Accordion type="single" collapsible className="w-full space-y-4" defaultValue={defaultOpen}>
+			<Accordion type="single" collapsible className="w-full overflow-hidden rounded-2xl border bg-card shadow-sm" defaultValue={defaultOpen}>
+				<div className="hidden grid-cols-[minmax(10rem,1fr)_5rem_minmax(16rem,1.3fr)_6.5rem_5rem_1.5rem] items-center gap-4 border-b bg-muted/25 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground lg:grid">
+					<span>{page("table.match")}</span>
+					<span>{page("table.score")}</span>
+					<span>{page("table.performance")}</span>
+					<span>{page("table.rating")}</span>
+					<span className="text-center">{page("table.actions")}</span>
+					<span className="sr-only">{page("table.expand")}</span>
+				</div>
 				{matchStats.map((stat) => {
 					const match = stat.matches;
 					const derived = getPlayerDerived(stat as any, hiddenStats);
 					const score = hasWeights ? computeWeightedScore(stat as any, weights, hiddenStats) : null;
 
 					return (
-						<AccordionItem key={stat.id} value={`match-${stat.id}`} className="border-0">
-							<Card className="overflow-hidden">
+						<AccordionItem key={stat.id} value={`match-${stat.id}`} className="border-b last:border-b-0">
 								<AccordionTrigger
-									className="
-                    w-full p-0 hover:no-underline
-                    [&>svg]:mr-4
-                    [&>svg]:shrink-0
-                    [&>svg]:transition-transform
-                    data-[state=open]:[&>svg]:rotate-180
-                  "
+									className="group w-full rounded-none px-4 py-4 hover:bg-primary/[0.035] hover:no-underline sm:px-5 [&>svg]:mr-0 [&>svg]:self-center"
 								>
-									<CardHeader className="pb-3 w-full">
-										<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between w-full">
-											<div className="min-w-0 text-left">
-												<CardTitle className="text-base md:text-lg truncate">{match?.opponent ?? "—"}</CardTitle>
-												<p className="text-xs md:text-sm text-muted-foreground truncate">{formatDate(match?.match_date)}</p>
-											</div>
-
-											<div className="flex items-center justify-between md:justify-end gap-3">
-												<div className="flex items-center gap-2">
-													{!loaded ? (
-														<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-													) : hasWeights && score !== null ? (
-														<div className="inline-flex items-center gap-1.5 rounded-lg border bg-card/60 backdrop-blur px-2 py-1">
-															<TrendingUp className="h-4 w-4" />
-															<span className="text-sm font-bold tabular-nums">
-																{score > 0 ? "+ " : ""}
-																{score}
-															</span>
-												<span className="text-[11px] text-muted-foreground">{page("points")}</span>
-														</div>
-													) : null}
-												</div>
-
-												<span className="text-xl md:text-2xl font-bold tabular-nums">
-													{match?.home_score ?? 0} - {match?.away_score ?? 0}
-												</span>
-
-												<div className="flex items-center gap-2">
-											{stat.id != null && <ExportPlayerMatchPdfButton playerId={player.id} matchStatId={stat.id} />}
-
-													<Button
-														asChild
-														variant="outline"
-														size="sm"
-														className="bg-transparent"
-														onClick={(e) => e.stopPropagation()}
-													>
-											<Link href={`/partidos/${match?.id}`}>{page("viewMatch")}</Link>
-													</Button>
-													</div>
-											</div>
+					<div className="grid min-w-0 flex-1 gap-4 text-left lg:grid-cols-[minmax(10rem,1fr)_5rem_minmax(16rem,1.3fr)_6.5rem_5rem] lg:items-center">
+										<div className="min-w-0">
+											<p className="truncate text-sm font-semibold tracking-tight sm:text-base">{match?.opponent ?? "—"}</p>
+											<p className="mt-0.5 truncate text-xs text-muted-foreground">{formatDate(match?.match_date)}</p>
 										</div>
-									</CardHeader>
+
+										<div className="flex items-center justify-between gap-3 lg:block">
+											<span className="text-xs text-muted-foreground lg:hidden">{page("table.score")}</span>
+											<span className="text-lg font-bold tabular-nums sm:text-xl">{match?.home_score ?? 0} – {match?.away_score ?? 0}</span>
+										</div>
+
+										<div className="grid grid-cols-4 gap-1.5 rounded-xl border bg-muted/10 p-2 lg:border-0 lg:bg-transparent lg:p-0">
+											<RowMetric label={details("goals")} value={derived.goals} />
+											<RowMetric label={details("shots")} value={derived.shots} />
+											<RowMetric label={details("efficiencyShort")} value={`${derived.efficiency}%`} />
+											<RowMetric label={details("assists")} value={derived.assists} />
+										</div>
+
+										<div className="flex items-center justify-between gap-3 lg:block">
+											<span className="text-xs text-muted-foreground lg:hidden">{page("table.rating")}</span>
+											{!loaded ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : hasWeights && score !== null ? <span className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-2 py-1"><TrendingUp className="h-3.5 w-3.5 text-primary" /><span className="font-bold tabular-nums">{score > 0 ? "+" : ""}{score}</span><span className="text-[10px] text-muted-foreground">{page("points")}</span></span> : <span className="text-muted-foreground">—</span>}
+										</div>
+
+						<div className="flex items-center justify-end gap-1 border-t pt-3 lg:border-0 lg:pt-0" onClick={(event) => event.stopPropagation()}>
+											{stat.id != null && <ExportPlayerMatchPdfButton playerId={player.id} matchStatId={stat.id} />}
+							<Button asChild variant="outline" size="icon" className="size-8 bg-transparent"><Link href={`/partidos/${match?.id}`} aria-label={page("viewMatch")} title={page("viewMatch")}><ExternalLink className="size-4" /><span className="sr-only">{page("viewMatch")}</span></Link></Button>
+										</div>
+									</div>
 								</AccordionTrigger>
 
-								<AccordionContent className="p-0">
-									<CardContent className="space-y-3 sm:space-y-4">
+								<AccordionContent className="border-t bg-muted/[0.08] p-4 sm:p-5">
+									<div className="space-y-3 sm:space-y-4">
 										<div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
 											<KpiBox
 								label={details("goals")}
 												value={derived.goals}
-												className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
+												className="border-blue-500/20 bg-blue-500/[0.07] text-blue-700 dark:text-blue-300"
 											/>
 											<KpiBox
 								label={details("shots")}
 												value={derived.shots}
-												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
+												className="border-slate-500/20 bg-slate-500/[0.06] text-slate-700 dark:text-slate-300"
 											/>
 											<KpiBox
 								label={details("efficiency")}
 												value={`${derived.efficiency}%`}
-												className="bg-blue-500/5 border-blue-500/10 text-white-600 dark:text-white-400"
+												className="border-blue-500/20 bg-blue-500/[0.07] text-blue-700 dark:text-blue-300"
 											/>
 											<KpiBox
 								label={details("assists")}
 												value={derived.assists}
-												className="bg-white-500/5 border-blue-500/50 text-white-600 dark:text-white-400"
+												className="border-slate-500/20 bg-slate-500/[0.06] text-slate-700 dark:text-slate-300"
 											/>
 										</div>
 
@@ -294,13 +280,16 @@ export function FieldPlayerMatchStatsClient({
 												))}
 											</Section>
 										</div>
-									</CardContent>
+									</div>
 								</AccordionContent>
-							</Card>
 						</AccordionItem>
 					);
 				})}
 			</Accordion>
 		</div>
 	);
+}
+
+function RowMetric({ label, value }: { label: string; value: React.ReactNode }) {
+	return <div className="min-w-0 text-center"><p className="text-sm font-bold tabular-nums">{value}</p><p className="truncate text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p></div>;
 }

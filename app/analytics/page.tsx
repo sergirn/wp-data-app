@@ -6,19 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useClub } from "@/lib/club-context";
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { MatchComparison } from "@/components/match-comparer";
-import { PlayerComparison } from "@/components/playerComparison";
-import type { MatchWithQuarterScores } from "@/lib/types";
 import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard";
 import { GeneralDashboard } from "@/components/analytics/general-analytics/general-dashboard";
 import { ShootingEfficiencyChart } from "@/components/analytics/attack-analytics/shooting-efficiency-chart";
 import { GoalkeeperPerformanceChart } from "@/components/analytics/goalkeeper-analytics/goalkeeper-performance-chart";
 import { ManAdvantageChartExpandable } from "@/components/analytics/attack-analytics/man-advantage-chart";
-import { PlayerMatchCompare } from "@/components/analytics/general-analytics/PlayerMatchCompare";
 import { GoalkeeperShotsGoalChart } from "@/components/analytics-goalkeeper/GoalkeeperShotsGoalChart";
 import { ShotMistakesDonutChart } from "@/components/analytics/attack-analytics/quality-shoot-chart";
 import { GoalMixChart } from "@/components/analytics/attack-analytics/offensive-shoot-chart";
-import { ChartSwipeCarousel } from "@/components/chartCarousel";
 import { SeasonAttackTotals, SeasonDefenseTotals, SeasonGoalkeeperTotals } from "@/components/analytics/general-analytics/SeassonTotalsTabs";
 import { AttackGoalTypesByMatchChart } from "@/components/analytics/attack-analytics/AttackGoalTypesByMatchChart";
 import { AttackMistakeTypesByMatchChart } from "@/components/analytics/attack-analytics/AttackMistakeTypesByMatchChart";
@@ -37,13 +32,26 @@ import { GoalkeeperSavesMixChart } from "@/components/analytics/goalkeeper-analy
 import { GoalkeeperInferiorityEfficiencyChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperInferiorityEfficiencyChart";
 import { GoalkeeperGoalsByTypeChart } from "@/components/analytics/goalkeeper-analytics/GoalkeeperGoalsByTypeChart";
 import { GoalkeeperRankingTable } from "@/components/analytics/goalkeeper-analytics/TopGoalkeepersTable";
-import { LayoutGrid, Target, Shield, Hand } from "lucide-react";
+import { GitCompareArrows, LayoutGrid, Target, Shield, Hand } from "lucide-react";
 import { useHiddenStats } from "@/hooks/useHiddenStats";
 import { useTranslations } from "next-intl";
 import { SeasonSelector } from "@/components/season-selector";
 import { TeamTrendsPanel } from "@/components/analysis/TeamTrendsPanel";
 import { SeasonObjectivesPanel } from "@/components/analysis/SeasonObjectivesPanel";
 import { DEFAULT_ANALYSIS_THRESHOLDS, type AnalysisThresholds } from "@/lib/analysis/performance-insights";
+import { SeasonPlayerComparator } from "@/components/analytics/player-comparator/SeasonPlayerComparator";
+import { SeasonMatchComparator } from "@/components/analytics/match-comparator/SeasonMatchComparator";
+import { PlayerMatchComparator } from "@/components/analytics/player-match-comparator/PlayerMatchComparator";
+
+type GoalkeeperShotRow = {
+	id: number;
+	match_id: number;
+	goalkeeper_player_id: number;
+	result: "goal" | "save" | "out";
+	x: number;
+	y: number;
+	created_at: string;
+};
 
 export default function AnalyticsPage() {
 	const t = useTranslations("Pages");
@@ -58,13 +66,11 @@ export default function AnalyticsPage() {
 	const [players, setPlayers] = useState<any[]>([]);
 	const [allStats, setAllStats] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [goalkeeperShotsRows, setGoalkeeperShotsRows] = useState<any[]>([]);
+	const [goalkeeperShotsRows, setGoalkeeperShotsRows] = useState<GoalkeeperShotRow[]>([]);
 	const [analysisThresholds, setAnalysisThresholds] = useState<AnalysisThresholds>(DEFAULT_ANALYSIS_THRESHOLDS);
 
 	const hiddenStatsState = useHiddenStats();
 	const hiddenStats = useMemo(() => Object.keys(hiddenStatsState.hiddenStats), [hiddenStatsState.hiddenStats]);
-
-	const quarterMatches = matches as MatchWithQuarterScores[];
 
 	useEffect(() => {
 		const abortController = new AbortController();
@@ -234,28 +240,6 @@ export default function AnalyticsPage() {
 		});
 	}, [players, enabledStats]);
 
-	const matchesById = useMemo(() => {
-		const m = new Map<number, any>();
-		(enabledMatches || []).forEach((x) => m.set(x.id, x));
-		return m;
-	}, [enabledMatches]);
-
-	const shots = useMemo(() => {
-		return (enabledGoalkeeperShotsRows || []).map((s) => {
-			const match = matchesById.get(s.match_id);
-			return {
-				id: s.id,
-				match_id: s.match_id,
-				goalkeeper_player_id: s.goalkeeper_player_id,
-				jornada: match?.jornada ?? null,
-				match_date: match?.match_date ?? null,
-				x: s.x,
-				y: s.y,
-				result: s.result as "goal" | "save"
-			};
-		});
-	}, [enabledGoalkeeperShotsRows, matchesById]);
-
 	if (loading || !hiddenStatsState.loaded) {
 		return (
 			<main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
@@ -280,44 +264,54 @@ export default function AnalyticsPage() {
 
 			<section className="mb-8">
 				<Tabs defaultValue="overview">
-					<TabsList className="flex w-full max-w-full items-stretch justify-start gap-2 overflow-x-auto overflow-y-hidden whitespace-nowrap rounded-2xl bg-muted/30 p-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+					<TabsList className="grid h-auto w-full grid-cols-5 gap-1 rounded-2xl border-border/85 bg-secondary/85 p-1 sm:gap-1.5 sm:p-1.5">
 						<TabsTrigger
 							value="overview"
-							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+							className="min-w-0 rounded-xl px-1.5 py-2.5 text-xs font-medium transition-all data-[state=active]:border-primary/35 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm md:px-3 md:py-3 md:text-sm"
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<LayoutGrid className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">{a("overview")}</span>
+								<span className="hidden md:inline">{a("overview")}</span>
+							</div>
+						</TabsTrigger>
+
+						<TabsTrigger
+							value="comparator"
+							className="min-w-0 rounded-xl px-1.5 py-2.5 text-xs font-medium transition-all data-[state=active]:border-primary/35 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm md:px-3 md:py-3 md:text-sm"
+						>
+							<div className="flex items-center justify-center gap-2 w-full">
+								<GitCompareArrows className="h-4 w-4 shrink-0" />
+								<span className="hidden md:inline">{a("comparator")}</span>
 							</div>
 						</TabsTrigger>
 
 						<TabsTrigger
 							value="attack"
-							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+							className="min-w-0 rounded-xl px-1.5 py-2.5 text-xs font-medium transition-all data-[state=active]:border-primary/35 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm md:px-3 md:py-3 md:text-sm"
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<Target className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">{a("attack")}</span>
+							<span className="hidden md:inline">{a("attack")}</span>
 							</div>
 						</TabsTrigger>
 
 						<TabsTrigger
 							value="defense"
-							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+							className="min-w-0 rounded-xl px-1.5 py-2.5 text-xs font-medium transition-all data-[state=active]:border-primary/35 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm md:px-3 md:py-3 md:text-sm"
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<Shield className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">{a("defense")}</span>
+							<span className="hidden md:inline">{a("defense")}</span>
 							</div>
 						</TabsTrigger>
 
 						<TabsTrigger
 							value="goalkeeper"
-							className="min-w-[56px] sm:min-w-[140px] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all shrink-0 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
+							className="min-w-0 rounded-xl px-1.5 py-2.5 text-xs font-medium transition-all data-[state=active]:border-primary/35 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm md:px-3 md:py-3 md:text-sm"
 						>
 							<div className="flex items-center justify-center gap-2 w-full">
 								<Hand className="h-4 w-4 shrink-0" />
-							<span className="hidden sm:inline">{a("goalkeeper")}</span>
+							<span className="hidden md:inline">{a("goalkeeper")}</span>
 							</div>
 						</TabsTrigger>
 					</TabsList>
@@ -335,52 +329,49 @@ export default function AnalyticsPage() {
 							<TeamDashboard teamStats={enabledPlayerStats} />
 						</section>
 
-						<section>
-							<Tabs defaultValue="compare">
-								<TabsList className="w-full justify-start overflow-x-auto whitespace-nowrap">
-									<TabsTrigger className="min-w-[170px] text-xs sm:text-sm" value="compare">
-									{a("matchComparator")}
-									</TabsTrigger>
-									<TabsTrigger className="min-w-[170px] text-xs sm:text-sm" value="players-compare">
-									{a("playerComparator")}
-									</TabsTrigger>
-									<TabsTrigger className="min-w-[220px] text-xs sm:text-sm" value="players-jornada-compare">
-									{a("roundsByPlayer")}
-									</TabsTrigger>
-								</TabsList>
-
-								<TabsContent value="compare">
-									<MatchComparison matches={enabledMatches} stats={enabledStats} />
-								</TabsContent>
-
-								<TabsContent value="players-compare">
-									<PlayerComparison players={players || []} stats={enabledStats} />
-								</TabsContent>
-
-								<TabsContent value="players-jornada-compare">
-									<PlayerMatchCompare players={players || []} matches={enabledMatches} stats={enabledStats} maxSelections={12} />
-								</TabsContent>
-							</Tabs>
-						</section>
 					</TabsContent>
 
-					<TabsContent value="attack" className="mt-4 space-y-10">
+					<TabsContent value="comparator" className="mt-4">
+						<Tabs defaultValue="players" className="space-y-4">
+							<TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl bg-secondary/85 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:w-fit lg:min-w-[600px] lg:grid-cols-3">
+								<TabsTrigger value="players" className="min-w-40 flex-none rounded-lg px-4 py-2.5 text-xs sm:text-sm lg:min-w-0">
+									{a("playerComparator")}
+								</TabsTrigger>
+								<TabsTrigger value="matches" className="min-w-40 flex-none rounded-lg px-4 py-2.5 text-xs sm:text-sm lg:min-w-0">
+									{a("matchComparator")}
+								</TabsTrigger>
+								<TabsTrigger value="player-matches" className="min-w-44 flex-none rounded-lg px-2 py-2.5 text-xs sm:px-4 sm:text-sm lg:min-w-0">
+									{a("playerMatchComparator")}
+								</TabsTrigger>
+							</TabsList>
+							<TabsContent value="players" className="mt-0">
+								<SeasonPlayerComparator players={players || []} stats={enabledStats} season={selectedSeason} hiddenStats={hiddenStats} />
+							</TabsContent>
+							<TabsContent value="matches" className="mt-0">
+								<SeasonMatchComparator matches={enabledMatches} stats={enabledStats} season={selectedSeason} />
+							</TabsContent>
+							<TabsContent value="player-matches" className="mt-0">
+								<PlayerMatchComparator players={players || []} matches={enabledMatches} stats={enabledStats} season={selectedSeason} hiddenStats={hiddenStats} />
+							</TabsContent>
+						</Tabs>
+					</TabsContent>
+
+					<TabsContent value="attack" className="mt-4">
 						<section>
-							<div className="mb-4">
-								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">{a("attackTitle")}</h1>
+							<div className="mb-5 rounded-2xl border bg-gradient-to-br from-primary/[0.08] via-card to-card p-4 sm:p-6">
+								<div className="mb-2 flex items-center gap-2 text-primary"><Target className="size-5" /><span className="text-xs font-semibold uppercase tracking-[0.12em]">{a("attack")}</span></div>
+								<h1 className="text-2xl font-bold sm:text-3xl">{a("attackTitle")}</h1>
 								<p className="text-sm sm:text-base text-muted-foreground">
 									{a("attackSeason", { club: currentClub?.short_name || "", season: selectedSeason })}
 								</p>
 							</div>
 
-							<SeasonAttackTotals stats={enabledStats} hiddenStats={hiddenStats} />
-
-							<div className="flex items-center gap-2 mt-4 mb-4">
-								<div className="h-px flex-1 bg-border/90" />
+							<div className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4">
+								<SeasonAttackTotals stats={enabledStats} hiddenStats={hiddenStats} />
 							</div>
 
-							<div className="space-y-8">
-								<div className="space-y-4">
+							<div className="mt-8 space-y-8 sm:mt-10">
+								<div className="space-y-3 sm:space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">{a("attackSummary")}</h2>
 										<p className="text-sm text-muted-foreground">
@@ -388,33 +379,17 @@ export default function AnalyticsPage() {
 										</p>
 									</div>
 
-									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
-										<div className="lg:col-span-2 h-full">
+									<div className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-12">
+										<div className="min-w-0 md:col-span-12 xl:col-span-8">
 											<ShootingEfficiencyChart matches={enabledMatches} stats={enabledStats} hiddenStats={hiddenStats} />
 										</div>
-
-										<div className="lg:col-span-1 h-full">
-											<ChartSwipeCarousel
-												items={[
-													<GoalMixChart
-														key="mix"
-														matches={enabledMatches}
-														stats={enabledStats}
-														players={players || []}
-														hiddenStats={hiddenStats}
-													/>,
-													<ShotMistakesDonutChart
-														key="mistakes"
-														matches={enabledMatches}
-														stats={enabledStats}
-														players={players || []}
-														hiddenStats={hiddenStats}
-													/>
-												]}
-											/>
+										<div className="min-w-0 md:col-span-6 xl:col-span-4">
+											<GoalMixChart matches={enabledMatches} stats={enabledStats} players={players || []} hiddenStats={hiddenStats} />
 										</div>
-
-										<div className="lg:col-span-3">
+										<div className="min-w-0 md:col-span-6 xl:col-span-4">
+											<ShotMistakesDonutChart matches={enabledMatches} stats={enabledStats} players={players || []} hiddenStats={hiddenStats} />
+										</div>
+										<div className="min-w-0 md:col-span-12 xl:col-span-8">
 											<ManAdvantageChartExpandable
 												matches={enabledMatches}
 												stats={enabledStats}
@@ -431,7 +406,7 @@ export default function AnalyticsPage() {
 										<p className="text-sm text-muted-foreground">{a("goalsAndMissesByRound")}</p>
 									</div>
 
-									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+									<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 										<div className="h-full">
 											<AttackGoalTypesByMatchChart
 												matches={enabledMatches}
@@ -460,7 +435,7 @@ export default function AnalyticsPage() {
 										</p>
 									</div>
 
-									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+									<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 										<div className="h-full">
 											<AttackCreationVsLossesChart
 												matches={enabledMatches}
@@ -504,23 +479,22 @@ export default function AnalyticsPage() {
 						</section>
 					</TabsContent>
 
-					<TabsContent value="defense" className="mt-4 space-y-10">
+					<TabsContent value="defense" className="mt-4">
 						<section>
-							<div className="mb-4">
-								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">{a("defenseTitle")}</h1>
+							<div className="mb-5 rounded-2xl border bg-gradient-to-br from-primary/[0.08] via-card to-card p-4 sm:p-6">
+								<div className="mb-2 flex items-center gap-2 text-primary"><Shield className="size-5" /><span className="text-xs font-semibold uppercase tracking-[0.12em]">{a("defense")}</span></div>
+								<h1 className="text-2xl font-bold sm:text-3xl">{a("defenseTitle")}</h1>
 								<p className="text-sm sm:text-base text-muted-foreground">
 									{a("defenseSeason", { club: currentClub?.short_name || "", season: selectedSeason })}
 								</p>
 							</div>
 
-							<SeasonDefenseTotals stats={enabledStats} hiddenStats={hiddenStats} />
-
-							<div className="flex items-center gap-2 mt-4 mb-4">
-								<div className="h-px flex-1 bg-border/90" />
+							<div className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4">
+								<SeasonDefenseTotals stats={enabledStats} hiddenStats={hiddenStats} />
 							</div>
 
-							<div className="space-y-8">
-								<div className="space-y-4">
+							<div className="mt-8 space-y-8 sm:mt-10">
+								<div className="space-y-3 sm:space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">{a("defenseSummary")}</h2>
 										<p className="text-sm text-muted-foreground">
@@ -528,8 +502,8 @@ export default function AnalyticsPage() {
 										</p>
 									</div>
 
-									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
-										<div className="lg:col-span-2 h-full">
+									<div className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-12">
+										<div className="min-w-0 md:col-span-12 xl:col-span-8">
 											<DefenseActionsByMatchChart
 												matches={enabledMatches}
 												stats={enabledStats}
@@ -538,32 +512,13 @@ export default function AnalyticsPage() {
 											/>
 										</div>
 
-										<div className="lg:col-span-1 h-full">
-											<ChartSwipeCarousel
-												items={[
-													<DefenseFoulsMixChart
-														key="def-fouls-mix"
-														matches={enabledMatches}
-														stats={enabledStats}
-														players={players || []}
-														hiddenStats={hiddenStats}
-													/>,
-													<DefenseInferiorityMixChart
-														key="def-inf-mix"
-														matches={enabledMatches}
-														stats={enabledStats}
-														players={players || []}
-														hiddenStats={hiddenStats}
-													/>
-												]}
-											/>
+										<div className="min-w-0 md:col-span-6 xl:col-span-4">
+											<DefenseFoulsMixChart matches={enabledMatches} stats={enabledStats} players={players || []} hiddenStats={hiddenStats} />
 										</div>
-									</div>
-								</div>
-
-								<div className="space-y-4">
-									<div className="grid grid-cols-1 xl:grid-cols-1 gap-4 lg:gap-6 items-stretch">
-										<div className="h-full">
+										<div className="min-w-0 md:col-span-6 xl:col-span-4">
+											<DefenseInferiorityMixChart matches={enabledMatches} stats={enabledStats} players={players || []} hiddenStats={hiddenStats} />
+										</div>
+										<div className="min-w-0 md:col-span-12 xl:col-span-8">
 											<DefenseInferiorityEfficiencyChart
 												matches={enabledMatches}
 												stats={enabledStats}
@@ -582,7 +537,7 @@ export default function AnalyticsPage() {
 										</p>
 									</div>
 
-									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
+									<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 										<div className="h-full">
 											<DefenseFoulsByMatchChart
 												matches={enabledMatches}
@@ -623,23 +578,22 @@ export default function AnalyticsPage() {
 						</section>
 					</TabsContent>
 
-					<TabsContent value="goalkeeper" className="mt-4 space-y-10">
+					<TabsContent value="goalkeeper" className="mt-4">
 						<section>
-							<div className="mb-4">
-								<h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-2">{a("goalkeeperTitle")}</h1>
+							<div className="mb-5 rounded-2xl border bg-gradient-to-br from-primary/[0.08] via-card to-card p-4 sm:p-6">
+								<div className="mb-2 flex items-center gap-2 text-primary"><Hand className="size-5" /><span className="text-xs font-semibold uppercase tracking-[0.12em]">{a("goalkeeper")}</span></div>
+								<h1 className="text-2xl font-bold sm:text-3xl">{a("goalkeeperTitle")}</h1>
 								<p className="text-sm sm:text-base text-muted-foreground">
 									{a("goalkeeperSeason", { club: currentClub?.short_name || "", season: selectedSeason })}
 								</p>
 							</div>
 
-							<SeasonGoalkeeperTotals stats={enabledStats} hiddenStats={hiddenStats} />
-
-							<div className="flex items-center gap-2 mt-4 mb-4">
-								<div className="h-px flex-1 bg-border/90" />
+							<div className="rounded-2xl border bg-card/55 p-3 shadow-sm sm:p-4">
+								<SeasonGoalkeeperTotals stats={enabledStats} hiddenStats={hiddenStats} />
 							</div>
 
-							<div className="space-y-8">
-								<div className="space-y-4">
+							<div className="mt-8 space-y-8 sm:mt-10">
+								<div className="space-y-3 sm:space-y-4">
 									<div>
 										<h2 className="text-lg sm:text-xl font-semibold">{a("goalkeeperSummary")}</h2>
 										<p className="text-sm text-muted-foreground">
@@ -647,30 +601,18 @@ export default function AnalyticsPage() {
 										</p>
 									</div>
 
-									<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
-										<div className="lg:col-span-2 h-full">
+									<div className="grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-12">
+										<div className="min-w-0 md:col-span-12 xl:col-span-8">
 											<GoalkeeperPerformanceChart matches={enabledMatches} stats={enabledStats} hiddenStats={hiddenStats} />
 										</div>
-
-										<div className="lg:col-span-1 h-full">
-											<ChartSwipeCarousel
-												items={[
-													<GoalkeeperGoalsMixChart
-														key="gk-goals-mix"
-														matches={enabledMatches}
-														stats={enabledStats}
-														players={players || []}
-														hiddenStats={hiddenStats}
-													/>,
-													<GoalkeeperSavesMixChart
-														key="gk-saves-mix"
-														matches={enabledMatches}
-														stats={enabledStats}
-														players={players || []}
-														hiddenStats={hiddenStats}
-													/>
-												]}
-											/>
+										<div className="min-w-0 md:col-span-6 xl:col-span-4">
+											<GoalkeeperGoalsMixChart matches={enabledMatches} stats={enabledStats} players={players || []} hiddenStats={hiddenStats} />
+										</div>
+										<div className="min-w-0 md:col-span-6 xl:col-span-4">
+											<GoalkeeperSavesMixChart matches={enabledMatches} stats={enabledStats} players={players || []} hiddenStats={hiddenStats} />
+										</div>
+										<div className="min-w-0 md:col-span-12 xl:col-span-8">
+											<GoalkeeperInferiorityEfficiencyChart matches={enabledMatches} stats={enabledStats} players={players || []} hiddenStats={hiddenStats} />
 										</div>
 									</div>
 								</div>
@@ -683,17 +625,8 @@ export default function AnalyticsPage() {
 										</p>
 									</div>
 
-									<div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6 items-stretch">
-										<div className="h-full">
-											<GoalkeeperInferiorityEfficiencyChart
-												matches={enabledMatches}
-												stats={enabledStats}
-												players={players || []}
-												hiddenStats={hiddenStats}
-											/>
-										</div>
-
-										<div className="h-full">
+									<div className="grid grid-cols-1 gap-4">
+										<div className="min-w-0">
 											<GoalkeeperGoalsByTypeChart
 												matches={enabledMatches}
 												stats={enabledStats}

@@ -3,8 +3,8 @@
 import React, { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
-import { ChartContainer } from "@/components/ui/chart";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import { ChartMetricDetails } from "@/components/analytics/ChartMetricDetails";
+import { RankedDistributionChart } from "@/components/analytics/RankedDistributionChart";
 import { ShieldAlert } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import type { Match, MatchStats, Player } from "@/lib/types";
@@ -27,8 +27,6 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 	const locale = useLocale();
 	const tStat = useTranslations("StatLabels")
 	const hiddenSet = useMemo(() => new Set(hiddenStats), [hiddenStats]);
-
-	const isVisible = (key: string) => !hiddenSet.has(key);
 
 	const visibleDefs = useMemo(
 		() =>
@@ -73,7 +71,7 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 					statKey: "faltas_exp_3_bruta",
 					color: "hsla(42, 96%, 55%, 1.00)"
 				}
-			].filter((def) => isVisible(def.statKey)),
+			].filter((def) => !hiddenSet.has(def.statKey)),
 		[hiddenSet]
 	);
 
@@ -140,18 +138,6 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 			.filter((row) => row.total > 0);
 	}, [matches, stats, visibleDefs, locale]);
 
-	const chartConfig = useMemo(() => {
-		return Object.fromEntries(
-			summary.parts.map((p) => [
-				p.key,
-				{
-					label: p.label,
-					color: p.color
-				}
-			])
-		);
-	}, [summary.parts]);
-
 	if (!summary.totalMatches || !summary.parts.length || summary.total === 0) return null;
 
 	return (
@@ -162,57 +148,12 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{summary.topType?.label ?? "—"}</span>}
 			renderChart={({ compact }) => {
-				const outer = compact ? 88 : 108;
-				const inner = compact ? 54 : 68;
-
 				return (
 					<div className="w-full h-full min-h-0 flex flex-col">
 						<div className="space-y-3 sm:space-y-4 h-full min-h-0 flex flex-col">
-							<ChartContainer config={chartConfig} className="w-full h-full min-h-0">
-								<div className="w-full h-full min-h-[240px] sm:min-h-[260px] lg:min-h-[300px] flex-1">
-									<ResponsiveContainer width="100%" height="100%">
-										<PieChart margin={{ top: 16, right: 16, left: 16, bottom: 16 }}>
-											<Pie
-												data={summary.parts}
-												dataKey="value"
-												nameKey="label"
-												innerRadius={inner}
-												outerRadius={outer}
-												paddingAngle={2}
-												stroke="none"
-												isAnimationActive={false}
-												cx="50%"
-												cy="50%"
-											>
-												{summary.parts.map((p) => (
-													<Cell key={p.key} fill={p.color} />
-												))}
-											</Pie>
+							<RankedDistributionChart items={summary.parts} compact={compact} />
 
-											<RechartsTooltip
-												formatter={(value: any, _name: any, props: any) => {
-													const v = toNum(value);
-													const pct = summary.total > 0 ? (v / summary.total) * 100 : 0;
-													return [`${v} (${pct.toFixed(1)}%)`, props?.payload?.label ?? ""];
-												}}
-												labelFormatter={() => ""}
-											/>
-										</PieChart>
-									</ResponsiveContainer>
-								</div>
-							</ChartContainer>
-
-							<div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-								{summary.parts.map((p) => (
-									<div key={p.key} className="inline-flex items-center gap-2">
-										<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
-										<span className="whitespace-nowrap">
-											<span className="font-medium text-foreground">{p.label}</span>
-										</span>
-									</div>
-								))}
-							</div>
-
+							<ChartMetricDetails count={summary.parts.length} defaultOpen={!compact}>
 							<div
 								className={`grid gap-1.5 sm:gap-2 ${
 									summary.parts.length <= 2
@@ -230,6 +171,7 @@ export function DefenseFoulsMixChart({ matches, stats, hiddenStats = [] }: Defen
 									</div>
 								))}
 							</div>
+							</ChartMetricDetails>
 						</div>
 					</div>
 				);

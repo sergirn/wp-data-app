@@ -109,15 +109,15 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 			icon={<ShieldCheck className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{matchData.length} pj</span>}
-			renderChart={() => (
-				<ChartContainer config={chartConfig} className="w-full h-full">
-					<ResponsiveContainer width="100%" height="120%">
+			renderChart={({ compact }) => (
+				<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}>
+					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={matchData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 							<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
 							<XAxis
 								dataKey="xLabel"
-								fontSize={12}
+								fontSize={compact ? 10 : 12}
 								tickMargin={8}
 								axisLine={false}
 								tickLine={false}
@@ -126,7 +126,7 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 								tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 							/>
 
-							<YAxis fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+							<YAxis fontSize={compact ? 10 : 12} width={compact ? 28 : 34} tickMargin={6} axisLine={false} tickLine={false} />
 
 							<ChartTooltip
 								content={
@@ -139,7 +139,7 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 								}
 							/>
 
-							<Legend verticalAlign="bottom" height={20} wrapperStyle={{ fontSize: 12 }} />
+							<Legend verticalAlign="bottom" height={compact ? 34 : 26} wrapperStyle={{ fontSize: compact ? 10 : 12, lineHeight: "16px" }} />
 
 							{showBloqueos && <Bar dataKey="bloqueos" stackId="a" fill="var(--color-bloqueos)" radius={[4, 4, 0, 0]} />}
 
@@ -152,7 +152,6 @@ export function DefenseActionsByMatchChart({ matches, stats, hiddenStats = [] }:
 							{showRecibeGol && <Bar dataKey="recibeGol" stackId="a" fill="var(--color-recibeGol)" radius={[4, 4, 0, 0]} />}
 						</ComposedChart>
 					</ResponsiveContainer>
-					<br />
 				</ChartContainer>
 			)}
 			renderTable={() => (

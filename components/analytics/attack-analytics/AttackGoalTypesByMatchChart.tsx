@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
+import { ChartMetricDetails } from "@/components/analytics/ChartMetricDetails";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import { Bar, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
@@ -143,7 +144,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 			renderChart={({ compact }) => (
 				<div className="w-full h-full min-h-0 flex flex-col">
 					<div className="space-y-3 sm:space-y-4 h-full min-h-0 flex flex-col">
-						<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}>
+						<ChartContainer config={chartConfig} className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}>
 							<ResponsiveContainer width="100%" height="100%">
 								<ComposedChart data={matchData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 									<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
@@ -173,7 +174,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 										}
 									/>
 
-									<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+									<Legend verticalAlign="bottom" height={compact ? 42 : 30} wrapperStyle={{ fontSize: compact ? 9 : 12, lineHeight: "16px" }} />
 
 									{showBoya && (
 										<Bar dataKey="boya" name={t("buoyPlay")} stackId="goals" fill="var(--color-boya)" radius={[4, 4, 0, 0]} />
@@ -190,7 +191,8 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 							</ResponsiveContainer>
 						</ChartContainer>
 
-						<div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
+						<ChartMetricDetails count={totals.parts.length} defaultOpen={!compact}>
+						<div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
 							{totals.parts.map((p) => (
 								<div
 									key={p.key}
@@ -204,6 +206,7 @@ export function AttackGoalTypesByMatchChart({ matches, stats, hiddenStats = [] }
 								</div>
 							))}
 						</div>
+						</ChartMetricDetails>
 					</div>
 				</div>
 			)}

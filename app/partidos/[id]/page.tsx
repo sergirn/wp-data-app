@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Edit, ListOrdered, Swords } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Edit, ListOrdered, MoreHorizontal, Swords } from "lucide-react";
 import { notFound } from "next/navigation";
 import { DeleteMatchButton } from "@/components/delete-match-button";
 import { getCurrentProfile } from "@/lib/auth";
@@ -10,11 +10,13 @@ import Image from "next/image";
 import logo from "@/public/images/lewaterpolo_bg.png";
 import { MatchPeriodsAndPenaltiesCard } from "@/components/match-components/MatchPeriodsAndPenaltiesCard";
 import { MatchPlayersTabs } from "./MatchPlayersTabs";
+import { MatchDetailWorkspace } from "./MatchDetailWorkspace";
 import { ExportMatchPdfButton } from "@/components/export-buttons/export-match-pdf-button";
 import { ExportMatchExcelButton } from "@/components/export-buttons/export-match-excel-button";
 import { getLocale, getTranslations } from "next-intl/server";
 import { MatchChronology } from "@/components/match-actions/MatchChronology";
 import { MatchIntelligencePanel } from "@/components/analysis/MatchIntelligencePanel";
+import { MatchScoreFlowChart } from "@/components/match-components/MatchVisualDashboard";
 import { DEFAULT_ANALYSIS_THRESHOLDS } from "@/lib/analysis/performance-insights";
 import type { MatchAction } from "@/lib/types";
 import { getMatchOutcome, getOpponentScore, getVenueScore } from "@/lib/matches/score";
@@ -77,7 +79,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			? ((await supabase.from("profile_hidden_stats").select("stat_key").eq("profile_id", profile.id)).data?.map((row) => row.stat_key) ?? [])
 			: [];
 
-	const { data: penaltyRows } = await supabase
+	const { data: penaltyRows, error: penaltyError } = await supabase
 		.from("penalty_shootout_players")
 		.select(
 			`
@@ -161,10 +163,10 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	};
 
 	const periods = [
-		{ q: 1 as const, home: match.q1_score ?? 0, away: match.q1_score_rival ?? 0, winner: getWinner(match.sprint1_winner_player_id) },
-		{ q: 2 as const, home: match.q2_score ?? 0, away: match.q2_score_rival ?? 0, winner: getWinner(match.sprint2_winner_player_id) },
-		{ q: 3 as const, home: match.q3_score ?? 0, away: match.q3_score_rival ?? 0, winner: getWinner(match.sprint3_winner_player_id) },
-		{ q: 4 as const, home: match.q4_score ?? 0, away: match.q4_score_rival ?? 0, winner: getWinner(match.sprint4_winner_player_id) }
+		{ q: 1 as const, home: match.q1_score ?? 0, away: match.q1_score_rival ?? 0, winner: getWinner(match.sprint1_winner_player_id), sprintResult: normalizeSprintResult(match.sprint1_winner) },
+		{ q: 2 as const, home: match.q2_score ?? 0, away: match.q2_score_rival ?? 0, winner: getWinner(match.sprint2_winner_player_id), sprintResult: normalizeSprintResult(match.sprint2_winner) },
+		{ q: 3 as const, home: match.q3_score ?? 0, away: match.q3_score_rival ?? 0, winner: getWinner(match.sprint3_winner_player_id), sprintResult: normalizeSprintResult(match.sprint3_winner) },
+		{ q: 4 as const, home: match.q4_score ?? 0, away: match.q4_score_rival ?? 0, winner: getWinner(match.sprint4_winner_player_id), sprintResult: normalizeSprintResult(match.sprint4_winner) }
 	];
 
 	const outcome = getMatchOutcome(match);
@@ -221,7 +223,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	const visitingPenaltyScore = venueScore.visitorPenalties;
 	const matchDate = new Date(match.match_date);
 	const competitionImage = match.competitions?.image_url?.trim() || null;
-	const { data: analysisSettings } = await supabase
+	const { data: analysisSettings, error: analysisSettingsError } = await supabase
 		.from("club_analysis_settings")
 		.select("shooting_efficiency_target, power_play_target, turnover_warning, save_percentage_target, max_goals_against")
 		.eq("club_id", match.club_id)
@@ -243,6 +245,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 	if (gkShotsErr) console.error(gkShotsErr);
 
 	const allGoalkeeperShots = gkShots ?? [];
+	const hasPartialDataError = Boolean(penaltyError || actionsError || analysisSettingsError || gkShotsErr);
 	const goalkeeperIdFromShots = allGoalkeeperShots[0]?.goalkeeper_player_id;
 	const goalkeeperIdFromStats =
 		match.match_stats?.find((s: any) => s?.players?.is_goalkeeper)?.player_id ??
@@ -257,27 +260,48 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			: "from-yellow-500/80 via-amber-400/40 to-transparent";
 
 	return (
-		<main className="container mx-auto px-4 py-8 max-w-7xl">
+		<main className="container mx-auto max-w-7xl px-3 py-4 sm:px-4 sm:py-8">
 			<div className="mb-6">
-				<div className="mb-4 flex items-center justify-between gap-3">
-					<Button variant="ghost" asChild>
+				<div className="mb-4 flex items-center justify-between gap-2">
+					<Button variant="ghost" size="sm" className="min-w-0 px-2 sm:px-3" asChild>
 						<Link href="/partidos">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							{t("backToMatches")}
+							<ArrowLeft className="h-4 w-4 sm:mr-2" />
+							<span className="hidden sm:inline">{t("backToMatches")}</span>
 						</Link>
 					</Button>
 
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<div className="flex min-w-0 items-center justify-end gap-2">
 						{match.opponent_id && (
-							<Button variant="outline" asChild>
+							<Button variant="outline" size="sm" className="px-2 sm:px-3" asChild>
 								<Link href={`/rivales/${match.opponent_id}`}>
-									<Swords className="mr-2 h-4 w-4" />
-									{t("opponentScouting")}
+									<Swords className="h-4 w-4 sm:mr-2" />
+									<span className="hidden sm:inline">{t("opponentScouting")}</span>
 								</Link>
 							</Button>
 						)}
-						<ExportMatchPdfButton matchId={match.id} />
-						<ExportMatchExcelButton matchId={match.id} />
+						<div className="hidden items-center gap-2 lg:flex">
+							<ExportMatchPdfButton matchId={match.id} />
+							<ExportMatchExcelButton matchId={match.id} />
+						</div>
+						{canEdit && (
+							<Button size="sm" className="px-2 sm:px-3" asChild>
+								<Link href={`/nuevo-partido?matchId=${match.id}`}>
+									<Edit className="h-4 w-4 sm:mr-2" />
+									<span className="hidden sm:inline">{t("editMatch")}</span>
+								</Link>
+							</Button>
+						)}
+						<details className="group relative lg:hidden">
+							<summary className="grid size-9 cursor-pointer list-none place-items-center rounded-md border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground [&::-webkit-details-marker]:hidden" aria-label="More actions">
+								<MoreHorizontal className="size-4" />
+							</summary>
+							<div className="absolute right-0 top-11 z-40 flex min-w-56 flex-col gap-2 rounded-xl border bg-popover p-2 text-popover-foreground shadow-lg">
+								<ExportMatchPdfButton matchId={match.id} />
+								<ExportMatchExcelButton matchId={match.id} />
+								{canEdit && <div className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-sm text-destructive"><span>{t("deleteMatch")}</span><DeleteMatchButton matchId={match.id} /></div>}
+							</div>
+						</details>
+						{canEdit && <DeleteMatchButton matchId={match.id} className="hidden lg:flex" />}
 					</div>
 				</div>
 
@@ -299,7 +323,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/30" />
 
 					<div className="relative p-4 sm:p-6">
-						<div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+						<div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
 							<div className="flex-1 min-w-0">
 								<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
 									<h2 className="text-xl sm:text-2xl font-bold truncate">
@@ -324,18 +348,18 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 								</div>
 							</div>
 
-							<div className="flex flex-col items-center justify-center gap-2 w-full md:w-auto">
-								<div className="flex items-center gap-4 sm:gap-6">
-									<div className="text-center">
+							<div className="flex w-full flex-col items-center justify-center gap-2 md:w-auto md:min-w-72">
+								<div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 sm:gap-4">
+									<div className="min-w-0 text-center">
 										<p className="text-3xl sm:text-4xl font-bold tabular-nums">{localScore}</p>
-										<p className="text-xs text-muted-foreground truncate max-w-[140px]">{localTeam}</p>
+										<p className="truncate text-xs text-muted-foreground">{localTeam}</p>
 									</div>
 
 									<div className="text-2xl sm:text-3xl font-bold text-muted-foreground">-</div>
 
-									<div className="text-center">
+									<div className="min-w-0 text-center">
 										<p className="text-3xl sm:text-4xl font-bold tabular-nums">{visitingScore}</p>
-										<p className="text-xs text-muted-foreground truncate max-w-[140px]">{visitingTeam}</p>
+										<p className="truncate text-xs text-muted-foreground">{visitingTeam}</p>
 									</div>
 								</div>
 
@@ -360,80 +384,61 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 					</div>
 				</Card>
 			</div>
-
-			<MatchIntelligencePanel
-				match={match}
-				stats={match.match_stats ?? []}
-				actionCount={chronologyActions.length}
-				canEdit={canManage}
-				thresholds={thresholds}
-			/>
-
-			<MatchPeriodsAndPenaltiesCard
-				opponentName={match.opponent}
-				clubName={clubName}
-				isClubHome={isClubHome}
-				hasPenalties={hasPenalties}
-				periods={periods}
-				penaltyHomeScore={match.penalty_home_score}
-				penaltyAwayScore={match.penalty_away_score}
-				homePenaltyShooters={homePenaltyShooters}
-				rivalPenaltyShots={rivalPenaltyShots}
-			/>
-
-			<Card className="mb-6 overflow-hidden rounded-2xl border-border/70 p-0">
-				<div className="flex items-center justify-between gap-3 border-b bg-muted/15 px-4 py-3 sm:px-5">
-					<div>
-						<h2 className="flex items-center gap-2 text-base font-semibold sm:text-lg">
-							<ListOrdered className="size-5 text-primary" />
-							{chronologyT("title")}
-						</h2>
-						<p className="mt-0.5 text-xs text-muted-foreground">{chronologyT("description")}</p>
-					</div>
-					<span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-						{chronologyT("actionCount", { count: chronologyActions.length })}
-					</span>
+			{hasPartialDataError ? (
+				<div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-3 text-amber-800 dark:text-amber-200">
+					<AlertTriangle className="mt-0.5 size-4 shrink-0" />
+					<p className="text-sm">{t("partialDataWarning")}</p>
 				</div>
-				<div className="p-4 sm:p-5">
-					<MatchChronology actions={chronologyActions} players={chronologyPlayers} showAll />
-				</div>
-			</Card>
+			) : null}
 
-			<MatchPlayersTabs
-				fieldPlayersStats={fieldPlayersStats}
-				goalkeepersStats={goalkeepersStats}
-				matchId={match.id}
-				clubName={clubName}
-				opponentName={match.opponent}
-				matchDateLabel={matchDate.toLocaleDateString(locale)}
-				match={match}
-				matchStats={match.match_stats}
-				blocksStats={blocksStats}
-				allGoalkeeperShots={allGoalkeeperShots}
-				goalkeeperId={goalkeeperId}
-				players={players}
-				hiddenStats={hiddenStats}
-			/>
-
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6">
-				<div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
-					{canEdit && (
-						<Button asChild>
-							<Link href={`/nuevo-partido?matchId=${match.id}`}>
-								<Edit className="mr-2 h-4 w-4" />
-								{t("editMatch")}
-							</Link>
-						</Button>
-					)}
-
-					{canEdit && (
-						<div className="flex items-center gap-2 bg-muted rounded-md">
-							<DeleteMatchButton matchId={match.id} />
-							<span className="hidden sm:inline text-sm text-red-600 dark:text-red-400">{t("deleteMatch")}</span>
+			<MatchDetailWorkspace
+				summary={(
+					<>
+						<MatchScoreFlowChart
+							match={match}
+							actions={chronologyActions}
+							sprints={periods.map((period) => ({ quarter: period.q, result: period.sprintResult, winner: period.winner }))}
+							clubName={clubName}
+							opponentName={match.opponent}
+						/>
+						<MatchIntelligencePanel
+							match={match}
+							stats={match.match_stats ?? []}
+							actionCount={chronologyActions.length}
+							canEdit={canManage}
+							thresholds={thresholds}
+						/>
+						<MatchPeriodsAndPenaltiesCard
+							opponentName={match.opponent}
+							clubName={clubName}
+							hasPenalties={hasPenalties}
+							homePenaltyShooters={homePenaltyShooters}
+							rivalPenaltyShots={rivalPenaltyShots}
+						/>
+					</>
+				)}
+				analysis={<MatchPlayersTabs section="analysis" {...getMatchTabsProps()} />}
+				timeline={(
+					<Card className="overflow-hidden rounded-2xl border-border/70 p-0">
+						<div className="flex items-center justify-between gap-3 border-b bg-muted/15 px-4 py-3 sm:px-5">
+							<div>
+								<h2 className="flex items-center gap-2 text-base font-semibold sm:text-lg">
+									<ListOrdered className="size-5 text-primary" />
+									{chronologyT("title")}
+								</h2>
+								<p className="mt-0.5 text-xs text-muted-foreground">{chronologyT("description")}</p>
+							</div>
+							<span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+								{chronologyT("actionCount", { count: chronologyActions.length })}
+							</span>
 						</div>
-					)}
-				</div>
-			</div>
+						<div className="p-3 sm:p-5">
+							<MatchChronology actions={chronologyActions} players={chronologyPlayers} showAll />
+						</div>
+					</Card>
+				)}
+				players={<MatchPlayersTabs section="players" {...getMatchTabsProps()} />}
+			/>
 
 			<div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
 				<span>{t("poweredBy")}</span>
@@ -452,6 +457,28 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ id
 			</div>
 		</main>
 	);
+
+	function getMatchTabsProps() {
+		return {
+			fieldPlayersStats,
+			goalkeepersStats,
+			matchId: match.id,
+			clubName,
+			opponentName: match.opponent,
+			matchDateLabel: matchDate.toLocaleDateString(locale),
+			match,
+			matchStats: match.match_stats,
+			blocksStats,
+			allGoalkeeperShots,
+			goalkeeperId,
+			players,
+			hiddenStats
+		};
+	}
+}
+
+function normalizeSprintResult(value: unknown): -1 | 0 | 1 {
+	return value === 1 ? 1 : value === -1 ? -1 : 0;
 }
 
 function calculateBlocksStats(stats: any[], golesRecibidos: number) {

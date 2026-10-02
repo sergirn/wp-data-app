@@ -5,7 +5,25 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Grid3X3, Percent, Target, Flame, ChevronLeft, ChevronRight, ListFilter, Users, Eye } from "lucide-react";
+import {
+	Percent,
+	Target,
+	Flame,
+	ChevronLeft,
+	ChevronRight,
+	ListFilter,
+	Users,
+	Eye,
+	ShieldCheck,
+	Crosshair,
+	CircleOff,
+	Sparkles,
+	Maximize2,
+	Minimize2,
+	SlidersHorizontal,
+	ChevronDown,
+	ChevronUp
+} from "lucide-react";
 
 /** ====== TIPOS ENTRADA (CRUDO) ====== */
 export type GoalkeeperShotRow = {
@@ -48,6 +66,7 @@ type Shot = {
 };
 
 type ShotLayer = "all" | "goals" | "saves" | "out";
+type MapView = "points" | "heatmap" | "percentage";
 
 /** ====== JITTER VERTICAL (solo UI) para separar puntos en eje Y ====== */
 function clamp01(v: number) {
@@ -79,14 +98,21 @@ function InnerDot({ id, x, y, result }: { id: string; x: number; y: number; resu
 	return (
 		<div
 			className={cn(
-				"absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
-				"h-3 w-3 sm:h-3.5 sm:w-3.5",
-				"shadow-sm ring-2 ring-background/70",
-				result === "goal" ? "bg-red-500/90 ring-red-900/10" : "bg-emerald-500/90 ring-emerald-900/10"
+				"group absolute z-20 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
+				"h-4 w-4 border-2 shadow-md transition-transform hover:z-30 hover:scale-125 sm:h-[18px] sm:w-[18px]",
+				result === "goal"
+					? "border-red-200 bg-red-500 text-white shadow-red-950/25"
+					: "border-emerald-100 bg-emerald-500 text-white shadow-emerald-950/25"
 			)}
 			style={{ left: `${x * 100}%`, top: `${y2 * 100}%` }}
 			title={result === "goal" ? t("goal") : t("save")}
-		/>
+		>
+			{result === "goal" ? (
+				<span className="text-[11px] font-black leading-none">×</span>
+			) : (
+				<span className="h-1.5 w-1.5 rounded-full bg-white" />
+			)}
+		</div>
 	);
 }
 
@@ -97,14 +123,14 @@ function OutDot({ id, x, y }: { id: string; x: number; y: number }) {
 	return (
 		<div
 			className={cn(
-				"absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
-				"h-3 w-3 sm:h-3.5 sm:w-3.5",
-				"shadow-sm ring-2 ring-background/70",
-				"bg-blue-500/90 ring-blue-900/10"
+				"absolute z-20 flex -translate-x-1/2 -translate-y-1/2 rotate-45 items-center justify-center rounded-[4px]",
+				"h-4 w-4 border-2 border-sky-100 bg-sky-500 text-white shadow-md shadow-sky-950/25 transition-transform hover:z-30 hover:scale-125 sm:h-[18px] sm:w-[18px]"
 			)}
 			style={{ left: `${x * 100}%`, top: `${y2 * 100}%` }}
 			title={t("out")}
-		/>
+		>
+			<span className="-rotate-45 text-[11px] font-black leading-none">×</span>
+		</div>
 	);
 }
 
@@ -316,43 +342,103 @@ function SidebarSection({ title, icon, children }: { title: string; icon?: React
 	);
 }
 
-function ToggleRow({
-	label,
-	description,
-	active,
-	onClick,
-	disabled,
-	icon
+function GoalSurface({
+	innerShots,
+	outShots,
+	cellStats,
+	mode,
+	empty,
+	compact = false,
+	emptyTitle,
+	emptyDescription
 }: {
-	label: string;
-	description?: string;
-	active: boolean;
-	onClick: () => void;
-	disabled?: boolean;
-	icon?: React.ReactNode;
+	innerShots: Shot[];
+	outShots: Shot[];
+	cellStats: Map<string, CellStats>;
+	mode: MapView;
+	empty: boolean;
+	compact?: boolean;
+	emptyTitle: string;
+	emptyDescription: string;
 }) {
-	const t = useTranslations("GoalkeeperShotMap");
+	const showPoints = mode === "points";
+	const showHeatmap = mode === "heatmap";
+	const showPercentage = mode === "percentage";
+
 	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={disabled}
+		<div
 			className={cn(
-				"w-full rounded-lg border px-3 py-2 text-left transition-colors",
-				"hover:bg-muted/40",
-				active ? "bg-foreground text-background border-foreground/30" : "bg-background",
-				disabled && "opacity-50 cursor-not-allowed"
+				"relative w-full select-none overflow-hidden rounded-xl border bg-gradient-to-b from-muted/20 via-background to-muted/30",
+				"aspect-[4/3]",
+				!compact && "max-h-[70vh] lg:max-h-[520px]"
 			)}
-			title={disabled ? t("enableGridHint") : undefined}
 		>
-			<div className="flex items-start gap-2">
-				<span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center">{icon}</span>
-				<div className="min-w-0">
-					<div className="text-sm font-medium leading-tight">{label}</div>
-					{description ? <div className={cn("text-xs", active ? "text-background/80" : "text-muted-foreground")}>{description}</div> : null}
+			<div className="pointer-events-none absolute inset-x-0 bottom-0 h-[24%] bg-gradient-to-t from-muted/35 to-transparent" />
+			<div className="pointer-events-none absolute inset-x-0 bottom-[8%] h-px bg-border/40" />
+			<div className="pointer-events-none absolute inset-x-0 bottom-[15%] h-px bg-border/30" />
+
+			<div className={cn("pointer-events-none absolute left-[6%] right-[6%] top-[8%] z-30 rounded-full border border-slate-300 bg-white shadow-[0_3px_12px_rgba(15,23,42,0.28)] dark:border-slate-500 dark:bg-slate-100", compact ? "h-1.5" : "h-2.5")} />
+			<div className={cn("pointer-events-none absolute bottom-[22%] left-[6%] top-[8%] z-30 rounded-full border border-slate-300 bg-white shadow-[0_3px_12px_rgba(15,23,42,0.28)] dark:border-slate-500 dark:bg-slate-100", compact ? "w-1.5" : "w-2.5")} />
+			<div className={cn("pointer-events-none absolute bottom-[22%] right-[6%] top-[8%] z-30 rounded-full border border-slate-300 bg-white shadow-[0_3px_12px_rgba(15,23,42,0.28)] dark:border-slate-500 dark:bg-slate-100", compact ? "w-1.5" : "w-2.5")} />
+			<div className="pointer-events-none absolute bottom-[22%] left-[6%] right-[6%] z-30 h-[3px] rounded-full bg-white/90 shadow-sm dark:bg-slate-200" />
+
+			{showPoints && outShots.map((shot) => <OutDot key={shot.id} id={shot.id} x={shot.x} y={shot.y} />)}
+
+			<div className="absolute bottom-[22%] left-[6%] right-[6%] top-[8%] overflow-hidden border border-slate-300/60 bg-background/75 shadow-inner dark:border-slate-600/60 dark:bg-slate-950/50">
+				<div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-muted/20" />
+				<div
+					className="pointer-events-none absolute inset-0 opacity-35"
+					style={{
+						backgroundImage:
+							"linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)",
+						backgroundSize: "8.333% 12.5%"
+					}}
+				/>
+
+				{showHeatmap ? (
+					<HeatmapCanvas enabled points={innerShots.map((shot) => ({ x: shot.x, y: shot.y }))} opacity={0.75} radiusPx={compact ? 30 : 42} />
+				) : null}
+
+				<div className="pointer-events-none absolute inset-0">
+					<div className="absolute bottom-0 left-1/3 top-0 w-px bg-foreground/20" />
+					<div className="absolute bottom-0 left-2/3 top-0 w-px bg-foreground/20" />
+					<div className="absolute left-0 right-0 top-1/3 h-px bg-foreground/20" />
+					<div className="absolute left-0 right-0 top-2/3 h-px bg-foreground/20" />
 				</div>
+
+				{showPercentage ? (
+					<div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
+						{Array.from({ length: 9 }).map((_, index) => {
+							const key = `${index % 3}-${Math.floor(index / 3)}`;
+							const stats = cellStats.get(key);
+							if (!stats || stats.total === 0) return <div key={key} />;
+
+							return (
+								<div key={key} className="relative flex items-center justify-center">
+									<div className={cn("absolute inset-0", cellBgClass(stats.savePct))} />
+									<div className={cn("relative rounded-md border bg-transparent font-semibold shadow-sm", compact ? "px-1 py-0.5 text-[9px]" : "px-2 py-0.5 text-[11px]", pctBadgeClass(stats.savePct))}>
+										{stats.savePct}%
+										{!compact ? <span className="ml-1 text-[10px] font-normal text-white/85">({stats.saves}/{stats.total})</span> : null}
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				) : null}
+
+				{showPoints ? innerShots.map((shot) => <InnerDot key={shot.id} id={shot.id} x={shot.x} y={shot.y} result={shot.result as "goal" | "save"} />) : null}
 			</div>
-		</button>
+
+			{empty ? (
+				<div className="absolute inset-0 z-40 flex items-center justify-center bg-background/55 p-3 backdrop-blur-[2px]">
+					<div className={cn("max-w-xs rounded-xl border bg-card/95 text-center shadow-lg", compact ? "p-2.5" : "p-5")}>
+						{!compact ? <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-muted"><CircleOff className="h-5 w-5 text-muted-foreground" /></div> : null}
+						<div className={cn("font-semibold", compact ? "text-[11px]" : "mt-3 text-sm")}>{emptyTitle}</div>
+						{!compact ? <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{emptyDescription}</div> : null}
+					</div>
+				</div>
+			) : null}
+		</div>
 	);
 }
 
@@ -410,9 +496,9 @@ export function GoalkeeperShotsGoalChart({
 
 	/** ====== UI STATE ====== */
 	const [shotLayer, setShotLayer] = React.useState<ShotLayer>("all");
-	const [showGrid, setShowGrid] = React.useState(true);
-	const [showCellPct, setShowCellPct] = React.useState(false);
-	const [showHeatmap, setShowHeatmap] = React.useState(false);
+	const [activeView, setActiveView] = React.useState<MapView>("points");
+	const [isExpanded, setIsExpanded] = React.useState(false);
+	const [filtersOpen, setFiltersOpen] = React.useState(false);
 	const [selectedJornada, setSelectedJornada] = React.useState<number | null>(null);
 
 	/** ====== JORNADAS ====== */
@@ -468,14 +554,6 @@ export function GoalkeeperShotsGoalChart({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [goalkeeperFilterEnabled, goalkeepers.map((g) => g.id).join("|")]);
 
-	/** ====== DEPENDENCIAS ====== */
-	React.useEffect(() => {
-		if (!showGrid) {
-			setShowCellPct(false);
-			setShowHeatmap(false);
-		}
-	}, [showGrid]);
-
 	/** ====== FILTRO BASE (jornada + porteros) ====== */
 	const baseShots = React.useMemo(() => {
 		let out = shots;
@@ -499,6 +577,7 @@ export function GoalkeeperShotsGoalChart({
 	 */
 	const innerShots = React.useMemo(() => filteredShots.filter((s) => s.result === "goal" || s.result === "save"), [filteredShots]);
 	const outShots = React.useMemo(() => filteredShots.filter((s) => s.result === "out"), [filteredShots]);
+	const baseInnerShots = React.useMemo(() => baseShots.filter((s) => s.result === "goal" || s.result === "save"), [baseShots]);
 
 	/** ====== STATS: totales base (sin capa) ====== */
 	const totalsAll = React.useMemo(() => {
@@ -515,10 +594,13 @@ export function GoalkeeperShotsGoalChart({
 		return { total: filteredShots.length, goals, saves, out };
 	}, [filteredShots]);
 
-	/** ====== STATS POR CELDA (solo con inner shots) ====== */
+	/** ====== STATS POR CELDA ======
+	 * Se calculan sobre el filtro base y no sobre la capa visual activa.
+	 * Así, mostrar solo goles o paradas no altera artificialmente la eficacia.
+	 */
 	const cellStats = React.useMemo(() => {
 		const map = new Map<string, CellStats>();
-		for (const s of innerShots) {
+		for (const s of baseInnerShots) {
 			const { key } = cellIndex3(s.x, s.y);
 			const prev = map.get(key) ?? { total: 0, saves: 0, goals: 0, savePct: 0 };
 
@@ -530,7 +612,43 @@ export function GoalkeeperShotsGoalChart({
 			map.set(key, { total, saves, goals, savePct });
 		}
 		return map;
-	}, [innerShots]);
+	}, [baseInnerShots]);
+
+	const saveEfficiency = React.useMemo(() => {
+		const shotsOnTarget = totalsAll.goals + totalsAll.saves;
+		return shotsOnTarget > 0 ? Math.round((totalsAll.saves / shotsOnTarget) * 100) : 0;
+	}, [totalsAll]);
+
+	const zoneInsights = React.useMemo(() => {
+		const zones = Array.from(cellStats.entries())
+			.map(([key, stats]) => ({ key, stats }))
+			.filter((zone) => zone.stats.total > 0);
+		if (zones.length === 0) return null;
+
+		const mostTargeted = [...zones].sort((a, b) => b.stats.total - a.stats.total || a.key.localeCompare(b.key))[0];
+		const strongest = [...zones].sort((a, b) => b.stats.savePct - a.stats.savePct || b.stats.total - a.stats.total)[0];
+		const vulnerable = [...zones].sort((a, b) => a.stats.savePct - b.stats.savePct || b.stats.total - a.stats.total)[0];
+
+		return { mostTargeted, strongest, vulnerable };
+	}, [cellStats]);
+
+	const zoneLabel = React.useCallback(
+		(key: string) => {
+			const labels: Record<string, string> = {
+				"0-0": t("zones.topLeft"),
+				"1-0": t("zones.topCenter"),
+				"2-0": t("zones.topRight"),
+				"0-1": t("zones.middleLeft"),
+				"1-1": t("zones.center"),
+				"2-1": t("zones.middleRight"),
+				"0-2": t("zones.bottomLeft"),
+				"1-2": t("zones.bottomCenter"),
+				"2-2": t("zones.bottomRight")
+			};
+			return labels[key] ?? key;
+		},
+		[t]
+	);
 
 	/** ====== NAV JORNADA ====== */
 	const selectedIndex = React.useMemo(() => {
@@ -577,151 +695,123 @@ export function GoalkeeperShotsGoalChart({
 				: shotLayer === "saves"
 					? t("savesCount", { count: totalsVisible.total })
 					: t("outCount", { count: totalsVisible.total });
+	const activeFilterCount =
+		(shotLayer !== "all" ? 1 : 0) +
+		(selectedJornada != null ? 1 : 0) +
+		(goalkeeperFilterEnabled && selectedGkCount > 0 && selectedGkCount < goalkeepers.length ? 1 : 0);
+	const viewOptions: Array<{ key: MapView; label: string; description: string; icon: React.ReactNode }> = [
+		{ key: "points", label: t("pointsView"), description: t("pointsViewDescription"), icon: <Crosshair className="h-4 w-4" /> },
+		{ key: "heatmap", label: t("heatmap"), description: t("heatmapViewDescription"), icon: <Flame className="h-4 w-4" /> },
+		{ key: "percentage", label: t("percentageView"), description: t("percentageViewDescription"), icon: <Percent className="h-4 w-4" /> }
+	];
 
 	return (
-		<div className={cn("rounded-2xl border bg-card shadow-sm overflow-hidden", className)}>
-			{/* Header */}
-			<div className="p-3 pb-2 border-b">
-				<div className="flex items-start justify-between gap-3">
-					<div className="flex items-center gap-2 min-w-0">
-						<div className="inline-flex h-8 w-8 items-center justify-center rounded-xl border bg-background shrink-0">
-							<Target className="h-4 w-4 text-muted-foreground" />
+		<div className={cn("overflow-hidden rounded-2xl border bg-card shadow-sm", className)}>
+			<div className="border-b bg-gradient-to-br from-card via-card to-sky-500/[0.06] p-3 sm:p-4">
+				<div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+					<div className="flex min-w-0 items-center gap-2">
+						<div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-500/10 shadow-sm">
+							<Target className="h-5 w-5 text-sky-600 dark:text-sky-400" />
 						</div>
-						<div className="leading-tight min-w-0">
-							<div className="text-sm font-semibold">{t("title")}</div>
-							<div className="text-xs text-muted-foreground truncate">
+						<div className="min-w-0 leading-tight">
+							<div className="font-semibold tracking-tight">{t("title")}</div>
+							<div className="mt-0.5 text-xs text-muted-foreground">
 								{jornadaEnabled && selectedJornada != null ? `J${selectedJornada} · ` : ""}
-								{t("zonePerformance")}
+								{isExpanded ? t("expandedHint") : t("compactHint")}
 							</div>
 						</div>
 					</div>
 
-					<div className="flex flex-wrap items-center gap-1.5 justify-end">
-						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							{t("totalCount", { count: totalsAll.total })}
-						</Badge>
-						<Badge variant="destructive" className="text-[11px] h-5 px-2">
-							{t("goalsCount", { count: totalsAll.goals })}
-						</Badge>
-						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							{t("savesCount", { count: totalsAll.saves })}
-						</Badge>
-						<Badge variant="secondary" className="text-[11px] h-5 px-2">
-							{t("outCount", { count: totalsAll.out })}
-						</Badge>
-
+					<div className="flex flex-wrap items-center gap-2 sm:justify-end">
 						{shotLayer !== "all" ? (
-							<Badge variant="outline" className="text-[11px] h-5 px-2">
+							<Badge variant="outline" className="h-6 bg-background/70 px-2 text-[11px] backdrop-blur-sm">
 								{t("view", { label: layerLabel })}
 							</Badge>
-						) : null}
+						) : (
+							<Badge variant="outline" className="h-6 bg-background/70 px-2 text-[11px] backdrop-blur-sm">
+								{t("completeView")}
+							</Badge>
+						)}
+						<Button type="button" size="sm" variant="outline" className="h-8 gap-2 bg-background/70" onClick={() => setIsExpanded((value) => !value)}>
+							{isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+							{isExpanded ? t("collapse") : t("expand")}
+						</Button>
+					</div>
+				</div>
+
+				<div className={cn("mt-3 grid grid-cols-4 overflow-hidden rounded-xl border bg-background/65", isExpanded && "gap-2 overflow-visible border-0 bg-transparent")}>
+					<div className={cn("px-2.5 py-2", !isExpanded && "border-r", isExpanded && "rounded-xl border bg-background/70 p-3 shadow-sm")}>
+						<div className="flex items-center gap-1.5 text-[10px] text-muted-foreground sm:text-xs"><Crosshair className="h-3.5 w-3.5" /><span className="truncate">{t("totalShots")}</span></div>
+						<div className={cn("mt-0.5 font-semibold tabular-nums", isExpanded ? "text-xl" : "text-base")}>{totalsAll.total}</div>
+					</div>
+					<div className={cn("px-2.5 py-2", !isExpanded && "border-r", isExpanded && "rounded-xl border border-red-500/15 bg-red-500/[0.06] p-3 shadow-sm")}>
+						<div className="flex items-center gap-1.5 text-[10px] text-muted-foreground sm:text-xs"><Target className="h-3.5 w-3.5 text-red-500" /><span className="truncate">{t("goals")}</span></div>
+						<div className={cn("mt-0.5 font-semibold tabular-nums text-red-600 dark:text-red-400", isExpanded ? "text-xl" : "text-base")}>{totalsAll.goals}</div>
+					</div>
+					<div className={cn("px-2.5 py-2", !isExpanded && "border-r", isExpanded && "rounded-xl border border-emerald-500/15 bg-emerald-500/[0.06] p-3 shadow-sm")}>
+						<div className="flex items-center gap-1.5 text-[10px] text-muted-foreground sm:text-xs"><ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /><span className="truncate">{t("saves")}</span></div>
+						<div className={cn("mt-0.5 font-semibold tabular-nums text-emerald-600 dark:text-emerald-400", isExpanded ? "text-xl" : "text-base")}>{totalsAll.saves}</div>
+					</div>
+					<div className={cn("px-2.5 py-2", isExpanded && "rounded-xl border border-sky-500/15 bg-sky-500/[0.06] p-3 shadow-sm")}>
+						<div className="flex items-center gap-1.5 text-[10px] text-muted-foreground sm:text-xs"><Percent className="h-3.5 w-3.5 text-sky-500" /><span className="truncate">{t("saveEfficiency")}</span></div>
+						<div className={cn("mt-0.5 font-semibold tabular-nums text-sky-600 dark:text-sky-400", isExpanded ? "text-xl" : "text-base")}>{saveEfficiency}%</div>
 					</div>
 				</div>
 			</div>
 
-			{/* Body: chart + sidebar */}
-			<div className="grid grid-cols-1 lg:grid-cols-[1fr_320px]">
-				{/* Left: Chart */}
-				<div className="p-3">
-					{/* OUTER CANVAS (donde se pintan los OUT) */}
-					<div className={cn("relative w-full select-none", "aspect-[4/3]", "max-h-[70vh] lg:max-h-[520px]")}>
-						{/* Marco */}
-						<div className="pointer-events-none absolute left-[10%] right-[10%] top-[12%] h-[10px] rounded bg-foreground/80 shadow-md" />
-						<div className="pointer-events-none absolute left-[10%] top-[12%] bottom-[28%] w-[10px] rounded bg-foreground/80 shadow-md" />
-						<div className="pointer-events-none absolute right-[10%] top-[12%] bottom-[28%] w-[10px] rounded bg-foreground/80 shadow-md" />
-						<div className="pointer-events-none absolute left-[10%] right-[10%] bottom-[28%] h-[4px] rounded bg-foreground/70 shadow-sm" />
-
-						{/* OUT dots (con jitter en Y) */}
-						{!showHeatmap && outShots.map((s) => <OutDot key={s.id} id={s.id} x={s.x} y={s.y} />)}
-
-						{/* INNER AREA */}
-						<div className="absolute left-[10%] right-[10%] top-[12%] bottom-[28%] overflow-hidden rounded-xl border bg-muted/10">
-							<div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/30 via-background/10 to-background/50" />
-							<div
-								className="pointer-events-none absolute inset-0 opacity-25"
-								style={{
-									backgroundImage:
-										"linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)",
-									backgroundSize: "8% 8%"
-								}}
-							/>
-							<div className="pointer-events-none absolute inset-0 shadow-[inset_0_-18px_42px_rgba(0,0,0,0.22)]" />
-
-							{showGrid && (
-								<div className="pointer-events-none absolute inset-0">
-									{showHeatmap && (
-										<HeatmapCanvas
-											enabled={showHeatmap}
-											points={innerShots.map((s) => ({ x: s.x, y: s.y }))}
-											opacity={0.75}
-											radiusPx={42}
-										/>
-									)}
-
-									{/* Líneas 3x3 */}
-									<div className="absolute top-0 bottom-0 left-1/3 w-px bg-foreground/20" />
-									<div className="absolute top-0 bottom-0 left-2/3 w-px bg-foreground/20" />
-									<div className="absolute left-0 right-0 top-1/3 h-px bg-foreground/20" />
-									<div className="absolute left-0 right-0 top-2/3 h-px bg-foreground/20" />
-								</div>
-							)}
-
-							{/* % por celda */}
-							{showGrid && showCellPct && (
-								<div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
-									{Array.from({ length: 9 }).map((_, i) => {
-										const key = `${i % 3}-${Math.floor(i / 3)}`;
-										const st = cellStats.get(key);
-										if (!st || st.total === 0) return <div key={key} />;
-
-										return (
-											<div key={key} className="relative flex items-center justify-center">
-												{!showHeatmap && <div className={cn("absolute inset-0", cellBgClass(st.savePct))} />}
-												<div
-													className={cn(
-														"relative rounded-md border bg-transparent px-2 py-0.5 text-[11px] font-semibold shadow-sm",
-														pctBadgeClass(st.savePct)
-													)}
-												>
-													{st.savePct}%
-													<span className="ml-1 text-[10px] font-normal text-white/85">
-														({st.saves}/{st.total})
-													</span>
-												</div>
-											</div>
-										);
-									})}
-								</div>
-							)}
-
-							{/* Inner dots (con jitter en Y) */}
-							{!showHeatmap &&
-								innerShots.map((s) => <InnerDot key={s.id} id={s.id} x={s.x} y={s.y} result={s.result as "goal" | "save"} />)}
+			<div className="min-w-0 p-3 sm:p-4">
+				{isExpanded ? (
+					<>
+						<div className="mb-3 grid grid-cols-3 gap-2 rounded-xl border bg-muted/20 p-1.5">
+							{viewOptions.map((view) => (
+								<Button key={view.key} type="button" size="sm" variant={activeView === view.key ? "default" : "ghost"} className="h-9 gap-2" onClick={() => setActiveView(view.key)}>
+									{view.icon}<span className="hidden sm:inline">{view.label}</span>
+								</Button>
+							))}
 						</div>
-					</div>
+						<div className="mx-auto max-w-5xl">
+							<GoalSurface innerShots={innerShots} outShots={outShots} cellStats={cellStats} mode={activeView} empty={totalsAll.total === 0} emptyTitle={t("noShotsTitle")} emptyDescription={t("noShotsDescription")} />
+						</div>
+						<div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+							<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2.5 py-1.5 shadow-sm"><span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">×</span>{t("goal")}</span>
+							<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2.5 py-1.5 shadow-sm"><span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500"><span className="h-1 w-1 rounded-full bg-white" /></span>{t("save")}</span>
+							<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2.5 py-1.5 shadow-sm"><span className="flex h-3.5 w-3.5 rotate-45 items-center justify-center rounded-[3px] bg-sky-500 text-[9px] font-black text-white"><span className="-rotate-45">×</span></span>{t("out")}</span>
+							<span className="ml-auto tabular-nums">{t("visibleShots", { count: totalsVisible.total })}</span>
+						</div>
 
-					<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
-							<span className="h-2.5 w-2.5 rounded-full bg-red-500/90" />
-							{t("goal")}
-						</span>
-						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
-							<span className="h-2.5 w-2.5 rounded-full bg-emerald-500/90" />
-							{t("save")}
-						</span>
-						<span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1">
-							<span className="h-2.5 w-2.5 rounded-full bg-blue-500/90" />
-							{t("out")}
-						</span>
+						{zoneInsights ? (
+							<div className="mt-4 rounded-xl border bg-muted/[0.18] p-3">
+								<div className="mb-2 flex items-center gap-2 text-xs font-semibold"><Sparkles className="h-3.5 w-3.5 text-sky-500" />{t("zoneInsights")}</div>
+								<div className="grid gap-2 sm:grid-cols-3">
+									<div className="rounded-lg border bg-background p-2.5"><div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t("mostTargetedZone")}</div><div className="mt-1 text-sm font-semibold">{zoneLabel(zoneInsights.mostTargeted.key)}</div><div className="text-xs text-muted-foreground">{t("zoneShots", { count: zoneInsights.mostTargeted.stats.total })}</div></div>
+									<div className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] p-2.5"><div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t("strongestZone")}</div><div className="mt-1 text-sm font-semibold">{zoneLabel(zoneInsights.strongest.key)}</div><div className="text-xs font-medium text-emerald-600 dark:text-emerald-400">{zoneInsights.strongest.stats.savePct}% {t("saveEfficiencyShort")} · {t("zoneShots", { count: zoneInsights.strongest.stats.total })}</div></div>
+									<div className="rounded-lg border border-amber-500/15 bg-amber-500/[0.04] p-2.5"><div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t("vulnerableZone")}</div><div className="mt-1 text-sm font-semibold">{zoneLabel(zoneInsights.vulnerable.key)}</div><div className="text-xs font-medium text-amber-600 dark:text-amber-400">{zoneInsights.vulnerable.stats.savePct}% {t("saveEfficiencyShort")} · {t("zoneShots", { count: zoneInsights.vulnerable.stats.total })}</div></div>
+								</div>
+							</div>
+						) : null}
+					</>
+				) : (
+					<div className="grid snap-x auto-cols-[minmax(240px,82vw)] grid-flow-col gap-3 overflow-x-auto pb-1 sm:grid-flow-row sm:grid-cols-3 sm:overflow-visible sm:pb-0">
+						{viewOptions.map((view) => (
+							<section key={view.key} className="min-w-0 snap-start rounded-xl border bg-background/55 p-2.5 shadow-sm">
+								<div className="mb-2 flex items-center gap-2 px-0.5"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-muted-foreground">{view.icon}</span><div className="min-w-0"><div className="text-xs font-semibold">{view.label}</div><div className="truncate text-[10px] text-muted-foreground">{view.description}</div></div></div>
+								<GoalSurface compact innerShots={innerShots} outShots={outShots} cellStats={cellStats} mode={view.key} empty={totalsAll.total === 0} emptyTitle={t("noShotsTitle")} emptyDescription={t("noShotsDescription")} />
+							</section>
+						))}
 					</div>
-				</div>
+				)}
+			</div>
 
-				{/* Right: Sidebar */}
-				<aside className="border-t lg:border-t-0 lg:border-l bg-card/60">
-					<div className="p-3 space-y-3 lg:sticky lg:top-4">
-						<SidebarSection title={t("visualization")} icon={<Grid3X3 className="h-4 w-4 text-muted-foreground" />}>
-							<div className="space-y-2">
-								<div className="grid grid-cols-4 gap-2">
+			<div className="border-t bg-muted/[0.12]">
+				<button type="button" className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/35" onClick={() => setFiltersOpen((value) => !value)} aria-expanded={filtersOpen}>
+					<span className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg border bg-background"><SlidersHorizontal className="h-4 w-4 text-muted-foreground" /></span><span><span className="block text-sm font-semibold">{t("filters")}</span><span className="block text-xs text-muted-foreground">{activeFilterCount > 0 ? t("activeFilters", { count: activeFilterCount }) : t("filtersHint")}</span></span></span>
+					<span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">{filtersOpen ? t("hideFilters") : t("showFilters")}{filtersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</span>
+				</button>
+
+				{filtersOpen ? (
+					<div className="grid gap-3 border-t p-3 sm:p-4 lg:grid-cols-3">
+						<SidebarSection title={t("shotResult")} icon={<Target className="h-4 w-4 text-muted-foreground" />}>
+							<div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
 									<Button
 										type="button"
 										size="sm"
@@ -762,31 +852,6 @@ export function GoalkeeperShotsGoalChart({
 										{t("out")}
 									</Button>
 								</div>
-
-								<ToggleRow
-									label={t("grid")}
-									description={t("gridDescription")}
-									active={showGrid}
-									onClick={() => setShowGrid((v) => !v)}
-									icon={<Grid3X3 className="h-4 w-4" />}
-								/>
-								<ToggleRow
-									label={t("cellPercentage")}
-									description={t("cellPercentageDescription")}
-									active={showCellPct}
-									onClick={() => setShowCellPct((v) => !v)}
-									disabled={!showGrid}
-									icon={<Percent className="h-4 w-4" />}
-								/>
-								<ToggleRow
-									label={t("heatmap")}
-									description={t("heatmapDescription")}
-									active={showHeatmap}
-									onClick={() => setShowHeatmap((v) => !v)}
-									disabled={!showGrid}
-									icon={<Flame className="h-4 w-4" />}
-								/>
-							</div>
 						</SidebarSection>
 
 						<SidebarSection title={t("round")} icon={<ListFilter className="h-4 w-4 text-muted-foreground" />}>
@@ -817,7 +882,7 @@ export function GoalkeeperShotsGoalChart({
 											setSelectedJornada(v === "all" ? null : Number(v));
 										}}
 									>
-									<option value="all">{t("allRounds")}</option>
+										<option value="all">{t("allRounds")}</option>
 										{jornadas.map((j) => (
 											<option key={j} value={j}>
 												J{j}
@@ -832,7 +897,7 @@ export function GoalkeeperShotsGoalChart({
 										className="h-8 px-2"
 										onClick={goNext}
 										disabled={!canNext}
-									title={t("next")}
+										title={t("next")}
 									>
 										<ChevronRight className="h-4 w-4" />
 									</Button>
@@ -855,7 +920,7 @@ export function GoalkeeperShotsGoalChart({
 								<div className="space-y-2">
 									<div className="flex items-center justify-between gap-2">
 										<div className="text-xs text-muted-foreground">
-										{t("selected")} <b className="text-foreground">{goalkeeperFilterEnabled ? selectedGoalkeepers.size : 0}</b>{" "}
+											{t("selected")} <b className="text-foreground">{goalkeeperFilterEnabled ? selectedGoalkeepers.size : 0}</b>{" "}
 											/ {goalkeepers.length}
 										</div>
 										<Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={selectAllGoalkeepers}>
@@ -902,7 +967,7 @@ export function GoalkeeperShotsGoalChart({
 							)}
 						</SidebarSection>
 					</div>
-				</aside>
+				) : null}
 			</div>
 		</div>
 	);

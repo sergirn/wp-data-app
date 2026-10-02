@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import { Bar, ComposedChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { Shield } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import { useLocale, useTranslations } from "next-intl";
@@ -134,19 +134,15 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 				golesRecibidos: goalsAgainst,
 				tirosRecibidos: totalShots
 			};
-		});
+		}).filter((row) => row.tirosRecibidos > 0);
 	}, [matches, stats, visibility, locale]);
 
 	const compactData = useMemo(() => allData.slice(-15), [allData]);
 
-	const avgPctAll = useMemo(() => {
-		if (!allData.length) return "0.0";
-		return (allData.reduce((s, d) => s + d.percentage, 0) / allData.length).toFixed(1);
-	}, [allData]);
-
 	const totalSavesAll = useMemo(() => allData.reduce((s, d) => s + d.saves, 0), [allData]);
 	const totalGoalsAgainstAll = useMemo(() => allData.reduce((s, d) => s + d.golesRecibidos, 0), [allData]);
 	const totalShotsAgainstAll = useMemo(() => allData.reduce((s, d) => s + d.tirosRecibidos, 0), [allData]);
+	const avgPctAll = totalShotsAgainstAll > 0 ? ((totalSavesAll / totalShotsAgainstAll) * 100).toFixed(1) : "0.0";
 
 	const showSaves =
 		!hiddenSet.has("portero_tiros_parada_recup") ||
@@ -197,39 +193,18 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 					<ChartContainer
 						config={{
 							...(showSaves && { saves: { label: tChart("totalSaves"), color: "hsl(199 95% 55%)" } }),
-							...(showSavesInf && { savesInf: { label: tChart("inferioritySaves"), color: "hsl(142 85% 45%)" } }),
+							...(showGoalsAgainst && { golesRecibidos: { label: tChart("goalsConceded"), color: "hsl(0 84% 60%)" } }),
 							percentage: { label: tChart("effectiveness"), color: "hsl(34 95% 55%)" }
 						}}
-						className="w-full h-full"
+						className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}
 					>
 						<ResponsiveContainer width="100%" height="100%">
-							<AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-								<defs>
-									{showSaves ? (
-										<linearGradient id="fillSaves" x1="0" y1="0" x2="0" y2="1">
-											<stop offset="5%" stopColor="var(--color-saves)" stopOpacity={0.55} />
-											<stop offset="95%" stopColor="var(--color-saves)" stopOpacity={0.08} />
-										</linearGradient>
-									) : null}
-
-									{showSavesInf ? (
-										<linearGradient id="fillSavesInf" x1="0" y1="0" x2="0" y2="1">
-											<stop offset="5%" stopColor="var(--color-savesInf)" stopOpacity={0.55} />
-											<stop offset="95%" stopColor="var(--color-savesInf)" stopOpacity={0.08} />
-										</linearGradient>
-									) : null}
-
-									<linearGradient id="fillPercentage" x1="0" y1="0" x2="0" y2="1">
-										<stop offset="5%" stopColor="var(--color-percentage)" stopOpacity={0.45} />
-										<stop offset="95%" stopColor="var(--color-percentage)" stopOpacity={0.05} />
-									</linearGradient>
-								</defs>
-
+							<ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
 								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 
 								<XAxis
 									dataKey="xLabel"
-									fontSize={12}
+									fontSize={compact ? 10 : 12}
 									tickMargin={8}
 									interval="preserveStartEnd"
 									minTickGap={18}
@@ -238,14 +213,14 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 									tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 								/>
 
-								<YAxis yAxisId="left" fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+								<YAxis yAxisId="left" fontSize={compact ? 10 : 12} width={compact ? 28 : 34} tickMargin={6} axisLine={false} tickLine={false} />
 
 								<YAxis
 									yAxisId="right"
 									orientation="right"
 									domain={[0, 100]}
-									fontSize={12}
-									width={40}
+									fontSize={compact ? 10 : 12}
+									width={compact ? 32 : 40}
 									tickMargin={6}
 									axisLine={false}
 									tickLine={false}
@@ -257,54 +232,47 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 											labelFormatter={(_, payload) => {
 												const p = payload?.[0]?.payload;
 												if (!p) return "";
-												return `${p.jornada} · vs ${p.rival} · ${p.fullDate} · %: ${p.percentage}% · Par: ${p.saves}`;
+												return `${p.jornada} · vs ${p.rival} · ${p.fullDate}`;
 											}}
 										/>
 									}
 								/>
 
-								<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: 12 }} />
+								<Legend verticalAlign="bottom" height={26} wrapperStyle={{ fontSize: compact ? 10 : 12 }} />
 
 								{showSaves ? (
-									<Area
+									<Bar
 										yAxisId="left"
-										type="monotone"
 										dataKey="saves"
 										name={tChart("totalSaves")}
-										stroke="var(--color-saves)"
-										fill="url(#fillSaves)"
-										strokeWidth={2}
-										dot={false}
-										activeDot={{ r: 4 }}
+										fill="var(--color-saves)"
+										radius={[4, 4, 0, 0]}
+										maxBarSize={compact ? 18 : 26}
 									/>
 								) : null}
 
-								{showSavesInf ? (
-									<Area
+								{showGoalsAgainst ? (
+									<Bar
 										yAxisId="left"
-										type="monotone"
-										dataKey="savesInf"
-										name={tChart("inferioritySaves")}
-										stroke="var(--color-savesInf)"
-										fill="url(#fillSavesInf)"
-										strokeWidth={2}
-										dot={false}
-										activeDot={{ r: 4 }}
+										dataKey="golesRecibidos"
+										name={tChart("goalsConceded")}
+										fill="var(--color-golesRecibidos)"
+										radius={[4, 4, 0, 0]}
+										maxBarSize={compact ? 18 : 26}
 									/>
 								) : null}
 
-								<Area
+								<Line
 									yAxisId="right"
 									type="monotone"
 									dataKey="percentage"
 									name={tChart("effectiveness")}
 									stroke="var(--color-percentage)"
-									fill="url(#fillPercentage)"
-									strokeWidth={2}
+									strokeWidth={2.5}
 									dot={false}
 									activeDot={{ r: 4 }}
 								/>
-							</AreaChart>
+							</ComposedChart>
 						</ResponsiveContainer>
 					</ChartContainer>
 				);
@@ -347,7 +315,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 											{showShotsAgainst ? <TableCell className="text-right tabular-nums">{m.tirosRecibidos}</TableCell> : null}
 
 											<TableCell className="text-right tabular-nums">
-												<span className="font-semibold text-white">{m.percentage.toFixed(1)}%</span>
+												<span className="font-semibold text-foreground">{m.percentage.toFixed(1)}%</span>
 											</TableCell>
 
 											<TableCell className="text-right text-muted-foreground">{m.fullDate}</TableCell>
@@ -384,7 +352,7 @@ export function GoalkeeperPerformanceChart({ matches, stats, hiddenStats = [] }:
 								) : null}
 
 								<span className="rounded-md border bg-card px-2 py-1">
-									{tChart("averagePercent")}: <span className="font-semibold text-white">{avgPctAll}%</span>
+									{tChart("averagePercent")}: <span className="font-semibold text-foreground">{avgPctAll}%</span>
 								</span>
 							</div>
 						</div>

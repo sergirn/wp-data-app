@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { ExpandableChartCard } from "@/components/analytics-player/ExpandableChartCard";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
-import { Bar, ComposedChart, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
+import { Bar, ComposedChart, Line, ResponsiveContainer, XAxis, YAxis, Legend, CartesianGrid } from "recharts";
 import type { Match, MatchStats, Player } from "@/lib/types";
 import { ShieldX } from "lucide-react";
 
@@ -75,18 +75,6 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 		return GOAL_DEFS.filter((def) => !hiddenSet.has(def.statKey));
 	}, [hiddenSet]);
 
-	const chartConfig = useMemo(() => {
-		return Object.fromEntries(
-			visibleDefs.map((def) => [
-				def.key,
-				{
-					label: tStat(def.statKey),
-					color: def.color
-				}
-			])
-		);
-	}, [visibleDefs, tStat]);
-
 	const allMatchData = useMemo(() => {
 		const sorted = [...(matches ?? [])].sort((a: any, b: any) => {
 			return new Date(a?.match_date).getTime() - new Date(b?.match_date).getTime();
@@ -120,9 +108,17 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 			.filter((row) => row.total > 0);
 	}, [matches, stats, hiddenSet, visibleDefs, locale]);
 
-	const compactMatchData = useMemo(() => {
-		return allMatchData.slice(-15);
-	}, [allMatchData]);
+	const chartData = useMemo(
+		() =>
+			allMatchData.map((match, index) => {
+				const recent = allMatchData.slice(Math.max(0, index - 2), index + 1);
+				const rolling = recent.reduce((sum, item) => sum + item.total, 0) / recent.length;
+				return { ...match, rolling: Number(rolling.toFixed(1)) };
+			}),
+		[allMatchData]
+	);
+
+	const compactMatchData = useMemo(() => chartData.slice(-15), [chartData]);
 
 	const total = useMemo(() => {
 		return allMatchData.reduce((sum, m) => sum + m.total, 0);
@@ -132,23 +128,29 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 
 	return (
 		<ExpandableChartCard
-			title={tChart("goalsByType")}
+			title={tChart("goalsByMatch")}
 			description={tChart("recordedTotal", { count: allMatchData.length, total })}
 			icon={<ShieldX className="w-5 h-5" />}
 			className="bg-gradient-to-br from-gray-500/5 to-black/5"
 			rightHeader={<span className="text-xs text-muted-foreground">{total}</span>}
 			renderChart={({ compact }) => {
-				const data = compact ? compactMatchData : allMatchData;
+				const data = compact ? compactMatchData : chartData;
 				const jornadaByXLabel = new Map(data.map((item) => [item.xLabel, item.jornada]));
 
 				return (
-					<ChartContainer config={chartConfig} className="w-full h-full">
+					<ChartContainer
+						config={{
+							total: { label: tChart("goalsConceded"), color: "hsl(0 84% 60%)" },
+							rolling: { label: tChart("goalsRolling"), color: "hsl(221 83% 53%)" }
+						}}
+						className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}
+					>
 						<ResponsiveContainer width="100%" height="100%">
 							<ComposedChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
 								<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.35} />
 								<XAxis
 									dataKey="xLabel"
-									fontSize={12}
+									fontSize={compact ? 10 : 12}
 									tickMargin={8}
 									axisLine={false}
 									tickLine={false}
@@ -156,7 +158,7 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 									minTickGap={18}
 									tickFormatter={(value) => jornadaByXLabel.get(String(value)) ?? ""}
 								/>
-								<YAxis fontSize={12} width={34} tickMargin={6} axisLine={false} tickLine={false} />
+								<YAxis fontSize={compact ? 10 : 12} width={compact ? 28 : 34} tickMargin={6} axisLine={false} tickLine={false} />
 								<ChartTooltip
 									content={
 										<ChartTooltipContent
@@ -167,18 +169,24 @@ export function GoalkeeperGoalsByTypeChart({ matches, stats, hiddenStats = [] }:
 										/>
 									}
 								/>
-								<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+								<Legend verticalAlign="bottom" height={compact ? 42 : 30} wrapperStyle={{ fontSize: compact ? 9 : 12, lineHeight: "16px" }} />
 
-								{visibleDefs.map((def, index) => (
-									<Bar
-										key={def.key}
-										dataKey={def.key}
-										name={tStat(def.statKey)}
-										stackId="g"
-										fill={`var(--color-${def.key})`}
-										radius={index === 0 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-									/>
-								))}
+								<Bar
+									dataKey="total"
+									name={tChart("goalsConceded")}
+									fill="var(--color-total)"
+									radius={[4, 4, 0, 0]}
+									maxBarSize={compact ? 22 : 30}
+								/>
+								<Line
+									type="monotone"
+									dataKey="rolling"
+									name={tChart("goalsRolling")}
+									stroke="var(--color-rolling)"
+									strokeWidth={2.5}
+									dot={false}
+									activeDot={{ r: 4 }}
+								/>
 							</ComposedChart>
 						</ResponsiveContainer>
 					</ChartContainer>

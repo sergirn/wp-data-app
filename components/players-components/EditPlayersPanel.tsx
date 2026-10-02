@@ -188,9 +188,9 @@ export function EditPlayersPanel({ players, clubId, onSaved }: Props) {
   }
 
   return (
-    <Card className="overflow-hidden shadow-sm">
+    <Card className="gap-0 overflow-hidden py-0 shadow-sm sm:gap-0 sm:py-0">
       <div className="h-1 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
-      <CardHeader className="border-b">
+      <CardHeader className="border-b py-4 sm:py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle className="text-xl sm:text-2xl">{t("title")}</CardTitle>

@@ -52,6 +52,7 @@ import type { MatchDraftPayload, MatchDraftRecord } from "@/lib/match-drafts";
 import { getMatchOutcome, getVenueScore } from "@/lib/matches/score";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type MatchWithCompetition = Match & {
 	competitions?: { id: number; name: string; slug: string; image_url: string | null } | null;
@@ -684,7 +685,15 @@ export default function MatchesPage() {
 						</Card>
 					) : matches.length > 0 ? (
 						<div>
-							<div className="grid gap-3 sm:gap-4">
+							<div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+								<div className="hidden grid-cols-[minmax(17rem,1.45fr)_minmax(11rem,.9fr)_minmax(10rem,.75fr)_minmax(12rem,.95fr)_7rem_1.5rem] items-center gap-5 border-b bg-muted/25 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground lg:grid">
+									<span>{matchesT("list.match")}</span>
+									<span>{matchesT("list.date")}</span>
+									<span>{matchesT("list.score")}</span>
+									<span>{matchesT("list.status")}</span>
+									<span className="text-center">{matchesT("list.actions")}</span>
+									<span className="sr-only">{matchesT("list.open")}</span>
+								</div>
 								{matches.map((match) => (
 									<MatchCard
 										key={match.id}
@@ -741,7 +750,15 @@ export default function MatchesPage() {
 
 				<TabsContent value="drafts">
 					{drafts.length > 0 ? (
-						<div className="grid gap-3 sm:gap-4">
+						<div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+							<div className="hidden grid-cols-[minmax(17rem,1.45fr)_minmax(12rem,.9fr)_minmax(12rem,.95fr)_minmax(10rem,.75fr)_9rem_1.5rem] items-center gap-5 border-b bg-muted/25 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground lg:grid">
+								<span>{matchesT("draftList.match")}</span>
+								<span>{matchesT("draftList.saved")}</span>
+								<span>{matchesT("draftList.expiration")}</span>
+								<span>{matchesT("draftList.squad")}</span>
+								<span className="text-center">{matchesT("draftList.actions")}</span>
+								<span className="sr-only">{matchesT("draftList.open")}</span>
+							</div>
 							{drafts.map((draft) => (
 								<DraftCard
 									key={draft.draftKey}
@@ -835,6 +852,11 @@ function DraftCard({
 		: remainingMs <= 86_400_000
 			? "text-amber-700 dark:text-amber-300"
 			: "text-muted-foreground";
+	const expirationBadge = isExpired
+		? "border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-300"
+		: remainingMs <= 86_400_000
+			? "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+			: "border-blue-500/20 bg-blue-500/8 text-blue-700 dark:text-blue-300";
 
 	const handleCardClick = (event: React.MouseEvent) => {
 		if ((event.target as HTMLElement).closest(".action-buttons")) return;
@@ -843,82 +865,69 @@ function DraftCard({
 	};
 
 	return (
-		<CardContent
-			className={`${isExpired ? "cursor-default opacity-80" : "cursor-pointer hover:bg-muted/100"} rounded-xl p-0 transition-colors`}
+		<div
+			role={isExpired ? undefined : "link"}
+			tabIndex={isExpired ? -1 : 0}
 			onClick={handleCardClick}
+			onKeyDown={(event) => {
+				if (isExpired || (event.target as HTMLElement).closest(".action-buttons")) return;
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					router.push(continueHref);
+				}
+			}}
+			className={cn("group border-b transition-colors last:border-0", isExpired ? "opacity-70" : "cursor-pointer hover:bg-primary/[0.035] focus-visible:bg-primary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring")}
 		>
-			<div className="relative overflow-hidden rounded-xl border-2 border-dashed border-blue-500/35">
-				<div className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[420px]">
-					<div className="relative h-full w-full">
-						<div className="absolute inset-10 rounded-full bg-gradient-to-br from-blue-500/70 via-cyan-400/30 to-transparent blur-3xl" />
-						<Image src={logo} alt="LEWaterpolo" fill sizes="(max-width: 640px) 280px, 420px" className="object-contain opacity-20" />
+			<div className="grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(17rem,1.45fr)_minmax(12rem,.9fr)_minmax(12rem,.95fr)_minmax(10rem,.75fr)_9rem_1.5rem] lg:items-center lg:gap-5">
+				<div className="flex min-w-0 items-center gap-3.5">
+					<div className="grid size-14 shrink-0 place-items-center rounded-xl border border-dashed border-blue-500/30 bg-blue-500/[0.06] shadow-sm">
+						<FileClock className="size-7 text-blue-600 dark:text-blue-300" />
+					</div>
+					<div className="min-w-0">
+						<div className="flex items-center gap-2">
+							<h2 className="truncate font-semibold tracking-tight sm:text-base">{localTeam} {t("versus")} {visitingTeam}</h2>
+							<Badge variant="outline" className="shrink-0 border-blue-500/25 bg-blue-500/8 text-[10px] text-blue-700 dark:text-blue-300">{t("drafts.badge")}</Badge>
+						</div>
+						<p className="mt-0.5 truncate text-xs text-muted-foreground">{matchDate.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })}{payload.season ? ` · ${payload.season}` : ""}{payload.jornada ? ` · ${t("matchday", { number: payload.jornada })}` : ""}</p>
+						{payload.location && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{payload.location}</p>}
 					</div>
 				</div>
-				<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/35" />
 
-				<div className="relative p-4 sm:p-6">
-					<div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
-						<div className="min-w-0 flex-1">
-							<div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-								<h3 className="truncate text-lg font-bold sm:text-xl">
-									{localTeam} {t("versus")} {visitingTeam}
-								</h3>
-								<span className="w-fit rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
-									{t("drafts.badge")}
-								</span>
-							</div>
-							<div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground sm:text-sm">
-								<span>
-									{matchDate.toLocaleDateString(locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-								</span>
-								{payload.location && <span>• {payload.location}</span>}
-								{payload.season && <span>• {payload.season}</span>}
-								{payload.jornada && <span>• {t("matchday", { number: payload.jornada })}</span>}
-							</div>
-						</div>
-
-						<div className="flex min-w-[190px] flex-col items-center justify-center gap-1 rounded-lg bg-blue-500/5 px-4 py-3">
-							<FileClock className="h-6 w-6 text-blue-600 dark:text-blue-300" />
-							<p className="font-semibold">{t("drafts.inProgress")}</p>
-							<p className="text-xs text-muted-foreground">{t("drafts.players", { count: playerCount })}</p>
-						</div>
-					</div>
-
-					<div className="action-buttons mt-4 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
-						<div className="flex flex-col gap-1 text-xs">
-							<div className="flex items-center gap-1.5 text-muted-foreground">
-								<Clock3 className="h-3.5 w-3.5" />
-								{t("drafts.updated", { date: updatedAt.toLocaleString(locale) })}
-							</div>
-							<div className={`flex items-center gap-1.5 font-medium ${expirationColor}`}>
-								<FileClock className="h-3.5 w-3.5" />
-								{expirationText}
-							</div>
-						</div>
-						<div className="flex gap-2">
-							{isExpired ? (
-								<Button type="button" variant="ghost" disabled>
-									<Edit className="mr-2 h-4 w-4" />
-									{t("drafts.expired")}
-								</Button>
-							) : (
-								<Button asChild variant="ghost" className="text-blue-700 hover:bg-blue-500/10 hover:text-blue-800 dark:text-blue-300">
-									<Link href={continueHref}>
-										<Edit className="mr-2 h-4 w-4" />
-										{t("drafts.continue")}
-									</Link>
-								</Button>
-							)}
-							<DeleteDraftButton draft={draft} onDelete={onDelete} />
+				<div className="rounded-xl border bg-muted/10 p-3 lg:border-0 lg:bg-transparent lg:p-0">
+					<div className="flex items-center justify-between gap-3 lg:block">
+						<span className="text-xs text-muted-foreground lg:hidden">{t("draftList.saved")}</span>
+						<div className="text-right lg:text-left">
+							<p className="text-xs font-medium">{updatedAt.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })}</p>
+							<p className="mt-1 flex items-center justify-end gap-1 text-[11px] text-muted-foreground lg:justify-start"><Clock3 className="size-3" />{updatedAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</p>
 						</div>
 					</div>
 				</div>
+
+				<div className="flex items-center justify-between gap-3 lg:block">
+					<span className="text-xs text-muted-foreground lg:hidden">{t("draftList.expiration")}</span>
+					<div className="text-right lg:text-left">
+						<Badge variant="outline" className={cn("text-[10px]", expirationBadge)}><FileClock className="size-3" />{expirationText}</Badge>
+						<p className={cn("mt-1.5 text-[11px]", expirationColor)}>{expiresAt.toLocaleDateString(locale, { day: "2-digit", month: "short" })} · {expiresAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</p>
+					</div>
+				</div>
+
+				<div className="flex items-center justify-between gap-3">
+					<span className="text-xs text-muted-foreground lg:hidden">{t("draftList.squad")}</span>
+					<div className="text-right lg:text-left"><p className="text-xs font-semibold tabular-nums">{t("drafts.players", { count: playerCount })}</p><p className="mt-1 text-[11px] text-blue-700 dark:text-blue-300">{t("drafts.inProgress")}</p></div>
+				</div>
+
+				<div className="action-buttons flex items-center justify-end gap-1 border-t pt-3 lg:border-0 lg:pt-0">
+					{isExpired ? <Button type="button" variant="ghost" size="icon" disabled aria-label={t("drafts.expired")}><Edit className="size-4" /></Button> : <Button asChild variant="ghost" size="icon" className="text-blue-600 hover:bg-blue-500/10 hover:text-blue-700 dark:text-blue-400"><Link href={continueHref} aria-label={t("drafts.continue")} title={t("drafts.continue")}><Edit className="size-4" /></Link></Button>}
+					<DeleteDraftButton draft={draft} onDelete={onDelete} compact />
+				</div>
+
+				<ChevronRight className={cn("hidden size-5 text-muted-foreground transition-transform lg:block", !isExpired && "group-hover:translate-x-0.5 group-hover:text-primary")} />
 			</div>
-		</CardContent>
+		</div>
 	);
 }
 
-function DeleteDraftButton({ draft, onDelete }: { draft: MatchListDraft; onDelete: (draft: MatchListDraft) => Promise<void> }) {
+function DeleteDraftButton({ draft, onDelete, compact = false }: { draft: MatchListDraft; onDelete: (draft: MatchListDraft) => Promise<void>; compact?: boolean }) {
 	const t = useTranslations("Matches");
 	const common = useTranslations("Common");
 	const [deleting, setDeleting] = useState(false);
@@ -938,9 +947,9 @@ function DeleteDraftButton({ draft, onDelete }: { draft: MatchListDraft; onDelet
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button type="button" variant="ghost" className="text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:text-red-300">
-					<Trash2 className="mr-2 h-4 w-4" />
-					{t("delete")}
+				<Button type="button" variant="ghost" size={compact ? "icon" : "default"} aria-label={t("delete")} title={compact ? t("delete") : undefined} className="text-red-700 hover:bg-red-500/10 hover:text-red-800 dark:text-red-300">
+					<Trash2 className={cn("h-4 w-4", !compact && "mr-2")} />
+					{!compact && t("delete")}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
@@ -996,20 +1005,13 @@ function MatchCard({
 
 	const outcome = getMatchOutcome(match);
 	const result = hasPenalties ? t(outcome === "win" ? "results.penaltyWin" : "results.penaltyLoss") : t(`results.${outcome}`);
-	const resultColor =
-		outcome === "win"
-			? "text-green-600 dark:text-green-400"
-			: outcome === "loss"
-				? "text-red-600 dark:text-red-400"
-				: "text-yellow-600 dark:text-yellow-400";
 	const reviewStatus = match.review_status ?? "pending_review";
-
-	const logoGlow =
-		outcome === "win"
-			? "from-green-500/80 via-emerald-400/40 to-transparent"
-			: outcome === "loss"
-				? "from-red-500/80 via-rose-400/40 to-transparent"
-				: "from-yellow-500/80 via-amber-400/40 to-transparent";
+	const statsEnabled = match.stats_enabled ?? true;
+	const outcomeClasses = outcome === "win"
+		? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+		: outcome === "loss"
+			? "bg-rose-500/12 text-rose-700 dark:text-rose-300"
+			: "bg-amber-500/12 text-amber-700 dark:text-amber-300";
 
 	const handleCardClick = (e: React.MouseEvent) => {
 		if ((e.target as HTMLElement).closest(".action-buttons")) {
@@ -1019,145 +1021,73 @@ function MatchCard({
 	};
 
 	return (
-		<CardContent className="p-0 hover:bg-muted/100 rounded-xl transition-colors cursor-pointer" onClick={handleCardClick}>
-			<div className="relative overflow-hidden rounded-xl border-2">
-				<div className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[420px]">
-					<div className="relative h-full w-full">
-						<div className={`absolute inset-10 rounded-full bg-gradient-to-br ${logoGlow} blur-3xl`} />
-						<Image
-							src={competitionImage ?? logo}
-							alt={match.competitions?.name ?? "LEWaterpolo"}
-							fill
-							sizes="(max-width: 640px) 280px, 420px"
-							className="object-contain opacity-30 hover:opacity-50  transition-opacity duration-200"
-						/>
+		<div
+			role="link"
+			tabIndex={0}
+			onClick={handleCardClick}
+			onKeyDown={(event) => {
+				if ((event.target as HTMLElement).closest(".action-buttons")) return;
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					router.push(`/partidos/${match.id}`);
+				}
+			}}
+			className="group cursor-pointer border-b transition-colors last:border-0 hover:bg-primary/[0.035] focus-visible:bg-primary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+		>
+			<div className="grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(17rem,1.45fr)_minmax(11rem,.9fr)_minmax(10rem,.75fr)_minmax(12rem,.95fr)_7rem_1.5rem] lg:items-center lg:gap-5">
+				<div className="flex min-w-0 items-center gap-3.5">
+					<div className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background shadow-sm transition-transform group-hover:scale-[1.03]">
+						<Image src={competitionImage ?? logo} alt="" fill sizes="56px" className={competitionImage ? "object-contain p-1.5" : "object-contain p-2 opacity-65"} />
+					</div>
+					<div className="min-w-0">
+						<div className="flex items-center gap-2">
+							<h2 className="truncate font-semibold tracking-tight sm:text-base">{localTeam} {t("versus")} {visitingTeam}</h2>
+							<ChevronRight className="size-4 shrink-0 text-muted-foreground lg:hidden" />
+						</div>
+						<p className="mt-0.5 truncate text-xs text-muted-foreground">{match.competitions?.name ?? t("list.competitionFallback")}{match.season ? ` · ${match.season}` : ""}</p>
 					</div>
 				</div>
 
-				<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/30" />
-
-				<div className="relative p-4 sm:p-6">
-					<div className="flex flex-col sm:flex-row sm:justify-between gap-4">
-						<div className="flex-1 min-w-0">
-							<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-								<h3 className="text-lg sm:text-xl font-bold truncate">
-									{localTeam} {t("versus")} {visitingTeam}
-								</h3>
-								<span className={`text-xs sm:text-sm font-semibold ${resultColor}`}>{result}</span>
-								<Badge
-									variant="outline"
-									className={
-										reviewStatus === "locked"
-											? "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300"
-											: reviewStatus === "reviewed"
-												? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-												: "text-muted-foreground"
-									}
-								>
-									{reviewStatus === "locked" ? <LockKeyhole /> : <ClipboardCheck />}
-									{t(`reviewStatus.${reviewStatus}`)}
-								</Badge>
-							</div>
-
-							<div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
-								<span>
-									{matchDate.toLocaleDateString(locale, {
-										weekday: "long",
-										year: "numeric",
-										month: "long",
-										day: "numeric"
-									})}
-								</span>
-
-								{match.location && <span>• {match.location}</span>}
-								{match.season && <span>• {match.season}</span>}
-								{match.jornada && <span>• {t("matchday", { number: match.jornada })}</span>}
-							</div>
+				<div className="rounded-xl border bg-muted/10 p-3 lg:border-0 lg:bg-transparent lg:p-0">
+					<div className="flex items-center justify-between gap-3 lg:block">
+						<span className="text-xs text-muted-foreground lg:hidden">{t("list.date")}</span>
+						<div className="text-right lg:text-left">
+							<p className="text-xs font-medium">{matchDate.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })}</p>
+							<p className="mt-1 truncate text-[11px] text-muted-foreground">{match.jornada ? t("matchday", { number: match.jornada }) : "—"}{match.location ? ` · ${match.location}` : ""}</p>
 						</div>
-
-						{/* MARCADOR */}
-						<div className="flex flex-col items-center justify-center gap-2 w-full sm:w-auto">
-							<div className="flex items-center gap-4 sm:gap-6">
-								<div className="text-center">
-									<p className="text-2xl sm:text-3xl font-bold">{localScore}</p>
-									<p className="text-xs text-muted-foreground truncate max-w-[120px]">{localTeam}</p>
-								</div>
-
-								<div className="text-xl sm:text-2xl font-bold text-muted-foreground">-</div>
-
-								<div className="text-center">
-									<p className="text-2xl sm:text-3xl font-bold">{visitingScore}</p>
-									<p className="text-xs text-muted-foreground truncate max-w-[120px]">{visitingTeam}</p>
-								</div>
-							</div>
-
-							{hasPenalties && (
-								<div className="text-xs text-muted-foreground font-medium">
-									{t("penalties", { home: localPenaltyScore ?? 0, away: visitingPenaltyScore ?? 0 })}
-								</div>
-							)}
-						</div>
-					</div>
-
-					{canEdit && reviewStatus !== "locked" && (
-						<div className="flex gap-4 mt-2 action-buttons">
-							<Button
-								type="button"
-								variant="ghost"
-								onClick={(e) => {
-									e.stopPropagation();
-									onToggleStatsEnabled(match.id, match.stats_enabled ?? true);
-								}}
-								className={`group flex-1 h-10 rounded-md flex items-center justify-center gap-2 transition-all duration-200 font-medium ${
-									match.stats_enabled
-										? "text-green-700 dark:text-green-400 bg-green-500/5 hover:bg-green-500/20"
-										: "text-amber-700 dark:text-amber-400 bg-amber-500/5 hover:bg-amber-500/20"
-								}`}
-							>
-								{match.stats_enabled ? <CheckCircle2 className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
-								<span className="hidden sm:inline text-sm">{match.stats_enabled ? t("statsEnabled") : t("statsDisabled")}</span>
-							</Button>
-
-							<Link
-								href={`/nuevo-partido?matchId=${match.id}`}
-								className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
-                  text-blue-700 dark:text-blue-400 
-                  bg-blue-500/5 hover:bg-blue-500/20 
-                  transition-all duration-200 font-medium"
-							>
-								<Edit className="h-4 w-4" />
-								<span className="hidden sm:inline text-sm">{t("edit")}</span>
-							</Link>
-
-							<div
-								className="group flex-1 h-10 rounded-md flex items-center justify-center gap-2 
-                  text-red-700 dark:text-red-400 
-                  bg-red-500/5 hover:bg-red-500/20 
-                  transition-all duration-200 font-medium"
-							>
-								<DeleteMatchButton matchId={match.id} onDeleted={onDeleted} />
-								<span className="hidden sm:inline text-sm">{t("delete")}</span>
-							</div>
-						</div>
-					)}
-					<div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-						<span>{t("poweredBy")}</span>
-
-						<Image
-							src="/images/logo-sponsor/TFT_LOGO.webp"
-							alt="TFT"
-							width={30}
-							height={18}
-							className="h-[40px] w-auto dark:invert dark:brightness-0 dark:contrast-200"
-						/>
-
-						<span>&amp;</span>
-						<span></span>
-
-						<Image src="/images/logo-sponsor/bwmf.svg" alt="BWMF" width={86} height={38} className="h-[30px] w-auto" />
 					</div>
 				</div>
+
+				<div className="flex items-center justify-between gap-3 lg:block">
+					<span className="text-xs text-muted-foreground lg:hidden">{t("list.score")}</span>
+					<div className="flex items-center gap-3 lg:block">
+						<div className="flex items-baseline gap-2 text-xl font-bold tabular-nums"><span>{localScore}</span><span className="text-sm font-medium text-muted-foreground">–</span><span>{visitingScore}</span></div>
+						<Badge variant="outline" className={cn("mt-1 border-0 px-2 text-[10px]", outcomeClasses)}>{result}</Badge>
+						{hasPenalties && <p className="mt-1 text-[10px] text-muted-foreground">{t("penalties", { home: localPenaltyScore ?? 0, away: visitingPenaltyScore ?? 0 })}</p>}
+					</div>
+				</div>
+
+				<div className="space-y-2">
+					<div className="flex items-center justify-between gap-3 lg:justify-start">
+						<span className="text-xs text-muted-foreground lg:hidden">{t("list.status")}</span>
+						<Badge variant="outline" className={cn("text-[10px]", reviewStatus === "locked" ? "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300" : reviewStatus === "reviewed" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "text-muted-foreground")}>
+							{reviewStatus === "locked" ? <LockKeyhole className="size-3" /> : <ClipboardCheck className="size-3" />}{t(`reviewStatus.${reviewStatus}`)}
+						</Badge>
+					</div>
+					{canEdit && reviewStatus !== "locked" ? <button type="button" onClick={(event) => { event.stopPropagation(); onToggleStatsEnabled(match.id, statsEnabled); }} className={cn("action-buttons flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors", statsEnabled ? "bg-emerald-500/8 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300" : "bg-amber-500/8 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300")}>
+						{statsEnabled ? <CheckCircle2 className="size-3.5" /> : <PauseCircle className="size-3.5" />}{statsEnabled ? t("statsEnabled") : t("statsDisabled")}
+					</button> : <span className={cn("inline-flex items-center gap-1.5 text-[11px]", statsEnabled ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300")}>{statsEnabled ? <CheckCircle2 className="size-3.5" /> : <PauseCircle className="size-3.5" />}{statsEnabled ? t("statsEnabled") : t("statsDisabled")}</span>}
+				</div>
+
+				<div className="action-buttons flex items-center justify-end gap-1 border-t pt-3 lg:border-0 lg:pt-0">
+					{canEdit && reviewStatus !== "locked" ? <>
+						<Link href={`/nuevo-partido?matchId=${match.id}`} aria-label={t("edit")} title={t("edit")} className="grid size-8 place-items-center rounded-md text-blue-600 transition-colors hover:bg-blue-500/10 hover:text-blue-700 dark:text-blue-400"><Edit className="size-4" /></Link>
+						<DeleteMatchButton matchId={match.id} onDeleted={onDeleted} className="hover:bg-red-500/10" />
+					</> : <span className="text-xs text-muted-foreground">—</span>}
+				</div>
+
+				<ChevronRight className="hidden size-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary lg:block" />
 			</div>
-		</CardContent>
+		</div>
 	);
 }

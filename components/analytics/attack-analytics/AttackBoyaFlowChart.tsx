@@ -109,7 +109,7 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 						golesBoya: { label: t("centerGoal"), color: "hsla(145, 63%, 42%, 1.00)" },
 						conversionBoya: { label: t("centerConversionPercentage"), color: "hsla(42, 96%, 55%, 1.00)" }
 					}}
-					className={`w-full ${compact ? "h-[260px]" : "h-[340px] lg:h-[380px]"}`}
+					className={`w-full ${compact ? "h-[250px] sm:h-[270px] xl:h-[290px]" : "h-[340px] sm:h-[380px] xl:h-[420px]"}`}
 				>
 					<ResponsiveContainer width="100%" height="100%">
 						<ComposedChart data={matchData} margin={{ top: 8, right: 14, left: 0, bottom: 0 }}>
@@ -150,7 +150,7 @@ export function AttackBoyaFlowChart({ matches, stats, hiddenStats = [] }: Attack
 								}
 							/>
 
-							<Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 12 }} />
+							<Legend verticalAlign="bottom" height={compact ? 34 : 30} wrapperStyle={{ fontSize: compact ? 10 : 12, lineHeight: "16px" }} />
 
 							<Bar yAxisId="left" dataKey="paseBoya" name={t("centerPass")} fill="var(--color-paseBoya)" radius={[4, 4, 0, 0]} />
 							<Bar

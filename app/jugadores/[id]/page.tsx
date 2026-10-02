@@ -7,13 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
 import { PlayerHeroHeader } from "./playerHeader";
 import { PerformanceEvolutionChart } from "@/components/analytics-player/evolution-component/PerformanceEvolutionChart";
-import {
-	GoalkeeperShotForChart,
-	GoalkeeperShotsGoalChartSimple
-} from "@/components/analytics-goalkeeper/evolution-component/GoalkeepersShotsEvolutions";
+import { GoalkeeperShotsGoalChart, type GoalkeeperShotRow } from "@/components/analytics-goalkeeper/GoalkeeperShotsGoalChart";
 import { FieldPlayerMatchStatsClient } from "./FieldPlayerMatchStatsClient";
 import { GoalkeeperMatchStatsClient } from "./GoalkeeperMatchStatsClient";
-import { ChartSwipeCarousel } from "@/components/chartCarousel";
 import { FieldPlayerTotalsCard } from "@/components/analytics-player/total-stats-player/PlayerTotals";
 import { GoalkeeperTotalsCard } from "@/components/analytics-goalkeeper/total-stats-goalkeeper/GoalkeeperTotals";
 
@@ -143,14 +139,14 @@ async function FieldPlayerPage({ player, matchStats, hiddenStats, seasons, selec
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
-				<TabsList className="grid w-full grid-cols-3 md:grid-cols-3 h-auto gap-1">
-					<TabsTrigger value="resumen" className="text-xs md:text-sm py-2">
+				<TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3">
+					<TabsTrigger value="resumen" className="min-w-32 flex-none py-2 text-xs sm:min-w-0 md:text-sm">
 						{t("summary")}
 					</TabsTrigger>
-					<TabsTrigger value="partidos" className="text-xs md:text-sm py-2">
+					<TabsTrigger value="partidos" className="min-w-40 flex-none py-2 text-xs sm:min-w-0 md:text-sm">
 						{t("matchPerformance")}
 					</TabsTrigger>
-					<TabsTrigger value="evolucion" className="text-xs md:text-sm py-2">
+					<TabsTrigger value="evolucion" className="min-w-32 flex-none py-2 text-xs sm:min-w-0 md:text-sm">
 						{t("evolution")}
 					</TabsTrigger>
 				</TabsList>
@@ -171,7 +167,7 @@ async function FieldPlayerPage({ player, matchStats, hiddenStats, seasons, selec
 
 				<TabsContent value="evolucion" className="space-y-6">
 					<PlayerTrendPanel matchStats={matchStats} isGoalkeeper={false} />
-					<ChartSwipeCarousel className="w-full" items={[<PerformanceEvolutionChart key="performance" matchStats={matchStats} player={player} />]} />
+					<PerformanceEvolutionChart matchStats={matchStats} player={player} hiddenStats={hiddenStats} />
 				</TabsContent>
 			</Tabs>
 		</main>
@@ -251,7 +247,7 @@ async function GoalkeeperPage({
 }: {
 	player: Player;
 	matchStats: MatchStatsWithMatch[];
-	goalkeeperShots: any[];
+	goalkeeperShots: GoalkeeperShotRow[];
 	hiddenStats: Set<string>;
 	seasons: string[];
 	selectedSeason: string;
@@ -260,14 +256,7 @@ async function GoalkeeperPage({
 	const matchCount = matchStats.length;
 
 	const goalkeeperStats = calculateGoalkeeperStats(matchStats, hiddenStats);
-	const chartShots: GoalkeeperShotForChart[] = (goalkeeperShots ?? []).map((s: any) => ({
-		id: s.id,
-		match_id: s.match_id,
-		goalkeeper_player_id: Number(s.goalkeeper_player_id),
-		x: Number(s.x),
-		y: Number(s.y),
-		result: s.result === "save" ? "save" : "goal"
-	}));
+	const shotMatches = matchStats.map((stat) => stat.matches).filter(Boolean);
 
 	return (
 		<main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -291,14 +280,14 @@ async function GoalkeeperPage({
 			</div>
 
 			<Tabs defaultValue="resumen" className="space-y-6">
-				<TabsList className="grid w-full grid-cols-3 md:grid-cols-3 h-auto gap-1">
-					<TabsTrigger value="resumen" className="text-xs md:text-sm py-2">
+				<TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3">
+					<TabsTrigger value="resumen" className="min-w-32 flex-none py-2 text-xs sm:min-w-0 md:text-sm">
 						{t("performance")}
 					</TabsTrigger>
-					<TabsTrigger value="partidos" className="text-xs md:text-sm py-2">
+					<TabsTrigger value="partidos" className="min-w-40 flex-none py-2 text-xs sm:min-w-0 md:text-sm">
 						{t("matchPerformance")}
 					</TabsTrigger>
-					<TabsTrigger value="evolucion" className="text-xs md:text-sm py-2">
+					<TabsTrigger value="evolucion" className="min-w-32 flex-none py-2 text-xs sm:min-w-0 md:text-sm">
 						{t("evolution")}
 					</TabsTrigger>
 				</TabsList>
@@ -319,13 +308,8 @@ async function GoalkeeperPage({
 
 				<TabsContent value="evolucion" className="space-y-6">
 					<PlayerTrendPanel matchStats={matchStats} isGoalkeeper />
-					<ChartSwipeCarousel
-						className="w-full"
-						items={[
-							<GoalkeeperShotsGoalChartSimple key="shots" shots={chartShots} goalkeeperPlayerId={player.id} />,
-							<PerformanceEvolutionChart key="performance" matchStats={matchStats} player={player} />
-						]}
-					/>
+					<GoalkeeperShotsGoalChart rows={goalkeeperShots} matches={shotMatches} players={[player]} />
+					<PerformanceEvolutionChart matchStats={matchStats} player={player} hiddenStats={hiddenStats} />
 				</TabsContent>
 			</Tabs>
 		</main>

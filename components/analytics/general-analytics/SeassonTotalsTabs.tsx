@@ -128,7 +128,7 @@ export function SeasonDefenseTotals({ stats, hiddenStats }: { stats: MatchStats[
 	return (
 		<div className="bg-transparent shadow-none">
 			<CardContent className="p-0 space-y-3">
-				<div className="grid grid-cols-4 lg:grid-cols-4 gap-2">
+				<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
 					<MiniKpi label={t("fouls")} value={derived.totalFouls} />
 					<MiniKpi label={t("blocks")} value={derived.blocks} />
 					<MiniKpi label={t("recoveries")} value={derived.recoveries} />

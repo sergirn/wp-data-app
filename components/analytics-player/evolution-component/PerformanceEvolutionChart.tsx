@@ -4,20 +4,23 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { BarChart3, Table2, Loader2, TrendingUp } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Player, MatchStats, Match } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader as UITableHeader, TableRow } from "@/components/ui/table";
 import { useStatWeights } from "@/hooks/useStatWeights";
 import { useLocale, useTranslations } from "next-intl";
+import { getGoalkeeperDerived } from "@/lib/stats/goalkeeperStatsHelpers";
+import { getPlayerDerived } from "@/lib/stats/playerStatsHelpers";
 
 type ViewMode = "chart" | "table";
 type MatchStatsWithMatch = MatchStats & { matches: Match };
 
-function computeWeightedScore(row: Record<string, any>, weights: Record<string, number>): number {
+function computeWeightedScore(row: object, weights: Record<string, number>): number {
 	let score = 0;
+	const values = row as Record<string, unknown>;
 	for (const [key, weightRaw] of Object.entries(weights)) {
 		const weight = Number(weightRaw);
-		const value = Number(row?.[key] ?? 0);
+		const value = Number(values[key] ?? 0);
 		if (Number.isFinite(weight) && Number.isFinite(value)) score += value * weight;
 	}
 	return Math.round(score);
@@ -26,47 +29,57 @@ function computeWeightedScore(row: Record<string, any>, weights: Record<string, 
 const formatDate = (d: string | undefined, locale: string) =>
 	d ? new Date(d).toLocaleDateString(locale, { year: "numeric", month: "2-digit", day: "2-digit" }) : "";
 
-export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: MatchStatsWithMatch[]; player: Player }) {
+export function PerformanceEvolutionChart({ matchStats, player, hiddenStats }: { matchStats: MatchStatsWithMatch[]; player: Player; hiddenStats?: string[] | Set<string> }) {
 	const [view, setView] = useState<ViewMode>("chart");
 	const t = useTranslations("Evolution");
 	const locale = useLocale();
 	const { weights, loaded } = useStatWeights();
 	const hasWeights = loaded && Object.keys(weights).length > 0;
 
-	// ✅ Data 1:1 desde matchStats y orden cronológico + media acumulada
 	const data = useMemo(() => {
 		const arr = Array.isArray(matchStats) ? matchStats : [];
-		const sorted = [...arr].sort((a: any, b: any) => {
+		const sorted = [...arr].sort((a, b) => {
 			const da = new Date(a?.matches?.match_date ?? 0).getTime();
 			const db = new Date(b?.matches?.match_date ?? 0).getTime();
 			return da - db;
 		});
 
-		let runningSum = 0;
-
-		return sorted.map((stat: any, idx: number) => {
+		const rows = sorted.map((stat, idx) => {
 			const match = stat.matches;
-
 			const puntos = hasWeights ? computeWeightedScore(stat, weights) : 0;
-
-			runningSum += Number(puntos) || 0;
-			const mediaPuntos = runningSum / (idx + 1);
-
 			const jornada = match?.jornada ?? idx + 1;
-
+			const roleMetrics = player.is_goalkeeper
+				? (() => {
+					const derived = getGoalkeeperDerived(stat, hiddenStats);
+					return { primary: derived.saves, secondary: derived.goalsConceded, efficiency: derived.savePct };
+				})()
+				: (() => {
+					const derived = getPlayerDerived(stat, hiddenStats);
+					return { primary: derived.goals, secondary: derived.assists, efficiency: derived.efficiency };
+				})();
 			return {
 				match: String(jornada),
 				opponent: match?.opponent ?? "—",
 				date: formatDate(match?.match_date, locale),
 				puntos,
-				mediaPuntos // ✅ MEDIA ACUMULADA (varía por jornada)
+				...roleMetrics
 			};
 		});
-	}, [matchStats, hasWeights, weights, locale]);
+
+		return rows.map((row, index) => {
+			const elapsed = rows.slice(0, index + 1);
+			const recent = rows.slice(Math.max(0, index - 2), index + 1);
+			return {
+				...row,
+				mediaPuntos: elapsed.reduce((total, item) => total + item.puntos, 0) / elapsed.length,
+				rollingEfficiency: recent.reduce((total, item) => total + item.efficiency, 0) / recent.length
+			};
+		});
+	}, [matchStats, hasWeights, weights, locale, player.is_goalkeeper, hiddenStats]);
 
 	const avgPts = useMemo(() => {
 		if (!data.length) return "0.0";
-		const v = data.reduce((s: number, d: any) => s + (Number(d.puntos) || 0), 0) / data.length;
+		const v = data.reduce((sum, item) => sum + (Number(item.puntos) || 0), 0) / data.length;
 		return v.toFixed(1);
 	}, [data]);
 
@@ -89,9 +102,9 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 	);
 
 	return (
-		<div className="space-y-6">
-			<Card>
-				<CardHeader className="space-y-1">
+		<div className="space-y-4">
+			<Card className="overflow-hidden rounded-2xl">
+				<CardHeader className="space-y-1 pb-3">
 					<div className="flex items-start justify-between gap-3">
 						<div className="min-w-0">
 							<CardTitle>{t("title")}</CardTitle>
@@ -114,24 +127,22 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 					) : null}
 				</CardHeader>
 
-				<CardContent className="min-w-0 w-full overflow-hidden">
+				<CardContent className="min-w-0 w-full overflow-hidden px-3 pb-4 sm:px-5">
 					{view === "chart" ? (
-						<div className="h-[400px] w-full">
+						<div className="h-[250px] w-full sm:h-[280px]">
 							<ResponsiveContainer width="100%" height="100%">
-								<LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-									<CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-
-									{/* ✅ Textos: dark blanco / light negro */}
+								<LineChart data={data} margin={{ top: 8, right: 10, left: -18, bottom: 0 }}>
+									<CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" opacity={0.6} />
 									<XAxis
 										dataKey="match"
-										tick={{ fill: "currentColor", fontSize: 12 }}
-										axisLine={{ stroke: "hsl(var(--border))" }}
-										tickLine={{ stroke: "hsl(var(--border))" }}
+										tick={{ fill: "currentColor", fontSize: 11 }}
+										axisLine={false}
+										tickLine={false}
 									/>
 									<YAxis
-										tick={{ fill: "currentColor", fontSize: 12 }}
-										axisLine={{ stroke: "hsl(var(--border))" }}
-										tickLine={{ stroke: "hsl(var(--border))" }}
+										tick={{ fill: "currentColor", fontSize: 11 }}
+										axisLine={false}
+										tickLine={false}
 										domain={["auto", "auto"]}
 									/>
 
@@ -139,7 +150,7 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 										cursor={{ stroke: "hsl(var(--border))" }}
 										content={({ active, payload, label }) => {
 											if (!active || !payload?.length) return null;
-											const p: any = payload[0]?.payload;
+											const p = payload[0]?.payload as (typeof data)[number] | undefined;
 											return (
 												<div className="rounded-lg border bg-popover px-3 py-2 text-popover-foreground shadow-md">
 													<div className="text-xs text-muted-foreground">
@@ -157,34 +168,25 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 										}}
 									/>
 
-									<Legend
-										wrapperStyle={{
-											color: "currentcolor",
-											fontSize: 12
-										}}
-									/>
-
-									{/* ✅ Línea puntos (visible SIEMPRE) */}
+									<Legend wrapperStyle={{ color: "currentcolor", fontSize: 11 }} />
 									<Line
 										type="monotone"
 										dataKey="puntos"
-										stroke="green"
-										strokeWidth={4}
-										dot={{ r: 3, fill: "white", stroke: "hsl(var(--foreground))", strokeWidth: 2 }}
-										activeDot={{ r: 5, fill: "currentcolor", stroke: "hsl(var(--foreground))", strokeWidth: 2 }}
+										stroke="#2563eb"
+										strokeWidth={2.5}
+										dot={{ r: 3, fill: "var(--card)", stroke: "#2563eb", strokeWidth: 2 }}
+										activeDot={{ r: 5, fill: "#2563eb", stroke: "var(--card)", strokeWidth: 2 }}
 										isAnimationActive={false}
 										connectNulls
 									name={t("points")}
 									/>
 
-									{/* ✅ Media acumulada (varía por jornada y es visible) */}
 									<Line
 										type="monotone"
 										dataKey="mediaPuntos"
-										stroke="magenta"
-										strokeWidth={5}
-										strokeDasharray="7 6"
-										opacity={0.95}
+										stroke="#f59e0b"
+										strokeWidth={2}
+										strokeDasharray="6 5"
 										dot={false}
 										isAnimationActive={false}
 									name={t("cumulativeAverageLabel")}
@@ -208,7 +210,7 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 										</UITableHeader>
 
 										<TableBody>
-											{data.map((m: any, idx: number) => (
+											{data.map((m, idx) => (
 												<TableRow
 													key={`${m.match}-${m.date}-${idx}`}
 													className={`${idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"} hover:bg-muted/40`}
@@ -254,6 +256,20 @@ export function PerformanceEvolutionChart({ matchStats, player }: { matchStats: 
 					)}
 				</CardContent>
 			</Card>
+
+			{view === "chart" && (
+				<div className="grid gap-4 lg:grid-cols-2">
+					<Card className="overflow-hidden rounded-2xl">
+						<CardHeader className="pb-2"><CardTitle className="text-base">{t("production.title")}</CardTitle><CardDescription>{t(player.is_goalkeeper ? "production.goalkeeperDescription" : "production.playerDescription")}</CardDescription></CardHeader>
+						<CardContent className="px-3 pb-4 sm:px-5"><div className="h-[220px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={data} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.45} /><XAxis dataKey="match" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} /><Tooltip contentStyle={{ borderRadius: 12, borderColor: "var(--border)", background: "var(--popover)", color: "var(--popover-foreground)" }} labelFormatter={(label) => t("roundValue", { value: String(label) })} /><Legend wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="primary" name={t(player.is_goalkeeper ? "production.saves" : "production.goals")} fill="#2563eb" radius={[5, 5, 0, 0]} maxBarSize={28} /><Bar dataKey="secondary" name={t(player.is_goalkeeper ? "production.conceded" : "production.assists")} fill="#14b8a6" radius={[5, 5, 0, 0]} maxBarSize={28} /></BarChart></ResponsiveContainer></div></CardContent>
+					</Card>
+
+					<Card className="overflow-hidden rounded-2xl">
+						<CardHeader className="pb-2"><CardTitle className="text-base">{t("efficiency.title")}</CardTitle><CardDescription>{t(player.is_goalkeeper ? "efficiency.goalkeeperDescription" : "efficiency.playerDescription")}</CardDescription></CardHeader>
+						<CardContent className="px-3 pb-4 sm:px-5"><div className="h-[220px] w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={data} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><defs><linearGradient id={`efficiency-${player.id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.28} /><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.02} /></linearGradient></defs><CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.45} /><XAxis dataKey="match" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} /><YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} width={32} unit="%" /><Tooltip contentStyle={{ borderRadius: 12, borderColor: "var(--border)", background: "var(--popover)", color: "var(--popover-foreground)" }} formatter={(value, name) => [`${Number(value).toFixed(1)}%`, String(name)]} labelFormatter={(label) => t("roundValue", { value: String(label) })} /><Legend wrapperStyle={{ fontSize: 11 }} /><Area type="monotone" dataKey="efficiency" name={t("efficiency.match")} stroke="#8b5cf6" strokeWidth={2.5} fill={`url(#efficiency-${player.id})`} dot={{ r: 2.5 }} /><Line type="monotone" dataKey="rollingEfficiency" name={t("efficiency.rolling")} stroke="#f59e0b" strokeWidth={2} strokeDasharray="6 4" dot={false} /></AreaChart></ResponsiveContainer></div></CardContent>
+					</Card>
+				</div>
+			)}
 		</div>
 	);
 }

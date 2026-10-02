@@ -16,6 +16,7 @@ import {
 import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MatchAction, Player } from "@/lib/types";
@@ -123,16 +124,62 @@ export function MatchChronology({
 	const t = useTranslations("MatchChronology");
 	const statT = useTranslations("StatLabels");
 	const [selected, setSelected] = useState(showAll ? "all" : String(defaultQuarter));
+	const [playerFilter, setPlayerFilter] = useState("all");
+	const [actionFilter, setActionFilter] = useState("all");
 	const playersById = useMemo(() => new Map(players.map((player) => [player.id, player])), [players]);
 	const orderedActions = useMemo(() => [...actions].sort((a, b) => a.sequence - b.sequence), [actions]);
-	const visibleActions = selected === "all"
+	const quarterActions = selected === "all"
 		? orderedActions
 		: orderedActions.filter((action) => action.quarter === Number(selected));
+	const visibleActions = quarterActions.filter((action) =>
+		(playerFilter === "all" || action.player_id === Number(playerFilter)) &&
+		(actionFilter === "all" || action.action_key === actionFilter)
+	);
+	const actionKeys = useMemo(() => Array.from(new Set(actions.map((action) => action.action_key))).sort(), [actions]);
+	const quarterSummary = useMemo(() => ([1, 2, 3, 4] as const).map((quarter) => ({
+		quarter,
+		count: actions.filter((action) => action.quarter === quarter).length,
+		players: new Set(actions.filter((action) => action.quarter === quarter).map((action) => action.player_id)).size
+	})), [actions]);
 
 	const actionLabel = (key: string) => statT.has(key) ? statT(key) : key.replaceAll("_", " ");
 
 	return (
 		<Tabs value={selected} onValueChange={setSelected} className="w-full">
+			{showAll ? (
+				<div className="space-y-3">
+					<div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+						{quarterSummary.map((summary) => (
+							<button
+								type="button"
+								key={summary.quarter}
+								onClick={() => setSelected(String(summary.quarter))}
+								className="rounded-xl border bg-muted/15 p-3 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
+							>
+								<p className="text-xs font-semibold text-muted-foreground">{t("quarter", { number: summary.quarter })}</p>
+								<p className="mt-1 text-lg font-bold tabular-nums">{summary.count}</p>
+								<p className="text-[11px] text-muted-foreground">{t("playersInvolved", { count: summary.players })}</p>
+							</button>
+						))}
+					</div>
+					<div className="grid gap-2 rounded-xl border bg-muted/10 p-3 sm:grid-cols-2">
+						<label className="space-y-1">
+							<span className="text-xs font-semibold text-muted-foreground">{t("filterPlayer")}</span>
+							<select value={playerFilter} onChange={(event) => setPlayerFilter(event.target.value)} className="h-10 w-full rounded-lg border bg-background px-3 text-sm">
+								<option value="all">{t("allPlayers")}</option>
+								{players.map((player) => <option key={player.id} value={player.id}>#{player.number} · {player.name}</option>)}
+							</select>
+						</label>
+						<label className="space-y-1">
+							<span className="text-xs font-semibold text-muted-foreground">{t("filterAction")}</span>
+							<select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} className="h-10 w-full rounded-lg border bg-background px-3 text-sm">
+								<option value="all">{t("allActions")}</option>
+								{actionKeys.map((key) => <option key={key} value={key}>{actionLabel(key)}</option>)}
+							</select>
+						</label>
+					</div>
+				</div>
+			) : null}
 			<TabsList className={`grid h-auto w-full ${showAll ? "grid-cols-5" : "grid-cols-4"}`}>
 				{showAll ? <TabsTrigger value="all" className="text-xs sm:text-sm">{t("all")}</TabsTrigger> : null}
 				{([1, 2, 3, 4] as const).map((quarter) => {
@@ -154,7 +201,7 @@ export function MatchChronology({
 						<p className="mt-1 text-xs text-muted-foreground">{t("emptyDescription")}</p>
 					</div>
 				) : (
-					<div className="max-h-[20rem] overflow-y-auto overscroll-contain rounded-xl border bg-card">
+					<div className="max-h-[32rem] overflow-y-auto overscroll-contain rounded-xl border bg-card">
 						{visibleActions.map((action, index) => {
 							const player = playersById.get(action.player_id);
 							const presentation = getActionPresentation(action.action_key);
@@ -162,29 +209,39 @@ export function MatchChronology({
 							return (
 								<div
 									key={action.client_id || action.id}
-									className={`flex min-h-16 items-center gap-3 bg-card px-3 py-2.5 ${index > 0 ? "border-t" : ""}`}
+									className={`flex min-h-16 items-center gap-2 bg-card px-2.5 py-2.5 sm:gap-3 sm:px-3 ${index > 0 ? "border-t" : ""}`}
 								>
-									<span className="w-6 shrink-0 text-center text-xs font-semibold tabular-nums text-muted-foreground">
-										{String(action.sequence).padStart(2, "0")}
-									</span>
-									<Badge variant={activeQuarter === action.quarter ? "default" : "secondary"} className="shrink-0">
-										Q{action.quarter}
-									</Badge>
-									<span className={`relative flex size-9 shrink-0 items-center justify-center rounded-lg ${presentation.iconClassName}`} aria-hidden="true">
-										<ActionIcon className="size-4.5" />
-										{presentation.showMiss ? (
-											<span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-rose-500/25">
-												<X className="size-2.5 stroke-[3] text-rose-600 dark:text-rose-400" />
-											</span>
-										) : null}
-									</span>
+									<div className="flex w-8 shrink-0 flex-col items-center gap-0.5">
+										<span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{String(action.sequence).padStart(2, "0")}</span>
+										<Badge variant={activeQuarter === action.quarter ? "default" : "secondary"} className="h-5 px-1.5 text-[9px]">Q{action.quarter}</Badge>
+									</div>
 									<div className="grid min-w-0 flex-1 gap-1 sm:grid-cols-[minmax(0,1fr)_minmax(9rem,0.9fr)] sm:items-center sm:gap-3">
-										<p className="truncate text-sm font-semibold text-foreground">
-											{player ? `#${player.number} · ${player.name}` : t("unknownPlayer")}
-										</p>
-										<p className={`truncate rounded-md px-2 py-1 text-sm font-semibold ${presentation.labelClassName}`}>
-											{actionLabel(action.action_key)}
-										</p>
+										<div className="flex min-w-0 items-center gap-2.5">
+											<Avatar className="size-9 shrink-0 border bg-muted shadow-sm sm:size-10">
+												{player?.photo_url ? (
+													<AvatarImage src={player.photo_url} alt={player.name} className="object-cover object-top" />
+												) : null}
+												<AvatarFallback className="text-[10px] font-bold text-muted-foreground">
+													{player ? `#${player.number}` : "?"}
+												</AvatarFallback>
+											</Avatar>
+											<p className="truncate text-sm font-semibold text-foreground">
+												{player ? `#${player.number} · ${player.name}` : t("unknownPlayer")}
+											</p>
+										</div>
+										<div className="flex min-w-0 items-center gap-2">
+											<span className={`relative flex size-9 shrink-0 items-center justify-center rounded-lg ${presentation.iconClassName}`} aria-hidden="true">
+												<ActionIcon className="size-4.5" />
+												{presentation.showMiss ? (
+													<span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-rose-500/25">
+														<X className="size-2.5 stroke-[3] text-rose-600 dark:text-rose-400" />
+													</span>
+												) : null}
+											</span>
+											<p className={`min-w-0 flex-1 rounded-md px-2 py-1 text-xs font-semibold leading-tight sm:truncate sm:text-sm ${presentation.labelClassName}`}>
+												{actionLabel(action.action_key)}
+											</p>
+										</div>
 									</div>
 									{onRemove ? (
 										<Button

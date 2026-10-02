@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 function getFilenameFromDisposition(disposition: string | null) {
@@ -59,12 +59,13 @@ export function ExportPlayerMatchPdfButton({ playerId, matchStatId }: { playerId
 			onClick={handleDownload}
 			disabled={loading}
 			variant="outline"
-			size="sm"
-			className="cursor-pointer bg-red-600 text-white shadow-sm hover:bg-red-700 dark:bg-red-600/30 dark:text-white dark:hover:bg-red-500/30"
+			size="icon"
+			className="size-8 cursor-pointer bg-red-600 text-white shadow-sm hover:bg-red-700 dark:bg-red-600/30 dark:text-white dark:hover:bg-red-500/30"
+			aria-label={loading ? t("downloading") : t("pdf")}
+			title={loading ? t("downloading") : t("pdf")}
 		>
-			<Download className="mr-2 h-4 w-4" />
-			{loading ? t("downloading") : t("pdf")}
-			<span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide">{t("pdf")}</span>
+			{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+			<span className="sr-only">{loading ? t("downloading") : t("pdf")}</span>
 		</Button>
 	);
 }

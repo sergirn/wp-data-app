@@ -116,9 +116,9 @@ export function MatchIntelligencePanel({ match, stats, actionCount, canEdit, thr
 	};
 
 	return (
-		<Card className="mb-2 overflow-hidden rounded-2xl border-border/70 p-0">
-			<CardHeader className="border-b bg-gradient-to-r from-primary/[0.08] via-primary/[0.03] to-transparent">
-				<div className=" mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between -mb-6">
+		<Card className="gap-0 overflow-hidden rounded-2xl border-border/70 p-0 sm:gap-0 sm:p-0">
+			<CardHeader className="border-b bg-gradient-to-r from-primary/[0.08] via-primary/[0.03] to-transparent py-4 sm:py-5">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div>
 						<CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
 							<Sparkles className="size-5 text-primary" />
@@ -139,9 +139,9 @@ export function MatchIntelligencePanel({ match, stats, actionCount, canEdit, thr
 					</Badge>
 				</div>
 			</CardHeader>
-			<CardContent className="p-4 ">
+			<CardContent className="p-4 sm:p-5">
 				<Tabs defaultValue="summary">
-					<TabsList className="grid h-auto w-full grid-cols-2 rounded-xl -mt-6">
+					<TabsList className="grid h-auto w-full grid-cols-2 rounded-xl">
 						<TabsTrigger value="summary" className="gap-2 py-2.5">
 							<Lightbulb className="size-4" />
 							{t("tabs.summary")}

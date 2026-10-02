@@ -15,23 +15,20 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import {
 	AlertCircle,
+	Activity,
 	ArrowUpRight,
+	BarChart3,
 	Calendar,
-	ChevronDown,
-	ChevronUp,
 	PlusCircle,
 	Shield,
 	Target,
-	TrendingDown,
 	TrendingUp,
-	Trophy,
-	Users
+	Trophy
 } from "lucide-react";
 import { TeamDashboard } from "@/components/team-dashboard/TeamDashboard";
 import { buildTeamDashboardStats } from "@/lib/helpers/buildTeamDashboardStats";
-import { SequentialTypewriter } from "@/components/ui/typing";
 import { useLocale, useTranslations } from "next-intl";
-import { getMatchOutcome } from "@/lib/matches/score";
+import { getMatchOutcome, getOpponentScore, getOwnScore, getVenueScore } from "@/lib/matches/score";
 import { TeamTrendsPanel } from "@/components/analysis/TeamTrendsPanel";
 import { SeasonObjectivesPanel } from "@/components/analysis/SeasonObjectivesPanel";
 import { AnalysisThresholds, DEFAULT_ANALYSIS_THRESHOLDS } from "@/lib/analysis/performance-insights";
@@ -45,6 +42,9 @@ type MatchRow = {
 	away_score: number;
 	penalty_home_score: number | null;
 	penalty_away_score: number | null;
+	is_home?: boolean | null;
+	season?: string | null;
+	jornada?: number | null;
 	stats_enabled?: boolean | null;
 };
 
@@ -58,7 +58,7 @@ type PlayerRow = {
 	photo_url?: string | null;
 };
 
-type StatRow = Record<string, any>;
+type StatRow = Record<string, unknown> & { match_id: number; player_id?: number };
 
 type Outcome = { status: "W" | "L" | "D" };
 
@@ -172,13 +172,13 @@ export default function HomePage() {
 	const [allMatches, setAllMatches] = useState<MatchRow[]>([]);
 	const [players, setPlayers] = useState<PlayerRow[]>([]);
 	const [stats, setStats] = useState<StatRow[]>([]);
+	const [activeSeason, setActiveSeason] = useState("");
 	const [loading, setLoading] = useState(true);
 
 	const [connectionError, setConnectionError] = useState(false);
 	const [tablesNotFound, setTablesNotFound] = useState(false);
 
-	const [showAllPlayersMobile, setShowAllPlayersMobile] = useState(false);
-	const [analysisThresholds, setAnalysisThresholds] = useState<AnalysisThresholds>(DEFAULT_ANALYSIS_THRESHOLDS);
+	const [analysisThresholds] = useState<AnalysisThresholds>(DEFAULT_ANALYSIS_THRESHOLDS);
 
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
 
@@ -210,6 +210,7 @@ export default function HomePage() {
 					.eq("club_id", currentClub.id)
 					.eq("status", "active")
 					.maybeSingle();
+				setActiveSeason(activeSeasonRow?.name ?? "");
 				let matchesPreviewQuery = supabase
 					.from("matches")
 					.select("*")
@@ -299,18 +300,21 @@ export default function HomePage() {
 		const losses = totalMatches - wins - draws;
 
 		const winRate = totalMatches ? Math.round((wins / totalMatches) * 100) : 0;
+		const goalsFor = enabledMatches.reduce((total, match) => total + getOwnScore(match), 0);
+		const goalsAgainst = enabledMatches.reduce((total, match) => total + getOpponentScore(match), 0);
+		const averageGoalsFor = totalMatches ? (goalsFor / totalMatches).toFixed(1) : "0.0";
+		const averageGoalsAgainst = totalMatches ? (goalsAgainst / totalMatches).toFixed(1) : "0.0";
+		const goalDifference = goalsFor - goalsAgainst;
 
 		const analytics = buildGeneralDashboardAnalytics(enabledMatches, enabledStats, players);
 
 		const previewMatches = matches.filter((match) => match.stats_enabled !== false).slice(0, 5);
 		const recentForm = matches
 			.filter((match) => match.stats_enabled !== false)
-			.slice(0, 15)
+			.slice(0, 5)
 			.map((m) => getOutcome(m).status);
-
-		const previewPlayers = players.slice(0, 22);
-		const mobileFirst = players.slice(0, 8);
-		const mobileRest = players.slice(8);
+		const matchesWithStats = new Set(enabledStats.map((stat) => Number(stat.match_id))).size;
+		const dataCoverage = totalMatches ? Math.round((matchesWithStats / totalMatches) * 100) : 0;
 
 		return {
 			totalMatches,
@@ -318,22 +322,21 @@ export default function HomePage() {
 			draws,
 			losses,
 			winRate,
+			goalsFor,
+			goalsAgainst,
+			averageGoalsFor,
+			averageGoalsAgainst,
+			goalDifference,
+			dataCoverage,
 			analytics,
 			previewMatches,
-			recentForm,
-			previewPlayers,
-			mobileFirst,
-			mobileRest
+			recentForm
 		};
-	}, [enabledMatches, enabledStats, allMatches, matches, players, stats, canEdit]);
+	}, [enabledMatches, enabledStats, matches, players]);
 
 	const enabledPlayerStats = useMemo(() => {
 		return buildTeamDashboardStats(players, enabledStats);
 	}, [players, enabledStats]);
-
-	useEffect(() => {
-		setShowAllPlayersMobile(false);
-	}, [currentClub?.id]);
 
 	if (!profile && !profileLoading) return <LandingPage />;
 	if (profileLoading || loading) return <LoadingMinimal />;
@@ -344,62 +347,46 @@ export default function HomePage() {
 		<main className="min-h-screen">
 			<div className="container mx-auto px-4 py-6 sm:py-10">
 				<div className="space-y-8">
-					<header className="animate-fade-up flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-						<div className="flex items-center gap-4">
-							{/* Logo */}
-							<div className="grid h-25 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl">
+					<header className="animate-fade-up overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm">
+						<div className="flex flex-col gap-5 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+							<div className="flex min-w-0 items-center gap-4">
+								<div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl border bg-background shadow-sm sm:size-20">
 								{currentClub?.logo_url ? (
-									<img
+									<Image
 										src={currentClub.logo_url}
 										alt={currentClub.name || t("defaultClub")}
-										className="h-full w-full object-contain p-2"
+										fill
+										sizes="(min-width: 640px) 80px, 64px"
+										className="object-contain p-2.5"
 									/>
 								) : (
 									<Trophy className="h-8 w-8 text-muted-foreground" />
 								)}
+								</div>
+
+								<div className="min-w-0">
+									<div className="mb-1.5 flex flex-wrap items-center gap-2">
+										<span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">{t("clubPanel")}</span>
+										{activeSeason ? <span className="rounded-full border bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{activeSeason}</span> : null}
+									</div>
+									<h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">
+										{currentClub?.short_name || currentClub?.name || t("defaultClub")}
+									</h1>
+									<p className="mt-1 text-sm text-muted-foreground">{t("executiveDescription")}</p>
+								</div>
 							</div>
 
-							{/* Textos */}
-							<div className="min-w-0 flex-1">
-								<SequentialTypewriter
-									lines={[
-										t("clubPanel"),
-										t("welcomeBack", { club: currentClub?.short_name || currentClub?.name || t("defaultClub") }),
-										t("ready")
-									]}
-									className="space-y-1"
-								/>
-
-								<style jsx>{`
-									:global(.space-y-1 > div:first-child) {
-										font-size: 11px;
-										font-weight: 600;
-										letter-spacing: 0.18em;
-										text-transform: uppercase;
-										color: hsl(var(--muted-foreground));
-									}
-
-									:global(.space-y-1 > div:nth-child(2)) {
-										font-size: clamp(1.75rem, 3vw, 2.3rem);
-										font-weight: 700;
-										line-height: 1.15;
-										letter-spacing: -0.03em;
-									}
-
-									:global(.space-y-1 > div:nth-child(3)) {
-										font-size: 0.95rem;
-										color: hsl(var(--muted-foreground));
-									}
-								`}</style>
+							<div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+								<Button asChild variant="outline" className="rounded-xl">
+									<Link href="/analytics"><BarChart3 className="size-4" />{t("viewAnalytics")}</Link>
+								</Button>
+								{canEdit ? (
+									<Button asChild className="rounded-xl shadow-sm">
+										<Link href="/nuevo-partido"><PlusCircle className="size-4" />{t("newMatch")}</Link>
+									</Button>
+								) : null}
 							</div>
 						</div>
-
-						{/* <Button asChild size="lg" className="rounded-xl shadow-sm">
-							<Link href={derived.primaryCta.href}>
-								{derived.primaryCta.icon}
-								{derived.primaryCta.label}
-							</Link>
-						</Button> */}
 					</header>
 
 					{tablesNotFound && (
@@ -428,170 +415,107 @@ export default function HomePage() {
 
 					<section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label={t("clubSummary")}>
 						<KpiCard
-							icon={<Target className="h-4 w-4" />}
-							label={t("attackEfficiency")}
-							value={analytics?.shootingEfficiency ?? 0}
+							icon={<Trophy className="h-4 w-4" />}
+							label={t("winRate")}
+							value={derived.winRate}
 							suffix="%"
 							delay={0}
-							footer={
-								<p className="text-[11px] text-muted-foreground">
-									{t("goalsShots", { goals: analytics?.totalGoalsFor ?? 0, shots: analytics?.totalShots ?? 0 })}
-								</p>
-							}
+							footer={<p className="text-[11px] text-muted-foreground">{t("recordSummary", { wins: derived.wins, draws: derived.draws, losses: derived.losses })}</p>}
 						/>
 
 						<KpiCard
 							icon={<TrendingUp className="h-4 w-4" />}
-							label={t("superiority")}
-							value={analytics?.superiorityEfficiency ?? 0}
-							suffix="%"
+							label={t("goalsForAverage")}
+							value={derived.averageGoalsFor}
 							delay={60}
-							footer={
-								<p className="text-[11px] text-muted-foreground">
-									{t("goalsAttempts", { goals: analytics?.goalsSuperiority ?? 0, attempts: analytics?.shotsSuperiority ?? 0 })}
-								</p>
-							}
-						/>
-
-						<KpiCard
-							icon={<TrendingDown className="h-4 w-4" />}
-							label={t("inferiority")}
-							value={analytics?.inferiorityEfficiency ?? 0}
-							suffix="%"
-							delay={120}
-							footer={
-								<p className="text-[11px] text-muted-foreground">
-									{t("avoidedAttempts", {
-										saves: analytics?.savesInferiority ?? 0,
-										attempts: (analytics?.savesInferiority ?? 0) + (analytics?.goalsAgainstInferiority ?? 0)
-									})}
-								</p>
-							}
+							footer={<p className="text-[11px] text-muted-foreground">{t("seasonGoals", { count: derived.goalsFor })}</p>}
 						/>
 
 						<KpiCard
 							icon={<Shield className="h-4 w-4" />}
-							label={t("goalkeeperEfficiency")}
-							value={analytics?.goalkeeperEfficiency ?? 0}
+							label={t("goalsAgainstAverage")}
+							value={derived.averageGoalsAgainst}
+							delay={120}
+							footer={<p className="text-[11px] text-muted-foreground">{t("seasonGoalsAgainst", { count: derived.goalsAgainst })}</p>}
+						/>
+
+						<KpiCard
+							icon={<Target className="h-4 w-4" />}
+							label={t("attackEfficiency")}
+							value={analytics?.shootingEfficiency ?? "0.0"}
 							suffix="%"
 							delay={180}
-							footer={<p className="text-[11px] text-muted-foreground">{t("totalSaves", { count: analytics?.totalSaves ?? 0 })}</p>}
+							footer={<p className="text-[11px] text-muted-foreground">{t("goalsShots", { goals: analytics?.totalGoalsFor ?? 0, shots: analytics?.totalShots ?? 0 })}</p>}
 						/>
 					</section>
 
-					<TeamTrendsPanel matches={enabledMatches} stats={enabledStats} players={players} />
-
-					<section className="grid gap-6 lg:grid-cols-4">
-						<div className="animate-fade-up lg:col-span-2" style={{ animationDelay: "220ms" }}>
-							<SeasonObjectivesPanel
-								matches={enabledMatches}
-								stats={enabledStats}
-								players={players || []}
-								thresholds={analysisThresholds}
-								clubId={currentClub?.id ?? 0}
-							/>
+					<section className="grid gap-6 lg:grid-cols-5">
+						<div className="animate-fade-up overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm lg:col-span-3" style={{ animationDelay: "220ms" }}>
+							<div className="flex items-center justify-between gap-4 border-b bg-muted/10 px-4 py-3.5 sm:px-5">
+								<div>
+									<h2 className="flex items-center gap-2 text-base font-semibold"><Calendar className="size-4.5 text-primary" />{t("latestMatches")}</h2>
+									<p className="mt-0.5 text-xs text-muted-foreground">{t("latestMatchesDescription")}</p>
+								</div>
+								<Button asChild variant="ghost" size="sm" className="shrink-0 rounded-lg">
+									<Link href="/partidos">{t("viewAll")}<ArrowUpRight className="size-4" /></Link>
+								</Button>
+							</div>
+							<div className="p-4 sm:p-5">
+								{derived.previewMatches.length > 0 ? (
+									<MatchListCompact matches={derived.previewMatches} />
+								) : (
+									<EmptyMinimal icon={<Calendar className="size-5" />} title={t("noMatches")} desc={t("noMatchesDescription")} cta={canEdit ? { href: "/nuevo-partido", label: t("createFirstMatch") } : undefined} />
+								)}
+							</div>
 						</div>
 
-						<div className="animate-fade-up lg:col-span-2" style={{ animationDelay: "280ms" }}>
-							<div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-sm sm:p-0">
-								<div className="border-b p-5 sm:p-6">
-									<div className="flex items-start justify-between gap-4">
-										<div>
-											<h2 className="text-base font-semibold tracking-tight">{t("teamStatus")}</h2>
-											<p className="text-sm text-muted-foreground">{t("teamStatusDescription")}</p>
-										</div>
+						<div className="animate-fade-up overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm lg:col-span-2" style={{ animationDelay: "280ms" }}>
+							<div className="border-b bg-muted/10 px-4 py-3.5 sm:px-5">
+								<div className="flex items-start justify-between gap-3">
+									<div>
+										<h2 className="flex items-center gap-2 text-base font-semibold"><Activity className="size-4.5 text-primary" />{t("seasonPulse")}</h2>
+										<p className="mt-0.5 text-xs text-muted-foreground">{t("teamStatusDescription")}</p>
+									</div>
+									<span className="rounded-full border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">{t("matchCount", { count: derived.totalMatches })}</span>
+								</div>
+							</div>
 
-										<div className="rounded-full border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-											{t("matchCount", { count: derived.totalMatches })}
-										</div>
+							<div className="space-y-5 p-4 sm:p-5">
+								<div className="grid grid-cols-2 gap-3">
+									<div className="rounded-xl border bg-muted/[0.12] p-3">
+										<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t("goalDifference")}</p>
+										<p className="mt-1 text-2xl font-bold tabular-nums">{derived.goalDifference > 0 ? "+" : ""}{derived.goalDifference}</p>
+									</div>
+									<div className="rounded-xl border bg-muted/[0.12] p-3">
+										<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t("dataCoverage")}</p>
+										<p className="mt-1 text-2xl font-bold tabular-nums">{derived.dataCoverage}%</p>
 									</div>
 								</div>
 
-								<div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
-									<div>
-										<div className="flex items-end justify-between gap-5">
-											<div>
-												<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-													{t("performance")}
-												</p>
-
-												<div className="mt-2 flex items-baseline gap-1.5">
-													<span className="text-5xl font-semibold tracking-tight tabular-nums">{derived.winRate}</span>
-													<span className="text-xl font-medium text-muted-foreground">%</span>
-												</div>
-											</div>
-
-											<div className="grid grid-cols-3 gap-2 text-center">
-												<div className="rounded-xl border bg-background px-3 py-2">
-													<p className="text-lg font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
-														{derived.wins}
-													</p>
-													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-														{t("resultLetters.win")}
-													</p>
-												</div>
-
-												<div className="rounded-xl border bg-background px-3 py-2">
-													<p className="text-lg font-semibold tabular-nums text-muted-foreground">{derived.draws}</p>
-													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-														{t("resultLetters.draw")}
-													</p>
-												</div>
-
-												<div className="rounded-xl border bg-background px-3 py-2">
-													<p className="text-lg font-semibold tabular-nums text-red-600 dark:text-red-400">
-														{derived.losses}
-													</p>
-													<p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-														{t("resultLetters.loss")}
-													</p>
-												</div>
-											</div>
-										</div>
-
-										<div className="mt-5">
-											<div className="flex items-center justify-between text-xs text-muted-foreground">
-												<span>0%</span>
-												<span>100%</span>
-											</div>
-
-											<div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-												<div
-													className="h-full rounded-full bg-primary transition-all duration-700"
-													style={{ width: `${derived.winRate}%` }}
-												/>
-											</div>
-										</div>
+								<div>
+									<div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>{t("seasonRecord")}</span><span className="font-medium tabular-nums text-foreground">{derived.wins}-{derived.draws}-{derived.losses}</span></div>
+									<div className="flex h-2 overflow-hidden rounded-full bg-muted">
+										{derived.totalMatches > 0 ? <>
+											<div className="bg-emerald-500" style={{ width: `${(derived.wins / derived.totalMatches) * 100}%` }} />
+											<div className="bg-slate-400" style={{ width: `${(derived.draws / derived.totalMatches) * 100}%` }} />
+											<div className="bg-rose-500" style={{ width: `${(derived.losses / derived.totalMatches) * 100}%` }} />
+										</> : null}
 									</div>
+								</div>
 
-									<div className="mt-7">
-										<div className="mb-3 flex items-center justify-between gap-3">
-											<p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-												{t("latestResults")}
-											</p>
-
-											<Link
-												href="/partidos"
-												className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-											>
-												{t("viewHistory")}
-											</Link>
-										</div>
-
-										{derived.recentForm.length > 0 ? (
-											<div className="flex flex-wrap items-center gap-2">
-												{derived.recentForm.map((s, i) => (
-													<FormBadge key={i} status={s} />
-												))}
-											</div>
-										) : (
-											<p className="text-sm text-muted-foreground">{t("noData")}</p>
-										)}
-									</div>
+								<div>
+									<p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{t("latestResults")}</p>
+									{derived.recentForm.length > 0 ? <div className="flex items-center gap-2">{derived.recentForm.map((status, index) => <FormBadge key={`${status}-${index}`} status={status} />)}</div> : <p className="text-sm text-muted-foreground">{t("noData")}</p>}
 								</div>
 							</div>
 						</div>
 					</section>
+
+					<TeamTrendsPanel matches={enabledMatches} stats={enabledStats} players={players} />
+
+					<div className="animate-fade-up" style={{ animationDelay: "320ms" }}>
+						<SeasonObjectivesPanel matches={enabledMatches} stats={enabledStats} players={players || []} thresholds={analysisThresholds} clubId={currentClub?.id ?? 0} />
+					</div>
 					<section className="animate-fade-up " style={{ animationDelay: "340ms" }}>
 						<TeamDashboard teamStats={enabledPlayerStats} />
 					</section>
@@ -626,28 +550,34 @@ function MatchListCompact({ matches }: { matches: MatchRow[] }) {
 		<div className="flex flex-col divide-y divide-border/70">
 			{matches.map((m) => {
 				const o = getOutcome(m);
+				const score = getVenueScore(m);
 
 				return (
 					<Link
 						key={m.id}
 						href={`/partidos/${m.id}`}
 						aria-label={t("viewMatch", { opponent: m.opponent })}
-						className="group flex items-center justify-between gap-3 py-3 transition-colors first:pt-0 last:pb-0 focus-visible:outline-none"
+						className="group flex items-center justify-between gap-3 rounded-lg px-1 py-3 transition-colors first:pt-1 last:pb-1 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 					>
 						<div className="flex min-w-0 items-center gap-3">
 							<FormBadge status={o.status} />
 
 							<div className="min-w-0">
 								<p className="truncate text-sm font-medium transition-colors group-hover:text-primary">{m.opponent}</p>
-								<p className="mt-0.5 text-xs text-muted-foreground">{formatDate(m.match_date, locale)}</p>
+								<p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+									<span>{formatDate(m.match_date, locale)}</span>
+									<span>·</span>
+									<span>{m.is_home === false ? t("away") : t("home")}</span>
+									{m.jornada ? <><span>·</span><span>{t("round", { number: m.jornada })}</span></> : null}
+								</p>
 							</div>
 						</div>
 
 						<div className="flex shrink-0 items-center gap-3">
 							<div className="rounded-lg border bg-background px-2.5 py-1 text-sm font-semibold tabular-nums">
-								{m.home_score}
+								{score.local}
 								<span className="mx-1 text-muted-foreground">–</span>
-								{m.away_score}
+								{score.visitor}
 							</div>
 
 							<ArrowUpRight className="h-4 w-4 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
@@ -655,47 +585,6 @@ function MatchListCompact({ matches }: { matches: MatchRow[] }) {
 					</Link>
 				);
 			})}
-		</div>
-	);
-}
-
-function PlayerPhotoGridResponsive({ players }: { players: PlayerRow[] }) {
-	const t = useTranslations("Home");
-	return (
-		<div className="grid grid-cols-4 gap-3 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9">
-			{players.map((player) => (
-				<Link
-					key={player.id}
-					href={`/jugadores/${player.id}`}
-					aria-label={t("viewPlayer", { player: player.name })}
-					className="group overflow-hidden rounded-xl border bg-background transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-				>
-					<div className="relative aspect-[4/5] overflow-hidden bg-muted/40">
-						{player.photo_url ? (
-							<img
-								src={player.photo_url || "/placeholder.svg"}
-								alt={player.name}
-								className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-								loading="lazy"
-							/>
-						) : (
-							<div className="absolute inset-0 grid place-items-center">
-								<span className="text-2xl font-bold tabular-nums text-muted-foreground">#{player.number}</span>
-							</div>
-						)}
-
-						<div className="absolute right-2 top-2 rounded-md bg-black/40 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white/90 backdrop-blur-sm">
-							#{player.number}
-						</div>
-
-						<div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background/95 via-background/60 to-transparent dark:from-black/80" />
-
-						<div className="absolute inset-x-0 bottom-0 p-2.5">
-							<p className="line-clamp-2 text-xs font-semibold leading-tight">{player.name}</p>
-						</div>
-					</div>
-				</Link>
-			))}
 		</div>
 	);
 }
