@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClub } from "@/lib/club-context";
+import { resolveExternalTeam, type ExternalTeamIndexEntry } from "@/lib/external/lewaterpolo-opponent";
 import { getMatchOutcome, getOpponentScore, getOwnScore, getVenueScore } from "@/lib/matches/score";
 import type { Match, Opponent } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +20,7 @@ import { fetchAllByIdBatches, fetchAllPages } from "@/lib/supabase/fetch-all-pag
 
 type OpponentMatch = Pick<Match, "id" | "opponent_id" | "opponent" | "match_date" | "home_score" | "away_score" | "is_home" | "season" | "stats_enabled" | "penalty_home_score" | "penalty_away_score">;
 type OpponentAlias = { opponent_id: number; alias: string };
+type ExternalTeamListPayload = { teams?: Array<Pick<ExternalTeamIndexEntry, "name" | "crestUrl">> };
 
 export default function OpponentsPage() {
 	const t = useTranslations("Opponents");
@@ -28,6 +30,7 @@ export default function OpponentsPage() {
 	const [matches, setMatches] = useState<OpponentMatch[]>([]);
 	const [aliases, setAliases] = useState<OpponentAlias[]>([]);
 	const [statMatchIds, setStatMatchIds] = useState<Set<number>>(new Set());
+	const [externalCrests, setExternalCrests] = useState<Record<number, string>>({});
 	const [search, setSearch] = useState("");
 	const [seasonFilter, setSeasonFilter] = useState("all");
 	const [sortBy, setSortBy] = useState<"recent" | "meetings" | "difficulty" | "coverage">("recent");
@@ -98,6 +101,38 @@ export default function OpponentsPage() {
 
 	const seasons = useMemo(() => [...new Set(matches.map((match) => match.season).filter((season): season is string => Boolean(season)))].sort().reverse(), [matches]);
 	const scopedMatches = useMemo(() => seasonFilter === "all" ? matches : matches.filter((match) => match.season === seasonFilter), [matches, seasonFilter]);
+	const externalSeason = seasonFilter === "all" ? seasons[0] : seasonFilter;
+
+	useEffect(() => {
+		if (!externalSeason || opponents.length === 0 || opponents.every((opponent) => Boolean(opponent.logo_url))) {
+			setExternalCrests({});
+			return;
+		}
+
+		const controller = new AbortController();
+		async function loadExternalCrests() {
+			try {
+				const response = await fetch(`/api/opponent-league-stats?season=${encodeURIComponent(externalSeason)}&list=1`, { signal: controller.signal, headers: { Accept: "application/json" } });
+				if (!response.ok) return;
+				const payload = (await response.json()) as ExternalTeamListPayload;
+				const teams = (payload.teams ?? []).map((team) => ({ ...team, url: "" }));
+				const resolved: Record<number, string> = {};
+				for (const opponent of opponents) {
+					if (opponent.logo_url) continue;
+					const opponentAliases = aliases.filter((item) => item.opponent_id === opponent.id).map((item) => item.alias);
+					const entry = (opponentAliases.length > 0 ? resolveExternalTeam(teams, opponentAliases) : null) ?? resolveExternalTeam(teams, [opponent.name]);
+					if (entry?.crestUrl) resolved[opponent.id] = entry.crestUrl;
+				}
+				setExternalCrests(resolved);
+			} catch (error) {
+				if (!(error instanceof DOMException && error.name === "AbortError")) console.warn("[opponents] External crests unavailable:", error);
+			}
+		}
+
+		void loadExternalCrests();
+		return () => controller.abort();
+	}, [aliases, externalSeason, opponents]);
+
 	const cards = useMemo(() => opponents.map((opponent) => {
 		const opponentMatches = scopedMatches.filter((match) => match.opponent_id === opponent.id);
 		const outcomes = opponentMatches.map(getMatchOutcome);
@@ -106,6 +141,7 @@ export default function OpponentsPage() {
 		const opponentGoals = opponentMatches.reduce((total, match) => total + getOpponentScore(match), 0);
 		return {
 			opponent,
+			logoUrl: opponent.logo_url ?? externalCrests[opponent.id] ?? null,
 			matches: opponentMatches,
 			wins: outcomes.filter((outcome) => outcome === "win").length,
 			draws: outcomes.filter((outcome) => outcome === "draw").length,
@@ -125,7 +161,7 @@ export default function OpponentsPage() {
 		if (sortBy === "difficulty") return a.averageDifference - b.averageDifference || b.matches.length - a.matches.length;
 		if (sortBy === "coverage") return a.coverage - b.coverage || b.matches.length - a.matches.length;
 		return (b.lastMatch?.match_date ?? "").localeCompare(a.lastMatch?.match_date ?? "");
-	}), [aliases, locale, opponents, scopedMatches, search, sortBy, statMatchIds]);
+	}), [aliases, externalCrests, locale, opponents, scopedMatches, search, sortBy, statMatchIds]);
 
 	return (
 		<main className="container mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
@@ -169,6 +205,7 @@ export default function OpponentsPage() {
 
 type OpponentCard = {
 		opponent: Opponent;
+		logoUrl: string | null;
 		matches: OpponentMatch[];
 		wins: number;
 		draws: number;
@@ -180,7 +217,7 @@ type OpponentCard = {
 		lastMatch: OpponentMatch | null;
 	};
 
-function OpponentRow({ opponent, matches, wins, draws, losses, recentForm, detailedMatches, coverage, averageDifference, lastMatch, locale }: OpponentCard & { locale: string }) {
+function OpponentRow({ opponent, logoUrl, matches, wins, draws, losses, recentForm, detailedMatches, coverage, averageDifference, lastMatch, locale }: OpponentCard & { locale: string }) {
 	const t = useTranslations("Opponents");
 	const lastScore = lastMatch ? getVenueScore(lastMatch) : null;
 	const lastOutcome = lastMatch ? getMatchOutcome(lastMatch) : null;
@@ -191,7 +228,7 @@ function OpponentRow({ opponent, matches, wins, draws, losses, recentForm, detai
 			<div className="grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(15rem,1.5fr)_minmax(11rem,1fr)_minmax(8rem,.8fr)_minmax(9rem,.8fr)_minmax(13rem,1fr)_2rem] lg:items-center lg:gap-5">
 				<div className="flex min-w-0 items-center gap-3.5">
 					<div className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl border bg-background shadow-sm transition-transform group-hover:scale-[1.03]">
-						{opponent.logo_url ? <Image src={opponent.logo_url} alt="" fill sizes="56px" className="object-contain p-1.5" /> : <Shield className="size-7 text-muted-foreground/55" />}
+						{logoUrl ? <Image src={logoUrl} alt={opponent.name} fill sizes="56px" className="object-contain p-1.5" /> : <Shield className="size-7 text-muted-foreground/55" />}
 					</div>
 					<div className="min-w-0">
 						<div className="flex items-center gap-2">

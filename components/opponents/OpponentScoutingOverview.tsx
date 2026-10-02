@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Activity, BarChart3, CheckCircle2, Database, ShieldCheck, Swords, Target, UsersRound } from "lucide-react";
+import { Activity, BarChart3, CheckCircle2, Database, ShieldCheck, Target, UsersRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,25 +12,18 @@ type Scouting = ReturnType<typeof import("@/lib/opponents/scouting").buildOppone
 export function OpponentExecutiveSummary({ scouting }: { scouting: Scouting }) {
 	const t = useTranslations("Opponents.overview");
 	const winRate = scouting.played > 0 ? Math.round((scouting.wins / scouting.played) * 100) : 0;
-	const totalResults = Math.max(1, scouting.played);
 	const metrics = [
-		{ icon: Swords, label: t("matches"), value: scouting.played, hint: t("selectedScope") },
 		{ icon: BarChart3, label: t("record"), value: `${scouting.wins}-${scouting.draws}-${scouting.losses}`, hint: t("recordOrder") },
 		{ icon: Target, label: t("winRate"), value: `${winRate}%`, hint: t("wins", { count: scouting.wins }) },
 		{ icon: Activity, label: t("averageScore"), value: `${scouting.averageOwnGoals.toFixed(1)}–${scouting.averageOpponentGoals.toFixed(1)}`, hint: t("perMatch") },
-		{ icon: ShieldCheck, label: t("averageDifference"), value: `${scouting.averageGoalDifference > 0 ? "+" : ""}${scouting.averageGoalDifference.toFixed(1)}`, hint: t("perMatch") },
-		{ icon: Database, label: t("coverage"), value: `${scouting.dataQuality.statsCoverage}%`, hint: t("detailed", { detailed: scouting.dataQuality.detailedMatches, total: scouting.played }) }
+		{ icon: ShieldCheck, label: t("averageDifference"), value: `${scouting.averageGoalDifference > 0 ? "+" : ""}${scouting.averageGoalDifference.toFixed(1)}`, hint: t("perMatch") }
 	];
 
 	return <div className="space-y-4">
-		<div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{metrics.map(({ icon: Icon, label, value, hint }) => <div key={label} className="rounded-xl border bg-card p-3.5 shadow-sm"><div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Icon className="size-4 text-primary" />{label}</div><p className="mt-2 text-2xl font-bold tabular-nums">{value}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p></div>)}</div>
+		<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{metrics.map(({ icon: Icon, label, value, hint }) => <div key={label} className="rounded-xl border bg-card p-3.5 shadow-sm"><div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><Icon className="size-4 text-primary" />{label}</div><p className="mt-2 text-2xl font-bold tabular-nums">{value}</p><p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p></div>)}</div>
 		<Card className="overflow-hidden">
-			<CardContent className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_1.15fr] lg:items-center">
-				<div>
-					<div className="mb-2 flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("recordDistribution")}</p><span className="text-xs font-semibold tabular-nums">{scouting.wins}{t("resultLetters.win")} · {scouting.draws}{t("resultLetters.draw")} · {scouting.losses}{t("resultLetters.loss")}</span></div>
-					<div className="flex h-2.5 overflow-hidden rounded-full bg-muted"><div className="bg-emerald-500" style={{ width: `${(scouting.wins / totalResults) * 100}%` }} /><div className="bg-amber-500" style={{ width: `${(scouting.draws / totalResults) * 100}%` }} /><div className="bg-rose-500" style={{ width: `${(scouting.losses / totalResults) * 100}%` }} /></div>
-				</div>
-				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("recentForm")}</p><p className="mt-1 text-[11px] text-muted-foreground">{t("recentFormHint")}</p></div><div className="flex gap-1.5">{scouting.recentForm.length > 0 ? scouting.recentForm.map((outcome, index) => <span key={`${outcome}-${index}`} title={t(`results.${outcome}`)} className={cn("grid size-8 place-items-center rounded-lg text-xs font-bold", outcome === "win" ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300" : outcome === "loss" ? "bg-rose-500/12 text-rose-700 dark:text-rose-300" : "bg-amber-500/12 text-amber-700 dark:text-amber-300")}>{t(`resultLetters.${outcome}`)}</span>) : <span className="text-sm text-muted-foreground">—</span>}</div></div>
+			<CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+				<div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("recentForm")}</p><p className="mt-1 text-[11px] text-muted-foreground">{t("recentFormHint")}</p></div><div className="flex gap-1.5">{scouting.recentForm.length > 0 ? scouting.recentForm.map((outcome, index) => <span key={`${outcome}-${index}`} title={t(`results.${outcome}`)} className={cn("grid size-8 place-items-center rounded-lg text-xs font-bold", outcome === "win" ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300" : outcome === "loss" ? "bg-rose-500/12 text-rose-700 dark:text-rose-300" : "bg-amber-500/12 text-amber-700 dark:text-amber-300")}>{t(`resultLetters.${outcome}`)}</span>) : <span className="text-sm text-muted-foreground">—</span>}</div>
 			</CardContent>
 		</Card>
 	</div>;

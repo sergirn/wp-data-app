@@ -12,6 +12,7 @@ import { OpponentAliasManager } from "@/components/opponents/OpponentAliasManage
 import { OpponentAdvancedAnalysis, OpponentTrendChart, OpponentVenueComparison } from "@/components/opponents/OpponentAdvancedAnalysis";
 import { OpponentNotes } from "@/components/opponents/OpponentNotes";
 import { OpponentPreparationPanel } from "@/components/opponents/OpponentPreparationPanel";
+import { OpponentLeagueSnapshot } from "@/components/opponents/OpponentLeagueSnapshot";
 import { OpponentDataQuality, OpponentExecutiveSummary, OpponentPlayersTable } from "@/components/opponents/OpponentScoutingOverview";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -47,12 +48,14 @@ export default function OpponentDetailPage() {
 	const [actions, setActions] = useState<ScoutingAction[]>([]);
 	const [shots, setShots] = useState<GoalkeeperShot[]>([]);
 	const [activeSeason, setActiveSeason] = useState<string | null>(null);
+	const [externalCrestUrl, setExternalCrestUrl] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [notFound, setNotFound] = useState(false);
 	const [setupRequired, setSetupRequired] = useState(false);
 	const [loadError, setLoadError] = useState(false);
 	const [showAllMatches, setShowAllMatches] = useState(false);
 	const canEdit = profile?.role === "admin" || profile?.role === "coach";
+	const handleExternalCrestResolved = useCallback((crestUrl: string | null) => setExternalCrestUrl(crestUrl), []);
 
 	const load = useCallback(async () => {
 		if (!currentClub) {
@@ -184,7 +187,7 @@ export default function OpponentDetailPage() {
 				<div className="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
 				<div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 					<div className="flex min-w-0 items-center gap-4">
-						<div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl border bg-muted/30 sm:size-20">{opponent.logo_url ? <Image src={opponent.logo_url} alt="" fill sizes="80px" className="object-contain p-2" /> : <Shield className="h-9 w-9 text-muted-foreground/55" />}</div>
+						<div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl border bg-muted/30 sm:size-20">{opponent.logo_url || externalCrestUrl ? <Image src={opponent.logo_url ?? externalCrestUrl!} alt={opponent.name} fill sizes="(min-width: 640px) 80px, 64px" className="object-contain p-2" /> : <Shield className="h-9 w-9 text-muted-foreground/55" />}</div>
 						<div className="min-w-0"><div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-primary"><Swords className="h-3.5 w-3.5" />{t("scoutingReport")}</div><h1 className="truncate text-2xl font-bold sm:text-3xl">{opponent.name}</h1><div className="mt-2 flex flex-wrap items-center gap-2"><Badge variant="secondary">{t("meetings", { count: scouting.played })}</Badge><Badge variant="outline">{t(`confidence.${scouting.confidence}`)}</Badge><Badge variant="outline" className="hidden sm:inline-flex">{t("coverage", { detailed: scouting.dataQuality.detailedMatches, total: scouting.played })}</Badge><Badge variant="outline" className="hidden md:inline-flex">{t("verifiedCoverage", { verified: scouting.dataQuality.verifiedMatches, detailed: scouting.dataQuality.detailedMatches })}</Badge><Badge variant="outline" className="hidden md:inline-flex">{t("notesCount", { count: notes.length })}</Badge>{seasons.length > 0 && <Select value={selectedSeason} onValueChange={(value) => updateQuery("season", value)}><SelectTrigger className="h-7 w-auto min-w-32 text-xs sm:min-w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">{t("allSeasons")}</SelectItem>{seasons.map((season) => <SelectItem key={season} value={season}>{season}</SelectItem>)}</SelectContent></Select>}</div></div>
 					</div>
 					<details className="group w-full rounded-xl border bg-muted/10 lg:max-w-md"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-3 text-sm font-medium"><span className="flex items-center gap-2"><Settings2 className="h-4 w-4 text-primary" />{t("aliases.title")}</span><ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" /></summary><div className="px-3 pb-3"><OpponentAliasManager opponentId={opponent.id} aliases={aliases} canEdit={canEdit} onChanged={load} /></div></details>
@@ -193,22 +196,30 @@ export default function OpponentDetailPage() {
 
 			<Tabs value={activeTab} onValueChange={(value) => updateQuery("tab", value)} className="space-y-5">
 				<TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1">
-					<TabsTrigger value="summary" className="min-w-0 gap-1 py-2.5 text-[11px] sm:text-sm"><BarChart3 className="hidden h-4 w-4 min-[360px]:block" />{t("tabs.summary")}</TabsTrigger>
+					<TabsTrigger value="summary" className="min-w-0 gap-1 px-1 py-2.5 text-center text-[10px] leading-tight whitespace-normal sm:px-3 sm:text-sm"><BarChart3 className="hidden h-4 w-4 shrink-0 min-[420px]:block" />{t("tabs.summary")}</TabsTrigger>
 					<TabsTrigger value="analysis" className="min-w-0 gap-1 py-2.5 text-[11px] sm:text-sm"><Crosshair className="hidden h-4 w-4 min-[360px]:block" />{t("tabs.analysis")}</TabsTrigger>
 					<TabsTrigger value="prepare" className="min-w-0 gap-1 py-2.5 text-[11px] sm:text-sm"><Sparkles className="hidden h-4 w-4 min-[360px]:block" />{t("tabs.prepare")}</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="summary" className="space-y-5">
+					<OpponentLeagueSnapshot
+						season={selectedSeason === "all" ? activeSeason : selectedSeason}
+						opponentName={opponent.name}
+						aliases={aliases.map((item) => item.alias)}
+						onCrestResolved={handleExternalCrestResolved}
+					/>
+					<div className="border-t pt-6"><h2 className="text-lg font-semibold">{t("ownHistoryTitle")}</h2><p className="mt-1 text-sm text-muted-foreground">{t("ownHistoryDescription")}</p></div>
 					<OpponentExecutiveSummary scouting={scouting} />
+					<Card className="overflow-hidden"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle>{t("matches.title")}</CardTitle><CardDescription className="mt-1">{t("matches.descriptionExtended")}</CardDescription></div><CalendarDays className="h-5 w-5 text-primary" /></div></CardHeader><CardContent className="p-0"><div className="hidden grid-cols-[minmax(14rem,1.2fr)_minmax(11rem,.9fr)_minmax(9rem,.7fr)_minmax(10rem,.8fr)_1.5rem] items-center gap-4 border-y bg-muted/25 px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground lg:grid"><span>{t("matches.columns.match")}</span><span>{t("matches.columns.context")}</span><span>{t("matches.columns.result")}</span><span>{t("matches.columns.quality")}</span><span className="sr-only">{t("matches.columns.open")}</span></div>{displayedMatches.map((match) => <MatchRow key={match.id} match={match} locale={locale} homeLabel={t("home")} awayLabel={t("away")} resultLabel={t(`results.${getMatchOutcome(match)}`)} quality={verifiedMatchIds.has(match.id) ? "verified" : detailedMatchIds.has(match.id) ? "partial" : "none"} qualityLabel={t(`matches.quality.${verifiedMatchIds.has(match.id) ? "verified" : detailedMatchIds.has(match.id) ? "partial" : "none"}`)} />)}{scouting.matches.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">{t("noMeetings")}</p>}{scouting.matches.length > 5 && <div className="border-t p-2"><Button type="button" variant="ghost" size="sm" className="w-full" onClick={() => setShowAllMatches((current) => !current)}>{showAllMatches ? t("recent.showRecent") : t("recent.showAll", { count: scouting.matches.length })}</Button></div>}</CardContent></Card>
+				</TabsContent>
+
+				<TabsContent value="analysis" className="space-y-5">
+					<div><h2 className="text-lg font-semibold">{t("analysisHistoryTitle")}</h2><p className="mt-1 text-sm text-muted-foreground">{t("analysisHistoryDescription")}</p></div>
 					<div className="grid items-stretch gap-5 lg:grid-cols-2"><OpponentTrendChart scouting={scouting} /><OpponentVenueComparison scouting={scouting} /></div>
 					<div className="grid items-stretch gap-5 lg:grid-cols-2">
 						<Card className="h-full"><CardHeader><CardTitle>{t("quarters.title")}</CardTitle><CardDescription>{t("quarters.description")}</CardDescription></CardHeader><CardContent className="space-y-4">{scouting.quarters.map((quarter) => <QuarterBar key={quarter.quarter} {...quarter} label={t("quarter", { number: quarter.quarter })} sampleLabel={t("quarters.sample", { count: quarter.sampleSize })} winLabel={t("quarters.won", { value: quarter.winPercentage })} />)}</CardContent></Card>
 						<OpponentDataQuality scouting={scouting} />
 					</div>
-					<Card className="overflow-hidden"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle>{t("matches.title")}</CardTitle><CardDescription className="mt-1">{t("matches.descriptionExtended")}</CardDescription></div><CalendarDays className="h-5 w-5 text-primary" /></div></CardHeader><CardContent className="p-0"><div className="hidden grid-cols-[minmax(14rem,1.2fr)_minmax(11rem,.9fr)_minmax(9rem,.7fr)_minmax(10rem,.8fr)_1.5rem] items-center gap-4 border-y bg-muted/25 px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground lg:grid"><span>{t("matches.columns.match")}</span><span>{t("matches.columns.context")}</span><span>{t("matches.columns.result")}</span><span>{t("matches.columns.quality")}</span><span className="sr-only">{t("matches.columns.open")}</span></div>{displayedMatches.map((match) => <MatchRow key={match.id} match={match} locale={locale} homeLabel={t("home")} awayLabel={t("away")} resultLabel={t(`results.${getMatchOutcome(match)}`)} quality={verifiedMatchIds.has(match.id) ? "verified" : detailedMatchIds.has(match.id) ? "partial" : "none"} qualityLabel={t(`matches.quality.${verifiedMatchIds.has(match.id) ? "verified" : detailedMatchIds.has(match.id) ? "partial" : "none"}`)} />)}{scouting.matches.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">{t("noMeetings")}</p>}{scouting.matches.length > 5 && <div className="border-t p-2"><Button type="button" variant="ghost" size="sm" className="w-full" onClick={() => setShowAllMatches((current) => !current)}>{showAllMatches ? t("recent.showRecent") : t("recent.showAll", { count: scouting.matches.length })}</Button></div>}</CardContent></Card>
-				</TabsContent>
-
-				<TabsContent value="analysis" className="space-y-5">
 					<OpponentAdvancedAnalysis scouting={scouting} />
 					<GoalkeeperShotsGoalChart rows={visibleShots} matches={scouting.matches} players={goalkeeperPlayers} />
 					<OpponentPlayersTable scouting={scouting} />
